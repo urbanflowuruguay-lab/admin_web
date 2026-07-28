@@ -67,6 +67,7 @@
             <div class="section-title" style="color: #f0883e;">&#129514; Testing</div>
             <a href="testing_completo.html" target="viewFrame" style="background: rgba(240, 136, 62, 0.1);">&#129514; Testing del Sistema</a>
         </nav>
+        <button onclick="deploy()" style="margin-top:auto; background: #1f6feb; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">&#128640; DEPLOY</button>
     </div>
 
     <div class="content" id="content" style="display:none;">
@@ -104,6 +105,13 @@
                 title.innerText = link.innerText;
             });
         });
+
+        function deploy() {
+            if(!confirm('Redeployar la web?')) return;
+            fetch('https://api.vercel.com/v1/integrations/deploy/prj_Q6onlyGx6pKCM3l50qTMHeU4t0Q7/4kOdpqMupl', {method:'POST'})
+                .then(() => alert('Deploy iniciado! En 30seg se actualiza.'))
+                .catch(() => alert('Error al hacer deploy'));
+        }
     </script>
 </body>
 </html>
