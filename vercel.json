@@ -1,6 +1,7 @@
 {
-  "cleanUrls": false,
-  "trailingSlash": false,
+  "buildCommand": null,
+  "installCommand": null,
+  "framework": null,
   "outputDirectory": ".",
   "headers": [
     {
