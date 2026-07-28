@@ -1,0 +1,1 @@
+ALTER TABLE viajes ADD COLUMN IF NOT EXISTS route_coords JSONB DEFAULT '[]';

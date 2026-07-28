@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualizador de Guía Local</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #1a1a1a; color: white; display: flex; height: 100vh; }
+        #sidebar { width: 300px; background: #0d1117; padding: 20px; border-right: 1px solid #30363d; overflow-y: auto; }
+        #map { flex-grow: 1; background: #21262d; }
+        .file-btn { width: 100%; padding: 10px; margin-bottom: 5px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; cursor: pointer; text-align: left; }
+        .file-btn:hover { background: #30363d; }
+        .popup-content b { color: #58a6ff; font-size: 16px; }
+        .popup-content p { margin: 5px 0; color: #333; }
+        .badge { background: #238636; padding: 2px 6px; border-radius: 10px; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>📍 Mis Locales</h2>
+        <p style="font-size: 12px; color: #8b949e;">Selecciona un archivo descargado:</p>
+        <div id="fileList">Cargando archivos...</div>
+        <hr style="border: 0; border-top: 1px solid #30363d; margin: 20px 0;">
+        <div id="info">
+            <small>Haz clic en un punto del mapa para ver detalles.</small>
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([-34.9011, -56.1645], 13); // Default Montevideo
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let currentLayer = L.layerGroup().addTo(map);
+
+        async function loadFileList() {
+            const res = await fetch('/list-downloads');
+            const files = await res.json();
+            const list = document.getElementById('fileList');
+            list.innerHTML = '';
+            
+            files.forEach(f => {
+                const btn = document.createElement('button');
+                btn.className = 'file-btn';
+                btn.innerText = `📄 ${f}`;
+                btn.onclick = () => loadData(f);
+                list.appendChild(btn);
+            });
+        }
+
+        async function loadData(fileName) {
+            currentLayer.clearLayers();
+            const res = await fetch(`/descargas/${fileName}`);
+            const elements = await res.json();
+            
+            let bounds = [];
+
+            elements.forEach(el => {
+                const lat = el.lat || (el.center ? el.center.lat : null);
+                const lon = el.lon || (el.center ? el.center.lon : null);
+                
+                if (lat && lon) {
+                    const tags = el.tags || {};
+                    const name = tags.name || "Sin nombre";
+                    const street = tags['addr:street'] || "";
+                    const number = tags['addr:housenumber'] || "";
+                    const phone = tags.phone || tags['contact:phone'] || "No disponible";
+                    const web = tags.website || "No disponible";
+
+                    const marker = L.marker([lat, lon]).addTo(currentLayer);
+                    
+                    const popupBody = `
+                        <div class="popup-content">
+                            <b>${name}</b><br>
+                            <p>📍 ${street} ${number}</p>
+                            <p>📞 ${phone}</p>
+                            <p>🌐 <a href="${web}" target="_blank">${web !== 'No disponible' ? 'Visitar Web' : 'N/A'}</a></p>
+                        </div>
+                    `;
+                    marker.bindPopup(popupBody);
+                    bounds.push([lat, lon]);
+                }
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds);
+            }
+        }
+
+        loadFileList();
+    </script>
+</body>
+</html>

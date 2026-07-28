@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pago Exitoso - UrbanFlow</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { max-width: 480px; width: 100%; padding: 20px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px 24px; text-align: center; }
+        .icon { font-size: 64px; margin-bottom: 16px; }
+        h1 { color: #7ee787; font-size: 24px; margin-bottom: 8px; }
+        p { color: #8b949e; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+        .details { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 24px; text-align: left; }
+        .details .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+        .details .label { color: #8b949e; }
+        .details .value { color: #c9d1d9; font-weight: 500; }
+        .btn { display: block; width: 100%; padding: 14px; background: #1f6feb; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary { background: #30363d; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="icon">✅</div>
+            <h1>¡Pago exitoso!</h1>
+            <p>Tu pago fue procesado correctamente por MercadoPago.</p>
+
+            <div class="details" id="paymentDetails">
+                <div class="row"><span class="label">Estado</span><span class="value" style="color:#7ee787">Aprobado</span></div>
+                <div class="row"><span class="label">Payment ID</span><span class="value" id="paymentId">-</span></div>
+                <div class="row"><span class="label">Monto</span><span class="value" id="amount">-</span></div>
+            </div>
+
+            <a href="/" class="btn">Volver al inicio</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Volver al producto</a>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        document.getElementById('paymentId').textContent = params.get('payment_id') || params.get('collection_id') || '-';
+        document.getElementById('amount').textContent = params.get('external_reference') ? 'Verificar' : '-';
+    </script>
+</body>
+</html>

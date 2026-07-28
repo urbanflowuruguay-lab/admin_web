@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>A la Vista - Admin Museo Digital</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; }
+        .header { background: #161b22; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
+        .header h1 { color: #4CAF50; margin: 0; font-size: 18px; }
+        .container { padding: 25px; max-width: 1200px; margin: 0 auto; }
+        .section { background: #161b22; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #30363d; }
+        .section h3 { color: #4CAF50; margin-top: 0; }
+        label { font-size: 11px; font-weight: bold; color: #f39c12; text-transform: uppercase; display: block; margin-bottom: 4px; margin-top: 10px; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 10px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; font-size: 13px; box-sizing: border-box; }
+        textarea { min-height: 100px; resize: vertical; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-green { background: #238636; color: white; }
+        .btn-green:hover { background: #2ea043; }
+        .btn-blue { background: #3b82f6; color: white; }
+        .btn-red { background: #da3633; color: white; }
+        .btn-red:hover { background: #f85149; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .punto-card { background: #21262d; border-radius: 8px; padding: 15px; margin-bottom: 10px; border: 1px solid #30363d; }
+        .punto-card h4 { color: #4CAF50; margin: 0 0 8px 0; }
+        .punto-card p { color: #8b949e; margin: 0; font-size: 12px; }
+        .fotos-row { display: flex; gap: 10px; margin-top: 8px; }
+        .foto-box { width: 120px; height: 80px; background: #0d1117; border: 1px dashed #30363d; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; }
+        .foto-box img { width: 100%; height: 100%; object-fit: cover; }
+        .foto-label { position: absolute; top: 2px; left: 4px; font-size: 9px; color: #f39c12; background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 3px; }
+        .actions { display: flex; gap: 5px; margin-top: 8px; }
+        #mapaAdmin { width: 100%; height: 400px; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 15px; }
+        .leaflet-popup-content-wrapper { background: #161b22; color: #c9d1d9; border-radius: 8px; }
+        .leaflet-popup-tip { background: #161b22; }
+        .map-hint { color: #8b949e; font-size: 12px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ A la Vista - Museo Digital</h1>
+        <span style="color:#8b949e">Admin Panel</span>
+    </div>
+
+    <div class="container">
+        <!-- MAPA -->
+        <div class="section">
+            <h3>📍 Mapa de Puntos</h3>
+            <p class="map-hint">Hacé click en el mapa para agregar un nuevo punto. Click en un marcador para editarlo.</p>
+            <div id="mapaAdmin"></div>
+        </div>
+
+        <!-- CONFIG CIUDAD -->
+        <div class="section">
+            <h3>⚙️ Configuración de Ciudad</h3>
+
+            <!-- PREVIEW DEL BANNER -->
+            <div id="bannerPreview" style="position:relative;width:100%;max-width:700px;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid #30363d;">
+                <img src="alavista.png" style="width:100%;display:block;">
+                <span id="previewCiudad" style="position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);color:#FFD700;font-size:36px;font-weight:bold;font-style:italic;text-shadow:2px 2px 6px rgba(0,0,0,0.8);font-family:'Georgia',serif;pointer-events:none;">Ciudad</span>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <label>Nombre de la Ciudad / Pueblo</label>
+                    <input type="text" id="ciudadNombre" placeholder="Ej: Montevideo" oninput="updatePreview()">
+                </div>
+                <div>
+                    <label>País</label>
+                    <select id="paisCode" style="width:100%;padding:10px;border:1px solid #30363d;border-radius:6px;background:#0d1117;color:#c9d1d9;font-size:13px;">
+                        <option value="UY">Uruguay</option>
+                        <option value="AR">Argentina</option>
+                        <option value="BR">Brasil</option>
+                        <option value="PY">Paraguay</option>
+                        <option value="CL">Chile</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Latitud Centro</label>
+                    <input type="number" step="any" id="latCenter" placeholder="-34.9011">
+                </div>
+                <div>
+                    <label>Longitud Centro</label>
+                    <input type="number" step="any" id="lonCenter" placeholder="-56.1645">
+                </div>
+            </div>
+            <button class="btn btn-green" onclick="saveConfig()" style="margin-top:15px;">💾 Guardar Configuración</button>
+        </div>
+
+        <!-- LISTA DE PUNTOS -->
+        <div class="section">
+            <h3>📋 Lista de Puntos</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <span id="puntoCount" style="color:#8b949e;">0 puntos</span>
+                <button class="btn btn-blue" onclick="showAddPunto()">+ Agregar Punto</button>
+            </div>
+            <div id="puntosList"></div>
+        </div>
+
+        <!-- FORMULARIO PUNTO -->
+        <div id="puntoForm" class="section" style="display:none;">
+            <h3 id="formTitle">➕ Nuevo Punto</h3>
+            <input type="hidden" id="editPuntoId">
+            <div class="grid-2">
+                <div>
+                    <label>Título</label>
+                    <input type="text" id="puntoTitulo" placeholder="Ej: Teatro Solís">
+                </div>
+                <div>
+                    <label>Subtítulo</label>
+                    <input type="text" id="puntoSubtitulo" placeholder="Ej: Inaugurado en 1856">
+                </div>
+            </div>
+            <label>Relato Histórico</label>
+            <textarea id="puntoRelato" placeholder="Escribí la historia de este lugar..."></textarea>
+            <div class="grid-2">
+                <div>
+                    <label>Latitud</label>
+                    <input type="number" step="any" id="puntoLat" placeholder="-34.9050">
+                </div>
+                <div>
+                    <label>Longitud</label>
+                    <input type="number" step="any" id="puntoLon" placeholder="-56.2000">
+                </div>
+            </div>
+
+            <label>Fotos Antes / Después</label>
+            <div class="fotos-row">
+                <div>
+                    <div class="foto-box" onclick="document.getElementById('fileAntes').click()">
+                        <div class="foto-label">ANTES</div>
+                        <img id="previewAntes" style="display:none;">
+                        <span id="placeholderAntes" style="color:#555;font-size:11px;">Subir foto</span>
+                    </div>
+                    <input type="file" id="fileAntes" accept="image/*" style="display:none;" onchange="previewFoto(this,'previewAntes','placeholderAntes')">
+                </div>
+                <div>
+                    <div class="foto-box" onclick="document.getElementById('fileDespues').click()">
+                        <div class="foto-label">DESPUÉS</div>
+                        <img id="previewDespues" style="display:none;">
+                        <span id="placeholderDespues" style="color:#555;font-size:11px;">Subir foto</span>
+                    </div>
+                    <input type="file" id="fileDespues" accept="image/*" style="display:none;" onchange="previewFoto(this,'previewDespues','placeholderDespues')">
+                </div>
+            </div>
+
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button class="btn btn-green" onclick="savePunto()">💾 Guardar Punto</button>
+                <button class="btn btn-red" onclick="hideForm()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let configId = null;
+        let currentFileAntes = null;
+        let currentFileDespues = null;
+        let map, markers = [];
+
+        function updatePreview() {
+            const nombre = document.getElementById('ciudadNombre').value || 'Ciudad';
+            document.getElementById('previewCiudad').textContent = nombre;
+        }
+
+        async function init() {
+            const { data } = await sb.from('alavista_config').select('*').limit(1).single();
+            if (data) {
+                configId = data.id;
+                document.getElementById('ciudadNombre').value = data.ciudad_nombre || '';
+                document.getElementById('paisCode').value = data.pais_code || 'UY';
+                document.getElementById('latCenter').value = data.lat_center || '';
+                document.getElementById('lonCenter').value = data.lon_center || '';
+                initMap(data.lat_center || -34.9011, data.lon_center || -56.1645, data.zoom_default || 14);
+            } else {
+                initMap(-34.9011, -56.1645, 14);
+            }
+            loadPuntos();
+        }
+
+        function initMap(lat, lon, zoom) {
+            map = L.map('mapaAdmin').setView([lat, lon], zoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            map.on('click', function(e) {
+                const lat = e.latlng.lat.toFixed(6);
+                const lon = e.latlng.lng.toFixed(6);
+                document.getElementById('puntoLat').value = lat;
+                document.getElementById('puntoLon').value = lon;
+                showAddPunto();
+            });
+        }
+
+        function loadPuntos() {
+            if (!configId) return;
+            sb.from('alavista_puntos').select('*, alavista_fotos(*)').eq('config_id', configId).order('orden').then(({ data }) => {
+                const list = document.getElementById('puntosList');
+                document.getElementById('puntoCount').textContent = `${data?.length || 0} puntos`;
+                if (!data || data.length === 0) { list.innerHTML = '<p style="color:#8b949e">Sin puntos cargados.</p>'; return; }
+                markers.forEach(m => map.removeLayer(m));
+                markers = [];
+                data.forEach(p => {
+                    const marker = L.marker([p.lat, p.lon]).addTo(map)
+                        .bindPopup(`<b>${p.titulo}</b><br>${p.subtitulo || ''}<br><a href="#" onclick="editPunto('${p.id}');return false;" style="color:#4CAF50;">✏️ Editar</a>`);
+                    markers.push(marker);
+                });
+                list.innerHTML = data.map(p => `
+                    <div class="punto-card">
+                        <h4>${p.titulo}</h4>
+                        <p>${p.subtitulo || ''}</p>
+                        <p style="margin-top:5px;">${(p.relato || '').substring(0, 120)}${(p.relato||'').length > 120 ? '...' : ''}</p>
+                        <div class="fotos-row">
+                            ${p.alavista_fotos?.map(f => `
+                                <div class="foto-box">
+                                    ${f.foto_antes_url ? `<img src="${f.foto_antes_url}">` : '<span style="color:#555;font-size:10px;">Sin antes</span>'}
+                                    <div class="foto-label">ANTES</div>
+                                </div>
+                                <div class="foto-box">
+                                    ${f.foto_despues_url ? `<img src="${f.foto_despues_url}">` : '<span style="color:#555;font-size:10px;">Sin después</span>'}
+                                    <div class="foto-label">DESPUÉS</div>
+                                </div>
+                            `).join('') || '<span style="color:#555;font-size:10px;">Sin fotos</span>'}
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-blue" style="font-size:11px;padding:5px 10px;" onclick="editPunto('${p.id}')">✏️ Editar</button>
+                            <button class="btn btn-red" style="font-size:11px;padding:5px 10px;" onclick="deletePunto('${p.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+
+        function showAddPunto() {
+            document.getElementById('puntoForm').style.display = 'block';
+            document.getElementById('formTitle').textContent = '➕ Nuevo Punto';
+            document.getElementById('editPuntoId').value = '';
+            document.getElementById('puntoTitulo').value = '';
+            document.getElementById('puntoSubtitulo').value = '';
+            document.getElementById('puntoRelato').value = '';
+            if (!document.getElementById('puntoLat').value) {
+                document.getElementById('puntoLat').value = '';
+                document.getElementById('puntoLon').value = '';
+            }
+            document.getElementById('previewAntes').style.display = 'none';
+            document.getElementById('previewDespues').style.display = 'none';
+            document.getElementById('placeholderAntes').style.display = '';
+            document.getElementById('placeholderDespues').style.display = '';
+            currentFileAntes = null;
+            currentFileDespues = null;
+            document.getElementById('puntoForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideForm() { document.getElementById('puntoForm').style.display = 'none'; }
+
+        function previewFoto(input, imgId, labelId) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById(imgId).src = e.target.result;
+                document.getElementById(imgId).style.display = 'block';
+                document.getElementById(labelId).style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+            if (imgId === 'previewAntes') currentFileAntes = file;
+            else currentFileDespues = file;
+        }
+
+        async function savePunto() {
+            const puntoData = {
+                config_id: configId,
+                titulo: document.getElementById('puntoTitulo').value,
+                subtitulo: document.getElementById('puntoSubtitulo').value,
+                relato: document.getElementById('puntoRelato').value,
+                lat: parseFloat(document.getElementById('puntoLat').value),
+                lon: parseFloat(document.getElementById('puntoLon').value),
+                orden: 0
+            };
+
+            if (!puntoData.titulo || !puntoData.lat || !puntoData.lon) { alert('Título, latitud y longitud son obligatorios.'); return; }
+
+            const editId = document.getElementById('editPuntoId').value;
+            let puntoId;
+
+            if (editId) {
+                await sb.from('alavista_puntos').update(puntoData).eq('id', editId);
+                puntoId = editId;
+            } else {
+                const { data } = await sb.from('alavista_puntos').insert(puntoData).select().single();
+                puntoId = data.id;
+            }
+
+            if (currentFileAntes || currentFileDespues) {
+                await sb.from('alavista_fotos').delete().eq('punto_id', puntoId);
+                let fotoAntesUrl = null, fotoDespuesUrl = null;
+                if (currentFileAntes) {
+                    const path = `${puntoId}/antes_${Date.now()}.jpg`;
+                    await sb.storage.from('alavista_fotos').upload(path, currentFileAntes, { upsert: true });
+                    fotoAntesUrl = sb.storage.from('alavista_fotos').getPublicUrl(path).data.publicUrl;
+                }
+                if (currentFileDespues) {
+                    const path = `${puntoId}/despues_${Date.now()}.jpg`;
+                    await sb.storage.from('alavista_fotos').upload(path, currentFileDespues, { upsert: true });
+                    fotoDespuesUrl = sb.storage.from('alavista_fotos').getPublicUrl(path).data.publicUrl;
+                }
+                await sb.from('alavista_fotos').insert({ punto_id: puntoId, foto_antes_url: fotoAntesUrl, foto_despues_url: fotoDespuesUrl });
+            }
+
+            alert(editId ? 'Punto actualizado.' : 'Punto creado.');
+            hideForm();
+            loadPuntos();
+        }
+
+        async function editPunto(id) {
+            const { data } = await sb.from('alavista_puntos').select('*').eq('id', id).single();
+            document.getElementById('puntoForm').style.display = 'block';
+            document.getElementById('formTitle').textContent = '✏️ Editar Punto';
+            document.getElementById('editPuntoId').value = data.id;
+            document.getElementById('puntoTitulo').value = data.titulo || '';
+            document.getElementById('puntoSubtitulo').value = data.subtitulo || '';
+            document.getElementById('puntoRelato').value = data.relato || '';
+            document.getElementById('puntoLat').value = data.lat || '';
+            document.getElementById('puntoLon').value = data.lon || '';
+            document.getElementById('puntoForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function deletePunto(id) {
+            if (!confirm('¿Eliminar este punto?')) return;
+            await sb.from('alavista_fotos').delete().eq('punto_id', id);
+            await sb.from('alavista_puntos').delete().eq('id', id);
+            loadPuntos();
+        }
+
+        init();
+    </script>
+</body>
+</html>

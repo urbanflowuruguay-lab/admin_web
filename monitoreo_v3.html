@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Monitoreo Real-Time V3 - UrbanFlow</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
+    <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #0d1117; color: white; overflow: hidden; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .controls {
+            position: absolute; top: 15px; left: 15px; z-index: 10;
+            background: rgba(22, 27, 34, 0.95); padding: 12px; border-radius: 10px;
+            border: 1px solid #30363d; display: flex; flex-direction: column; gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .btn-group { display: flex; gap: 5px; }
+        .btn {
+            padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer;
+            font-weight: bold; font-size: 11px; background: #21262d; color: #c9d1d9;
+            transition: 0.2s; border: 1px solid #30363d; text-transform: uppercase;
+        }
+        .btn.active { background: #1f6feb; color: white; border-color: #58a6ff; }
+        .marker-label {
+            background: rgba(0,0,0,0.8); color: white; padding: 2px 8px;
+            border-radius: 4px; font-size: 11px; white-space: nowrap;
+            font-weight: bold; border: 1px solid #58a6ff; pointer-events: none;
+        }
+        .car-marker {
+            background-size: contain; background-position: center; background-repeat: no-repeat;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+            transition: transform 0.5s linear, opacity 0.3s ease; /* Movimiento ultra suave */
+        }
+    </style>
+</head>
+<body>
+<div class="controls">
+    <div style="font-weight: bold; font-size: 12px; color: #58a6ff; margin-bottom: 2px;">🛰️ MONITOR ESTABLE V3</div>
+    <div class="btn-group">
+        <button id="btnAll" class="btn active" onclick="setFilter('all')">TODOS</button>
+        <button id="btnAutos" class="btn" onclick="setFilter('auto')">AUTOS</button>
+        <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">TAXIS</button>
+    </div>
+    <div id="status" style="font-size: 9px; color: #8b949e;">Conectando...</div>
+</div>
+<div id="map"></div>
+
+<script>
+    const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentFilter = 'all';
+    const markers = {};
+    const lastUpdate = {};
+
+    const map = new maplibregl.Map({
+        container: 'map',
+        style: 'https://tiles.openfreemap.org/styles/dark',
+        center: [-56.1645, -34.9011],
+        zoom: 13,
+        pitch: 45
+    });
+
+    function setFilter(f) {
+        currentFilter = f;
+        document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn' + (f==='all'?'All':f==='auto'?'Autos':'Taxis')).classList.add('active');
+        Object.keys(markers).forEach(id => {
+            markers[id].marker.getElement().style.display = (currentFilter==='all' || markers[id].tipo === currentFilter) ? 'flex' : 'none';
+        });
+    }
+
+    function upsertMarker(data) {
+        if (!data.id || !data.lat || !data.lng) return;
+        const id = String(data.id);
+        const now = Date.now();
+        
+        // Si el dato es idéntico al anterior, ignoramos para no saturar el mapa
+        if (markers[id] && markers[id].lat === data.lat && markers[id].lng === data.lng) {
+            lastUpdate[id] = now;
+            return;
+        }
+
+        lastUpdate[id] = now;
+
+        if (markers[id]) {
+            // MOVER EXISTENTE
+            markers[id].marker.setLngLat([data.lng, data.lat]);
+            const el = markers[id].marker.getElement();
+            el.style.opacity = "1";
+            const car = el.querySelector('.car-marker');
+            if (car) car.style.opacity = data.status === 'ocupado' ? '0.35' : '1';
+            markers[id].lat = data.lat;
+            markers[id].lng = data.lng;
+        } else {
+            // CREAR NUEVO
+            const container = document.createElement('div');
+            container.style.cssText = 'display:flex;flex-direction:column;align-items:center;transition:opacity 0.5s;';
+            
+            const label = document.createElement('div');
+            label.className = 'marker-label';
+            label.innerText = data.nombre || 'Chofer';
+            container.appendChild(label);
+
+            const car = document.createElement('div');
+            car.className = 'car-marker';
+            car.style.width = '32px'; car.style.height = '32px';
+            car.style.backgroundImage = `url(${data.tipo === 'taxi' ? 'taxi.png' : 'autorojo.png'})`;
+            car.style.opacity = data.status === 'ocupado' ? '0.35' : '1';
+            container.appendChild(car);
+
+            const marker = new maplibregl.Marker({ element: container, pitchAlignment: 'viewport' })
+                .setLngLat([data.lng, data.lat])
+                .addTo(map);
+
+            markers[id] = { marker, tipo: data.tipo || 'auto', lat: data.lat, lng: data.lng };
+            
+            // Auto-centrar la primera vez
+            if (Object.keys(markers).length === 1) map.flyTo({ center: [data.lng, data.lat], zoom: 15 });
+        }
+    }
+
+    // CONEXIÓN
+    const channel = supabaseClient.channel('monitoreo_choferes');
+    
+    channel
+        .on('presence', { event: 'sync' }, () => {
+            const state = channel.presenceState();
+            Object.values(state).forEach(presences => {
+                presences.forEach(p => {
+                    const id = String(p.id || p.user_id);
+                    if (id && !id.startsWith('admin') && p.lat) {
+                        // Solo creamos si no existe, no movemos para evitar el parpadeo del sync de 3s
+                        if (!markers[id]) upsertMarker(p);
+                    }
+                });
+            });
+        })
+        .on('broadcast', { event: 'location' }, ({ payload }) => {
+            // El broadcast es el que manda, aquí es donde movemos
+            upsertMarker(payload);
+        })
+        .subscribe((status) => {
+            document.getElementById('status').innerText = "RED: " + status;
+        });
+
+    // LIMPIEZA LENTA (60 segundos)
+    setInterval(() => {
+        const now = Date.now();
+        Object.keys(markers).forEach(id => {
+            const diff = now - lastUpdate[id];
+            if (diff > 60000) {
+                markers[id].marker.remove();
+                delete markers[id];
+                delete lastUpdate[id];
+            } else if (diff > 30000) {
+                markers[id].marker.getElement().style.opacity = "0.3";
+            }
+        });
+    }, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Empresa - UrbanFlow</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+
+        .header { background: #161b22; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; position: sticky; top: 0; z-index: 100; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header-logo { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: #21262d; }
+        .header h1 { font-size: 18px; color: #58a6ff; }
+        .header .empresa-nombre { color: #8b949e; font-size: 13px; }
+        .header .btn-logout { background: #da3633; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .header .btn-logout:hover { opacity: 0.85; }
+
+        .tabs { display: flex; gap: 0; background: #161b22; border-bottom: 1px solid #30363d; padding: 0 24px; overflow-x: auto; position: sticky; top: 65px; z-index: 99; }
+        .tab { padding: 12px 18px; cursor: pointer; color: #8b949e; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+        .tab:hover { color: #c9d1d9; }
+        .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+        .tab .badge { background: #da3633; color: white; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
+
+        .container { padding: 20px 24px; max-width: 960px; margin: 0 auto; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+        .card h3 { color: #58a6ff; margin-bottom: 12px; font-size: 16px; }
+        .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+        .form-row .form-group { flex: 1; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; color: #8b949e; font-size: 12px; margin-bottom: 4px; text-transform: uppercase; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #58a6ff; outline: none; }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: #1f6feb; color: white; }
+        .btn-success { background: #238636; color: white; }
+        .btn-danger { background: #da3633; color: white; }
+        .btn-secondary { background: #30363d; color: #c9d1d9; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #0d1117; padding: 10px 12px; text-align: left; font-size: 12px; color: #8b949e; text-transform: uppercase; border-bottom: 1px solid #30363d; }
+        td { padding: 10px 12px; border-bottom: 1px solid #21262d; font-size: 14px; }
+        tr:hover { background: #0d1117; }
+        .badge-status { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-recibido { background: #1f6feb; color: #79c0ff; }
+        .badge-preparando { background: #9e6a03; color: #f0e68c; }
+        .badge-listo { background: #238636; color: #7ee787; }
+        .badge-cancelado { background: #da3633; color: #ffa198; }
+        .badge-pendiente { background: #9e6a03; color: #f0e68c; }
+        .badge-confirmada { background: #238636; color: #7ee787; }
+        .badge-rechazada { background: #da3633; color: #ffa198; }
+        .actions { display: flex; gap: 6px; }
+        .empty { text-align: center; padding: 40px; color: #484f58; }
+        .producto-img { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; background: #21262d; }
+        .pedido-card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .pedido-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .pedido-id { font-weight: bold; color: #58a6ff; font-size: 15px; }
+        .pedido-items { color: #8b949e; font-size: 13px; margin-bottom: 8px; }
+        .pedido-total { font-weight: bold; color: #7ee787; font-size: 16px; }
+
+        #loginSection { max-width: 400px; margin: 80px auto; }
+        #loginSection h2 { color: #58a6ff; margin-bottom: 24px; text-align: center; }
+
+        .toggle-activo { width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; position: relative; }
+        .toggle-activo.on { background: #238636; }
+        .toggle-activo.off { background: #da3633; }
+        .toggle-activo::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: white; top: 2px; transition: 0.2s; }
+        .toggle-activo.on::after { left: 20px; }
+        .toggle-activo.off::after { left: 2px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+        .stat-card .stat-num { font-size: 28px; font-weight: bold; color: #58a6ff; }
+        .stat-card .stat-label { font-size: 12px; color: #8b949e; margin-top: 4px; text-transform: uppercase; }
+
+        .upload-area { border: 2px dashed #30363d; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+        .upload-area:hover { border-color: #58a6ff; }
+        .upload-area img { max-width: 200px; max-height: 120px; border-radius: 8px; object-fit: cover; margin-top: 8px; }
+        .upload-area p { color: #8b949e; font-size: 13px; }
+
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 14px; border: 1px solid #30363d; border-radius: 20px; background: transparent; color: #8b949e; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .filter-btn.active { background: #1f6feb; color: white; border-color: #1f6feb; }
+        .filter-btn:hover { border-color: #58a6ff; color: #c9d1d9; }
+
+        .mesa-card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .mesa-info { display: flex; align-items: center; gap: 12px; }
+        .mesa-num { font-size: 20px; font-weight: bold; color: #58a6ff; }
+        .mesa-detalle { color: #8b949e; font-size: 13px; }
+        .mesa-estado { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .estado-disponible { background: #238636; color: #7ee787; }
+        .estado-ocupada { background: #da3633; color: #ffa198; }
+        .estado-reservada { background: #9e6a03; color: #f0e68c; }
+
+        .reserva-card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .reserva-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .reserva-cliente { font-weight: bold; color: #c9d1d9; font-size: 15px; }
+        .reserva-detalles { color: #8b949e; font-size: 13px; line-height: 1.8; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginSection" class="container">
+    <h2>Panel de Empresa</h2>
+    <div class="card">
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="loginEmail" placeholder="tu@email.com">
+        </div>
+        <div class="form-group">
+            <label>Contrasena</label>
+            <input type="password" id="loginPassword" placeholder="Tu contrasena">
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:12px" onclick="login()">Iniciar Sesion</button>
+        <p id="loginError" style="color:#da3633;text-align:center;margin-top:12px;display:none"></p>
+    </div>
+</div>
+
+<!-- PANEL -->
+<div id="panelSection" style="display:none">
+    <div class="header">
+        <div class="header-left">
+            <img id="headerLogo" class="header-logo" src="" style="display:none">
+            <div>
+                <h1>UrbanFlow</h1>
+                <span class="empresa-nombre" id="empresaNombre"></span>
+            </div>
+        </div>
+        <button class="btn-logout" onclick="logout()">Cerrar Sesion</button>
+    </div>
+
+    <div class="tabs" id="tabsBar">
+        <div class="tab active" id="tab_dashboard" onclick="switchTab('dashboard')">Inicio</div>
+        <div class="tab" id="tab_pedidos" onclick="switchTab('pedidos')">Pedidos <span class="badge" id="badge_pedidos" style="display:none">0</span></div>
+        <div class="tab" id="tab_reservas" onclick="switchTab('reservas')" style="display:none">Reservas <span class="badge" id="badge_reservas" style="display:none">0</span></div>
+        <div class="tab" id="tab_mesas" onclick="switchTab('mesas')" style="display:none">Mesas</div>
+        <div class="tab" id="tab_productos" onclick="switchTab('productos')">Carta</div>
+        <div class="tab" id="tab_usuarios" onclick="switchTab('usuarios')">Usuarios</div>
+        <div class="tab" id="tab_perfil" onclick="switchTab('perfil')">Perfil</div>
+    </div>
+
+    <div class="container" id="content"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let empresaId = "";
+let empresaData = null;
+let currentTab = "dashboard";
+let pedidoFilter = "todos";
+let reservaFilter = "todas";
+
+function compressImage(file, maxWidth, quality) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement("canvas");
+                let w = img.width, h = img.height;
+                if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                canvas.toBlob(function(blob) {
+                    resolve(new File([blob], file.name, { type: "image/jpeg" }));
+                }, "image/jpeg", quality);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function login() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const pass = document.getElementById("loginPassword").value.trim();
+    if (!email || !pass) { showLoginError("Completa email y contrasena"); return; }
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { showLoginError("Email o contrasena incorrectos"); return; }
+
+    const userId = data.user.id;
+    const { data: empresas } = await sb.from("empresas").select("*").eq("usuario_id", userId).eq("status", "aprobado");
+    if (!empresas || empresas.length === 0) { showLoginError("No se encontro empresa aprobada"); return; }
+
+    empresaId = empresas[0].id;
+    empresaData = empresas[0];
+
+    document.getElementById("empresaNombre").textContent = empresaData.nombre;
+
+    if (empresaData.logo_url) {
+        const logo = document.getElementById("headerLogo");
+        logo.src = empresaData.logo_url;
+        logo.style.display = "block";
+    }
+
+    if (empresaData.rubro_tipo === "comida") {
+        document.getElementById("tab_reservas").style.display = "";
+        document.getElementById("tab_mesas").style.display = "";
+    }
+
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("panelSection").style.display = "block";
+    switchTab("dashboard");
+}
+
+function showLoginError(msg) {
+    const el = document.getElementById("loginError");
+    el.textContent = msg;
+    el.style.display = "block";
+}
+
+function logout() {
+    sb.auth.signOut();
+    empresaId = "";
+    empresaData = null;
+    document.getElementById("panelSection").style.display = "none";
+    document.getElementById("loginSection").style.display = "block";
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.getElementById("tab_" + tab).classList.add("active");
+    if (tab === "dashboard") loadDashboard();
+    else if (tab === "pedidos") loadPedidos();
+    else if (tab === "reservas") loadReservas();
+    else if (tab === "mesas") loadMesas();
+    else if (tab === "productos") loadProductos();
+    else if (tab === "usuarios") loadUsuarios();
+    else if (tab === "perfil") loadPerfil();
+}
+
+function refreshBadges() {
+    sb.from("pedidos").select("id,estado").eq("empresa_id", empresaId).then(({ data }) => {
+        const nuevos = (data || []).filter(p => p.estado === "recibido").length;
+        const badge = document.getElementById("badge_pedidos");
+        badge.textContent = nuevos;
+        badge.style.display = nuevos > 0 ? "inline" : "none";
+    });
+    if (empresaData?.rubro_tipo === "comida") {
+        sb.from("reservas").select("id,estado").eq("empresa_id", empresaId).eq("estado", "pendiente").then(({ data }) => {
+            const badge = document.getElementById("badge_reservas");
+            badge.textContent = (data || []).length;
+            badge.style.display = data && data.length > 0 ? "inline" : "none";
+        });
+    }
+}
+
+async function loadDashboard() {
+    const content = document.getElementById("content");
+    content.innerHTML = '<div class="empty">Cargando...</div>';
+
+    const [pedidosRes, productosRes] = await Promise.all([
+        sb.from("pedidos").select("id,estado,total").eq("empresa_id", empresaId),
+        sb.from("productos_empresa").select("id,activo").eq("empresa_id", empresaId)
+    ]);
+
+    const pedidos = pedidosRes.data || [];
+    const productos = productosRes.data || [];
+    const recibidos = pedidos.filter(p => p.estado === "recibido").length;
+    const preparando = pedidos.filter(p => p.estado === "preparando").length;
+    const listos = pedidos.filter(p => p.estado === "listo").length;
+    const totalVentas = pedidos.filter(p => p.estado !== "cancelado").reduce((s, p) => s + (p.total || 0), 0);
+    const productosActivos = productos.filter(p => p.activo).length;
+
+    let reservasHoy = 0;
+    let mesasDisp = 0;
+    if (empresaData?.rubro_tipo === "comida") {
+        const hoy = new Date().toISOString().split("T")[0];
+        const [resRes, mesasRes] = await Promise.all([
+            sb.from("reservas").select("id").eq("empresa_id", empresaId).eq("fecha", hoy).not("estado", "eq", "cancelada"),
+            sb.from("mesas").select("id,estado").eq("empresa_id", empresaId)
+        ]);
+        reservasHoy = (resRes.data || []).length;
+        mesasDisp = (mesasRes.data || []).filter(m => m.estado === "disponible").length;
+    }
+
+    content.innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-num" style="color:#f0e68c">${recibidos}</div><div class="stat-label">Nuevos pedidos</div></div>
+            <div class="stat-card"><div class="stat-num" style="color:#f0e68c">${preparando}</div><div class="stat-label">En preparacion</div></div>
+            <div class="stat-card"><div class="stat-num" style="color:#7ee787">${listos}</div><div class="stat-label">Listos para entregar</div></div>
+            <div class="stat-card"><div class="stat-num" style="color:#7ee787">$${totalVentas.toFixed(0)}</div><div class="stat-label">Ventas totales</div></div>
+            <div class="stat-card"><div class="stat-num">${productosActivos}</div><div class="stat-label">Productos activos</div></div>
+            ${empresaData?.rubro_tipo === "comida" ? `
+            <div class="stat-card"><div class="stat-num" style="color:#f0e68c">${reservasHoy}</div><div class="stat-label">Reservas hoy</div></div>
+            <div class="stat-card"><div class="stat-num" style="color:#7ee787">${mesasDisp}</div><div class="stat-label">Mesas libres</div></div>
+            ` : ""}
+        </div>
+        ${recibidos > 0 ? `<div class="card" style="border-color:#f0e68c">
+            <h3 style="color:#f0e68c">Tenes ${recibidos} pedido(s) nuevo(s) esperando</h3>
+            <p style="color:#8b949e;margin-bottom:12px">Anda a la pestana "Pedidos" para aceptarlos o rechazarlos.</p>
+            <button class="btn btn-primary" onclick="switchTab('pedidos')">Ver Pedidos</button>
+        </div>` : ""}
+        ${reservasHoy > 0 ? `<div class="card" style="border-color:#f0e68c">
+            <h3 style="color:#f0e68c">${reservasHoy} reserva(s) para hoy</h3>
+            <button class="btn btn-primary" onclick="switchTab('reservas')">Ver Reservas</button>
+        </div>` : ""}
+    `;
+}
+
+async function loadPedidos() {
+    const { data: pedidos } = await sb.from("pedidos").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false });
+    refreshBadges();
+
+    const content = document.getElementById("content");
+    const filters = ["todos", "recibido", "preparando", "listo", "cancelado"];
+
+    let html = `<div class="filter-bar">
+        ${filters.map(f => `<button class="filter-btn ${pedidoFilter === f ? 'active' : ''}" onclick="pedidoFilter='${f}';loadPedidos()">${f === "todos" ? "Todos" : f.charAt(0).toUpperCase() + f.slice(1)}</button>`).join("")}
+    </div>`;
+
+    let filtered = pedidos || [];
+    if (pedidoFilter !== "todos") filtered = filtered.filter(p => p.estado === pedidoFilter);
+
+    if (filtered.length === 0) {
+        html += '<div class="empty"><p>Sin pedidos</p></div>';
+        content.innerHTML = html;
+        return;
+    }
+
+    const colores = { recibido: "badge-recibido", preparando: "badge-preparando", listo: "badge-listo", cancelado: "badge-cancelado" };
+
+    html += filtered.map(p => {
+        const fecha = p.created_at ? new Date(p.created_at).toLocaleString("es-UY") : "";
+        const shortId = p.id.substring(0, 8).toUpperCase();
+        let acciones = "";
+        if (p.estado === "recibido") {
+            acciones = `<button class="btn btn-primary btn-sm" onclick="updatePedido('${p.id}','preparando')">Preparar</button>
+                        <button class="btn btn-danger btn-sm" onclick="updatePedido('${p.id}','cancelado')">Cancelar</button>`;
+        } else if (p.estado === "preparando") {
+            acciones = `<button class="btn btn-success btn-sm" onclick="updatePedido('${p.id}','listo')">Listo</button>
+                        <button class="btn btn-danger btn-sm" onclick="updatePedido('${p.id}','cancelado')">Cancelar</button>`;
+        }
+        return `<div class="pedido-card">
+            <div class="pedido-header">
+                <span class="pedido-id">#${shortId}</span>
+                <span class="badge-status ${colores[p.estado] || ''}">${p.estado.toUpperCase()}</span>
+            </div>
+            <div class="pedido-items">${p.notas || "Sin notas"} | ${p.tipo_entrega || "Retiro"}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="pedido-total">$${(p.total || 0).toFixed(0)}</span>
+                <div class="actions">${acciones}</div>
+            </div>
+            <div style="color:#484f58;font-size:12px;margin-top:4px">${fecha}</div>
+        </div>`;
+    }).join("");
+
+    content.innerHTML = html;
+}
+
+async function updatePedido(id, nuevoEstado) {
+    await sb.from("pedidos").update({ estado: nuevoEstado }).eq("id", id);
+    loadPedidos();
+}
+
+async function loadReservas() {
+    const content = document.getElementById("content");
+    const filters = ["todas", "pendiente", "confirmada", "rechazada", "completada"];
+
+    let html = `<div class="filter-bar">
+        ${filters.map(f => `<button class="filter-btn ${reservaFilter === f ? 'active' : ''}" onclick="reservaFilter='${f}';loadReservas()">${f === "todas" ? "Todas" : f.charAt(0).toUpperCase() + f.slice(1)}</button>`).join("")}
+    </div>`;
+
+    let query = sb.from("reservas").select("*, mesas(numero)").eq("empresa_id", empresaId).order("fecha", { ascending: true });
+    if (reservaFilter !== "todas") query = query.eq("estado", reservaFilter);
+    const { data: reservas } = await query;
+
+    if (!reservas || reservas.length === 0) {
+        html += '<div class="empty"><p>Sin reservas</p></div>';
+        content.innerHTML = html;
+        return;
+    }
+
+    const colores = { pendiente: "badge-pendiente", confirmada: "badge-confirmada", rechazada: "badge-rechazada", completada: "badge-listo", cancelada: "badge-cancelado" };
+
+    html += reservas.map(r => {
+        const mesaNum = r.mesas ? r.mesas.numero : "Sin asignar";
+        let acciones = "";
+        if (r.estado === "pendiente") {
+            acciones = `<button class="btn btn-success btn-sm" onclick="updateReserva('${r.id}','confirmada')">Confirmar</button>
+                        <button class="btn btn-danger btn-sm" onclick="updateReserva('${r.id}','rechazada')">Rechazar</button>`;
+        } else if (r.estado === "confirmada") {
+            acciones = `<button class="btn btn-primary btn-sm" onclick="updateReserva('${r.id}','completada')">Completada</button>
+                        <button class="btn btn-danger btn-sm" onclick="updateReserva('${r.id}','cancelada')">Cancelar</button>`;
+        }
+        return `<div class="reserva-card">
+            <div class="reserva-header">
+                <span class="reserva-cliente">${r.nombre_contacto || "Sin nombre"}</span>
+                <span class="badge-status ${colores[r.estado] || ''}">${r.estado.toUpperCase()}</span>
+            </div>
+            <div class="reserva-detalles">
+                ${r.fecha} ${r.hora} | ${r.cantidad_personas} personas | Mesa: ${mesaNum}<br>
+                Tel: ${r.telefono_contacto || "-"} | Email: ${r.email_contacto || "-"}<br>
+                ${r.notas ? "Notas: " + r.notas : ""}
+            </div>
+            ${acciones ? `<div class="actions" style="margin-top:10px">${acciones}</div>` : ""}
+        </div>`;
+    }).join("");
+
+    content.innerHTML = html;
+}
+
+async function updateReserva(id, nuevoEstado) {
+    await sb.from("reservas").update({ estado: nuevoEstado }).eq("id", id);
+    loadReservas();
+}
+
+async function loadMesas() {
+    const { data: mesas } = await sb.from("mesas").select("*").eq("empresa_id", empresaId).order("numero", { ascending: true });
+    const content = document.getElementById("content");
+
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="color:#58a6ff;margin:0">Mesas</h3>
+        <button class="btn btn-primary" onclick="showMesaDialog()">+ Agregar Mesa</button>
+    </div>`;
+
+    if (!mesas || mesas.length === 0) {
+        html += '<div class="empty"><p>Sin mesas configuradas. Agrega una para empezar.</p></div>';
+        content.innerHTML = html;
+        return;
+    }
+
+    const estados = { disponible: "estado-disponible", ocupada: "estado-ocupada", reservada: "estado-reservada" };
+
+    html += mesas.map(m => {
+        const panelBase = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+        const qrUrl = m.mesa_token ? `${panelBase}mesa.html?mesa=${m.mesa_token}&empresa=${empresaId}` : "";
+        return `<div class="mesa-card">
+        <div class="mesa-info">
+            <span class="mesa-num">#${m.numero}</span>
+            <span class="mesa-detalle">${m.capacidad} personas ${m.descripcion ? "| " + m.descripcion : ""}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+            <span class="mesa-estado ${estados[m.estado] || ''}">${m.estado}</span>
+            ${qrUrl ? `<button class="btn btn-primary btn-sm" onclick="showQR('${qrUrl}',${m.numero})" style="background:#238636">Ver QR</button>` : ""}
+            <button class="btn btn-secondary btn-sm" onclick="editMesa('${m.id}',${m.numero},${m.capacidad},'${(m.descripcion||'').replace(/'/g,"\\'")}','${m.estado}')">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteMesa('${m.id}',${m.numero})">Borrar</button>
+        </div>
+    </div>`}).join("");
+
+    content.innerHTML = html;
+}
+
+function showMesaDialog(id, numero, capacidad, desc, estado) {
+    const isNew = !id;
+    const html = `<div class="card" id="mesaForm">
+        <h3>${isNew ? "Nueva Mesa" : "Editar Mesa #" + numero}</h3>
+        <input type="hidden" id="mesaId" value="${id || ''}">
+        <div class="form-row">
+            <div class="form-group"><label>Numero</label><input type="number" id="mesaNumero" value="${numero || ''}"></div>
+            <div class="form-group"><label>Capacidad</label><input type="number" id="mesaCapacidad" value="${capacidad || 4}"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Descripcion</label><input type="text" id="mesaDesc" value="${desc || ''}" placeholder=" Ej: Ventana, terraza"></div>
+            <div class="form-group"><label>Estado</label>
+                <select id="mesaEstado">
+                    <option value="disponible" ${estado === "disponible" ? "selected" : ""}>Disponible</option>
+                    <option value="ocupada" ${estado === "ocupada" ? "selected" : ""}>Ocupada</option>
+                    <option value="reservada" ${estado === "reservada" ? "selected" : ""}>Reservada</option>
+                </select>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-success" onclick="saveMesa()">Guardar</button>
+            <button class="btn btn-secondary" onclick="loadMesas()">Cancelar</button>
+        </div>
+    </div>`;
+
+    const content = document.getElementById("content");
+    const formSlot = document.getElementById("mesaForm");
+    if (formSlot) formSlot.remove();
+    content.insertAdjacentHTML("afterbegin", html);
+}
+
+function showQR(url, numero) {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer";
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    const title = document.createElement("h2");
+    title.textContent = `Mesa #${numero}`;
+    title.style.cssText = "color:#58a6ff;margin-bottom:16px;font-size:24px";
+    overlay.appendChild(title);
+
+    const qrContainer = document.createElement("div");
+    qrContainer.style.cssText = "background:white;padding:24px;border-radius:12px;text-align:center";
+    overlay.appendChild(qrContainer);
+
+    const qrImg = document.createElement("img");
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
+    qrImg.style.cssText = "width:280px;height:280px;display:block";
+    qrImg.onload = () => {
+        const label = document.createElement("div");
+        label.textContent = `MESA #${numero}`;
+        label.style.cssText = "color:#1f6feb;font-size:20px;font-weight:bold;margin-top:8px;font-family:'Segoe UI',sans-serif";
+        qrContainer.appendChild(label);
+    };
+    qrContainer.appendChild(qrImg);
+
+    const link = document.createElement("p");
+    link.textContent = url;
+    link.style.cssText = "color:#8b949e;font-size:10px;margin-top:12px;word-break:break-all;max-width:400px;text-align:center";
+    overlay.appendChild(link);
+
+    const btnRow = document.createElement("div");
+    btnRow.style.cssText = "display:flex;gap:8px;margin-top:16px";
+
+    const printBtn = document.createElement("button");
+    printBtn.textContent = "Imprimir";
+    printBtn.style.cssText = "background:#1f6feb;color:white;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600";
+    printBtn.onclick = (e) => {
+        e.stopPropagation();
+        const printWin = window.open("", "_blank");
+        printWin.document.write(`<html><head><title>Mesa ${numero}</title><style>@media print{img{max-width:100%}}body{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif}h1{margin-bottom:16px}</style></head><body><h1>Mesa #${numero}</h1><img src="${qrImg.src}" style="max-width:400px"></body></html>`);
+        printWin.document.close();
+        setTimeout(() => printWin.print(), 500);
+    };
+    btnRow.appendChild(printBtn);
+
+    const verBtn = document.createElement("button");
+    verBtn.textContent = "Ver carta";
+    verBtn.style.cssText = "background:#238636;color:white;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600";
+    verBtn.onclick = (e) => {
+        e.stopPropagation();
+        window.open(url, "_blank");
+    };
+    btnRow.appendChild(verBtn);
+
+    overlay.appendChild(btnRow);
+
+    const hint = document.createElement("p");
+    hint.textContent = "Toca fuera para cerrar";
+    hint.style.cssText = "color:#484f58;font-size:12px;margin-top:12px";
+    overlay.appendChild(hint);
+
+    document.body.appendChild(overlay);
+}
+
+function editMesa(id, numero, capacidad, desc, estado) {
+    showMesaDialog(id, numero, capacidad, desc, estado);
+}
+
+async function saveMesa() {
+    const id = document.getElementById("mesaId").value;
+    const data = {
+        empresa_id: empresaId,
+        numero: parseInt(document.getElementById("mesaNumero").value),
+        capacidad: parseInt(document.getElementById("mesaCapacidad").value) || 4,
+        descripcion: document.getElementById("mesaDesc").value.trim(),
+        estado: document.getElementById("mesaEstado").value
+    };
+    if (!data.numero) { alert("Numero es obligatorio"); return; }
+
+    if (id) {
+        await sb.from("mesas").update({ numero: data.numero, capacidad: data.capacidad, descripcion: data.descripcion, estado: data.estado }).eq("id", id);
+    } else {
+        data.mesa_token = crypto.randomUUID();
+        data.qr_code = crypto.randomUUID();
+        await sb.from("mesas").insert(data);
+    }
+    loadMesas();
+}
+
+async function deleteMesa(id, numero) {
+    if (!confirm(`Eliminar mesa #${numero}?`)) return;
+    await sb.from("mesas").delete().eq("id", id);
+    loadMesas();
+}
+
+async function loadProductos() {
+    const { data: productos } = await sb.from("productos_empresa").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false });
+    const content = document.getElementById("content");
+    const isComida = empresaData?.rubro_tipo === "comida";
+
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="color:#58a6ff;margin:0">${isComida ? 'Carta / Menu' : 'Productos'}</h3>
+        <button class="btn btn-primary" onclick="showAddProducto()">+ Agregar</button>
+    </div>
+    <div id="formProducto" style="display:none" class="card">
+        <h3 id="formProductoTitle">Nuevo Producto</h3>
+        <input type="hidden" id="prodId">
+        <div class="form-row">
+            <div class="form-group"><label>Nombre *</label><input type="text" id="prodNombre"></div>
+            <div class="form-group"><label>Precio ($)</label><input type="number" id="prodPrecio"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Stock</label><input type="number" id="prodStock" value="0"></div>
+            <div class="form-group"><label>Categoria</label><input type="text" id="prodCategoria" placeholder="${isComida ? 'Entradas, Platos, Postres...' : 'General'}"></div>
+        </div>
+        <div class="form-group"><label>Descripcion</label><textarea id="prodDescripcion"></textarea></div>
+        <div class="form-group"><label>Foto (subir archivo)</label>
+            <input type="file" id="prodFotoFile" accept="image/*" style="padding:8px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;width:100%">
+            <img id="prodFotoPreview" style="max-width:120px;max-height:80px;border-radius:6px;margin-top:8px;display:none;object-fit:cover">
+            <input type="hidden" id="prodFoto">
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-success" onclick="saveProducto()">Guardar</button>
+            <button class="btn btn-secondary" onclick="cancelProducto()">Cancelar</button>
+        </div>
+    </div>
+    <table>
+        <thead><tr><th></th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="productosTable"></tbody>
+    </table>`;
+
+    content.innerHTML = html;
+
+    document.getElementById("prodFotoFile").addEventListener("change", async function() {
+        const file = this.files[0];
+        if (!file) return;
+        document.getElementById("prodFotoPreview").src = URL.createObjectURL(file);
+        document.getElementById("prodFotoPreview").style.display = "block";
+        const compressed = await compressImage(file, 800, 0.7);
+        const path = `empresa_${empresaId}/productos_${Date.now()}.jpg`;
+        const { data, error } = await sb.storage.from("ocio_fotos").upload(path, compressed, { upsert: true });
+        if (!error) {
+            const { data: urlData } = sb.storage.from("ocio_fotos").getPublicUrl(path);
+            document.getElementById("prodFoto").value = urlData.publicUrl;
+        }
+    });
+
+    const tbody = document.getElementById("productosTable");
+    if (!productos || productos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin productos</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = productos.map(p => `<tr>
+        <td>${p.foto_url ? `<img src="${p.foto_url}" class="producto-img">` : '<div class="producto-img" style="display:flex;align-items:center;justify-content:center;color:#484f58">?</div>'}</td>
+        <td><strong>${p.nombre}</strong><br><small style="color:#8b949e">${p.categoria || ''}</small></td>
+        <td>$${(p.precio || 0).toFixed(0)}</td>
+        <td>${p.stock}</td>
+        <td><button class="toggle-activo ${p.activo ? 'on' : 'off'}" onclick="toggleProducto('${p.id}',${p.activo})"></button></td>
+        <td class="actions">
+            <button class="btn btn-secondary btn-sm" onclick="editProducto('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}','${p.precio||0}','${p.stock||0}','${(p.descripcion||'').replace(/'/g,"\\'")}','${(p.categoria||'').replace(/'/g,"\\'")}','${p.foto_url||''}')">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProducto('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">Borrar</button>
+        </td>
+    </tr>`).join("");
+}
+
+function showAddProducto() {
+    document.getElementById("formProducto").style.display = "block";
+    document.getElementById("formProductoTitle").textContent = "Nuevo Producto";
+    document.getElementById("prodId").value = "";
+    document.getElementById("prodNombre").value = "";
+    document.getElementById("prodPrecio").value = "";
+    document.getElementById("prodStock").value = "0";
+    document.getElementById("prodCategoria").value = "";
+    document.getElementById("prodDescripcion").value = "";
+    document.getElementById("prodFoto").value = "";
+    document.getElementById("prodFotoPreview").style.display = "none";
+    document.getElementById("prodFotoFile").value = "";
+}
+
+function editProducto(id, nombre, precio, stock, desc, cat, foto) {
+    document.getElementById("formProducto").style.display = "block";
+    document.getElementById("formProductoTitle").textContent = "Editar Producto";
+    document.getElementById("prodId").value = id;
+    document.getElementById("prodNombre").value = nombre;
+    document.getElementById("prodPrecio").value = precio;
+    document.getElementById("prodStock").value = stock;
+    document.getElementById("prodCategoria").value = cat;
+    document.getElementById("prodDescripcion").value = desc;
+    document.getElementById("prodFoto").value = foto;
+    if (foto) {
+        document.getElementById("prodFotoPreview").src = foto;
+        document.getElementById("prodFotoPreview").style.display = "block";
+    } else {
+        document.getElementById("prodFotoPreview").style.display = "none";
+    }
+}
+
+function cancelProducto() { document.getElementById("formProducto").style.display = "none"; }
+
+async function saveProducto() {
+    const id = document.getElementById("prodId").value;
+    const data = {
+        empresa_id: empresaId,
+        nombre: document.getElementById("prodNombre").value.trim(),
+        precio: parseFloat(document.getElementById("prodPrecio").value) || 0,
+        stock: parseInt(document.getElementById("prodStock").value) || 0,
+        categoria: document.getElementById("prodCategoria").value.trim(),
+        descripcion: document.getElementById("prodDescripcion").value.trim(),
+        foto_url: document.getElementById("prodFoto").value.trim(),
+        activo: true
+    };
+    if (!data.nombre) { alert("Nombre es obligatorio"); return; }
+
+    if (id) {
+        await sb.from("productos_empresa").update(data).eq("id", id);
+    } else {
+        await sb.from("productos_empresa").insert(data);
+    }
+    cancelProducto();
+    loadProductos();
+}
+
+async function toggleProducto(id, currentActivo) {
+    await sb.from("productos_empresa").update({ activo: !currentActivo }).eq("id", id);
+    loadProductos();
+}
+
+async function deleteProducto(id, nombre) {
+    if (!confirm(`Eliminar "${nombre}"?`)) return;
+    await sb.from("productos_empresa").delete().eq("id", id);
+    loadProductos();
+}
+
+async function loadPerfil() {
+    const { data } = await sb.from("empresas").select("*").eq("id", empresaId).single();
+    if (!data) return;
+    empresaData = { ...empresaData, ...data };
+
+    const content = document.getElementById("content");
+    content.innerHTML = `
+        <div class="card">
+            <h3>Foto y Logo del Negocio</h3>
+            <div class="form-row">
+                <div style="flex:1">
+                    <label style="color:#8b949e;font-size:12px;text-transform:uppercase;display:block;margin-bottom:4px">Logo</label>
+                    <div class="upload-area" onclick="document.getElementById('logoFile').click()">
+                        <img id="logoPreview" src="${data.logo_url || ''}" style="${data.logo_url ? '' : 'display:none'}">
+                        <p id="logoPlaceholder" style="${data.logo_url ? 'display:none' : ''}">Click para subir logo</p>
+                    </div>
+                    <input type="file" id="logoFile" accept="image/*" style="display:none">
+                </div>
+                <div style="flex:1">
+                    <label style="color:#8b949e;font-size:12px;text-transform:uppercase;display:block;margin-bottom:4px">Foto del negocio</label>
+                    <div class="upload-area" onclick="document.getElementById('fotoFile').click()">
+                        <img id="fotoPreview" src="${data.foto_url || ''}" style="${data.foto_url ? '' : 'display:none'}">
+                        <p id="fotoPlaceholder" style="${data.foto_url ? 'display:none' : ''}">Click para subir foto</p>
+                    </div>
+                    <input type="file" id="fotoFile" accept="image/*" style="display:none">
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="saveFotos()">Guardar Fotos</button>
+        </div>
+        <div class="card">
+            <h3>Portada de la Carta</h3>
+            <p style="color:#8b949e;font-size:13px;margin-bottom:12px">Imagen de fondo que se ve antes de entrar a la carta (recomendado: 1080x1920)</p>
+            <div class="upload-area" onclick="document.getElementById('portadaFile').click()" style="height:200px">
+                <img id="portadaPreview" src="${data.portada_url || ''}" style="${data.portada_url ? '' : 'display:none'};width:100%;height:100%;object-fit:cover">
+                <p id="portadaPlaceholder" style="${data.portada_url ? 'display:none' : ''}">Click para subir imagen de portada</p>
+            </div>
+            <input type="file" id="portadaFile" accept="image/*" style="display:none" onchange="uploadPortada(this)">
+        </div>
+        <div class="card">
+            <h3>Diseño de la Carta</h3>
+            <p style="color:#8b949e;font-size:13px;margin-bottom:12px">Elegí cómo se ve tu carta cuando el cliente escanea el QR</p>
+            
+            <h4 style="color:#58a6ff;font-size:13px;margin-bottom:8px">Sistema</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px" id="templateGrid"></div>
+            <button class="btn btn-success" onclick="saveCartaTemplate()" style="margin-top:12px">Guardar Diseno</button>
+            
+            <div style="margin-top:16px;border-top:1px solid #30363d;padding-top:12px">
+                <h4 style="color:#58a6ff;font-size:13px;margin-bottom:8px">Mi Coleccion</h4>
+                <div id="collectionGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px"></div>
+                <p id="collectionEmpty" style="color:#484f58;font-size:12px">Guarda tu primer diseno abajo</p>
+            </div>
+
+            <div style="margin-top:12px;border-top:1px solid #30363d;padding-top:12px;display:flex;gap:8px;align-items:center">
+                <input type="text" id="disenoNombre" placeholder="Nombre del diseno" style="flex:1;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:13px">
+                <button class="btn btn-primary" onclick="guardarDiseno()">Guardar en Mi Coleccion</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>Datos del Negocio</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Nombre</label><input type="text" id="perfNombre" value="${data.nombre || ''}"></div>
+                <div class="form-group"><label>Rubro</label><input type="text" value="${data.rubro || ''} ${data.sub_rubro ? '/ ' + data.sub_rubro : ''}" disabled></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Telefono</label><input type="text" id="perfTelefono" value="${data.telefono || ''}"></div>
+                <div class="form-group"><label>Email</label><input type="text" id="perfEmail" value="${data.email || ''}"></div>
+            </div>
+            <div class="form-group"><label>Direccion</label><input type="text" id="perfDireccion" value="${data.direccion || ''}"></div>
+            <div class="form-group"><label>Horarios</label><input type="text" id="perfHorarios" value="${data.horarios || ''}" placeholder="Lun-Vie 9-18, Sab 9-13"></div>
+            <div class="form-group"><label>Descripcion</label><textarea id="perfDescripcion">${data.descripcion || ''}</textarea></div>
+            <div class="form-group"><label>RUT</label><input type="text" id="perfRut" value="${data.rut || ''}" placeholder="21.234.567-8"></div>
+            <button class="btn btn-success" onclick="savePerfil()">Guardar Cambios</button>
+        </div>
+        <div class="card">
+            <h3>Cambiar Contrasena</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Nueva contrasena</label><input type="password" id="newPassword" placeholder="Minimo 6 caracteres"></div>
+                <div class="form-group"><label>Confirmar</label><input type="password" id="confirmPassword" placeholder="Repetir contrasena"></div>
+            </div>
+            <button class="btn btn-primary" onclick="changePassword()">Cambiar Contrasena</button>
+        </div>`;
+
+    renderTemplateGrid(data.carta_template || "dark_elegance");
+    loadCollection();
+
+    document.getElementById("logoFile").addEventListener("change", async function() {
+        const file = this.files[0];
+        if (!file) return;
+        document.getElementById("logoPreview").src = URL.createObjectURL(file);
+        document.getElementById("logoPreview").style.display = "block";
+        document.getElementById("logoPlaceholder").style.display = "none";
+        const compressed = await compressImage(file, 400, 0.75);
+        const path = `empresa_${empresaId}/logo_${Date.now()}.jpg`;
+        const { data: uploadData, error } = await sb.storage.from("ocio_fotos").upload(path, compressed, { upsert: true });
+        if (!error) {
+            const { data: urlData } = sb.storage.from("ocio_fotos").getPublicUrl(path);
+            await sb.from("empresas").update({ logo_url: urlData.publicUrl }).eq("id", empresaId);
+            empresaData.logo_url = urlData.publicUrl;
+            const headerLogo = document.getElementById("headerLogo");
+            headerLogo.src = urlData.publicUrl;
+            headerLogo.style.display = "block";
+        } else {
+            alert("Error subiendo logo: " + error.message);
+        }
+    });
+
+    document.getElementById("fotoFile").addEventListener("change", async function() {
+        const file = this.files[0];
+        if (!file) return;
+        document.getElementById("fotoPreview").src = URL.createObjectURL(file);
+        document.getElementById("fotoPreview").style.display = "block";
+        document.getElementById("fotoPlaceholder").style.display = "none";
+        const compressed = await compressImage(file, 800, 0.7);
+        const path = `empresa_${empresaId}/foto_${Date.now()}.jpg`;
+        const { data: uploadData, error } = await sb.storage.from("ocio_fotos").upload(path, compressed, { upsert: true });
+        if (!error) {
+            const { data: urlData } = sb.storage.from("ocio_fotos").getPublicUrl(path);
+            await sb.from("empresas").update({ foto_url: urlData.publicUrl }).eq("id", empresaId);
+            empresaData.foto_url = urlData.publicUrl;
+        } else {
+            alert("Error subiendo foto: " + error.message);
+        }
+    });
+}
+
+async function saveFotos() {
+    alert("Las fotos se guardan automaticamente al subirlas.");
+}
+
+async function uploadPortada(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById("portadaPreview").src = URL.createObjectURL(file);
+    document.getElementById("portadaPreview").style.display = "block";
+    document.getElementById("portadaPlaceholder").style.display = "none";
+    try {
+        const compressed = await compressImage(file, 1080, 0.75);
+        const path = `empresa_${empresaId}/portada_${Date.now()}.jpg`;
+        const { data, error } = await sb.storage.from("ocio_fotos").upload(path, compressed, { upsert: true });
+        if (error) {
+            alert("Error subiendo imagen: " + error.message);
+            return;
+        }
+        const { data: urlData } = sb.storage.from("ocio_fotos").getPublicUrl(path);
+        const { error: dbError } = await sb.from("empresas").update({ portada_url: urlData.publicUrl }).eq("id", empresaId);
+        if (dbError) {
+            alert("Error guardando en DB: " + dbError.message);
+            return;
+        }
+        empresaData.portada_url = urlData.publicUrl;
+        alert("Portada guardada");
+    } catch (e) {
+        alert("Error: " + e.message);
+    }
+}
+
+async function savePerfil() {
+    await sb.from("empresas").update({
+        nombre: document.getElementById("perfNombre").value.trim(),
+        telefono: document.getElementById("perfTelefono").value.trim(),
+        email: document.getElementById("perfEmail").value.trim(),
+        direccion: document.getElementById("perfDireccion").value.trim(),
+        horarios: document.getElementById("perfHorarios").value.trim(),
+        descripcion: document.getElementById("perfDescripcion").value.trim(),
+        rut: document.getElementById("perfRut").value.trim()
+    }).eq("id", empresaId);
+    empresaData.nombre = document.getElementById("perfNombre").value.trim();
+    document.getElementById("empresaNombre").textContent = empresaData.nombre;
+    alert("Perfil actualizado");
+}
+
+async function changePassword() {
+    const newPass = document.getElementById("newPassword").value.trim();
+    const confirmPass = document.getElementById("confirmPassword").value.trim();
+    if (!newPass || newPass.length < 6) { alert("La contrasena debe tener al menos 6 caracteres"); return; }
+    if (newPass !== confirmPass) { alert("Las contrasenas no coinciden"); return; }
+    const { error } = await sb.auth.updateUser({ password: newPass });
+    if (error) { alert("Error: " + error.message); return; }
+    document.getElementById("newPassword").value = "";
+    document.getElementById("confirmPassword").value = "";
+    alert("Contrasena actualizada");
+}
+
+const cartaTemplates = [
+    { id: "dark_elegance", name: "Dark Elegance", desc: "Fondo oscuro, elegante", bg: "#0a0a0a", accent: "#d4af37", text: "#f0f0f0" },
+    { id: "editorial", name: "Editorial", desc: "Clasico serif, tierra", bg: "#faf6ee", accent: "#6b1d1d", text: "#1a1612" },
+    { id: "minimalista", name: "Minimalista", desc: "Blanco limpio, bold", bg: "#ffffff", accent: "#000000", text: "#333333" },
+    { id: "bold_colorido", name: "Bold & Colorido", desc: "Negro + acentos vivos", bg: "#111111", accent: "#e63946", text: "#f1faee" },
+    { id: "glassmorphism", name: "Glassmorphism", desc: "Degradados y vidrio", bg: "linear-gradient(135deg,#667eea,#764ba2)", accent: "#ffffff", text: "#ffffff" },
+    { id: "rustico", name: "Rustico", desc: "Textura, serif, artesanal", bg: "#f5f0e8", accent: "#8b4513", text: "#3e2723" }
+];
+
+function renderTemplateGrid(selected) {
+    const grid = document.getElementById("templateGrid");
+    if (!grid) return;
+    grid.innerHTML = cartaTemplates.map(t => `
+        <div onclick="selectTemplate('${t.id}')" id="tpl_${t.id}" style="cursor:pointer;border:2px solid ${t.id===selected ? '#58a6ff' : '#30363d'};border-radius:10px;overflow:hidden;transition:border-color .2s">
+            <div style="background:${t.bg};height:80px;display:flex;align-items:center;justify-content:center;padding:8px">
+                <div style="background:${t.accent};color:${t.text};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:bold;font-family:sans-serif;text-align:center">Menu $${'$'}9.50</div>
+            </div>
+            <div style="background:#161b22;padding:8px;text-align:center">
+                <div style="color:#f0f6fc;font-size:12px;font-weight:600">${t.name}</div>
+                <div style="color:#8b949e;font-size:10px">${t.desc}</div>
+            </div>
+        </div>
+    `).join("");
+}
+
+let selectedTemplate = "dark_elegance";
+function selectTemplate(id) {
+    selectedTemplate = id;
+    cartaTemplates.forEach(t => {
+        const el = document.getElementById("tpl_" + t.id);
+        if (el) el.style.borderColor = t.id === id ? "#58a6ff" : "#30363d";
+    });
+}
+
+const cartaFondoFileEl = document.getElementById("cartaFondoFile");
+if (cartaFondoFileEl) {
+    cartaFondoFileEl.addEventListener("change", async function() {
+        const file = this.files[0];
+        if (!file) return;
+        document.getElementById("cartaFondoPreview").src = URL.createObjectURL(file);
+        document.getElementById("cartaFondoPreview").style.display = "block";
+        document.getElementById("cartaFondoPlaceholder").style.display = "none";
+        const compressed = await compressImage(file, 1080, 0.75);
+        const path = `empresa_${empresaId}/carta_fondo_${Date.now()}.jpg`;
+        const { data: uploadData, error } = await sb.storage.from("ocio_fotos").upload(path, compressed, { upsert: true });
+        if (!error) {
+            const { data: urlData } = sb.storage.from("ocio_fotos").getPublicUrl(path);
+            await sb.from("empresas").update({ carta_fondo_url: urlData.publicUrl }).eq("id", empresaId);
+            empresaData.carta_fondo_url = urlData.publicUrl;
+        } else {
+            alert("Error subiendo fondo: " + error.message);
+        }
+    });
+}
+
+async function saveCartaFondo() {
+    alert("El fondo se guarda automaticamente al subirlo.");
+}
+
+async function loadGallery() {
+    const { data } = await sb.from("fondos_gallery").select("*").order("created_at", { ascending: false });
+    const grid = document.getElementById("galleryGrid");
+    if (!grid) return;
+    if (!data || data.length === 0) {
+        grid.innerHTML = '<p style="color:#484f58;font-size:12px">No hay fondos todavia</p>';
+        return;
+    }
+    grid.innerHTML = data.map(f => `
+        <div onclick="useGalleryFondo('${f.url}')" style="cursor:pointer;border:2px solid ${empresaData.carta_fondo_url === f.url ? '#58a6ff' : '#30363d'};border-radius:8px;overflow:hidden;position:relative">
+            <img src="${f.url}" style="width:100%;height:90px;object-fit:cover;display:block">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);padding:4px;text-align:center">
+                <span style="color:#c9d1d9;font-size:10px">${f.nombre || 'Fondo'}</span>
+            </div>
+            ${f.uploaded_by === empresaId ? `<button onclick="event.stopPropagation();deleteGalleryFondo('${f.id}')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.7);color:#da3633;border:none;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:12px">X</button>` : ''}
+        </div>
+    `).join("");
+}
+
+async function useGalleryFondo(url) {
+    await sb.from("empresas").update({ carta_fondo_url: url }).eq("id", empresaId);
+    empresaData.carta_fondo_url = url;
+    document.getElementById("cartaFondoPreview").src = url;
+    document.getElementById("cartaFondoPreview").style.display = "block";
+    document.getElementById("cartaFondoPlaceholder").style.display = "none";
+    loadGallery();
+    alert("Fondo aplicado");
+}
+
+async function deleteGalleryFondo(id) {
+    if (!confirm("Eliminar este fondo de la galeria?")) return;
+    await sb.from("fondos_gallery").delete().eq("id", id);
+    loadGallery();
+}
+
+async function uploadGalleryFondo(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const nombre = prompt("Nombre del fondo (ej: Pizarra, Playa, etc):", "") || "Fondo";
+    const compressed = await compressImage(file, 1080, 0.75);
+    const path = `fondos_gallery/${Date.now()}.jpg`;
+    const { data, error } = await sb.storage.from("ocio_fotos").upload(path, compressed, { upsert: true });
+    if (!error) {
+        const { data: urlData } = sb.storage.from("ocio_fotos").getPublicUrl(path);
+        await sb.from("fondos_gallery").insert({
+            url: urlData.publicUrl,
+            nombre: nombre,
+            rubro: empresaData.rubro || "",
+            uploaded_by: empresaId
+        });
+        loadGallery();
+    } else {
+        alert("Error: " + error.message);
+    }
+    input.value = "";
+}
+
+async function saveCartaTemplate() {
+    await sb.from("empresas").update({ carta_template: selectedTemplate }).eq("id", empresaId);
+    empresaData.carta_template = selectedTemplate;
+    alert("Diseño de carta guardado");
+}
+
+async function loadCollection() {
+    const { data } = await sb.from("disenos_usuario").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false });
+    const grid = document.getElementById("collectionGrid");
+    const empty = document.getElementById("collectionEmpty");
+    if (!grid) return;
+    if (!data || data.length === 0) {
+        grid.innerHTML = "";
+        if (empty) empty.style.display = "";
+        return;
+    }
+    if (empty) empty.style.display = "none";
+    grid.innerHTML = data.map(d => `
+        <div onclick="applyDiseno('${d.id}')" style="cursor:pointer;border:2px solid ${empresaData.carta_template === d.carta_template && empresaData.carta_fondo_url === d.carta_fondo_url ? '#58a6ff' : '#30363d'};border-radius:10px;overflow:hidden;position:relative">
+            ${d.portada_url ? `<img src="${d.portada_url}" style="width:100%;height:80px;object-fit:cover">` :
+            d.carta_fondo_url ? `<img src="${d.carta_fondo_url}" style="width:100%;height:80px;object-fit:cover">` :
+            `<div style="height:80px;background:${(cartaTemplates.find(t=>t.id===d.carta_template)||cartaTemplates[0]).bg};display:flex;align-items:center;justify-content:center"><span style="font-size:24px">🍽️</span></div>`}
+            <div style="background:#161b22;padding:6px 8px;display:flex;justify-content:space-between;align-items:center">
+                <span style="color:#f0f6fc;font-size:11px;font-weight:600">${d.nombre}</span>
+                <button onclick="event.stopPropagation();deleteDiseno('${d.id}')" style="background:none;border:none;color:#da3633;cursor:pointer;font-size:14px;padding:0 4px">✕</button>
+            </div>
+        </div>
+    `).join("");
+}
+
+async function guardarDiseno() {
+    const nombre = document.getElementById("disenoNombre").value.trim();
+    if (!nombre) { alert("Ponele un nombre al diseno"); return; }
+    await sb.from("disenos_usuario").insert({
+        empresa_id: empresaId,
+        nombre: nombre,
+        carta_template: empresaData.carta_template || selectedTemplate,
+        portada_url: empresaData.portada_url || ""
+    });
+    document.getElementById("disenoNombre").value = "";
+    loadCollection();
+    alert("Diseno guardado en tu coleccion");
+}
+
+async function applyDiseno(id) {
+    const { data } = await sb.from("disenos_usuario").select("*").eq("id", id).single();
+    if (!data) return;
+    await sb.from("empresas").update({
+        carta_template: data.carta_template,
+        portada_url: data.portada_url
+    }).eq("id", empresaId);
+    empresaData.carta_template = data.carta_template;
+    empresaData.portada_url = data.portada_url;
+    selectedTemplate = data.carta_template;
+    renderTemplateGrid(selectedTemplate);
+    if (data.portada_url) {
+        document.getElementById("portadaPreview").src = data.portada_url;
+        document.getElementById("portadaPreview").style.display = "block";
+        document.getElementById("portadaPlaceholder").style.display = "none";
+    }
+    loadCollection();
+    alert("Diseno aplicado");
+}
+
+async function deleteDiseno(id) {
+    if (!confirm("Eliminar este diseno de tu coleccion?")) return;
+    await sb.from("disenos_usuario").delete().eq("id", id);
+    loadCollection();
+}
+
+const roles = [
+    { value: "cocina", label: "Cocina", desc: "Solo ve pedidos para preparar" },
+    { value: "caja", label: "Caja", desc: "Ve pedidos y gestiona pagos" },
+    { value: "mesero", label: "Mesero", desc: "Ve reservas y mesas" },
+    { value: "delivery", label: "Delivery", desc: "Ve pedidos listos para entregar" },
+    { value: "admin", label: "Administrador", desc: "Acceso completo (igual que el dueño)" }
+];
+
+async function loadUsuarios() {
+    const { data: usuarios } = await sb.from("usuarios_empresa").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false });
+    const content = document.getElementById("content");
+
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+            <h3 style="color:#58a6ff;margin:0">Trabajadores</h3>
+            <p style="color:#8b949e;font-size:13px;margin-top:4px">Los trabajadores entran con su PIN, no con email</p>
+        </div>
+        <button class="btn btn-primary" onclick="showAddUsuario()">+ Agregar</button>
+    </div>`;
+
+    html += `<div id="formUsuario" style="display:none" class="card">
+        <h3 id="formUsuarioTitle">Nuevo Trabajador</h3>
+        <input type="hidden" id="usrId">
+        <div class="form-row">
+            <div class="form-group"><label>Nombre *</label><input type="text" id="usrNombre" placeholder="Juan Perez"></div>
+            <div class="form-group"><label>PIN (4-6 digitos) *</label><input type="text" id="usrPin" maxlength="6" placeholder="1234" inputmode="numeric"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Rol</label>
+                <select id="usrRol">${roles.map(r => `<option value="${r.value}">${r.label} - ${r.desc}</option>`).join("")}</select>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-success" onclick="saveUsuario()">Guardar</button>
+            <button class="btn btn-secondary" onclick="cancelUsuario()">Cancelar</button>
+        </div>
+    </div>`;
+
+    if (!usuarios || usuarios.length === 0) {
+        html += '<div class="empty"><p>Sin trabajadores. Agregá uno para que pueda usar el panel en otra pantalla.</p></div>';
+    } else {
+        const rolLabels = {};
+        roles.forEach(r => rolLabels[r.value] = r.label);
+        html += `<table>
+            <thead><tr><th>Nombre</th><th>PIN</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>${usuarios.map(u => `<tr>
+                <td><strong>${u.nombre}</strong></td>
+                <td><code style="background:#21262d;padding:2px 8px;border-radius:4px">${u.pin}</code></td>
+                <td>${rolLabels[u.rol] || u.rol}</td>
+                <td><button class="toggle-activo ${u.activo ? 'on' : 'off'}" onclick="toggleUsuario('${u.id}',${u.activo})"></button></td>
+                <td class="actions">
+                    <button class="btn btn-secondary btn-sm" onclick="editUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}','${u.pin}','${u.rol}')">Editar</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">Borrar</button>
+                </td>
+            </tr>`).join("")}</tbody>
+        </table>`;
+
+        html += `<div class="card" style="margin-top:16px;border-color:#1f6feb">
+            <h3 style="color:#58a6ff">Abrir en otra pantalla</h3>
+            <p style="color:#8b949e;font-size:13px;margin-bottom:12px">Copiá este link y abrilo en la tablet/PC de cocina, caja, etc.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-primary btn-sm" onclick="copyLink('cocina')">Copiar link Cocina</button>
+                <button class="btn btn-primary btn-sm" onclick="copyLink('caja')">Copiar link Caja</button>
+                <button class="btn btn-primary btn-sm" onclick="copyLink('delivery')">Copiar link Delivery</button>
+            </div>
+        </div>`;
+    }
+
+    content.innerHTML = html;
+}
+
+function copyLink(seccion) {
+    const url = window.location.origin + "/" + seccion + ".html?empresa=" + empresaId;
+    navigator.clipboard.writeText(url).then(() => {
+        alert("Link copiado:\n" + url);
+    }).catch(() => {
+        prompt("Copia este link:", url);
+    });
+}
+
+function showAddUsuario() {
+    document.getElementById("formUsuario").style.display = "block";
+    document.getElementById("formUsuarioTitle").textContent = "Nuevo Trabajador";
+    document.getElementById("usrId").value = "";
+    document.getElementById("usrNombre").value = "";
+    document.getElementById("usrPin").value = "";
+    document.getElementById("usrRol").value = "cocina";
+}
+
+function editUsuario(id, nombre, pin, rol) {
+    document.getElementById("formUsuario").style.display = "block";
+    document.getElementById("formUsuarioTitle").textContent = "Editar Trabajador";
+    document.getElementById("usrId").value = id;
+    document.getElementById("usrNombre").value = nombre;
+    document.getElementById("usrPin").value = pin;
+    document.getElementById("usrRol").value = rol;
+}
+
+function cancelUsuario() { document.getElementById("formUsuario").style.display = "none"; }
+
+async function saveUsuario() {
+    const id = document.getElementById("usrId").value;
+    const nombre = document.getElementById("usrNombre").value.trim();
+    const pin = document.getElementById("usrPin").value.trim();
+    const rol = document.getElementById("usrRol").value;
+    if (!nombre || !pin) { alert("Nombre y PIN son obligatorios"); return; }
+    if (pin.length < 4) { alert("El PIN debe tener al menos 4 digitos"); return; }
+
+    if (id) {
+        await sb.from("usuarios_empresa").update({ nombre, pin, rol }).eq("id", id);
+    } else {
+        await sb.from("usuarios_empresa").insert({ empresa_id: empresaId, nombre, pin, rol, activo: true });
+    }
+    cancelUsuario();
+    loadUsuarios();
+}
+
+async function toggleUsuario(id, currentActivo) {
+    await sb.from("usuarios_empresa").update({ activo: !currentActivo }).eq("id", id);
+    loadUsuarios();
+}
+
+async function deleteUsuario(id, nombre) {
+    if (!confirm(`Eliminar a "${nombre}"?`)) return;
+    await sb.from("usuarios_empresa").delete().eq("id", id);
+    loadUsuarios();
+}
+
+sb.auth.getSession().then(({ data }) => {
+    if (data.session) {
+        sb.from("empresas").select("*").eq("usuario_id", data.session.user.id).eq("status", "aprobado").then(({ data: emp }) => {
+            if (emp && emp.length > 0) {
+                empresaId = emp[0].id;
+                empresaData = emp[0];
+                document.getElementById("empresaNombre").textContent = empresaData.nombre;
+                if (empresaData.logo_url) {
+                    const logo = document.getElementById("headerLogo");
+                    logo.src = empresaData.logo_url;
+                    logo.style.display = "block";
+                }
+                if (empresaData.rubro_tipo === "comida") {
+                    document.getElementById("tab_reservas").style.display = "";
+                    document.getElementById("tab_mesas").style.display = "";
+                }
+                document.getElementById("loginSection").style.display = "none";
+                document.getElementById("panelSection").style.display = "block";
+                switchTab("dashboard");
+            }
+        });
+    }
+});
+
+setInterval(refreshBadges, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Fronteras de Departamentos</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.16.0/dist/leaflet-geoman.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1117; color: #c9d1d9; }
+        
+        #map { width: 100%; height: calc(100vh - 60px); }
+        
+        .top-bar {
+            background: #161b22;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #30363d;
+            height: 60px;
+        }
+        .top-bar h1 { font-size: 18px; color: #58a6ff; flex-grow: 1; }
+        .top-bar select, .top-bar button {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .top-bar select:hover, .top-bar button:hover { background: #30363d; }
+        .top-bar button.danger { border-color: #f85149; color: #f85149; }
+        .top-bar button.danger:hover { background: #f8514922; }
+        .top-bar button.save { background: #238636; border-color: #238636; color: #fff; }
+        .top-bar button.save:hover { background: #2ea043; }
+        
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #161b22;
+            padding: 8px 20px;
+            font-size: 12px;
+            color: #8b949e;
+            border-top: 1px solid #30363d;
+            z-index: 1000;
+            display: flex;
+            gap: 20px;
+        }
+        .status-bar span { color: #58a6ff; }
+        
+        .sidebar-list {
+            position: fixed;
+            top: 60px;
+            right: 0;
+            width: 280px;
+            height: calc(100vh - 85px);
+            background: #0d1117;
+            border-left: 1px solid #30363d;
+            overflow-y: auto;
+            z-index: 999;
+            padding: 10px;
+        }
+        .sidebar-list h3 { font-size: 13px; color: #8b949e; margin: 10px 0 8px 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .dept-item {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dept-item:hover { border-color: #58a6ff; }
+        .dept-item.selected { border-color: #58a6ff; background: #161b22ee; }
+        .dept-item .name { font-size: 13px; font-weight: bold; }
+        .dept-item .country { font-size: 11px; color: #8b949e; }
+        .dept-item .delete-btn {
+            background: none;
+            border: none;
+            color: #f85149;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .dept-item .delete-btn:hover { background: #f8514922; }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            width: 360px;
+        }
+        .modal h2 { font-size: 16px; color: #58a6ff; margin-bottom: 16px; }
+        .modal label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 4px; }
+        .modal input, .modal select {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .modal input:focus, .modal select:focus { border-color: #58a6ff; outline: none; }
+        .modal .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+        .modal .btn-row button { flex: 1; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .modal .btn-cancel { background: #21262d; color: #c9d1d9; }
+        .modal .btn-save { background: #238636; color: #fff; }
+
+        /* Custom Leaflet toolbar */
+        .leaflet-pm-toolbar .leaflet-pm-icon-polygon { background: #58a6ff !important; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <h1>🗺️ Editor de Fronteras de Departamentos</h1>
+    <select id="countrySelect">
+        <option value="UY">🇺🇾 Uruguay</option>
+        <option value="AR">🇦🇷 Argentina</option>
+        <option value="CL">🇨🇱 Chile</option>
+        <option value="BR">🇧🇷 Brasil</option>
+        <option value="PY">🇵🇾 Paraguay</option>
+    </select>
+    <button onclick="toggleSidebar()">📋 Lista</button>
+    <button class="save" onclick="saveAll()">💾 Guardar Todo</button>
+</div>
+
+<div id="map"></div>
+
+<div class="sidebar-list" id="sidebarList" style="display:none;">
+    <h3>Departamentos guardados</h3>
+    <div id="deptList"></div>
+</div>
+
+<div class="status-bar">
+    <div>Pais: <span id="statusCountry">UY</span></div>
+    <div>Departamentos: <span id="statusCount">0</span></div>
+    <div id="statusMsg">Listo para dibujar</div>
+</div>
+
+<!-- Modal para nombre del departamento -->
+<div class="modal-overlay" id="modalName">
+    <div class="modal">
+        <h2>Nombre del Departamento</h2>
+        <label>País</label>
+        <select id="modalCountry">
+            <option value="UY">Uruguay</option>
+            <option value="AR">Argentina</option>
+            <option value="CL">Chile</option>
+            <option value="BR">Brasil</option>
+            <option value="PY">Paraguay</option>
+        </select>
+        <label>Nombre</label>
+        <input type="text" id="modalDeptName" placeholder="Ej: Montevideo" />
+        <div class="btn-row">
+            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+            <button class="btn-save" onclick="confirmPolygon()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.16.0/dist/leaflet-geoman.min.js"></script>
+<script>
+const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+
+const COLORS = ['#58a6ff','#f0883e','#3fb950','#d2a8ff','#f778ba','#79c0ff','#ffa657','#7ee787','#ff7b72','#d29922'];
+let colorIndex = 0;
+let savedPolygons = []; // {id, country, department, geometry, layer}
+let pendingPolygon = null;
+
+// Map
+const map = L.map('map', {
+    center: [-34.9, -56.2],
+    zoom: 7,
+    zoomControl: true
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
+}).addTo(map);
+
+// Geoman controls
+map.pm.addControls({
+    position: 'topleft',
+    drawMarker: false,
+    drawPolyline: false,
+    drawCircle: false,
+    drawCircleMarker: false,
+    drawRectangle: false,
+    drawText: false,
+    editMode: true,
+    dragMode: true,
+    cutPolygon: false,
+    removalMode: true,
+    rotateMode: false
+});
+
+// When a polygon is created
+map.on('pm:create', (e) => {
+    const layer = e.layer;
+    pendingPolygon = layer;
+    document.getElementById('modalCountry').value = document.getElementById('countrySelect').value;
+    document.getElementById('modalDeptName').value = '';
+    document.getElementById('modalName').classList.add('active');
+    document.getElementById('modalDeptName').focus();
+});
+
+// Confirm polygon save
+function confirmPolygon() {
+    const deptName = document.getElementById('modalDeptName').value.trim();
+    const country = document.getElementById('modalCountry').value;
+    if (!deptName) { alert('Ingresá el nombre del departamento'); return; }
+    
+    const color = COLORS[colorIndex % COLORS.length];
+    colorIndex++;
+    
+    pendingPolygon.setStyle({ color: color, fillColor: color, fillOpacity: 0.2, weight: 2 });
+    
+    const geojson = pendingPolygon.toGeoJSON();
+    const entry = {
+        id: null,
+        country: country,
+        department: deptName,
+        geometry: geojson.geometry,
+        layer: pendingPolygon
+    };
+    savedPolygons.push(entry);
+    
+    pendingPolygon.bindPopup(`<b>${deptName}</b><br>${country}`);
+    pendingPolygon = null;
+    
+    closeModal();
+    refreshList();
+    document.getElementById('statusMsg').textContent = `"${deptName}" agregado (sin guardar aún)`;
+}
+
+function closeModal() {
+    document.getElementById('modalName').classList.remove('active');
+    pendingPolygon = null;
+}
+
+// Enter to confirm
+document.getElementById('modalDeptName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmPolygon();
+    if (e.key === 'Escape') closeModal();
+});
+
+// Refresh sidebar list
+function refreshList() {
+    const list = document.getElementById('deptList');
+    document.getElementById('statusCount').textContent = savedPolygons.length;
+    document.getElementById('statusCountry').textContent = document.getElementById('countrySelect').value;
+    
+    list.innerHTML = savedPolygons.map((p, i) => `
+        <div class="dept-item" onclick="focusPolygon(${i})">
+            <div>
+                <div class="name" style="color:${COLORS[i % COLORS.length]}">${p.department}</div>
+                <div class="country">${p.country}</div>
+            </div>
+            <button class="delete-btn" onclick="event.stopPropagation(); deletePolygon(${i})">✕</button>
+        </div>
+    `).join('');
+}
+
+function focusPolygon(index) {
+    const p = savedPolygons[index];
+    if (p.layer) {
+        map.fitBounds(p.layer.getBounds(), { padding: [50, 50] });
+    }
+}
+
+function deletePolygon(index) {
+    const p = savedPolygons[index];
+    if (p.layer) map.removeLayer(p.layer);
+    savedPolygons.splice(index, 1);
+    refreshList();
+    document.getElementById('statusMsg').textContent = 'Departamento eliminado';
+}
+
+function toggleSidebar() {
+    const sb = document.getElementById('sidebarList');
+    sb.style.display = sb.style.display === 'none' ? 'block' : 'none';
+}
+
+// Save all to Supabase
+async function saveAll() {
+    document.getElementById('statusMsg').textContent = 'Guardando...';
+    
+    try {
+        // Delete all existing
+        await fetch(`${SUPABASE_URL}/rest/v1/department_boundaries?country=eq.${document.getElementById('countrySelect').value}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // Insert all
+        const rows = savedPolygons.map(p => ({
+            country: p.country,
+            department: p.department,
+            geometry: p.geometry
+        }));
+        
+        if (rows.length > 0) {
+            const resp = await fetch(`${SUPABASE_URL}/rest/v1/department_boundaries`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(rows)
+            });
+            if (!resp.ok) throw new Error(await resp.text());
+        }
+        
+        document.getElementById('statusMsg').textContent = `✅ ${rows.length} departamento(s) guardado(s)`;
+    } catch (e) {
+        document.getElementById('statusMsg').textContent = `❌ Error: ${e.message}`;
+        console.error(e);
+    }
+}
+
+// Load existing from Supabase
+async function loadExisting() {
+    const country = document.getElementById('countrySelect').value;
+    document.getElementById('statusMsg').textContent = `Cargando ${country}...`;
+    console.log('loadExisting called, country:', country);
+    
+    try {
+        const url = `${SUPABASE_URL}/rest/v1/department_boundaries?country=eq.${country}&select=*`;
+        console.log('Fetching:', url);
+        const resp = await fetch(url, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        });
+        console.log('Response status:', resp.status);
+        const data = await resp.json();
+        console.log('Data received:', data.length, 'rows');
+        
+        // Clear current
+        savedPolygons.forEach(p => { if (p.layer) map.removeLayer(p.layer); });
+        savedPolygons = [];
+        colorIndex = 0;
+        
+        data.forEach(row => {
+            const color = COLORS[colorIndex % COLORS.length];
+            colorIndex++;
+            const layer = L.geoJSON(row.geometry, {
+                style: { color: color, fillColor: color, fillOpacity: 0.2, weight: 2 }
+            }).addTo(map);
+            layer.bindPopup(`<b>${row.department}</b><br>${row.country}`);
+            
+            savedPolygons.push({
+                id: row.id,
+                country: row.country,
+                department: row.department,
+                geometry: row.geometry,
+                layer: layer
+            });
+        });
+        
+        if (savedPolygons.length > 0) {
+            const group = L.featureGroup(savedPolygons.map(p => p.layer));
+            map.fitBounds(group.getBounds(), { padding: [50, 50] });
+        }
+        
+        refreshList();
+        document.getElementById('statusMsg').textContent = `✅ ${data.length} departamento(s) cargado(s)`;
+    } catch (e) {
+        document.getElementById('statusMsg').textContent = `❌ Error: ${e.message}`;
+        console.error(e);
+    }
+}
+
+// Country change
+document.getElementById('countrySelect').addEventListener('change', loadExisting);
+
+// Load on start
+loadExisting();
+</script>
+</body>
+</html>

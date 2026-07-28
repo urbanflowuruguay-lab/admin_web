@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Reportes UrbanFlow</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 15px; margin-bottom: 20px; }
+        h1 { color: #58a6ff; font-size: 22px; margin: 0; }
+        .btn-refresh { background: #21262d; color: #58a6ff; border: 1px solid #30363d; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-refresh:hover { background: #30363d; }
+        .btn-danger { background: #da3633; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-danger:hover { background: #f85149; }
+        .btn-select { background: #1f6feb; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-select:hover { background: #388bfd; }
+        .bulk-bar { display: none; background: #1f6feb22; border: 1px solid #1f6feb44; border-radius: 8px; padding: 12px 18px; margin-bottom: 15px; align-items: center; justify-content: space-between; }
+        .bulk-bar.visible { display: flex; }
+        .bulk-bar span { font-size: 13px; color: #58a6ff; font-weight: bold; }
+        .bulk-actions { display: flex; gap: 10px; }
+        .card { position: relative; }
+        .select-check { position: absolute; top: 10px; left: 10px; width: 18px; height: 18px; accent-color: #58a6ff; cursor: pointer; display: none; }
+        .selecting .select-check { display: block; }
+        .card.selected { border-color: #58a6ff; box-shadow: 0 0 10px rgba(88,166,255,0.2); }
+        
+        .stats { display: flex; gap: 20px; }
+        .stat-box { background: #161b22; padding: 10px 15px; border-radius: 8px; border: 1px solid #30363d; text-align: center; }
+        .stat-box span { display: block; font-size: 18px; font-weight: bold; color: #58a6ff; }
+        .stat-box label { font-size: 10px; text-transform: uppercase; color: #8b949e; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 18px; position: relative; transition: 0.3s; }
+        .card.active { border-left: 5px solid #238636; box-shadow: 0 4px 12px rgba(35, 134, 54, 0.1); }
+        .card.inactive { opacity: 0.6; border-left: 5px solid #8b949e; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .type-badge { background: #f39c12; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .type-badge.fijo { background: #1f6feb; }
+        .status-pill { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .status-pill.active { background: #23863622; color: #3fb950; }
+        .status-pill.inactive { background: #f8514922; color: #f85149; }
+
+        .time { font-size: 12px; color: #8b949e; display: flex; align-items: center; gap: 5px; }
+        .coords { font-size: 11px; font-family: 'Cascadia Code', monospace; color: #58a6ff; background: #0d1117; padding: 5px; border-radius: 4px; margin-top: 8px; }
+        .meta { font-size: 11px; margin-top: 10px; color: #8b949e; display: flex; gap: 12px; flex-wrap: wrap; }
+        .meta span { color: #58a6ff; }
+        
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn { border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
+        .btn-off { background: #30363d; color: #c9d1d9; }
+        .btn-del { background: #da363322; color: #f85149; border: 1px solid #da363344; }
+        .btn:hover { opacity: 0.8; }
+        
+        .empty-state { text-align: center; padding: 60px; background: #161b22; border-radius: 10px; border: 2px dashed #30363d; grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>📋 Registro de Eventos UrbanFlow</h1>
+            <p style="margin: 5px 0 0 0; color: #8b949e; font-size: 13px;">Monitoreo de reportes de choferes y puntos fijos</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:#8b949e; cursor:pointer; user-select:none;">
+                <input type="checkbox" id="chkCruceTren" onchange="showCruceTren=this.checked; loadReports()" style="accent-color:#f39c12;">
+                🚂 Cruces de tren
+            </label>
+            <button class="btn-refresh" onclick="loadReports()">🔄 Refrescar</button>
+            <button class="btn-select" id="btnSelect" onclick="toggleSelectMode()">☑ Seleccionar</button>
+            <button class="btn-danger" id="btnDeleteAll" onclick="deleteAll()">🗑 Borrar Todo</button>
+            <div class="stats">
+                <div class="stat-box"><span id="countActive">0</span><label>Activos</label></div>
+                <div class="stat-box"><span id="countTotal">0</span><label>Total</label></div>
+                <div class="stat-box"><span id="countFijos">0</span><label>Fijos</label></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bulk-bar" id="bulkBar">
+        <span id="selectedCount">0 seleccionados</span>
+        <div class="bulk-actions">
+            <button class="btn-select" onclick="selectAll()">☑ Seleccionar Todo</button>
+            <button class="btn-off btn" onclick="deselectAll()">☐ Quitar Selección</button>
+            <button class="btn-danger" onclick="deleteSelected()">🗑 Borrar Seleccionados</button>
+        </div>
+    </div>
+    
+    <div id="reportsGrid" class="grid">
+        <div class="empty-state">Iniciando conexión con Supabase...</div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let selectMode = false;
+        let selectedIds = new Set();
+        let showCruceTren = false;
+
+        const typeNames = {
+            accidente: '⚠️ Accidente', autodetenido: '🚗 Auto Detenido', transitolento: '🐢 Tráfico Lento',
+            controlpolicial: '🚔 Control Policial', controlmunicipal: '🏛️ Control Municipal', obrasenlavia: '🚧 Obras en la Vía',
+            calleinundada: '🌊 Calle Inundada', callecerrada: '🚫 Calle Cerrada', semaforosrotos: '🚦 Semáforos Rotos',
+            niebla_en_la_ruta: '🌫️ Niebla en la Ruta', desvio_a_la_derecha: '➡️ Desvío a la Derecha',
+            desvio_a_la_izquierda: '⬅️ Desvío a la Izquierda', viaferrea: '🚂 Vía Férrea',
+            radar: '📡 Radar', pare: '🛑 Pare', ceda: 'CEDA EL PASO', lomada: '⛰️ Lomada', cruce_tren: '🚂 Cruce Tren', peaje: '💰 Peaje'
+        };
+
+        const typeIcons = {
+            accidente: 'accidente.png', autodetenido: 'autodetenido.png', transitolento: 'transitolento.png',
+            controlpolicial: 'controlpolicial.png', controlmunicipal: 'controlmunicipal.png', obrasenlavia: 'obrasenlavia.png',
+            calleinundada: 'calleinundada.png', callecerrada: 'callecerrada.png', semaforosrotos: 'semaforosrotos.png',
+            niebla_en_la_ruta: 'niebla_en_la_ruta.png', desvio_a_la_derecha: 'desvio_a_la_derecha.png',
+            desvio_a_la_izquierda: 'desvio_a_la_izquierda.png', viaferrea: 'viaferrea.png',
+            radar: 'radar.png', pare: 'pare.png', ceda: 'cedaelpaso.png', lomada: 'lomada.png', cruce_tren: 'viaferrea.png', peaje: 'peaje.png'
+        };
+
+        function toggleSelectMode() {
+            selectMode = !selectMode;
+            selectedIds.clear();
+            document.getElementById('bulkBar').classList.toggle('visible', selectMode);
+            document.getElementById('btnSelect').textContent = selectMode ? '✕ Cancelar' : '☑ Seleccionar';
+            document.getElementById('reportsGrid').classList.toggle('selecting', selectMode);
+            updateCount();
+        }
+
+        function toggleCheck(id, el) {
+            if (selectedIds.has(id)) { selectedIds.delete(id); el.closest('.card').classList.remove('selected'); }
+            else { selectedIds.add(id); el.closest('.card').classList.add('selected'); }
+            updateCount();
+        }
+
+        function selectAll() {
+            document.querySelectorAll('.select-check').forEach(cb => {
+                const id = parseInt(cb.dataset.id);
+                selectedIds.add(id);
+                cb.closest('.card').classList.add('selected');
+                cb.checked = true;
+            });
+            updateCount();
+        }
+
+        function deselectAll() {
+            selectedIds.clear();
+            document.querySelectorAll('.select-check').forEach(cb => { cb.checked = false; cb.closest('.card').classList.remove('selected'); });
+            updateCount();
+        }
+
+        function updateCount() {
+            document.getElementById('selectedCount').textContent = `${selectedIds.size} seleccionados`;
+        }
+
+        async function deleteAll() {
+            if (!confirm("⚠️ ¿Borrar TODOS los reportes? (Los puntos fijos NO se borran)")) return;
+            if (!confirm("¿Estás seguro? Se eliminarán solo reportes de choferes.")) return;
+            
+            const { error } = await sb.from('eventos').delete().eq('category', 'reporte');
+            if (!error) { selectedIds.clear(); loadReports(); }
+            else alert("Error: " + error.message);
+        }
+
+        async function deleteSelected() {
+            if (selectedIds.size === 0) return alert("No hay eventos seleccionados");
+            if (!confirm(`¿Borrar ${selectedIds.size} reportes seleccionados?`)) return;
+            
+            const { error } = await sb.from('eventos').delete().in('id', [...selectedIds]).eq('category', 'reporte');
+            if (!error) { selectedIds.clear(); loadReports(); }
+            else alert("Error: " + error.message);
+        }
+
+        async function loadReports() {
+            console.log("Cargando eventos...");
+            const { data, error } = await sb.from('eventos').select('*').order('id', { ascending: false }).limit(200);
+            const grid = document.getElementById('reportsGrid');
+            
+            if (error) { 
+                console.error("Error:", error);
+                grid.innerHTML = `<div class="empty-state" style="color:#f85149">❌ Error: ${error.message}<br><small>${error.details || ''}</small></div>`; 
+                return; 
+            }
+            
+            if (!data || data.length === 0) { 
+                grid.innerHTML = '<div class="empty-state">📭 No hay eventos en la base de datos.</div>'; 
+                return; 
+            }
+
+            document.getElementById('countTotal').innerText = data.length;
+            document.getElementById('countActive').innerText = data.filter(r => r.status === 'active' && r.category === 'reporte').length;
+            document.getElementById('countFijos').innerText = data.filter(r => r.category === 'fijo').length;
+
+            const filtered = showCruceTren ? data : data.filter(r => r.type !== 'cruce_tren');
+
+            grid.innerHTML = filtered.map(r => {
+                const isActive = r.status === 'active';
+                const isFijo = r.category === 'fijo';
+                const label = typeNames[r.type] || r.type;
+                const createdAt = r.created_at ? new Date(r.created_at) : null;
+                const dateStr = createdAt ? `${createdAt.toLocaleTimeString()} | ${createdAt.toLocaleDateString()}` : 'Sin fecha';
+                const isSelected = selectedIds.has(r.id);
+                
+                return `
+                <div class="card ${isActive ? 'active' : 'inactive'} ${isSelected ? 'selected' : ''}">
+                    <input type="checkbox" class="select-check" data-id="${r.id}" ${isSelected ? 'checked' : ''} onchange="toggleCheck(${r.id}, this)">
+                    <div class="card-header">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <img src="icons/${typeIcons[r.type] || 'ic_warning.svg'}" alt="${r.type}" style="width:40px; height:40px; border-radius:8px; background:#0d1117; padding:4px;">
+                            <span class="type-badge ${isFijo ? 'fijo' : ''}">${isFijo ? '🔒 FIJO' : '📡 REPORTE'} — ${label}</span>
+                        </div>
+                        <span class="status-pill ${isActive ? 'active' : 'inactive'}">${isActive ? '● ACTIVO' : 'FINALIZADO'}</span>
+                    </div>
+                    <div class="time">🕒 ${dateStr}</div>
+                    <div class="coords">📍 ${r.lat?.toFixed(6)}, ${r.lon?.toFixed(6)}</div>
+                    <div class="meta">
+                        <div>Confirmaciones: <span>${r.confirmations || 0}</span></div>
+                        <div>País: <span>${r.country || '?'}</span></div>
+                        <div>Fuente: <span>${r.source || '?'}</span></div>
+                    </div>
+                    
+                    <div class="actions">
+                        ${isActive && !isFijo ? `<button class="btn btn-off" onclick="deactivate(${r.id})">Desactivar</button>` : `<span></span>`}
+                        ${!isFijo ? `<button class="btn btn-del" onclick="deleteEvent(${r.id})">Eliminar</button>` : `<span style="color:#8b949e; font-size:11px;">🔒 Punto fijo</span>`}
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        async function deactivate(id) {
+            const { error } = await sb.from('eventos').update({ status: 'inactive' }).eq('id', id);
+            if (!error) loadReports();
+            else alert("Error: " + error.message);
+        }
+
+        async function deleteEvent(id) {
+            if (confirm("¿Borrar este reporte definitivamente?")) {
+                const { error } = await sb.from('eventos').delete().eq('id', id).eq('category', 'reporte');
+                if (!error) loadReports();
+                else alert("Error: " + error.message);
+            }
+        }
+
+        sb.channel('events-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'eventos' }, payload => {
+            console.log("Cambio en DB:", payload);
+            loadReports();
+        }).subscribe();
+
+        loadReports();
+    </script>
+</body>
+</html>

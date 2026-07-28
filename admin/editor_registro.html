@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editor de Registro Dinámico - UrbanFlow</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth-check.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; padding: 20px; color: #c9d1d9; transition: background 0.3s; }
+        .container { max-width: 1450px; margin: auto; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #30363d; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: border-color 0.3s, box-shadow 0.3s; }
+        .container.country-active { border-color: #238636; box-shadow: 0 0 20px rgba(35,134,54,0.3); }
+        .container.country-inactive { border-color: #da3633; box-shadow: 0 0 20px rgba(218,54,51,0.2); }
+        h2 { color: #58a6ff; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #30363d; padding-bottom: 15px; }
+        .status-badge { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: bold; margin-left: 10px; }
+        .status-badge.active { background: #238636; color: white; }
+        .status-badge.inactive { background: #da3633; color: white; }
+        .tabs-container { display: flex; justify-content: space-between; align-items: center; background: #21262d; padding: 10px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #30363d; }
+        .tabs { display: flex; gap: 8px; flex: 1; }
+        .tab { padding: 12px 20px; background: #161b22; border: 1px solid #30363d; cursor: pointer; font-weight: bold; color: #c9d1d9; border-radius: 6px; flex: 1; text-align: center; position: relative; transition: all 0.2s; }
+        .tab.active { background: #1877f2; color: white; border-color: #1877f2; }
+        .tab .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 6px; vertical-align: middle; }
+        .tab .status-dot.on { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+        .tab .status-dot.off { background: #f85149; box-shadow: 0 0 6px #f85149; }
+        .cloner { display: flex; align-items: center; gap: 10px; background: #161b22; padding: 5px 15px; border-radius: 6px; border: 1px solid #30363d; }
+        .cloner select { padding: 8px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: white; }
+        .step-card { border: 1px solid #30363d; padding: 20px; margin-bottom: 30px; border-radius: 10px; background: #161b22; border-left: 8px solid #1877f2; position: relative; }
+        .step-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #30363d; }
+        .step-header input { flex: 1; background: #0d1117; color: white; border: 1px solid #30363d; padding: 10px; border-radius: 6px; font-weight: bold; }
+        .field-item { background: #21262d; padding: 15px; border: 1px solid #30363d; margin-bottom: 10px; border-radius: 8px; }
+        .field-row { display: grid; grid-template-columns: 40px 80px 200px 160px 1fr 1fr 1fr 45px; gap: 12px; align-items: end; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 10px; font-weight: bold; color: #58a6ff; text-transform: uppercase; margin-bottom: 4px; }
+        input, select { padding: 8px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; width: 100%; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-add { background: #238636; color: white; }
+        .btn-save { background: #1877f2; color: white; font-size: 18px; width: 100%; margin-top: 20px; padding: 20px; }
+        .btn-delete { background: #da3633; color: white; }
+        .btn-move { background: #30363d; color: #58a6ff; padding: 4px 8px; font-size: 12px; border: 1px solid #58a6ff; border-radius: 4px; cursor: pointer; }
+        .btn-move:hover { background: #1f6feb; color: white; }
+        .btn-move:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-delete-step { background: #da3633; color: white; padding: 6px 12px; font-size: 11px; border-radius: 6px; cursor: pointer; border: none; }
+        .btn-delete-step:hover { background: #f85149; }
+        .step-actions { display: flex; gap: 8px; align-items: center; }
+        .step-actions .step-number { font-size: 14px; font-weight: bold; color: #58a6ff; min-width: 80px; }
+        .field-move-btns { display: flex; flex-direction: column; gap: 2px; }
+        .field-move-btns button { background: #30363d; color: #58a6ff; border: 1px solid #30363d; border-radius: 4px; cursor: pointer; width: 28px; height: 28px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .field-move-btns button:hover { background: #1f6feb; color: white; }
+        .field-move-btns button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .field-move-btns button:disabled:hover { background: #30363d; color: #58a6ff; }
+        #countryConfig { background: #21262d; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 20px; display: none; }
+        .btn-save-country { background: #8957e5; color: white; font-size: 14px; padding: 10px 20px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="container" id="mainContainer">
+    <h2>🛠️ Editor de Registro Dinámico <span id="countryLabel">UY</span> <span id="statusBadge" class="status-badge active">ACTIVO</span></h2>
+    <div class="tabs-container">
+        <div class="tabs" id="tabsBar"></div>
+        <div class="cloner">
+            <label style="font-size:10px;">CLONAR DESDE:</label>
+            <select id="cloneSource"><option value="UY">UY</option><option value="AR">AR</option><option value="CL">CL</option><option value="BR">BR</option><option value="PY">PY</option></select>
+            <button class="btn" style="background:#8957e5; color:white; padding:8px 15px;" onclick="cloneFromSource()">👯 CLONAR</button>
+        </div>
+        <button class="btn" style="background:#30363d; color:white; margin-left: 10px;" onclick="toggleConfig()">⚙️ PAÍS</button>
+    </div>
+    
+    <div id="countryConfig">
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px;">
+            <div class="form-group"><label>Prefijo Telefónico</label><input type="text" id="cfg_phone" placeholder="Ej: +598"></div>
+            <div class="form-group"><label>Dígitos Teléfono</label><input type="number" id="cfg_len" placeholder="Ej: 9"></div>
+            <div class="form-group"><label>Moneda y Símbolo</label><input type="text" id="cfg_moneda" placeholder="Ej: UYU ($)"></div>
+            <div class="form-group"><label>País Habilitado</label><select id="cfg_hab"><option value="true">SÍ (Activo)</option><option value="false">NO (Inactivo)</option></select></div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:15px; margin-top:12px;">
+            <div class="form-group"><label>Auto-Habilitar AUTOS</label><select id="cfg_auto_autos"><option value="false">NO</option><option value="true">SÍ</option></select></div>
+            <div class="form-group"><label>Auto-Habilitar TAXIS</label><select id="cfg_auto_taxis"><option value="false">NO</option><option value="true">SÍ</option></select></div>
+        </div>
+        <button class="btn btn-save-country" onclick="saveCountryConfig()">💾 GUARDAR CONFIGURACIÓN DEL PAÍS</button>
+    </div>
+
+    <div id="stepsContainer"></div>
+    <button class="btn btn-add" style="width:100%; margin-top:10px;" onclick="addNewStep()">+ AGREGAR NUEVA PANTALLA</button>
+    <button class="btn btn-save" onclick="saveAll()">💾 GUARDAR CONFIGURACIÓN COMPLETA</button>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const countries = ['UY','AR','CL','BR','PY'];
+    const countryFlags = { UY:'🇺🇾', AR:'🇦🇷', CL:'🇨🇱', BR:'🇧🇷', PY:'🇵🇾' };
+    let currentCountry = 'UY';
+    let configs = [];
+    let countryConfig = {};
+    let allCountryStates = {};
+
+    const photoMapping = {
+        'photo_perfil': 'perfil',
+        'photo_dni_f': 'dni_f', 'photo_dni_d': 'dni_d',
+        'photo_licencia_f': 'licencia_f', 'photo_licencia_d': 'licencia_d',
+        'photo_libreta_chofer_f': 'libreta_chofer_f', 'photo_libreta_chofer_d': 'libreta_chofer_d',
+        'photo_libreta_propiedad_f': 'libreta_f', 'photo_libreta_propiedad_d': 'libreta_d',
+        'photo_auto': 'auto', 'photo_seguro': 'seguro'
+    };
+
+    async function loadAllCountryStates() {
+        const { data, error } = await sb.from('config_paises').select('pais_code, habilitado, moneda, codigo_telefono');
+        allCountryStates = {};
+        if (data) data.forEach(r => { allCountryStates[r.pais_code] = r; });
+        renderTabs();
+    }
+
+    function renderTabs() {
+        const bar = document.getElementById('tabsBar');
+        bar.innerHTML = '';
+        countries.forEach(c => {
+            const countryData = allCountryStates[c];
+            const isActive = countryData ? countryData.habilitado !== false : true;
+            const isSelected = c === currentCountry;
+            const btn = document.createElement('button');
+            btn.className = 'tab' + (isSelected ? ' active' : '');
+            const moneda = countryData?.moneda || '';
+            btn.innerHTML = `${countryFlags[c]} ${c} <span class="status-dot ${isActive ? 'on' : 'off'}"></span>${moneda ? '<br><span style="font-size:9px;font-weight:normal;opacity:0.7;">' + moneda + '</span>' : ''}`;
+            btn.onclick = () => loadConfig(c);
+            bar.appendChild(btn);
+        });
+    }
+
+    function updateContainerVisuals() {
+        const container = document.getElementById('mainContainer');
+        const badge = document.getElementById('statusBadge');
+        const isActive = countryConfig.habilitado !== false;
+        container.classList.remove('country-active', 'country-inactive');
+        container.classList.add(isActive ? 'country-active' : 'country-inactive');
+        badge.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
+        badge.textContent = isActive ? 'ACTIVO' : 'INACTIVO';
+    }
+
+    function fillCountryInputs() {
+        document.getElementById('cfg_phone').value = countryConfig.codigo_telefono || '';
+        document.getElementById('cfg_len').value = countryConfig.longitud_telefono || '';
+        document.getElementById('cfg_moneda').value = countryConfig.moneda || '';
+        document.getElementById('cfg_hab').value = String(countryConfig.habilitado !== false);
+        document.getElementById('cfg_auto_autos').value = String(countryConfig.auto_habilitacion_autos === true);
+        document.getElementById('cfg_auto_taxis').value = String(countryConfig.auto_habilitacion_taxis === true);
+    }
+
+    async function loadConfig(country) {
+        currentCountry = country;
+        document.getElementById('countryLabel').innerText = country;
+        const { data: cData, error: cErr } = await sb.from('config_paises')
+            .select('pais_code, habilitado, moneda, codigo_telefono, longitud_telefono')
+            .eq('pais_code', country).limit(1);
+        if (cErr) { console.warn('config_paises error:', cErr.message); }
+        countryConfig = (cData && cData[0]) || { pais_code: country, habilitado: true };
+        fillCountryInputs();
+        updateContainerVisuals();
+        renderTabs();
+
+        const { data } = await sb.from('config_registro_dinamico').select('*').eq('pais_code', country).order('step_nro').order('orden');
+        configs = [];
+        const steps = [...new Set(data?.map(r => r.step_nro))].sort((a,b)=>a-b);
+        steps.forEach(sn => {
+            const fields = data.filter(r => r.step_nro === sn);
+            configs.push({ step_nro: sn, title: fields[0].step_title, fields: fields });
+        });
+        renderUI();
+    }
+
+    async function saveCountryConfig() {
+        const updates = {
+            codigo_telefono: document.getElementById('cfg_phone').value.trim(),
+            longitud_telefono: parseInt(document.getElementById('cfg_len').value) || null,
+            moneda: document.getElementById('cfg_moneda').value.trim(),
+            habilitado: document.getElementById('cfg_hab').value === 'true'
+        };
+
+        const existing = allCountryStates[currentCountry] !== undefined && allCountryStates[currentCountry].habilitado !== undefined;
+        let error;
+        if (existing) {
+            const res = await sb.from('config_paises').update(updates).eq('pais_code', currentCountry);
+            error = res.error;
+        } else {
+            updates.pais_code = currentCountry;
+            const res = await sb.from('config_paises').insert(updates);
+            error = res.error;
+        }
+
+        if (error) { alert("Error: " + error.message); return; }
+
+        // Intentar guardar auto_habilitacion si las columnas existen
+        try {
+            const autoUpdates = {
+                auto_habilitacion_autos: document.getElementById('cfg_auto_autos').value === 'true',
+                auto_habilitacion_taxis: document.getElementById('cfg_auto_taxis').value === 'true'
+            };
+            await sb.from('config_paises').update(autoUpdates).eq('pais_code', currentCountry);
+        } catch (_) {}
+
+        countryConfig = { ...countryConfig, ...updates };
+        allCountryStates[currentCountry] = { ...allCountryStates[currentCountry], ...updates };
+        updateContainerVisuals();
+        renderTabs();
+        alert("✅ Configuración del país guardada");
+    }
+
+    function renderUI() {
+        const container = document.getElementById('stepsContainer'); container.innerHTML = '';
+        configs.forEach((step, sIdx) => {
+            const stepDiv = document.createElement('div'); stepDiv.className = 'step-card';
+            const isFirstChild = sIdx === 0;
+            const isLastChild = sIdx === configs.length - 1;
+            stepDiv.innerHTML = `
+                <div class="step-header">
+                    <div class="step-actions">
+                        <span class="step-number">PANTALLA ${sIdx + 1}</span>
+                        <button class="btn btn-move" onclick="moveStepUp(${sIdx})" ${isFirstChild ? 'disabled' : ''} title="Mover arriba">⬆️</button>
+                        <button class="btn btn-move" onclick="moveStepDown(${sIdx})" ${isLastChild ? 'disabled' : ''} title="Mover abajo">⬇️</button>
+                        <button class="btn-delete-step" onclick="deleteStep(${sIdx})" title="Eliminar pantalla">🗑️ ELIMINAR</button>
+                    </div>
+                    <input type="text" value="${step.title}" onchange="configs[${sIdx}].title = this.value" style="flex:1;">
+                </div>
+                ${step.fields.map((f, fIdx) => `
+                <div class="field-item">
+                    <div class="field-row">
+                        <div class="field-move-btns">
+                            <button onclick="moveFieldUp(${sIdx}, ${fIdx})" ${fIdx === 0 ? 'disabled' : ''} title="Mover arriba">⬆</button>
+                            <button onclick="moveFieldDown(${sIdx}, ${fIdx})" ${fIdx === step.fields.length - 1 ? 'disabled' : ''} title="Mover abajo">⬇</button>
+                        </div>
+                        <div class="form-group"><label>Tipo de Campo</label>
+                            <select onchange="updateFieldType(${sIdx}, ${fIdx}, this.value)" style="${f.type.startsWith('photo') ? 'border-color:#58a6ff; background:#002b5e;' : ''}">
+                                <optgroup label="Básicos"><option value="text" ${f.type==='text'?'selected':''}>Texto</option><option value="phone" ${f.type==='phone'?'selected':''}>Teléfono</option><option value="dni" ${f.type==='dni'?'selected':''}>DNI Nro</option><option value="sexo" ${f.type==='sexo'?'selected':''}>Sexo</option><option value="car_year" ${f.type==='car_year'?'selected':''}>Año Vehículo</option><option value="car_color" ${f.type==='car_color'?'selected':''}>🎨 Color del Auto</option></optgroup>
+                                <optgroup label="Fotos (Documentación)">
+                                    <option value="photo_perfil" ${f.type==='photo_perfil'?'selected':''}>Foto Perfil</option>
+                                    <option value="photo_libreta_chofer_f" ${f.type==='photo_libreta_chofer_f'?'selected':''}>Libreta CHOFER (Frente)</option>
+                                    <option value="photo_libreta_chofer_d" ${f.type==='photo_libreta_chofer_d'?'selected':''}>Libreta CHOFER (Dorso)</option>
+                                    <option value="photo_libreta_propiedad_f" ${f.type==='photo_libreta_propiedad_f'?'selected':''}>Libreta PROPIEDAD (Frente)</option>
+                                    <option value="photo_libreta_propiedad_d" ${f.type==='photo_libreta_propiedad_d'?'selected':''}>Libreta PROPIEDAD (Dorso)</option>
+                                    <option value="photo_licencia_f" ${f.type==='photo_licencia_f'?'selected':''}>Licencia Conducir (Frente)</option>
+                                    <option value="photo_licencia_d" ${f.type==='photo_licencia_d'?'selected':''}>Licencia Conducir (Dorso)</option>
+                                    <option value="photo_dni_f" ${f.type==='photo_dni_f'?'selected':''}>DNI/Cédula (Frente)</option>
+                                    <option value="photo_dni_d" ${f.type==='photo_dni_d'?'selected':''}>DNI/Cédula (Dorso)</option>
+                                    <option value="photo_auto" ${f.type==='photo_auto'?'selected':''}>Foto Auto</option>
+                                    <option value="photo_seguro" ${f.type==='photo_seguro'?'selected':''}>Póliza Seguro</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>ID Técnico (Storage)</label><input type="text" value="${f.field_id}" id="fid_${sIdx}_${fIdx}" onchange="configs[${sIdx}].fields[${fIdx}].field_id = this.value" style="color:#f2d335; font-weight:bold;"></div>
+                        <div class="form-group"><label>Etiqueta (App)</label><input type="text" value="${f.label}" onchange="configs[${sIdx}].fields[${fIdx}].label = this.value"></div>
+                        <div class="form-group"><label>Subtítulo</label><input type="text" value="${f.subtitulo||''}" onchange="configs[${sIdx}].fields[${fIdx}].subtitulo = this.value"></div>
+                        <div class="form-group"><label>Placeholder</label><input type="text" value="${f.relleno||''}" onchange="configs[${sIdx}].fields[${fIdx}].relleno = this.value"></div>
+                        <button class="btn btn-delete" onclick="configs[${sIdx}].fields.splice(${fIdx},1); renderUI()">🗑️</button>
+                    </div>
+                </div>`).join('')}
+                <button class="btn btn-add" style="font-size:11px;" onclick="addNewField(${sIdx})">+ CAMPO</button>`;
+            container.appendChild(stepDiv);
+        });
+    }
+
+    function updateFieldType(sIdx, fIdx, type) {
+        configs[sIdx].fields[fIdx].type = type;
+        if (photoMapping[type]) {
+            configs[sIdx].fields[fIdx].field_id = photoMapping[type];
+            if(!configs[sIdx].fields[fIdx].label) configs[sIdx].fields[fIdx].label = "Subir " + type.replace('photo_', '').replace(/_/g, ' ').toUpperCase();
+        }
+        if (type === 'car_color') {
+            configs[sIdx].fields[fIdx].field_id = 'color_auto';
+            if(!configs[sIdx].fields[fIdx].label) configs[sIdx].fields[fIdx].label = "Color del Auto";
+        }
+        if (type === 'sexo') {
+            configs[sIdx].fields[fIdx].field_id = 'sexo';
+            if(!configs[sIdx].fields[fIdx].label) configs[sIdx].fields[fIdx].label = "Sexo";
+        }
+        if (type === 'car_year') {
+            configs[sIdx].fields[fIdx].field_id = 'anio_vehiculo';
+            if(!configs[sIdx].fields[fIdx].label) configs[sIdx].fields[fIdx].label = "Año del Vehículo";
+        }
+        renderUI();
+    }
+
+    function deleteStep(sIdx) {
+        const step = configs[sIdx];
+        if (!confirm(`¿Eliminar la pantalla "${step.title}" y sus ${step.fields.length} campo(s)?`)) return;
+        configs.splice(sIdx, 1);
+        renderUI();
+    }
+
+    function moveStepUp(sIdx) {
+        if (sIdx === 0) return;
+        const temp = configs[sIdx];
+        configs[sIdx] = configs[sIdx - 1];
+        configs[sIdx - 1] = temp;
+        renderUI();
+    }
+
+    function moveStepDown(sIdx) {
+        if (sIdx >= configs.length - 1) return;
+        const temp = configs[sIdx];
+        configs[sIdx] = configs[sIdx + 1];
+        configs[sIdx + 1] = temp;
+        renderUI();
+    }
+
+    function moveFieldUp(sIdx, fIdx) {
+        if (fIdx === 0) return;
+        const temp = configs[sIdx].fields[fIdx];
+        configs[sIdx].fields[fIdx] = configs[sIdx].fields[fIdx - 1];
+        configs[sIdx].fields[fIdx - 1] = temp;
+        renderUI();
+    }
+
+    function moveFieldDown(sIdx, fIdx) {
+        if (fIdx >= configs[sIdx].fields.length - 1) return;
+        const temp = configs[sIdx].fields[fIdx];
+        configs[sIdx].fields[fIdx] = configs[sIdx].fields[fIdx + 1];
+        configs[sIdx].fields[fIdx + 1] = temp;
+        renderUI();
+    }
+
+    async function saveAll() {
+        if(!confirm("¿Guardar campos de registro?")) return;
+        const rows = [];
+        configs.forEach((step, sIdx) => {
+            step.fields.forEach((f, fIdx) => {
+                rows.push({ 
+                    pais_code: currentCountry, step_nro: sIdx + 1, step_title: step.title,
+                    field_id: f.field_id, label: f.label, type: f.type,
+                    relleno: f.relleno || null, subtitulo: f.subtitulo || null,
+                    orden: fIdx, visible: true, mostrar_label: true 
+                });
+            });
+        });
+        await sb.from('config_registro_dinamico').delete().eq('pais_code', currentCountry);
+        const { error } = await sb.from('config_registro_dinamico').insert(rows);
+        if(error) alert("Error: " + error.message); else alert("✅ ¡Campos guardados!");
+    }
+
+    function addNewStep() {
+        const options = [
+            { value: 'blank', label: '📝 Pantalla en Blanco' },
+            { value: 'vehiculo', label: '🚗 Datos del Vehículo (con Color)' }
+        ];
+        const html = `
+            <div style="padding:20px; background:#0d1117; border-radius:8px; max-width:350px;">
+                <h3 style="color:#58a6ff; margin:0 0 15px 0; font-size:14px;">AGREGAR NUEVA PANTALLA</h3>
+                <select id="newStepType" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #30363d; background:#161b22; color:white; font-size:13px;">
+                    ${options.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
+                </select>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-add" onclick="confirmAddStep()" style="flex:1;">AGREGAR</button>
+                    <button class="btn" style="background:#30363d; color:#c9d1d9; flex:1;" onclick="document.querySelector('.modal-overlay')?.remove()">CANCELAR</button>
+                </div>
+            </div>
+        `;
+        showModal(html);
+    }
+
+    function confirmAddStep() {
+        const type = document.getElementById('newStepType').value;
+        document.querySelector('.modal-overlay')?.remove();
+        if (type === 'vehiculo') {
+            configs.push({
+                step_nro: configs.length + 1,
+                title: "Datos del Vehículo",
+                fields: [
+                    { field_id: 'color_auto', label: 'Color del Auto', type: 'car_color', relleno: null, subtitulo: null }
+                ]
+            });
+        } else {
+            configs.push({ step_nro: configs.length + 1, title: "Nueva Pantalla", fields: [] });
+        }
+        renderUI();
+    }
+
+    function showModal(html) {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999;';
+        overlay.innerHTML = html;
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        document.body.appendChild(overlay);
+    }
+    function addNewField(sIdx) { configs[sIdx].fields.push({ field_id: 'nuevo_'+Math.random().toString(36).substr(2,4), label: '', type: 'text' }); renderUI(); }
+    function toggleConfig() { const el = document.getElementById('countryConfig'); el.style.display = el.style.display==='block'?'none':'block'; }
+
+    window.onload = async () => {
+        await loadAllCountryStates();
+        loadConfig('UY');
+    };
+</script>
+<script src="/auth-check.js"></script>
+</body>
+</html>

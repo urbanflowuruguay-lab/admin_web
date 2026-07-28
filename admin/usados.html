@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos Usados (P2P) - UrbanFlow</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; }
+        .header { background: #161b22; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; }
+        .header h1 { font-size: 20px; color: #58a6ff; }
+        .header .count { background: #1f6feb; color: white; padding: 2px 10px; border-radius: 12px; font-size: 13px; }
+        .tabs { display: flex; gap: 0; background: #161b22; border-bottom: 1px solid #30363d; padding: 0 24px; }
+        .tab { padding: 12px 20px; cursor: pointer; color: #8b949e; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab:hover { color: #c9d1d9; }
+        .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+        .tab .badge { background: #da3633; color: white; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
+        .container { padding: 20px 24px; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 16px; }
+        .search-bar input { flex: 1; padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        .search-bar input:focus { border-color: #58a6ff; outline: none; }
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 14px; border: 1px solid #30363d; border-radius: 20px; background: transparent; color: #8b949e; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .filter-btn.active { background: #1f6feb; color: white; border-color: #1f6feb; }
+        .filter-btn:hover { border-color: #58a6ff; color: #c9d1d9; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #161b22; padding: 10px 12px; text-align: left; font-size: 12px; color: #8b949e; text-transform: uppercase; border-bottom: 1px solid #30363d; }
+        td { padding: 12px; border-bottom: 1px solid #21262d; font-size: 14px; vertical-align: middle; }
+        tr:hover { background: #161b22; }
+        .badge-status { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-activo { background: #238636; color: #7ee787; }
+        .badge-vendido { background: #1f6feb; color: #79c0ff; }
+        .badge-inactivo { background: #da3633; color: #ffa198; }
+        .badge-trueque { background: #9e6a03; color: #f0e68c; }
+        .btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity: 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-approve { background: #238636; color: white; }
+        .btn-reject { background: #da3633; color: white; }
+        .btn-sold { background: #1f6feb; color: white; }
+        .btn-delete { background: #b62324; color: white; }
+        .btn-view { background: #30363d; color: #c9d1d9; }
+        .btn-whatsapp { background: #25d366; color: white; }
+        .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; }
+        .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 24px; }
+        .modal h2 { color: #58a6ff; margin-bottom: 16px; font-size: 18px; }
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { display: block; color: #8b949e; font-size: 12px; margin-bottom: 4px; text-transform: uppercase; }
+        .modal-field .value { font-size: 14px; color: #c9d1d9; }
+        .modal-close { float: right; background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer; }
+        .modal-close:hover { color: #c9d1d9; }
+        .empty { text-align: center; padding: 60px 20px; color: #484f58; }
+        .empty .icon { font-size: 48px; margin-bottom: 12px; }
+        .product-img { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; background: #21262d; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+        .stat-card .stat-num { font-size: 28px; font-weight: bold; color: #58a6ff; }
+        .stat-card .stat-label { font-size: 12px; color: #8b949e; margin-top: 4px; text-transform: uppercase; }
+        .modal-photos { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .modal-photos img { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid #30363d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛒 Productos Usados (P2P) <span class="count" id="totalCount">0</span></h1>
+    </div>
+
+    <!-- Panel de Pagos -->
+    <div style="background:#161b22;border-bottom:1px solid #30363d;padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="color:#8b949e;font-size:13px;font-weight:600">💳 PAGOS:</span>
+        <div style="display:flex;align-items:center;gap:8px">
+            <span id="pagosLabel" style="color:#ffa198;font-size:13px">DESACTIVADOS</span>
+            <button id="togglePagos" onclick="togglePagos()" style="width:48px;height:26px;border-radius:13px;border:none;cursor:pointer;position:relative;transition:0.3s;background:#da3633">
+                <div id="togglePagosDot" style="width:22px;height:22px;border-radius:50%;background:white;position:absolute;top:2px;left:2px;transition:0.3s"></div>
+            </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:16px">
+            <span style="color:#8b949e;font-size:13px">Modo:</span>
+            <span id="modoLabel" style="color:#f0e68c;font-size:13px;font-weight:600">TEST</span>
+            <button id="toggleModo" onclick="toggleModo()" style="width:48px;height:26px;border-radius:13px;border:none;cursor:pointer;position:relative;transition:0.3s;background:#9e6a03">
+                <div id="toggleModoDot" style="width:22px;height:22px;border-radius:50%;background:white;position:absolute;top:2px;left:2px;transition:0.3s"></div>
+            </button>
+        </div>
+        <a href="mp-test-cards.html" target="viewFrame" style="color:#58a6ff;font-size:12px;text-decoration:none;margin-left:auto">📋 Tarjetas de prueba</a>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab_activos" onclick="switchTab('activos')">Activos<span class="badge" id="badge_activos">0</span></div>
+        <div class="tab" id="tab_vendidos" onclick="switchTab('vendidos')">Vendidos<span class="badge" id="badge_vendidos">0</span></div>
+        <div class="tab" id="tab_todos" onclick="switchTab('todos')">Todos</div>
+    </div>
+
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Buscar por nombre, categoría, marca..." oninput="renderTable()">
+        </div>
+        <div class="filter-bar" id="filterBar">
+            <button class="filter-btn active" onclick="filterCategoria('todas', this)">Todas</button>
+            <button class="filter-btn" onclick="filterCategoria('Electronica', this)">📱 Electrónica</button>
+            <button class="filter-btn" onclick="filterCategoria('Ropa', this)">👕 Ropa</button>
+            <button class="filter-btn" onclick="filterCategoria('Hogar', this)">🏠 Hogar</button>
+            <button class="filter-btn" onclick="filterCategoria('Deportes', this)">⚽ Deportes</button>
+            <button class="filter-btn" onclick="filterCategoria('Vehiculos', this)">🚗 Vehículos</button>
+            <button class="filter-btn" onclick="filterCategoria('Herramientas', this)">🔧 Herramientas</button>
+            <button class="filter-btn" onclick="filterCategoria('Otros', this)">📦 Otros</button>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total productos</div></div>
+            <div class="stat-card"><div class="stat-num" id="statActivos">0</div><div class="stat-label">Activos</div></div>
+            <div class="stat-card"><div class="stat-num" id="statVendidos">0</div><div class="stat-label">Vendidos</div></div>
+            <div class="stat-card"><div class="stat-num" id="statTrueque">0</div><div class="stat-label">Aceptan trueque</div></div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                    <th>Vendedor</th>
+                    <th>Publicado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty" id="emptyState" style="display:none;">
+            <div class="icon">📦</div>
+            <p>No hay productos para mostrar</p>
+        </div>
+    </div>
+
+    <!-- Modal Detalle -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <h2 id="modalTitle">Detalle del Producto</h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let allProducts = [];
+        let currentTab = 'activos';
+        let currentCategoria = 'todas';
+
+        const estadoLabels = { nuevo: 'Nuevo', semi_nuevo: 'Semi-nuevo', bueno: 'Bueno', regular: 'Regular' };
+        const categoriaIcons = { Electronica: '📱', Ropa: '👕', Hogar: '🏠', Deportes: '⚽', Vehiculos: '🚗', Herramientas: '🔧', Belleza: '💄', Juguetes: '🧸', Libros: '📚', Otros: '📦' };
+
+        async function loadProducts() {
+            const { data, error } = await sb.from('ecommerce_usados').select('*').order('created_at', { ascending: false });
+            if (error) { console.error(error); return; }
+            allProducts = data || [];
+            updateStats();
+            updateBadges();
+            renderTable();
+        }
+
+        async function getVendedorInfo(userId) {
+            if (!userId) return { nombre: 'Desconocido', email: '' };
+            try {
+                const { data } = await sb.from('perfiles').select('full_name, email').eq('id', userId).single();
+                return data || { nombre: userId.substring(0, 8) + '...', email: '' };
+            } catch { return { nombre: userId.substring(0, 8) + '...', email: '' }; }
+        }
+
+        function updateStats() {
+            document.getElementById('statTotal').textContent = allProducts.length;
+            document.getElementById('statActivos').textContent = allProducts.filter(p => p.activo && !p.vendido).length;
+            document.getElementById('statVendidos').textContent = allProducts.filter(p => p.vendido).length;
+            document.getElementById('statTrueque').textContent = allProducts.filter(p => p.acepta_trueque).length;
+        }
+
+        function updateBadges() {
+            document.getElementById('badge_activos').textContent = allProducts.filter(p => p.activo && !p.vendido).length;
+            document.getElementById('badge_vendidos').textContent = allProducts.filter(p => p.vendido).length;
+            document.getElementById('totalCount').textContent = allProducts.length;
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab_' + tab).classList.add('active');
+            renderTable();
+        }
+
+        function filterCategoria(cat, btn) {
+            currentCategoria = cat;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderTable();
+        }
+
+        function renderTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allProducts;
+
+            if (currentTab === 'activos') filtered = filtered.filter(p => p.activo && !p.vendido);
+            else if (currentTab === 'vendidos') filtered = filtered.filter(p => p.vendido);
+
+            if (currentCategoria !== 'todas') {
+                filtered = filtered.filter(p => (p.categoria || '').toLowerCase() === currentCategoria.toLowerCase());
+            }
+
+            if (search) {
+                filtered = filtered.filter(p =>
+                    (p.nombre || '').toLowerCase().includes(search) ||
+                    (p.categoria || '').toLowerCase().includes(search) ||
+                    (p.marca || '').toLowerCase().includes(search) ||
+                    (p.descripcion || '').toLowerCase().includes(search)
+                );
+            }
+
+            const tbody = document.getElementById('tableBody');
+            const empty = document.getElementById('emptyState');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            tbody.innerHTML = filtered.map(p => {
+                const statusClass = p.vendido ? 'badge-vendido' : (p.activo ? 'badge-activo' : 'badge-inactivo');
+                const statusText = p.vendido ? 'Vendido' : (p.activo ? 'Activo' : 'Inactivo');
+                const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-UY') : '-';
+                const foto = p.fotos ? p.fotos.split('|')[0] : '';
+                const icon = categoriaIcons[p.categoria] || '📦';
+                return `<tr>
+                    <td><div style="display:flex;align-items:center;gap:10px">${foto ? `<img src="${foto}" class="product-img" onerror="this.style.display='none'">` : `<div class="product-img" style="display:flex;align-items:center;justify-content:center;color:#484f58;font-size:20px">${icon}</div>`}<div><strong>${p.nombre || '-'}</strong><br><small style="color:#8b949e">${p.marca || ''} ${p.acepta_trueque ? '<span class="badge-trueque" style="padding:1px 6px;border-radius:8px;font-size:10px">🔄 Trueque</span>' : ''}</small></div></div></td>
+                    <td>${icon} ${p.categoria || '-'}</td>
+                    <td><strong style="color:#7ee787">$${p.precio || 0}</strong></td>
+                    <td><span class="badge-status ${statusClass}">${statusText}</span></td>
+                    <td><span style="color:#8b949e;font-size:12px" id="vendedor_${p.id}">Cargando...</span></td>
+                    <td style="color:#8b949e;font-size:12px">${fecha}</td>
+                    <td><div class="actions">
+                        <button class="btn btn-view" onclick="viewProduct(${p.id})">👁 Ver</button>
+                        ${p.vendido ? '' : `<button class="btn btn-sold" onclick="markSold(${p.id})">✅ Vendido</button>`}
+                        <button class="btn btn-delete" onclick="deleteProduct(${p.id})">🗑️</button>
+                    </div></td>
+                </tr>`;
+            }).join('');
+
+            // Load vendedor names
+            filtered.forEach(async p => {
+                const v = await getVendedorInfo(p.usuario_id);
+                const el = document.getElementById('vendedor_' + p.id);
+                if (el) el.innerHTML = `${v.nombre || '-'}<br><small style="color:#8b949e">${v.email || ''}</small>`;
+            });
+        }
+
+        async function viewProduct(id) {
+            const p = allProducts.find(x => x.id === id);
+            if (!p) return;
+
+            const v = await getVendedorInfo(p.usuario_id);
+            const fotos = p.fotos ? p.fotos.split('|') : [];
+
+            document.getElementById('modalTitle').innerHTML = `
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div style="width:48px;height:48px;border-radius:10px;background:#21262d;display:flex;align-items:center;justify-content:center;font-size:24px">${categoriaIcons[p.categoria] || '📦'}</div>
+                    <div>${p.nombre}</div>
+                </div>`;
+
+            document.getElementById('modalContent').innerHTML = `
+                ${fotos.length > 0 ? `<div class="modal-photos">${fotos.map(f => `<img src="${f}" onerror="this.style.display='none'">`).join('')}</div>` : ''}
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">
+                    <div class="modal-field"><label>Precio</label><div class="value" style="color:#7ee787;font-size:20px;font-weight:bold">$${p.precio || 0}</div></div>
+                    <div class="modal-field"><label>Estado</label><div class="value">${estadoLabels[p.estado] || p.estado || '-'}</div></div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="modal-field"><label>Categoría</label><div class="value">${categoriaIcons[p.categoria] || '📦'} ${p.categoria || '-'}</div></div>
+                    <div class="modal-field"><label>Marca</label><div class="value">${p.marca || '-'}</div></div>
+                </div>
+
+                <div class="modal-field"><label>Descripción</label><div class="value">${p.descripcion || '-'}</div></div>
+                <div class="modal-field"><label>Ubicación</label><div class="value">${p.ubicacion || 'Sin ubicación'}</div></div>
+                <div class="modal-field"><label>Acepta trueque</label><div class="value">${p.acepta_trueque ? '🔄 Sí' : '❌ No'}</div></div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                    <div class="modal-field"><label>Vendedor</label><div class="value">${v.nombre || '-'}<br><small style="color:#8b949e">${v.email || ''}</small></div></div>
+                    <div class="modal-field"><label>Publicado</label><div class="value">${p.created_at ? new Date(p.created_at).toLocaleString('es-UY') : '-'}</div></div>
+                </div>
+
+                <div class="modal-field"><label>Vistas</label><div class="value">${p.vistas || 0}</div></div>
+
+                <div style="margin-top:16px;display:flex;gap:8px">
+                    ${p.vendido ? '<span class="badge-status badge-vendido" style="padding:8px 16px;font-size:14px">✅ Vendido</span>' : `<button class="btn btn-sold" onclick="markSold(${p.id});closeModal()">✅ Marcar como vendido</button>`}
+                    <button class="btn btn-delete" onclick="deleteProduct(${p.id});closeModal()" style="margin-left:auto">🗑️ Eliminar</button>
+                </div>
+            `;
+            document.getElementById('detailModal').style.display = 'block';
+        }
+
+        async function markSold(id) {
+            if (!confirm('¿Marcar este producto como vendido?')) return;
+            await sb.from('ecommerce_usados').update({ vendido: true, activo: false }).eq('id', id);
+            loadProducts();
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('¿Eliminar este producto permanentemente?')) return;
+            await sb.from('ecommerce_usados').delete().eq('id', id);
+            loadProducts();
+        }
+
+        function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
+        document.getElementById('detailModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+        loadProducts();
+    </script>
+</body>
+</html>

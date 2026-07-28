@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Envío Masivo WhatsApp - UrbanFlow</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth-check.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; background-color: #0d1117; color: #c9d1d9; }
+        h1 { color: #c9d1d9; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 11px; font-weight: bold; color: #f39c12; text-transform: uppercase; margin-bottom: 5px; }
+        select, input { padding: 8px; border: 1px solid #30363d; border-radius: 6px; font-size: 13px; background: #0d1117; color: #c9d1d9; }
+        
+        .message-section { background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 20px; }
+        .message-section h3 { color: #c9d1d9; margin-top: 0; }
+        .message-section label { font-size: 11px; font-weight: bold; color: #f39c12; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        
+        .table-container { background: #161b22; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); overflow-x: auto; border: 1px solid #30363d; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        th { background: #21262d; color: #c9d1d9; font-weight: 600; text-align: left; padding: 15px; border-bottom: 2px solid #30363d; white-space: nowrap; }
+        td { padding: 15px; border-bottom: 1px solid #30363d; font-size: 14px; color: #c9d1d9; }
+        tr:hover { background-color: #21262d; }
+        
+        .checkbox { width: 18px; height: 18px; cursor: pointer; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background: #25D366; color: white; }
+        .btn-primary:hover { background: #128C7E; }
+        .btn-secondary { background: #3b82f6; color: white; }
+        .btn-secondary:hover { background: #2563eb; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        
+        .selected-count { background: #f39c12; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        
+        textarea { width: 100%; padding: 10px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; min-height: 80px; resize: vertical; }
+        
+        .badge { padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .badge-active { background: #1a3a1a; color: #4ade80; }
+        .badge-pending { background: #3a3a1a; color: #fbbf24; }
+        .badge-blocked { background: #3a1a1a; color: #f87171; }
+    </style>
+</head>
+<body>
+    <div class="header-flex">
+        <h1>📱 Envío Masivo WhatsApp</h1>
+        <div class="selected-count" id="selectedCount">0 seleccionados</div>
+    </div>
+    
+    <div class="filters">
+        <div class="filter-group">
+            <label>País</label>
+            <select id="countryFilter" onchange="loadDrivers()">
+                <option value="all">Todos los países</option>
+                <option value="UY">🇺🇾 Uruguay</option>
+                <option value="AR">🇦🇷 Argentina</option>
+                <option value="CL">🇨🇱 Chile</option>
+                <option value="BR">🇧🇷 Brasil</option>
+                <option value="PY">🇵🇾 Paraguay</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Tipo de Vehículo</label>
+            <select id="vehicleFilter" onchange="loadDrivers()">
+                <option value="all">Todos</option>
+                <option value="taxi">🚖 Taxis</option>
+                <option value="auto">🚗 Autos</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Estado</label>
+            <select id="statusFilter" onchange="loadDrivers()">
+                <option value="all">Todos los estados</option>
+                <option value="pendiente">⏳ Pendiente</option>
+                <option value="aprobado">✅ Aprobado</option>
+                <option value="bloqueado">🚫 Bloqueado</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Búsqueda</label>
+            <input type="text" id="searchFilter" placeholder="Buscar por nombre..." onkeyup="loadDrivers()">
+        </div>
+    </div>
+    
+    <div class="message-section">
+        <h3>📝 Mensaje a enviar</h3>
+        <label>Tipo de mensaje</label>
+        <select id="messageType" onchange="toggleCustomMessage()" style="width: 100%; margin-bottom: 10px;">
+            <option value="">Seleccionar mensaje...</option>
+            <option value="aprobado">✅ Aprobación de cuenta</option>
+            <option value="bloqueado">🚫 Bloqueo de cuenta</option>
+            <option value="pendiente">⏳ En revisión</option>
+            <option value="bienvenida">👋 Bienvenida</option>
+            <option value="promo">🎉 Promoción especial</option>
+            <option value="recordatorio">📌 Recordatorio</option>
+            <option value="custom">✏️ Mensaje personalizado</option>
+        </select>
+        <textarea id="customMessage" placeholder="Escribe tu mensaje personalizado aquí..." style="display: none;"></textarea>
+    </div>
+    
+    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="sendToAllSelected()">📱 ENVIAR A SELECCIONADOS</button>
+        <button class="btn btn-secondary" onclick="selectAll()">✅ SELECCIONAR TODOS</button>
+        <button class="btn btn-danger" onclick="deselectAll()">❌ DESELECCIONAR TODOS</button>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" class="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>País</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="driverBody"></tbody>
+        </table>
+    </div>
+    
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let allDrivers = [];
+        let selectedDrivers = new Set();
+        
+        const logoUrl = "https://eyfgkopaamnkprzpwocz.supabase.co/storage/v1/object/public/documentos_choferes/logouf.png";
+        const whatsappMessages = {
+            aprobado: (nombre) => `Hola ${nombre}, tu cuenta de chofer ha sido *APROBADA*. Ya puedes comenzar a usar la aplicación. ¡Bienvenido al equipo de UrbanFlow!\n\n${logoUrl}`,
+            bloqueado: (nombre) => `Hola ${nombre}, tu cuenta de chofer ha sido *BLOQUEADA* temporalmente. Por favor, contáctanos para más información.\n\n${logoUrl}`,
+            pendiente: (nombre) => `Hola ${nombre}, tu cuenta de chofer está en *REVISIÓN*. Te notificaremos cuando sea aprobada.\n\n${logoUrl}`,
+            bienvenida: (nombre) => `¡Hola ${nombre}! Bienvenido a UrbanFlow. Estamos felices de tenerte como parte de nuestro equipo de choferes.\n\n${logoUrl}`,
+            promo: (nombre) => `¡Hola ${nombre}! 🎉 Tenemos una promoción especial para ti. ¡No te la pierdas!\n\n${logoUrl}`,
+            recordatorio: (nombre) => `Hola ${nombre}, este es un recordatorio de UrbanFlow. ¡Gracias por ser parte de nuestro equipo!\n\n${logoUrl}`
+        };
+        
+        async function loadDrivers() {
+            const countryFilter = document.getElementById('countryFilter').value;
+            const vehicleFilter = document.getElementById('vehicleFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+            
+            let query = sb.from('perfiles').select('*').eq('type', 'chofer');
+            
+            if (countryFilter !== 'all') {
+                query = query.eq('country', countryFilter);
+            }
+            if (vehicleFilter !== 'all') {
+                query = query.eq('tipo_vehiculo', vehicleFilter);
+            }
+            if (statusFilter !== 'all') {
+                query = query.eq('status', statusFilter);
+            }
+            
+            const { data } = await query;
+            
+            allDrivers = data.filter(d => {
+                if (searchFilter && !d.full_name.toLowerCase().includes(searchFilter)) {
+                    return false;
+                }
+                return true;
+            });
+            
+            renderDrivers();
+        }
+        
+        function renderDrivers() {
+            document.getElementById('driverBody').innerHTML = allDrivers.map(d => `
+                <tr>
+                    <td><input type="checkbox" class="checkbox driver-checkbox" data-id="${d.id}" onchange="toggleDriver('${d.id}')"></td>
+                    <td><b>${d.full_name}</b></td>
+                    <td>${d.phone || 'Sin teléfono'}</td>
+                    <td>${d.country}</td>
+                    <td>${d.tipo_vehiculo === 'taxi' ? '🚖 Taxi' : '🚗 Auto'}</td>
+                    <td><span class="badge badge-${d.status}">${d.status}</span></td>
+                    <td><button class="btn btn-secondary" onclick="sendToSingle('${d.id}')">📱 Enviar</button></td>
+                </tr>
+            `).join('');
+            
+            updateSelectedCount();
+        }
+        
+        function toggleDriver(id) {
+            if (selectedDrivers.has(id)) {
+                selectedDrivers.delete(id);
+            } else {
+                selectedDrivers.add(id);
+            }
+            updateSelectedCount();
+        }
+        
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('.driver-checkbox');
+            
+            if (checkbox.checked) {
+                checkboxes.forEach(cb => {
+                    cb.checked = true;
+                    selectedDrivers.add(cb.dataset.id);
+                });
+            } else {
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                    selectedDrivers.delete(cb.dataset.id);
+                });
+            }
+            updateSelectedCount();
+        }
+        
+        function selectAll() {
+            document.getElementById('selectAllCheckbox').checked = true;
+            const checkboxes = document.querySelectorAll('.driver-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                selectedDrivers.add(cb.dataset.id);
+            });
+            updateSelectedCount();
+        }
+        
+        function deselectAll() {
+            document.getElementById('selectAllCheckbox').checked = false;
+            const checkboxes = document.querySelectorAll('.driver-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                selectedDrivers.delete(cb.dataset.id);
+            });
+            updateSelectedCount();
+        }
+        
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = `${selectedDrivers.size} seleccionados`;
+        }
+        
+        function toggleCustomMessage() {
+            const messageType = document.getElementById('messageType').value;
+            const customTextarea = document.getElementById('customMessage');
+            if (messageType === 'custom') {
+                customTextarea.style.display = 'block';
+            } else {
+                customTextarea.style.display = 'none';
+            }
+        }
+        
+        function sendToSingle(id) {
+            const driver = allDrivers.find(d => d.id === id);
+            if (!driver) return;
+            
+            if (!driver.phone) {
+                alert('El chofer no tiene número de teléfono registrado');
+                return;
+            }
+            
+            const messageType = document.getElementById('messageType').value;
+            const customMessage = document.getElementById('customMessage').value;
+            
+            if (!messageType) {
+                alert('Por favor, selecciona un tipo de mensaje');
+                return;
+            }
+            
+            let mensaje = '';
+            if (messageType === 'custom') {
+                mensaje = customMessage;
+                if (!mensaje) {
+                    alert('Por favor, escribe un mensaje personalizado');
+                    return;
+                }
+            } else {
+                mensaje = whatsappMessages[messageType](driver.full_name);
+            }
+            
+            const telefonoLimpio = driver.phone.replace(/[^0-9]/g, '');
+            const mensajeCodificado = encodeURIComponent(mensaje);
+            const enlace = `https://wa.me/${telefonoLimpio}?text=${mensajeCodificado}`;
+            
+            window.open(enlace, '_blank');
+        }
+        
+        function sendToAllSelected() {
+            if (selectedDrivers.size === 0) {
+                alert('Por favor, selecciona al menos un chofer');
+                return;
+            }
+            
+            const messageType = document.getElementById('messageType').value;
+            const customMessage = document.getElementById('customMessage').value;
+            
+            if (!messageType) {
+                alert('Por favor, selecciona un tipo de mensaje');
+                return;
+            }
+            
+            if (messageType === 'custom' && !customMessage) {
+                alert('Por favor, escribe un mensaje personalizado');
+                return;
+            }
+            
+            const driversToSend = allDrivers.filter(d => selectedDrivers.has(d.id) && d.phone);
+            
+            if (driversToSend.length === 0) {
+                alert('Ninguno de los choferes seleccionados tiene número de teléfono');
+                return;
+            }
+            
+            if (driversToSend.length !== selectedDrivers.size) {
+                alert(`Advertencia: ${selectedDrivers.size - driversToSend.length} choferes no tienen número de teléfono y serán omitidos.`);
+            }
+            
+            let index = 0;
+            
+            function sendNext() {
+                if (index >= driversToSend.length) {
+                    alert(`✅ Se han abierto ${driversToSend.length} ventanas de WhatsApp`);
+                    return;
+                }
+                
+                const driver = driversToSend[index];
+                let mensaje = '';
+                
+                if (messageType === 'custom') {
+                    mensaje = customMessage;
+                } else {
+                    mensaje = whatsappMessages[messageType](driver.full_name);
+                }
+                
+                const telefonoLimpio = driver.phone.replace(/[^0-9]/g, '');
+                const mensajeCodificado = encodeURIComponent(mensaje);
+                const enlace = `https://wa.me/${telefonoLimpio}?text=${mensajeCodificado}`;
+                
+                window.open(enlace, '_blank');
+                
+                index++;
+                setTimeout(sendNext, 1000); // Esperar 1 segundo entre cada mensaje
+            }
+            
+            if (confirm(`¿Estás seguro de enviar mensajes a ${driversToSend.length} choferes? Se abrirán ${driversToSend.length} ventanas de WhatsApp.`)) {
+                sendNext();
+            }
+        }
+        
+        loadDrivers();
+    </script>
+<script src="/auth-check.js"></script>
+</body>
+</html>

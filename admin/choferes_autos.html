@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Choferes (Autos) - UrbanFlow</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth-check.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 10px; background: #0d1117; margin: 0; color: #c9d1d9; font-size: 12px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header h2 { color: #58a6ff; margin: 0; font-size: 18px; }
+        
+        .country-tabs { display: flex; gap: 5px; margin-bottom: 10px; background: #161b22; padding: 8px; border-radius: 8px; border: 1px solid #30363d; }
+        .country-tab { padding: 6px 15px; cursor: pointer; border-radius: 4px; background: #21262d; border: 1px solid #30363d; color: #8b949e; font-weight: bold; }
+        .country-tab.active { background: #8957e5 !important; color: white !important; border-color: #8957e5 !important; }
+        
+        .depto-tabs { display: none; gap: 4px; margin-bottom: 10px; background: #0d1117; padding: 10px; border-radius: 8px; border: 1px solid #30363d; overflow-x: auto; }
+        .depto-tab { padding: 6px 15px; cursor: pointer; border-radius: 20px; background: #161b22; border: 1px solid #30363d; color: #8b949e; font-size: 11px; white-space: nowrap; font-weight: bold; }
+        .depto-tab.active { background: #238636 !important; color: white !important; border-color: #238636 !important; }
+
+        .status-tabs { display: flex; gap: 5px; margin-bottom: 10px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+        .status-tab { padding: 8px 20px; cursor: pointer; border-radius: 4px; background: #161b22; color: #8b949e; border: 1px solid #30363d; font-weight: bold; font-size: 11px; }
+        .status-tab.active { background: #1877f2 !important; color: white !important; border-color: #1877f2 !important; }
+        
+        table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 10px; border-bottom: 1px solid #30363d; text-align: left; }
+        th { background: #21262d; font-size: 10px; text-transform: uppercase; color: #58a6ff; }
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .btn-view { background: #1877f2; color: white; }
+        .btn-ws { background: #25d366; color: white; padding: 4px 10px; font-size: 10px; text-decoration: none; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; font-weight: bold; }
+        
+        /* MODAL CON SCROLL Y ESPACIO INFERIOR */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); overflow-y: auto; padding: 20px 0; }
+        .modal-content { background: #161b22; margin: 20px auto; padding: 20px; border-radius: 12px; width: 95%; max-width: 1200px; border: 1px solid #30363d; box-shadow: 0 0 40px rgba(0,0,0,0.7); position: relative; }
+        
+        .grid-info { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 10px; background: #21262d; padding: 10px; border-radius: 8px; }
+        .info-group { display: flex; flex-direction: column; }
+        .info-group label { font-size: 8px; color: #58a6ff; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
+        .info-group input { background: #0d1117; border: 1px solid #30363d; color: white; padding: 4px 6px; border-radius: 4px; font-size: 11px; }
+        
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 15px; margin-top: 5px; }
+        .photo-box { background: #0d1117; border: 1px solid #30363d; padding: 12px; border-radius: 10px; text-align: center; display: flex; flex-direction: column; }
+        .photo-box img { width: 100%; height: 320px; object-fit: cover; cursor: pointer; background: #21262d; border-radius: 4px; border: 1px solid #30363d; }
+        .photo-box p { font-size: 11px; margin: 0 0 10px 0; color: #c9d1d9; text-transform: uppercase; font-weight: bold; white-space: normal; line-height: 1.3; min-height: 48px; display: flex; align-items: center; justify-content: center; word-wrap: break-word; overflow: visible; }
+        .btn-replace { background: #30363d; color: #c9d1d9; font-size: 8px; padding: 6px; border: 1px solid #444c56; cursor: pointer; border-radius: 5px; margin-top: auto; width: 100%; }
+        
+        .section-title { color: #8b949e; border-bottom: 1px solid #30363d; padding-bottom: 2px; margin: 15px 0 12px; font-size: 11px; font-weight: bold; }
+        #actionButtons { margin-top: 20px; margin-bottom: 40px; display: flex; gap: 10px; border-top: 1px solid #30363d; padding-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>🚗 Choferes Autos</h2>
+        <button onclick="loadDrivers()" class="btn" style="background:#238636; color:white;">🔄 ACTUALIZAR LISTA</button>
+    </div>
+
+    <div class="country-tabs">
+        <div class="country-tab" data-country="UY" onclick="switchCountry('UY')">🇺🇾 URUGUAY</div>
+        <div class="country-tab" data-country="AR" onclick="switchCountry('AR')">🇦🇷 ARGENTINA</div>
+        <div class="country-tab" data-country="CL" onclick="switchCountry('CL')">🇨🇱 CHILE</div>
+        <div class="country-tab" data-country="BR" onclick="switchCountry('BR')">🇧🇷 BRASIL</div>
+        <div class="country-tab" data-country="PY" onclick="switchCountry('PY')">🇵🇾 PARAGUAY</div>
+    </div>
+
+    <div id="deptoTabs" class="depto-tabs"></div>
+
+    <div class="status-tabs">
+        <div class="status-tab active" id="tab_pendiente" onclick="switchStatus('pendiente')">PENDIENTES</div>
+        <div class="status-tab" id="tab_aprobado" onclick="switchStatus('aprobado')">APROBADOS</div>
+        <div class="status-tab" id="tab_bloqueado" onclick="switchStatus('bloqueado')">BLOQUEADOS</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>Chofer</th><th>Vehículo / Matrícula</th><th>Depto / WhatsApp</th><th>Acción</th></tr>
+        </thead>
+        <tbody id="driverBody"></tbody>
+    </table>
+
+    <div id="fichaModal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <h3 style="color:#58a6ff; margin:0; font-size:14px;">FICHA TÉCNICA DEL CHOFER</h3>
+                <button onclick="closeModal()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+            </div>
+
+            <div class="grid-info">
+                <div class="info-group"><label>Chofer</label><input type="text" id="m_name"></div>
+                <div class="info-group"><label>Email</label><input type="text" id="m_email"></div>
+                <div class="info-group"><label>Teléfono</label><input type="text" id="m_phone"></div>
+                <div class="info-group"><label>DNI</label><input type="text" id="m_dni"></div>
+                <div class="info-group"><label>Depto</label><input type="text" id="m_depto" readonly style="color:#2ea043; font-weight:bold;"></div>
+                <div class="info-group"><label>Matrícula</label><input type="text" id="m_placa"></div>
+                <div class="info-group"><label>Marca</label><input type="text" id="m_marca"></div>
+                <div class="info-group"><label>Modelo</label><input type="text" id="m_modelo"></div>
+                <div class="info-group"><label style="color:#f2d335;">BANCO (PAGO)</label><input type="text" id="m_banco" style="border-color:#f2d335;"></div>
+                <div class="info-group"><label style="color:#f2d335;">NRO CUENTA</label><input type="text" id="m_cuenta" style="border-color:#f2d335;"></div>
+                <div class="info-group"><label>Sexo</label><select id="m_sexo"><option value="">---</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
+                <div class="info-group"><label>Color Auto</label><input type="text" id="m_color_auto"></div>
+                <div class="info-group"><label>Año Vehículo</label><input type="text" id="m_anio_vehiculo" maxlength="4"></div>
+                <div class="info-group" style="grid-column: span 2; justify-content: flex-end; align-items: flex-end;">
+                    <button class="btn" style="background:#238636; color:white; padding: 10px 20px; width: 100%;" onclick="saveDriver()">💾 GUARDAR CAMBIOS</button>
+                </div>
+            </div>
+
+            <h4 class="section-title">🖼️ DOCUMENTACIÓN (Click para ampliar)</h4>
+            <div id="m_photos" class="photo-grid"></div>
+            <input type="file" id="fileSelector" style="display:none" onchange="processFileUpload(event)">
+            <div id="actionButtons"></div>
+            <div style="height: 50px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentCountry = 'UY', currentStatus = 'pendiente', currentDriverId = null, activeOldFile = null, currentDepto = 'TODOS', currentDriverData = null;
+        let dynamicConfig = [];
+
+        const labelMap = [
+            { key: 'perfil', label: '📷 FOTO DE PERFIL' },
+            { key: 'cedula_f', label: '🪪 CÉDULA: FRENTE' },
+            { key: 'cedula_d', label: '🪪 CÉDULA: DORSO' },
+            { key: 'licencia_f', label: '🚗 LICENCIA: FRENTE' },
+            { key: 'licencia_d', label: '🚗 LICENCIA: DORSO' },
+            { key: 'libreta_chofer_f', label: '📋 CHOFER: LIBRETA FRENTE' },
+            { key: 'libreta_chofer_d', label: '📋 CHOFER: LIBRETA DORSO' },
+            { key: 'propiedad_f', label: '📄 PROPIEDAD: LIBRETA FRENTE' },
+            { key: 'propiedad_d', label: '📄 PROPIEDAD: LIBRETA DORSO' },
+        ];
+
+        async function loadDynamicConfig() { const { data } = await sb.from('config_registro_dinamico').select('field_id, label').eq('pais_code', currentCountry); dynamicConfig = data || []; }
+
+        async function updateDeptoTabs() {
+            const bar = document.getElementById('deptoTabs');
+            if (currentCountry !== 'UY') { bar.style.display = 'none'; return; }
+            bar.style.display = 'flex';
+            const { data } = await sb.from('config_paises').select('departamentos_habilitados').eq('pais_code', 'UY').single();
+            const names = new Set();
+            (data?.departamentos_habilitados || []).forEach(code => { names.add(code); });
+            let html = `<div class="depto-tab ${currentDepto === 'TODOS' ? 'active' : ''}" onclick="switchDepto('TODOS')">TODOS</div>`;
+            Array.from(names).sort().forEach(code => { html += `<div class="depto-tab ${currentDepto === code ? 'active' : ''}" onclick="switchDepto('${code}')">${code}</div>`; });
+            bar.innerHTML = html;
+        }
+
+        async function switchCountry(c) { currentCountry = c; currentDepto = 'TODOS'; document.querySelectorAll('.country-tab').forEach(t => t.classList.toggle('active', t.dataset.country === c)); await loadDynamicConfig(); updateDeptoTabs(); loadDrivers(); }
+        function switchStatus(s) { currentStatus = s; document.querySelectorAll('.status-tab').forEach(t => t.classList.toggle('active', t.id === 'tab_' + s)); loadDrivers(); }
+        function switchDepto(d) { currentDepto = d; updateDeptoTabs(); loadDrivers(); }
+
+        async function loadDrivers() {
+            const body = document.getElementById('driverBody');
+            body.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
+            let query = sb.from('perfiles').select('*').eq('type', 'chofer').eq('tipo_vehiculo', 'auto').eq('status', currentStatus).eq('country', currentCountry);
+            if (currentDepto !== 'TODOS') {
+                query = query.eq('depto', currentDepto);
+            }
+            let { data, error } = await query.order('created_at', { ascending: false });
+            if (error) { body.innerHTML = '<tr><td colspan="4">Error</td></tr>'; return; }
+            body.innerHTML = data.map(d => `<tr><td><b>${d.full_name || '---'}</b></td><td>${d.marca || ''} ${d.modelo || ''}<br><span style="color:#58a6ff;">${d.matricula || '---'}</span></td><td>${d.depto || ''}<br>${d.phone || ''}</td><td><button class="btn btn-view" onclick='openFicha(${JSON.stringify(d)})'>VER FICHA</button></td></tr>`).join('') || '<tr><td colspan="4">Sin registros.</td></tr>';
+        }
+
+        function openFicha(d) {
+            currentDriverId = d.id; currentDriverData = d;
+            document.getElementById('m_name').value = d.full_name || ''; document.getElementById('m_email').value = d.email || '';
+            document.getElementById('m_phone').value = d.phone || ''; document.getElementById('m_dni').value = d.dni_nro || '';
+            document.getElementById('m_placa').value = d.matricula || ''; document.getElementById('m_depto').value = d.depto || '';
+            document.getElementById('m_marca').value = d.marca || ''; document.getElementById('m_modelo').value = d.modelo || '';
+            document.getElementById('m_banco').value = d.banco || ''; document.getElementById('m_cuenta').value = d.nro_cuenta || '';
+            document.getElementById('m_sexo').value = d.sexo || ''; document.getElementById('m_color_auto').value = d.color_auto || ''; document.getElementById('m_anio_vehiculo').value = d.anio_vehiculo || '';
+            cargarFotosDesdeStorage(d.id); renderActions(d); document.getElementById('fichaModal').style.display = 'block';
+        }
+
+        async function cargarFotosDesdeStorage(driverId) {
+            const grid = document.getElementById('m_photos');
+            grid.innerHTML = '...';
+            const { data: files } = await sb.storage.from('documentos_choferes').list(driverId);
+            if (!files || files.length === 0) { grid.innerHTML = '<p>Sin fotos.</p>'; return; }
+            grid.innerHTML = '';
+            files.forEach(f => {
+                if (f.name === '.emptyFolderPlaceholder') return;
+                const { data } = sb.storage.from('documentos_choferes').getPublicUrl(`${driverId}/${f.name}`);
+                const fileNameLower = f.name.toLowerCase();
+                let finalTitle = "";
+                const configField = dynamicConfig.find(c => fileNameLower.includes(c.field_id.toLowerCase()));
+                if (configField) finalTitle = configField.label.toUpperCase();
+                if (finalTitle && !finalTitle.includes('FRONTAL') && !finalTitle.includes('DORSO')) {
+                    if (fileNameLower.includes('_f') || fileNameLower.includes('frente')) finalTitle += ' (FRONTAL)';
+                    else if (fileNameLower.includes('_d') || fileNameLower.includes('dorso')) finalTitle += ' (DORSO)';
+                }
+                if (!finalTitle) { for (const item of labelMap) { if (fileNameLower.includes(item.key)) { finalTitle = item.label; break; } } }
+                if (!finalTitle) finalTitle = f.name.toUpperCase();
+                const box = document.createElement('div'); box.className = 'photo-box';
+                box.innerHTML = `<p>${finalTitle}</p><img src="${data.publicUrl}" onclick="window.open('${data.publicUrl}', '_blank')"><button class="btn-replace" onclick="triggerReplace('${f.name}')">CAMBIAR</button>`;
+                grid.appendChild(box);
+            });
+        }
+
+        function triggerReplace(fileName) { activeOldFile = fileName; document.getElementById('fileSelector').click(); }
+        async function processFileUpload(event) {
+            const file = event.target.files[0]; if (!file || !activeOldFile) return;
+            try { await sb.storage.from('documentos_choferes').upload(`${currentDriverId}/${activeOldFile}`, file, { upsert: true }); alert('Actualizado.'); cargarFotosDesdeStorage(currentDriverId); } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function saveDriver() {
+            const up = { full_name: document.getElementById('m_name').value, email: document.getElementById('m_email').value, phone: document.getElementById('m_phone').value, dni_nro: document.getElementById('m_dni').value, matricula: document.getElementById('m_placa').value, depto: document.getElementById('m_depto').value, marca: document.getElementById('m_marca').value, modelo: document.getElementById('m_modelo').value, banco: document.getElementById('m_banco').value, nro_cuenta: document.getElementById('m_cuenta').value, sexo: document.getElementById('m_sexo').value, color_auto: document.getElementById('m_color_auto').value, anio_vehiculo: document.getElementById('m_anio_vehiculo').value };
+            await sb.from('perfiles').update(up).eq('id', currentDriverId); alert('Datos guardados.'); loadDrivers();
+        }
+
+        function abrirWS(phone, msg) { 
+            const clean = phone.replace(/[^0-9]/g, ''); 
+            window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank'); 
+        }
+
+        async function statusConMsg(id, status, phone, name) {
+            await sb.from('perfiles').update({ status: status }).eq('id', id);
+            if (status === 'aprobado') {
+                abrirWS(phone, `*¡HOLA ${name.toUpperCase()}!* 👋\n\nTu registro en *URBANFLOW* ha sido *APROBADO* con éxito.\n\nYa puedes ingresar a la aplicación con tu email y contraseña para comenzar a recibir viajes.\n\n*¡Bienvenido a bordo!* 🚗💨`);
+            }
+            closeModal(); loadDrivers();
+        }
+
+        function opcionesBloqueo(id, phone, name) {
+            const motivo = prompt("ELIGE MOTIVO DE AVISO/BLOQUEO:\n1. INCUMPLIMIENTO DE CONDUCTA\n2. REQUISITOS TÉCNICOS / DOCUMENTACIÓN\n3. BLOQUEO TEMPORAL");
+            if (!motivo) return;
+            let msg = "";
+            if (motivo === "1") msg = `*HOLA ${name.toUpperCase()}.*\n\nTe informamos que tu cuenta en *URBANFLOW* ha sido *BLOQUEADA PERMANENTEMENTE* debido a reportes de incumplimiento en los estándares de *CONDUCTA* y trato al usuario.`;
+            else if (motivo === "2") msg = `*HOLA ${name.toUpperCase()}.*\n\nTe informamos que tu cuenta en *URBANFLOW* ha sido *BLOQUEADA PERMANENTEMENTE* por no cumplir con los *REQUISITOS TÉCNICOS* o de documentación vigentes (vehículo, licencias o seguros vencidos).`;
+            else if (motivo === "3") {
+                const hasta = prompt("¿HASTA CUÁNDO ES EL BLOQUEO? (Ej: Lunes 10)");
+                if (!hasta) return;
+                msg = `*HOLA ${name.toUpperCase()}.*\n\nTe informamos que tu cuenta en *URBANFLOW* ha sido *BLOQUEADA TEMPORALMENTE* hasta el día *${hasta.toUpperCase()}*.\n\nPasada esta fecha, tu cuenta será rehabilitada automáticamente para operar.`;
+            } else return;
+            actualizarYNotificar(id, 'bloqueado', phone, msg);
+        }
+
+        async function actualizarYNotificar(id, s, p, m) { await sb.from('perfiles').update({ status: s }).eq('id', id); abrirWS(p, m); closeModal(); loadDrivers(); }
+
+        function renderActions(d) {
+            const bar = document.getElementById('actionButtons');
+            const p = d.phone || ''; const n = d.full_name || '';
+            if (d.status === 'pendiente') bar.innerHTML = `<button class="btn" style="background:#238636; color:white; flex:1" onclick="statusConMsg('${d.id}', 'aprobado', '${p}', '${n}')">✅ APROBAR</button><button class="btn" style="background:#da3633; color:white;" onclick="rejectFull('${d.id}')">❌ ELIMINAR</button>`;
+            else if (d.status === 'aprobado') bar.innerHTML = `<button class="btn" style="background:#f2d335; color:black; flex:1" onclick="opcionesBloqueo('${d.id}', '${p}', '${n}')">🚫 BLOQUEAR</button>`;
+            else bar.innerHTML = `<button class="btn" style="background:#238636; color:white; flex:1" onclick="updateStatus('${d.id}', 'aprobado')">✅ RE-ACTIVAR</button><button class="btn" style="background:#1877f2; color:white; flex:1" onclick="opcionesBloqueo('${d.id}', '${p}', '${n}')">💬 MANDAR AVISO</button>`;
+            bar.innerHTML += `<button class="btn" style="background:#b30000; color:white; margin-left: 8px;" onclick="eliminarTotalmente('${d.id}')">🚨 ELIMINAR</button>`;
+        }
+
+        async function updateStatus(id, s) { await sb.from('perfiles').update({ status: s }).eq('id', id); closeModal(); loadDrivers(); }
+        async function rejectFull(id) {
+            if(!confirm('¿Eliminar este chofer pendiente?')) return;
+            try {
+                const { error } = await sb.from('perfiles').delete().eq('id', id);
+                if (error) {
+                    alert('Error al eliminar: ' + error.message);
+                    return;
+                }
+                closeModal();
+                loadDrivers();
+            } catch (e) {
+                alert('Error inesperado: ' + e.message);
+            }
+        }
+        async function eliminarTotalmente(id) {
+            if(!confirm('¿ELIMINAR TOTALMENTE este chofer y toda su documentación?')) return;
+            try {
+                // 1. Eliminar reglas del chofer (dependencias)
+                const { error: reglasError } = await sb.from('reglas_chofer').delete().eq('user_id', id);
+                if (reglasError) console.warn('Error deleting reglas_chofer:', reglasError);
+
+                // 2. Eliminar archivos del storage
+                const { data: files, error: listError } = await sb.storage.from('documentos_choferes').list(id);
+                if (listError) console.warn('Error listing files:', listError);
+                if (files && files.length > 0) {
+                    const paths = files.map(f => `${id}/${f.name}`);
+                    const { error: removeError } = await sb.storage.from('documentos_choferes').remove(paths);
+                    if (removeError) console.warn('Error removing files:', removeError);
+                }
+
+                // 3. Eliminar registro de perfiles
+                const { error: deleteError } = await sb.from('perfiles').delete().eq('id', id);
+                if (deleteError) {
+                    alert('Error al eliminar: ' + deleteError.message);
+                    return;
+                }
+                alert('Chofer eliminado correctamente.');
+                closeModal();
+                loadDrivers();
+            } catch (e) {
+                alert('Error inesperado: ' + e.message);
+            }
+        }
+        function closeModal() { document.getElementById('fichaModal').style.display = 'none'; }
+        window.onload = () => { switchCountry('UY'); };
+    </script>
+<script src="/auth-check.js"></script>
+</body>
+</html>

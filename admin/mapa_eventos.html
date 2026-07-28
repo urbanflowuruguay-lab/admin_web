@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrador UrbanFlow - Carriles y Zonas</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth-check.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/auth-check.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 420px; background-color: #161b22; border-right: 1px solid #30363d; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
+        .map-container { flex-grow: 1; height: 100vh; position: relative; }
+        #map { width: 100%; height: 100%; cursor: crosshair; }
+        
+        h1 { font-size: 20px; color: #58a6ff; margin: 0; display: flex; align-items: center; gap: 10px; }
+        .card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .card h3 { color: #f39c12; margin: 0; font-size: 14px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 11px; font-weight: bold; color: #8b949e; text-transform: uppercase; }
+        
+        input[type="text"], select, input[type="time"] { 
+            padding: 10px; border-radius: 6px; border: 1px solid #30363d; 
+            background: #161b22; color: white; width: 100%; box-sizing: border-box; font-size: 13px;
+        }
+        input:focus, select:focus { border-color: #58a6ff; outline: none; }
+        
+        .checkbox-container { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding: 8px; border-radius: 6px; }
+        .checkbox-container input { width: 18px; height: 18px; accent-color: #58a6ff; }
+        
+        .btn-action { 
+            background: #238636; color: white; border: none; padding: 12px; border-radius: 6px; 
+            cursor: pointer; font-weight: bold; font-size: 13px; text-align: center; transition: 0.3s; width: 100%;
+        }
+        .btn-action:hover { background: #2ea043; }
+        .btn-action:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+        
+        .btn-manual { background: #1f6feb; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin-top: 5px; }
+        .btn-manual.active { background: #f39c12; }
+
+        .events-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .event-item { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: 0.2s; }
+        .event-item:hover { border-color: #58a6ff; background: #161b22; }
+        
+        .badge { font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: bold; }
+        .badge-bus { background: #c678dd22; color: #c678dd; }
+        .badge-no-stop { background: #e06c7522; color: #e06c75; }
+        .badge-no-parking { background: #ff8c0022; color: #ff8c00; }
+        
+        .btn-delete { background: #e06c75; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+        .btn-edit { background: #1f6feb; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+        
+        .hint-box { font-size: 11px; background: #1f6feb22; border: 1px solid #1f6feb55; color: #58a6ff; padding: 10px; border-radius: 6px; display: none; font-weight: bold; }
+        
+        .input-wrapper { position: relative; }
+        .loader-spin { position: absolute; right: 10px; top: 10px; width: 14px; height: 14px; border: 2px solid #58a6ff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h1>🗺️ UrbanFlow Admin</h1>
+        
+        <div class="card">
+            <h3 id="formTitle">📍 Configurar Zona / Carril</h3>
+            
+            <div class="form-group">
+                <label>Nombre Identificador</label>
+                <input type="text" id="eventName" placeholder="Ej: Millán (Acera Oeste)">
+            </div>
+
+            <div class="form-group">
+                <label>Calle Principal</label>
+                <div class="input-wrapper">
+                    <input type="text" id="streetName" placeholder="Escribe para buscar calle..." list="list-streets" autocomplete="off">
+                    <datalist id="list-streets"></datalist>
+                    <div class="loader-spin" id="loader-street"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Tipo de Restricción</label>
+                <select id="eventType" onchange="updateUIBasedOnType()">
+                    <option value="carril_bus">🚎 Carril Solo Bus</option>
+                    <option value="no_detenerse">🚫 Prohibido Parar/Detenerse (Fija)</option>
+                    <option value="no_estacionar">🅿️ No Estacionar (Cámara Bus)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Acera Afectada (Números Puerta)</label>
+                <select id="sideRestriction">
+                    <option value="both">Ambas Aceras</option>
+                    <option value="even">Lado PAR (Norte/Este)</option>
+                    <option value="odd">Lado IMPAR (Sur/Oeste)</option>
+                </select>
+            </div>
+
+            <div id="cameraOptionDiv" class="checkbox-container" style="background: #f39c1222; padding: 8px; border-radius: 6px; border: 1px dashed #f39c1255; display: none;">
+                <input type="checkbox" id="hasCamera">
+                <label for="hasCamera" style="color: #f39c12; font-weight: bold; cursor: pointer;">📸 ¿Tiene cámara fija?</label>
+            </div>
+
+            <button class="btn-manual" id="btnManualMode" onclick="toggleManualMode()">
+                📍 Marcar tramo en el mapa
+            </button>
+            <div id="manualHint" class="hint-box"></div>
+
+            <div class="checkbox-container" style="margin-top: 10px; background: #58a6ff11; border: 1px solid #58a6ff33; padding: 8px; border-radius: 6px;">
+                <input type="checkbox" id="alwaysActive" onchange="toggleScheduleFields()">
+                <label for="alwaysActive" style="color: #58a6ff; font-weight: bold; cursor: pointer;">🕒 Sin horario (Siempre activo 24h)</label>
+            </div>
+
+            <div id="scheduleContainer">
+                <div class="form-group" style="margin-top:10px">
+                    <label>📅 Lunes a Viernes</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="time" id="weekdayStart" value="07:00">
+                        <input type="time" id="weekdayEnd" value="20:00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📅 Sábado y Feriados</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="time" id="weekendStart" value="09:00">
+                        <input type="time" id="weekendEnd" value="14:00">
+                    </div>
+                </div>
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="bothDirections" checked>
+                <label for="bothDirections" style="cursor: pointer;">Afecta ambas manos</label>
+            </div>
+            
+            <button class="btn-action" id="btnSave" onclick="saveEvent()" disabled>
+                💾 Guardar Zona / Carril
+            </button>
+            <button id="btnCancelEdit" style="display:none; background:#30363d; color:white; border:none; padding:8px; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="resetForm()">
+                Cancelar Edición
+            </button>
+        </div>
+        
+        <div>
+            <h2 style="font-size: 14px; color: #c9d1d9; border-bottom: 1px solid #30363d; padding-bottom: 5px;">📁 Tramos Activos</h2>
+            <div class="events-list" id="eventsList"></div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const map = L.map('map').setView([-34.9011, -56.1645], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }).addTo(map);
+
+        const previewGroup = new L.FeatureGroup().addTo(map);
+        const savedLayersGroup = new L.FeatureGroup().addTo(map);
+        let currentGeometry = null, isManualMode = false, manualStep = 0, pointStart = null, savedLayersMap = {}, editingEventId = null;
+        let allEvents = [];
+
+        function updateUIBasedOnType() {
+            const type = document.getElementById('eventType').value;
+            const cameraDiv = document.getElementById('cameraOptionDiv');
+            cameraDiv.style.display = (type === 'no_detenerse') ? 'flex' : 'none';
+        }
+
+        function toggleScheduleFields() {
+            const isAlwaysActive = document.getElementById('alwaysActive').checked;
+            document.getElementById('scheduleContainer').style.display = isAlwaysActive ? 'none' : 'block';
+        }
+
+        let debounceTimer;
+        document.getElementById('streetName').addEventListener('input', (e) => {
+            const query = e.target.value;
+            if (query.length < 3) return;
+            document.getElementById('loader-street').style.display = 'block';
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query + ", Montevideo, Uruguay")}&addressdetails=1&limit=10&countrycodes=uy`);
+                    const data = await resp.json();
+                    const list = document.getElementById('list-streets');
+                    list.innerHTML = '';
+                    if (data && Array.isArray(data)) {
+                        const unique = new Set();
+                        data.forEach(item => {
+                            let name = item.address ? (item.address.road || item.address.pedestrian) : item.display_name.split(',')[0];
+                            if (name && !unique.has(name)) {
+                                unique.add(name);
+                                const opt = document.createElement('option');
+                                opt.value = name;
+                                list.appendChild(opt);
+                            }
+                        });
+                    }
+                } catch (err) {} finally { document.getElementById('loader-street').style.display = 'none'; }
+            }, 500);
+        });
+
+        function toggleManualMode() {
+            isManualMode = !isManualMode;
+            const btn = document.getElementById('btnManualMode');
+            const hint = document.getElementById('manualHint');
+            btn.classList.toggle('active', isManualMode);
+            btn.innerText = isManualMode ? "❌ Cancelar" : "📍 Marcar tramo en el mapa";
+            hint.style.display = isManualMode ? 'block' : 'none';
+            hint.innerHTML = "Haz clic para el punto de <b>INICIO</b>.";
+            manualStep = 0;
+            if (isManualMode) previewGroup.clearLayers();
+        }
+
+        map.on('click', async (e) => {
+            if (!isManualMode) return;
+            if (manualStep === 0) {
+                pointStart = [e.latlng.lat, e.latlng.lng];
+                L.circleMarker(e.latlng, { radius: 8, color: '#2ecc71', fillOpacity: 1 }).addTo(previewGroup);
+                document.getElementById('manualHint').innerHTML = "Punto de inicio fijado. Haz clic para el <b>FIN</b>.";
+                try {
+                    const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                    const data = await resp.json();
+                    if(data.address && data.address.road) document.getElementById('streetName').value = data.address.road;
+                } catch (err) {}
+                manualStep = 1;
+            } else {
+                L.circleMarker(e.latlng, { radius: 8, color: '#e74c3c', fillOpacity: 1 }).addTo(previewGroup);
+                document.getElementById('manualHint').innerHTML = "⏳ Calculando ruta...";
+                const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${pointStart[1]},${pointStart[0]};${e.latlng.lng},${e.latlng.lat}?overview=full&geometries=geojson`);
+                const data = await resp.json();
+                if (data.code === 'Ok') {
+                    const coords = data.routes[0].geometry.coordinates;
+                    L.polyline(coords.map(c => [c[1], c[0]]), { color: '#c678dd', weight: 8, dashArray: '10,10' }).addTo(previewGroup);
+                    currentGeometry = { type: "LineString", coordinates: coords };
+                    document.getElementById('btnSave').disabled = false;
+                }
+                toggleManualMode();
+            }
+        });
+
+        function loadEventToForm(id) {
+            const ev = allEvents.find(x => x.id === id);
+            if (!ev) return;
+            editingEventId = ev.id;
+            document.getElementById('formTitle').innerText = "✏️ Editando: " + ev.name;
+            document.getElementById('eventName').value = ev.name;
+            document.getElementById('streetName').value = ev.street_name;
+            document.getElementById('eventType').value = ev.type;
+            document.getElementById('sideRestriction').value = ev.side_restriction;
+            document.getElementById('hasCamera').checked = ev.has_camera;
+            document.getElementById('bothDirections').checked = ev.affects_both_directions;
+            
+            const isAlways = !ev.weekday_start;
+            document.getElementById('alwaysActive').checked = isAlways;
+            if (!isAlways) {
+                document.getElementById('weekdayStart').value = ev.weekday_start;
+                document.getElementById('weekdayEnd').value = ev.weekday_end;
+                document.getElementById('weekendStart').value = ev.weekend_start || "09:00";
+                document.getElementById('weekendEnd').value = ev.weekend_end || "14:00";
+            }
+            toggleScheduleFields();
+            updateUIBasedOnType();
+            currentGeometry = ev.geometry;
+            document.getElementById('btnSave').disabled = false;
+            document.getElementById('btnSave').innerText = "Update Zona / Carril";
+            document.getElementById('btnCancelEdit').style.display = 'block';
+            
+            if (savedLayersMap[id]) map.fitBounds(savedLayersMap[id].getBounds());
+        }
+
+        function resetForm() {
+            editingEventId = null;
+            document.getElementById('formTitle').innerText = "📍 Configurar Zona / Carril";
+            document.getElementById('eventName').value = "";
+            document.getElementById('streetName').value = "";
+            document.getElementById('btnSave').innerText = "💾 Guardar Zona / Carril";
+            document.getElementById('btnSave').disabled = true;
+            document.getElementById('btnCancelEdit').style.display = 'none';
+            previewGroup.clearLayers();
+            currentGeometry = null;
+        }
+
+        async function saveEvent() {
+            const btn = document.getElementById('btnSave');
+            btn.disabled = true; btn.innerText = "⏳ Procesando...";
+            const isAlwaysActive = document.getElementById('alwaysActive').checked;
+            const payload = {
+                name: document.getElementById('eventName').value,
+                type: document.getElementById('eventType').value,
+                side_restriction: document.getElementById('sideRestriction').value,
+                street_name: document.getElementById('streetName').value,
+                has_camera: document.getElementById('hasCamera').checked,
+                weekday_start: isAlwaysActive ? null : document.getElementById('weekdayStart').value,
+                weekday_end: isAlwaysActive ? null : document.getElementById('weekdayEnd').value,
+                weekend_start: isAlwaysActive ? null : document.getElementById('weekendStart').value,
+                weekend_end: isAlwaysActive ? null : document.getElementById('weekendEnd').value,
+                affects_both_directions: document.getElementById('bothDirections').checked,
+                status: 'active',
+                geometry: currentGeometry
+            };
+
+            let result;
+            if (editingEventId) {
+                result = await sb.from('map_events').update(payload).eq('id', editingEventId);
+            } else {
+                result = await sb.from('map_events').insert(payload);
+            }
+
+            if (!result.error) location.reload();
+            else { alert("Error: " + result.error.message); btn.disabled = false; }
+        }
+
+        async function loadEvents() {
+            const { data } = await sb.from('map_events').select('*').order('created_at', { ascending: false });
+            allEvents = data || [];
+            const list = document.getElementById('eventsList');
+            savedLayersGroup.clearLayers();
+            list.innerHTML = '';
+            
+            allEvents.forEach(ev => {
+                let color = '#8A2BE2';
+                if (ev.type === 'no_detenerse') color = '#FF4436';
+                if (ev.type === 'no_estacionar') color = '#FF8C00';
+                
+                if (ev.geometry && ev.geometry.coordinates) {
+                    const latlngs = ev.geometry.coordinates.map(c => [c[1], c[0]]);
+                    const layer = L.polyline(latlngs, { color: color, weight: 6, opacity: 0.7 }).addTo(savedLayersGroup);
+                    savedLayersMap[ev.id] = layer;
+                }
+
+                const is24h = !ev.weekday_start;
+                const aceraText = ev.side_restriction === 'even' ? " (PAR)" : ev.side_restriction === 'odd' ? " (IMPAR)" : "";
+                let badgeClass = ev.type === 'no_detenerse' ? 'badge-no-stop' : ev.type === 'no_estacionar' ? 'badge-no-parking' : 'badge-bus';
+
+                const item = document.createElement('div');
+                item.className = 'event-item';
+                
+                let scheduleDetail = is24h ? "Activo 24hs" : `L-V: ${ev.weekday_start}-${ev.weekday_end} | S-D: ${ev.weekend_start || 'Cerrado'}`;
+
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <span style="font-weight:bold; font-size:13px; color:#58a6ff;">${ev.name}${aceraText}</span>
+                        <span class="badge ${badgeClass}">${is24h ? '24h' : 'Horario'}</span>
+                    </div>
+                    <div style="font-size:10px; color:#8b949e;">📍 ${ev.street_name || 'Sin calle'}</div>
+                    <div style="font-size:10px; color:#f39c12; margin-top:2px;">🕒 ${scheduleDetail}</div>
+                    <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+                        <button class="btn-edit" onclick="loadEventToForm(${ev.id})">✏️ Editar</button>
+                        <button class="btn-delete" onclick="deleteEvent(event, ${ev.id})">🗑️</button>
+                    </div>
+                `;
+                item.onclick = (e) => { 
+                    if(e.target.tagName !== 'BUTTON') {
+                        if (savedLayersMap[ev.id]) map.fitBounds(savedLayersMap[ev.id].getBounds(), { padding: [50, 50] }); 
+                    }
+                };
+                list.appendChild(item);
+            });
+        }
+
+        async function deleteEvent(e, id) {
+            e.stopPropagation();
+            if (confirm("¿Eliminar tramo definitivamente?")) {
+                await sb.from('map_events').delete().eq('id', id);
+                location.reload();
+            }
+        }
+
+        loadEvents();
+    </script>
+<script src="/auth-check.js"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pago Seguro - UrbanFlow</title>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { max-width: 480px; width: 100%; padding: 20px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+        .header { text-align: center; margin-bottom: 24px; }
+        .header h1 { color: #58a6ff; font-size: 22px; margin-bottom: 4px; }
+        .header p { color: #8b949e; font-size: 13px; }
+        .product-info { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #30363d; }
+        .product-img { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; background: #21262d; }
+        .product-details h3 { color: #c9d1d9; font-size: 16px; margin-bottom: 4px; }
+        .product-details p { color: #8b949e; font-size: 13px; }
+        .price { text-align: center; margin: 20px 0; }
+        .price .amount { font-size: 32px; font-weight: bold; color: #7ee787; }
+        .price .currency { font-size: 14px; color: #8b949e; }
+        #payment-form { margin-top: 16px; }
+        .mp-button { width: 100%; padding: 14px; background: #009ee3; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        .mp-button:hover { opacity: 0.9; }
+        .mp-button:disabled { background: #484f58; cursor: not-allowed; }
+        .loading { text-align: center; padding: 20px; color: #8b949e; }
+        .error { background: #da3633; color: white; padding: 12px; border-radius: 8px; margin-top: 12px; display: none; }
+        .back-link { text-align: center; margin-top: 16px; }
+        .back-link a { color: #58a6ff; text-decoration: none; font-size: 14px; }
+        .back-link a:hover { text-decoration: underline; }
+        .installments { margin-top: 12px; }
+        .installments select { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        .buyer-form { margin-top: 16px; }
+        .buyer-form input { width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; margin-bottom: 8px; }
+        .buyer-form input:focus { border-color: #58a6ff; outline: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🛒 Pago Seguro</h1>
+                <p>Tu compra está protegida por MercadoPago</p>
+            </div>
+
+            <div class="product-info" id="productInfo">
+                <div class="loading">Cargando producto...</div>
+            </div>
+
+            <div class="price" id="priceSection" style="display:none">
+                <span class="currency">UYU</span>
+                <div class="amount" id="priceAmount">$0</div>
+            </div>
+
+            <div class="buyer-form" id="buyerForm">
+                <input type="text" id="buyerName" placeholder="Tu nombre completo">
+                <input type="email" id="buyerEmail" placeholder="Tu email">
+                <input type="tel" id="buyerPhone" placeholder="Tu teléfono (opcional)">
+            </div>
+
+            <div id="payment-form">
+                <div class="loading" id="mpLoading">Preparando pago...</div>
+            </div>
+
+            <div class="error" id="errorMsg"></div>
+
+            <div class="back-link">
+                <a href="javascript:history.back()">← Volver al producto</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const productoId = urlParams.get('producto_id');
+        const titulo = urlParams.get('titulo') || 'Producto';
+        const precio = urlParams.get('precio') || '0';
+        const fotos = urlParams.get('fotos') || '';
+        const vendedorId = urlParams.get('vendedor_id') || '';
+        const compradorId = urlParams.get('comprador_id') || '';
+
+        const PUBLIC_KEY = 'APP_USR-7154db21-ca41-4e79-a97b-ebf2977a56fc';
+
+        document.getElementById('productInfo').innerHTML = `
+            ${fotos ? `<img src="${fotos.split('|')[0]}" class="product-img" onerror="this.style.display='none'">` : '<div class="product-img" style="display:flex;align-items:center;justify-content:center;font-size:28px">📦</div>'}
+            <div class="product-details">
+                <h3>${titulo}</h3>
+                <p>Producto usado - P2P</p>
+            </div>`;
+
+        document.getElementById('priceSection').style.display = 'block';
+        document.getElementById('priceAmount').textContent = '$' + Number(precio).toLocaleString('es-UY');
+
+        async function createPreference() {
+            try {
+                const resp = await fetch('/api/mp-create-preference', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        titulo: titulo,
+                        precio: precio,
+                        cantidad: 1,
+                        producto_id: productoId,
+                        comprador_id: compradorId,
+                        vendedor_id: vendedorId,
+                        fotos: fotos ? fotos.split('|') : []
+                    })
+                });
+                const data = await resp.json();
+                if (data.init_point) {
+                    window.location.href = data.init_point;
+                } else if (data.sandbox_init_point) {
+                    window.location.href = data.sandbox_init_point;
+                } else {
+                    showError('Error al crear el pago: ' + (data.error || 'Unknown'));
+                }
+            } catch (e) {
+                showError('Error de conexión: ' + e.message);
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('mpLoading').style.display = 'none';
+        }
+
+        document.getElementById('mpLoading').textContent = 'Redirigiendo a MercadoPago...';
+        createPreference();
+    </script>
+</body>
+</html>
