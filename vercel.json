@@ -1,13 +1,7 @@
 {
   "cleanUrls": false,
   "trailingSlash": false,
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/admin/(.*)", "dest": "/admin/$1" },
-    { "src": "/empresa/(.*)", "dest": "/empresa/$1" },
-    { "src": "/(.*\\.(html|js|css|png|jpg|jpeg|gif|svg|ico|json|woff2?|ttf|eot))", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "/$1" }
-  ],
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/api/(.*)",
