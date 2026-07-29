@@ -165,18 +165,26 @@
             'PY': { flag: '/banderaparaguay.png', name: 'Paraguay', city: 'Asunción', img: '/asuncion.png', lang: 'es' }
         };
 
+        function playAudio() {
+            audio.volume = 0.5;
+            return audio.play().then(() => {
+                soundEnabled = true;
+                btn.textContent = '🔊';
+                startMusicTimer();
+                return true;
+            }).catch(() => {
+                btn.textContent = '🔇';
+                return false;
+            });
+        }
+
         function toggleSound() {
             if (soundEnabled) {
                 audio.pause();
                 btn.textContent = '🔇';
                 soundEnabled = false;
             } else {
-                audio.volume = 0.5;
-                audio.play().then(() => {
-                    btn.textContent = '🔊';
-                    soundEnabled = true;
-                    startMusicTimer();
-                }).catch(() => {});
+                playAudio();
             }
         }
 
@@ -193,30 +201,10 @@
         audio.addEventListener('loadedmetadata', () => { if (soundEnabled) startMusicTimer(); });
         audio.addEventListener('durationchange', () => { if (soundEnabled && audio.duration > 0) startMusicTimer(); });
 
-        function tryAutoplay() {
-            audio.volume = 0.5;
-            audio.play().then(() => {
-                soundEnabled = true;
-                btn.textContent = '🔊';
-                startMusicTimer();
-            }).catch(() => {
-                btn.textContent = '🔇';
-            });
-        }
-
-        function splashClick(e) {
+        document.getElementById('splash').addEventListener('click', (e) => {
             if (e.target.closest('.sound-btn')) return;
-            if (!soundEnabled) {
-                audio.volume = 0.5;
-                audio.play().then(() => {
-                    soundEnabled = true;
-                    btn.textContent = '🔊';
-                    startMusicTimer();
-                }).catch(() => {});
-            }
-        }
-
-        document.getElementById('splash').addEventListener('click', splashClick);
+            if (!soundEnabled) playAudio();
+        });
 
         function setLang(lang, el) {
             selectedLang = lang;
@@ -251,29 +239,21 @@
             if (detected) return;
             detected = true;
             const c = countries[detectedCountry] || countries['UY'];
-
             document.getElementById('splash').classList.add('hidden');
-
             document.getElementById('resultCityImg').src = c.img;
             document.getElementById('resultFlag').querySelector('img').src = c.flag;
             document.getElementById('resultText').textContent = `Estás en ${c.name}`;
-
             selectedLang = c.lang;
             document.querySelectorAll('.lang-btn').forEach(b => {
                 b.classList.toggle('active', b.dataset.lang === c.lang);
             });
             updateResultText();
-
             document.getElementById('result').classList.add('active');
         }
 
         async function init() {
-            tryAutoplay();
-
-            detectCountry().then(country => {
-                detectedCountry = country;
-            });
-
+            playAudio();
+            detectCountry().then(country => { detectedCountry = country; });
             setTimeout(showResult, SPLASH_TIME);
         }
 
