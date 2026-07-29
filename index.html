@@ -8,6 +8,7 @@
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; scroll-padding-top: 80px; }
         body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; background: #fff; color: #1B2A4A; -webkit-font-smoothing: antialiased; }
 
         .nav {
@@ -386,9 +387,9 @@
                     <span class="htag" data-i18n="tag_ocio">🎭 Ocio</span>
                 </div>
                 <div class="hero-actions">
-                    <a href="/login.html?role=chofer" class="white" data-i18n="btn_ser_chofer">Quiero ser chofer</a>
-                    <a href="/login.html?role=usuario" class="ghost" data-i18n="btn_soy_pasajero">Soy pasajero</a>
-                    <a href="/login.html?role=servicios" class="ghost" data-i18n="btn_tengo_negocio">Tengo un negocio</a>
+                    <a href="#feat-chofer" class="white" data-i18n="btn_ser_chofer">Quiero ser chofer</a>
+                    <a href="#feat-usuario" class="ghost" data-i18n="btn_soy_pasajero">Soy pasajero</a>
+                    <a href="#feat-negocio" class="ghost" data-i18n="btn_tengo_negocio">Tengo un negocio</a>
                 </div>
                 <img src="/ciudad.png" alt="Ciudad" class="hero-city" id="heroCity">
             </div>
@@ -400,7 +401,7 @@
 
     <section class="features">
         <div class="features-inner">
-            <div class="feature-row">
+            <div class="feature-row" id="feat-chofer">
                 <img src="/conductorenauto.png" alt="Gana dinero">
                 <div>
                     <h2 data-i18n="feat_chofer_title">Ganá dinero a tu ritmo</h2>
@@ -415,7 +416,7 @@
                     <a href="/login.html?role=chofer" class="feature-btn" data-i18n="btn_quiero_ser_chofer">Quiero ser chofer</a>
                 </div>
             </div>
-            <div class="feature-row reverse">
+            <div class="feature-row reverse" id="feat-usuario">
                 <img src="/personaentrandoauto.png" alt="Viaja seguro">
                 <div>
                     <h2 data-i18n="feat_usuario_title">Viajá con seguridad y comodidad</h2>
@@ -429,7 +430,7 @@
                     <a href="/login.html?role=usuario" class="feature-btn" data-i18n="btn_quiero_ser_usuario">Quiero ser usuario</a>
                 </div>
             </div>
-            <div class="feature-row">
+            <div class="feature-row" id="feat-negocio">
                 <img src="/fotonegocio.png" alt="Negocio">
                 <div>
                     <h2 data-i18n="feat_negocio_title">Hacé crecer tu negocio</h2>
