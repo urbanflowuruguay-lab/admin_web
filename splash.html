@@ -180,10 +180,7 @@
             'AR': { flag: '/banderaargentina.png', name: 'Argentina', city: 'Buenos Aires', img: '/ciudadbsas.png', lang: 'es' },
             'BR': { flag: '/banderabrasil.png', name: 'Brasil', city: 'São Paulo', img: '/asuncion.png', lang: 'pt' },
             'CL': { flag: '/banderachile.png', name: 'Chile', city: 'Santiago', img: '/santiago.png', lang: 'es' },
-            'PY': { flag: '/banderaparaguay.png', name: 'Paraguay', city: 'Asunción', img: '/asuncion.png', lang: 'es' },
-            'CO': { flag: '/banderauruguay.png', name: 'Colombia', city: 'Bogotá', img: '/ciudad.png', lang: 'es' },
-            'PE': { flag: '/banderauruguay.png', name: 'Perú', city: 'Lima', img: '/ciudad.png', lang: 'es' },
-            'ES': { flag: '/banderauruguay.png', name: 'España', city: 'Madrid', img: '/ciudad.png', lang: 'es' }
+            'PY': { flag: '/banderaparaguay.png', name: 'Paraguay', city: 'Asunción', img: '/asuncion.png', lang: 'es' }
         };
 
         function toggleSound() {
@@ -237,6 +234,7 @@
 
             detectedCountry = await detectCountry();
             const c = countries[detectedCountry] || countries['UY'];
+            if (!countries[detectedCountry]) detectedCountry = 'UY';
 
             setTimeout(() => {
                 document.getElementById('splash').classList.add('hidden');
