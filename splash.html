@@ -16,9 +16,9 @@
         .splash {
             position: fixed; inset: 0; display: flex; flex-direction: column;
             align-items: center; justify-content: center; z-index: 100;
-            background: #0f1729; transition: opacity 0.6s, transform 0.6s;
+            background: #0f1729; cursor: pointer;
         }
-        .splash.hidden { opacity: 0; transform: scale(1.05); pointer-events: none; }
+        .splash.hidden { opacity: 0; pointer-events: none; transition: opacity 0.6s; }
 
         .splash-logo {
             max-width: 180px; margin-bottom: 40px;
@@ -39,20 +39,13 @@
             overflow: hidden;
         }
         .flag-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        .flag-item:nth-child(1) { animation: orbit 4s linear infinite; transform: rotate(0deg) translateY(-100px); }
-        .flag-item:nth-child(2) { animation: orbit 4s linear infinite; transform: rotate(72deg) translateY(-100px); }
-        .flag-item:nth-child(3) { animation: orbit 4s linear infinite; transform: rotate(144deg) translateY(-100px); }
-        .flag-item:nth-child(4) { animation: orbit 4s linear infinite; transform: rotate(216deg) translateY(-100px); }
-        .flag-item:nth-child(5) { animation: orbit 4s linear infinite; transform: rotate(288deg) translateY(-100px); }
+        .flag-item:nth-child(1) { animation: orbit1 3s linear infinite; }
+        .flag-item:nth-child(2) { animation: orbit2 3s linear infinite; }
+        .flag-item:nth-child(3) { animation: orbit3 3s linear infinite; }
+        .flag-item:nth-child(4) { animation: orbit4 3s linear infinite; }
+        .flag-item:nth-child(5) { animation: orbit5 3s linear infinite; }
 
-        @keyframes orbit {
-            0% { transform: rotate(0deg) translateY(-100px) rotate(0deg); }
-            100% { transform: rotate(360deg) translateY(-100px) rotate(-360deg); }
-        }
-        .flag-item:nth-child(2) { animation-name: orbit2; }
-        .flag-item:nth-child(3) { animation-name: orbit3; }
-        .flag-item:nth-child(4) { animation-name: orbit4; }
-        .flag-item:nth-child(5) { animation-name: orbit5; }
+        @keyframes orbit1 { 0% { transform: rotate(0deg) translateY(-100px) rotate(0deg); } 100% { transform: rotate(360deg) translateY(-100px) rotate(-360deg); } }
         @keyframes orbit2 { 0% { transform: rotate(72deg) translateY(-100px) rotate(-72deg); } 100% { transform: rotate(432deg) translateY(-100px) rotate(-432deg); } }
         @keyframes orbit3 { 0% { transform: rotate(144deg) translateY(-100px) rotate(-144deg); } 100% { transform: rotate(504deg) translateY(-100px) rotate(-504deg); } }
         @keyframes orbit4 { 0% { transform: rotate(216deg) translateY(-100px) rotate(-216deg); } 100% { transform: rotate(576deg) translateY(-100px) rotate(-576deg); } }
@@ -64,20 +57,9 @@
             font-size: 16px; color: rgba(255,255,255,0.6);
             animation: pulse 1.5s ease-in-out infinite;
         }
+
         @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
-
-        .splash-dots::after {
-            content: ''; animation: dots 1.5s steps(4, end) infinite;
-        }
-        @keyframes dots {
-            0% { content: ''; } 25% { content: '.'; }
-            50% { content: '..'; } 75% { content: '...'; }
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         .result {
             position: fixed; inset: 0; display: none; flex-direction: column;
@@ -86,10 +68,7 @@
         }
         .result.active { display: flex; }
 
-        .result-city {
-            width: 100%; max-width: 700px; margin-bottom: 32px;
-            animation: fadeInUp 0.6s ease-out;
-        }
+        .result-city { width: 100%; max-width: 700px; margin-bottom: 32px; animation: fadeInUp 0.6s ease-out; }
         .result-city img { width: 100%; height: auto; }
 
         .result-flag {
@@ -98,14 +77,13 @@
             overflow: hidden; border: 3px solid rgba(255,255,255,0.2);
         }
         .result-flag img { width: 100%; height: 100%; object-fit: cover; }
+
         .result-text {
             font-family: 'Playfair Display', serif;
             font-size: clamp(28px, 4vw, 40px); font-weight: 700;
             margin-bottom: 8px; color: #fff;
         }
-        .result-sub {
-            font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 40px;
-        }
+        .result-sub { font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 40px; }
 
         .btn-enter {
             padding: 18px 48px; border-radius: 14px; font-size: 18px; font-weight: 700;
@@ -115,22 +93,13 @@
         }
         .btn-enter:hover { background: #DC2626; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(230,57,70,0.4); }
 
-        @keyframes bounceIn {
-            0% { opacity: 0; transform: scale(0.3); }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.95); }
-            100% { opacity: 1; transform: scale(1); }
-        }
+        @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { transform: scale(1.05); } 70% { transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
 
-        .lang-options {
-            display: flex; gap: 12px; margin-bottom: 32px;
-            animation: fadeInUp 0.6s ease-out 0.3s both;
-        }
+        .lang-options { display: flex; gap: 12px; margin-bottom: 32px; animation: fadeInUp 0.6s ease-out 0.3s both; }
         .lang-btn {
             padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
             background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7);
-            border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
-            font-family: inherit;
+            border: 2px solid transparent; cursor: pointer; transition: all 0.2s; font-family: inherit;
         }
         .lang-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
         .lang-btn.active { border-color: #E63946; color: #fff; background: rgba(230,57,70,0.15); }
@@ -145,9 +114,9 @@
     </style>
 </head>
 <body>
-    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔇</button>
+    <button class="sound-btn" id="soundBtn" onclick="event.stopPropagation(); toggleSound();">🔊</button>
 
-    <div class="splash" id="splash" onclick="startAll()">
+    <div class="splash" id="splash">
         <img src="/logouf.png" alt="UrbanFlow" class="splash-logo">
         <div class="flags-ring" id="flagsRing">
             <div class="flag-item"><img src="/banderauruguay.png" alt="Uruguay"></div>
@@ -156,7 +125,7 @@
             <div class="flag-item"><img src="/banderachile.png" alt="Chile"></div>
             <div class="flag-item"><img src="/banderaparaguay.png" alt="Paraguay"></div>
         </div>
-        <div class="splash-text">Toca en cualquier lugar para comenzar</div>
+        <div class="splash-text" id="splashText">Detectando tu ubicación...</div>
     </div>
 
     <div class="result" id="result">
@@ -183,8 +152,10 @@
         let detectedCountry = 'UY';
         let soundEnabled = false;
         let musicDuration = 0;
+        let detected = false;
         const audio = document.getElementById('bgMusic');
         const btn = document.getElementById('soundBtn');
+        const SPLASH_TIME = 8000;
 
         const countries = {
             'UY': { flag: '/banderauruguay.png', name: 'Uruguay', city: 'Montevideo', img: '/ciudad.png', lang: 'es' },
@@ -198,14 +169,15 @@
             if (soundEnabled) {
                 audio.pause();
                 btn.textContent = '🔇';
+                soundEnabled = false;
             } else {
                 audio.volume = 0.5;
                 audio.play().then(() => {
                     btn.textContent = '🔊';
+                    soundEnabled = true;
                     startMusicTimer();
                 }).catch(() => {});
             }
-            soundEnabled = !soundEnabled;
         }
 
         function startMusicTimer() {
@@ -213,42 +185,13 @@
                 musicDuration = audio.duration;
                 const flagsRing = document.getElementById('flagsRing');
                 const flags = flagsRing.querySelectorAll('.flag-item');
-                flags.forEach(f => {
-                    f.style.animationDuration = musicDuration + 's';
-                });
-                const stopTime = (musicDuration - 3) * 1000;
-                if (stopTime > 0) {
-                    setTimeout(() => {
-                        flagsRing.classList.add('stop');
-                    }, stopTime);
-                }
+                const animDuration = Math.min(musicDuration - 3, musicDuration * 0.9);
+                flags.forEach(f => { f.style.animationDuration = animDuration + 's'; });
             }
         }
 
-        audio.addEventListener('loadedmetadata', () => {
-            if (soundEnabled) startMusicTimer();
-        });
-
-        audio.addEventListener('durationchange', () => {
-            if (soundEnabled && audio.duration > 0) startMusicTimer();
-        });
-
-        let started = false;
-
-        function startAll() {
-            if (started) return;
-            started = true;
-            document.querySelector('.splash-text').textContent = 'Detectando tu ubicación...';
-            audio.volume = 0.5;
-            audio.play().then(() => {
-                soundEnabled = true;
-                btn.textContent = '🔊';
-                startMusicTimer();
-            }).catch(() => {});
-            detectCountry().then(country => {
-                detectedCountry = country;
-            });
-        }
+        audio.addEventListener('loadedmetadata', () => { if (soundEnabled) startMusicTimer(); });
+        audio.addEventListener('durationchange', () => { if (soundEnabled && audio.duration > 0) startMusicTimer(); });
 
         function tryAutoplay() {
             audio.volume = 0.5;
@@ -260,6 +203,20 @@
                 btn.textContent = '🔇';
             });
         }
+
+        function splashClick(e) {
+            if (e.target.closest('.sound-btn')) return;
+            if (!soundEnabled) {
+                audio.volume = 0.5;
+                audio.play().then(() => {
+                    soundEnabled = true;
+                    btn.textContent = '🔊';
+                    startMusicTimer();
+                }).catch(() => {});
+            }
+        }
+
+        document.getElementById('splash').addEventListener('click', splashClick);
 
         function setLang(lang, el) {
             selectedLang = lang;
@@ -287,31 +244,37 @@
                 const res = await fetch('https://ipapi.co/json/');
                 const data = await res.json();
                 return data.country_code || 'UY';
-            } catch {
-                return 'UY';
-            }
+            } catch { return 'UY'; }
+        }
+
+        function showResult() {
+            if (detected) return;
+            detected = true;
+            const c = countries[detectedCountry] || countries['UY'];
+
+            document.getElementById('splash').classList.add('hidden');
+
+            document.getElementById('resultCityImg').src = c.img;
+            document.getElementById('resultFlag').querySelector('img').src = c.flag;
+            document.getElementById('resultText').textContent = `Estás en ${c.name}`;
+
+            selectedLang = c.lang;
+            document.querySelectorAll('.lang-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.lang === c.lang);
+            });
+            updateResultText();
+
+            document.getElementById('result').classList.add('active');
         }
 
         async function init() {
-            detectedCountry = await detectCountry();
-            const c = countries[detectedCountry] || countries['UY'];
-            if (!countries[detectedCountry]) detectedCountry = 'UY';
+            tryAutoplay();
 
-            setTimeout(() => {
-                document.getElementById('splash').classList.add('hidden');
+            detectCountry().then(country => {
+                detectedCountry = country;
+            });
 
-                document.getElementById('resultCityImg').src = c.img;
-                document.getElementById('resultFlag').querySelector('img').src = c.flag;
-                document.getElementById('resultText').textContent = `Estás en ${c.name}`;
-
-                selectedLang = c.lang;
-                document.querySelectorAll('.lang-btn').forEach(b => {
-                    b.classList.toggle('active', b.dataset.lang === c.lang);
-                });
-                updateResultText();
-
-                document.getElementById('result').classList.add('active');
-            }, 3000);
+            setTimeout(showResult, SPLASH_TIME);
         }
 
         init();
