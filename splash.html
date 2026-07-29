@@ -166,7 +166,7 @@
         <button class="btn-enter" onclick="enterSite()">Entrar</button>
     </div>
 
-    <audio id="bgMusic" loop preload="auto">
+    <audio id="bgMusic" loop preload="auto" playsinline>
         <source src="/musicaweb.mp3" type="audio/mpeg">
     </audio>
 
@@ -174,6 +174,8 @@
         let selectedLang = 'es';
         let detectedCountry = 'UY';
         let soundEnabled = false;
+        const audio = document.getElementById('bgMusic');
+        const btn = document.getElementById('soundBtn');
 
         const countries = {
             'UY': { flag: '/banderauruguay.png', name: 'Uruguay', city: 'Montevideo', img: '/ciudad.png', lang: 'es' },
@@ -184,17 +186,38 @@
         };
 
         function toggleSound() {
-            const audio = document.getElementById('bgMusic');
-            const btn = document.getElementById('soundBtn');
             if (soundEnabled) {
                 audio.pause();
                 btn.textContent = '🔇';
             } else {
-                audio.play().catch(() => {});
-                btn.textContent = '🔊';
+                audio.currentTime = 0;
+                audio.volume = 0.5;
+                audio.play().then(() => {
+                    btn.textContent = '🔊';
+                }).catch(e => {
+                    console.log('Audio play failed:', e);
+                    btn.textContent = '🔇';
+                });
             }
             soundEnabled = !soundEnabled;
         }
+
+        function tryAutoplay() {
+            audio.volume = 0.5;
+            audio.play().then(() => {
+                soundEnabled = true;
+                btn.textContent = '🔊';
+            }).catch(() => {
+                btn.textContent = '🔇';
+            });
+        }
+
+        document.addEventListener('click', function firstClick() {
+            if (!soundEnabled) {
+                tryAutoplay();
+            }
+            document.removeEventListener('click', firstClick);
+        });
 
         function setLang(lang, el) {
             selectedLang = lang;
