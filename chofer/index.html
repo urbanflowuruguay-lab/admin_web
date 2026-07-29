@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow — Chofer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #011122; color: #e6edf3; min-height: 100vh;
+        }
+        .header {
+            background: #0d1117; padding: 20px; border-bottom: 1px solid #30363d;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { font-size: 20px; color: #da3633; }
+        .btn-logout { background: #da3633; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .container { max-width: 600px; margin: 0 auto; padding: 30px 20px; }
+        .card {
+            background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+            padding: 24px; margin-bottom: 16px;
+        }
+        .card h2 { font-size: 18px; margin-bottom: 16px; color: #58a6ff; }
+        .status-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 12px;
+            font-size: 12px; font-weight: 600;
+        }
+        .status-pendiente { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.3); }
+        .status-habilitado { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
+        .status-rechazado { background: rgba(248,81,73,0.15); color: #f85149; border: 1px solid rgba(248,81,73,0.3); }
+        .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #21262d; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #8b949e; font-size: 14px; }
+        .info-value { font-size: 14px; font-weight: 500; }
+        .msg-box {
+            background: #1a2332; border: 1px solid #58a6ff; border-radius: 8px;
+            padding: 16px; margin-top: 16px; font-size: 14px; line-height: 1.6; color: #c9d1d9;
+        }
+        .upload-section { margin-top: 16px; }
+        .upload-btn {
+            background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+            padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;
+        }
+        .upload-btn:hover { border-color: #58a6ff; }
+        .file-list { margin-top: 12px; }
+        .file-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; color: #8b949e; }
+        .file-item a { color: #58a6ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Chofer</h1>
+        <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Mi perfil</h2>
+            <div id="profileInfo">
+                <p style="color:#8b949e;">Cargando...</p>
+            </div>
+        </div>
+
+        <div class="card" id="pendingCard" style="display:none;">
+            <h2>Estado de tu cuenta</h2>
+            <div class="msg-box">
+                Tu cuenta esta <strong>pendiente de revision</strong>. El administrador revisara tu solicitud y te habilitara para comenzar a trabajar. Te notificaremos por WhatsApp cuando estes listo.
+            </div>
+        </div>
+
+        <div class="card" id="activeCard" style="display:none;">
+            <h2>Mis documentos</h2>
+            <p style="font-size:13px; color:#8b949e; margin-bottom:12px;">Subi tus documentos para que el administrador los revise.</p>
+            <div class="upload-section">
+                <input type="file" id="docInput" accept="image/*,.pdf" style="display:none;" onchange="uploadDoc()">
+                <button class="upload-btn" onclick="document.getElementById('docInput').click()">Subir documento</button>
+            </div>
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <div class="card" id="rejectedCard" style="display:none;">
+            <h2>Cuenta rechazada</h2>
+            <div class="msg-box" style="border-color:#f85149;">
+                Tu cuenta fue rechazada. Contacta al administrador para mas informacion.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Contacto</h2>
+            <p style="font-size:14px; color:#8b949e;">Si tenes problemas, contacta al administrador por WhatsApp al <strong>+598 99 000 000</strong></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        let userId = null;
+
+        (async () => {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) { window.location.href = '/login.html?role=chofer'; return; }
+            userId = session.user.id;
+            loadProfile();
+        })();
+
+        async function loadProfile() {
+            const { data: profile } = await sb.from("perfiles").select("*").eq("id", userId).single();
+            const { data: chofer } = await sb.from("choferes").select("*").eq("user_id", userId).single();
+
+            if (!chofer) {
+                document.getElementById("profileInfo").innerHTML = '<p style="color:#f85149;">No se encontro tu registro de chofer.</p>';
+                return;
+            }
+
+            const statusClass = chofer.status === 'habilitado' ? 'status-habilitado' : chofer.status === 'rechazado' ? 'status-rechazado' : 'status-pendiente';
+            const statusText = chofer.status === 'habilitado' ? 'Habilitado' : chofer.status === 'rechazado' ? 'Rechazado' : 'Pendiente';
+
+            document.getElementById("profileInfo").innerHTML = `
+                <div class="info-row"><span class="info-label">Nombre</span><span class="info-value">${chofer.nombre || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Email</span><span class="info-value">${profile?.email || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Telefono</span><span class="info-value">${chofer.telefono || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Vehiculo</span><span class="info-value">${chofer.tipo_vehiculo || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Estado</span><span class="status-badge ${statusClass}">${statusText}</span></div>
+            `;
+
+            if (chofer.status === 'pendiente') {
+                document.getElementById("pendingCard").style.display = '';
+            } else if (chofer.status === 'habilitado') {
+                document.getElementById("activeCard").style.display = '';
+                loadFiles();
+            } else if (chofer.status === 'rechazado') {
+                document.getElementById("rejectedCard").style.display = '';
+            }
+        }
+
+        async function loadFiles() {
+            try {
+                const { data: files } = await sb.storage.from('documentos_choferes').list(userId);
+                const list = document.getElementById("fileList");
+                if (!files || files.length === 0) { list.innerHTML = '<p style="font-size:13px;color:#8b949e;">No hay documentos subidos.</p>'; return; }
+                list.innerHTML = files.map(f => {
+                    const { data } = sb.storage.from('documentos_choferes').getPublicUrl(`${userId}/${f.name}`);
+                    return '<div class="file-item"><a href="' + data + '" target="_blank">' + f.name + '</a></div>';
+                }).join('');
+            } catch(e) {
+                document.getElementById("fileList").innerHTML = '<p style="font-size:13px;color:#8b949e;">Error al cargar documentos.</p>';
+            }
+        }
+
+        async function uploadDoc() {
+            const input = document.getElementById("docInput");
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                await sb.storage.from('documentos_choferes').upload(`${userId}/${file.name}`, file, { upsert: true });
+                alert('Documento subido.');
+                loadFiles();
+                input.value = '';
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function doLogout() {
+            await sb.auth.signOut();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
