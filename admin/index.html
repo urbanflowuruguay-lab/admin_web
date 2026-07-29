@@ -86,8 +86,8 @@
         
         <nav>
             <div class="section-title">Operaciones</div>
-            <a href="#" class="active-link" data-action="home" onclick="showHome(event)">&#127968; Inicio</a>
-            <a href="#" data-action="mapa" onclick="showMap(event)">&#128225; Mapa en Vivo</a>
+            <a href="#" class="active-link" data-action="mapa" onclick="showMap(event)">&#128225; Mapa en Vivo</a>
+            <a href="#" data-action="home" onclick="showHome(event)">&#127968; Inicio</a>
             <a href="usuarios.html" target="viewFrame" onclick="showFrame(event)">&#128101; Ver Pasajeros</a>
             <a href="choferes_autos.html" target="viewFrame" onclick="showFrame(event)">&#128663; Choferes Autos</a>
             <a href="choferes_taxis.html" target="viewFrame" onclick="showFrame(event)">&#128661; Choferes Taxis</a>
@@ -231,6 +231,7 @@
                 <div id="st" style="font-size: 9px; color: #8b949e;">Conectando...</div>
             </div>
             <div id="liveMap"></div>
+            <button onclick="window.open('index.html','_blank')" style="position:absolute;bottom:15px;right:15px;z-index:10;background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:10px 16px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">Pantalla Completa</button>
         </div>
 
         <iframe name="viewFrame" id="viewFrame"></iframe>
@@ -245,6 +246,7 @@
             document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('sidebar').style.display = '';
             document.getElementById('main').style.display = '';
+            showMap(null);
         });
 
         const homeGrid = document.getElementById('homeGrid');
