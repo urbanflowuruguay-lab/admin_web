@@ -302,17 +302,18 @@
         .stat-label { font-size: 14px; color: #6B7280; margin-top: 4px; }
 
         @media (max-width: 1024px) {
-            .hero-content { grid-template-columns: 1fr; gap: 40px; }
+            .hero-content { grid-template-columns: 1fr; gap: 40px; text-align: center; }
             .hero-text { text-align: center; }
-            .hero-image { max-width: 500px; margin: 0 auto !important; }
+            .hero-image { max-width: 500px; margin: 0 auto !important; transform: none !important; }
             .hero-tags { justify-content: center; }
-            .hero-actions { justify-content: center; }
-            .hero-city { width: 100%; max-width: 500px; height: auto; margin: 20px auto 0; }
-            .feature-row { grid-template-columns: 1fr; gap: 32px; }
+            .hero-actions { justify-content: center; flex-wrap: wrap; }
+            .hero-city { width: 100%; max-width: 500px; height: auto; margin: 20px auto 0; display: block; }
+            .feature-row { grid-template-columns: 1fr; gap: 32px; text-align: center; }
             .feature-row.reverse { direction: ltr; }
+            .feature-list { display: inline-block; text-align: left; }
             .cards-grid { grid-template-columns: 1fr 1fr; }
             .roles-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
-            .maas-inner { grid-template-columns: 1fr; gap: 40px; }
+            .maas-inner { grid-template-columns: 1fr; gap: 40px; text-align: center; }
             .stats-inner { grid-template-columns: repeat(2, 1fr); }
             .footer-inner { grid-template-columns: 1fr 1fr; }
         }
@@ -325,6 +326,8 @@
             .footer-inner { grid-template-columns: 1fr; gap: 32px; }
             .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
             .hero-city { width: 90%; max-width: 300px; }
+            .hero-actions { flex-direction: column; align-items: center; }
+            .hero-actions a { width: 100%; max-width: 280px; }
         }
     </style>
 </head>
