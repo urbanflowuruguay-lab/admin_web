@@ -76,25 +76,17 @@
         .hero-actions a.ghost { color: #fff; border: 2px solid rgba(255,255,255,0.3); }
         .hero-actions a.ghost:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
 
-        .country-selector {
-            background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 24px;
-            display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+        .city-badge {
+            display: inline-flex; align-items: center; gap: 16px;
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+            border-radius: 16px; padding: 12px 20px; margin-top: 8px;
         }
-        .country-selector label {
-            font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500;
-            display: block; margin-bottom: 8px;
+        .city-badge img {
+            width: 80px; height: 50px; border-radius: 10px; object-fit: cover;
         }
-        .country-selector select {
-            padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.1); color: #fff; font-size: 14px;
-            font-family: inherit; cursor: pointer; appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: right 12px center;
-            padding-right: 32px;
-        }
-        .country-selector select option { background: #1B2A4A; color: #fff; }
-        .country-selector select:focus { outline: none; border-color: rgba(255,255,255,0.5); }
-        .country-selector .field { flex: 1; min-width: 140px; }
+        .city-info { display: flex; align-items: center; gap: 8px; }
+        .city-flag { font-size: 24px; }
+        .city-name { font-size: 14px; color: rgba(255,255,255,0.9); font-weight: 500; }
 
         .hero-image {
             width: 100%; aspect-ratio: 4/3; border-radius: 24px;
@@ -310,27 +302,11 @@
                 <a href="/login.html?role=chofer" class="white">Conduce con nosotros</a>
                 <a href="/login.html?role=usuario" class="ghost">Pedí un viaje</a>
             </div>
-            <div class="country-selector">
-                <div class="field">
-                    <label>País</label>
-                    <select id="countrySelect" onchange="updateCountry()">
-                        <option value="UY" data-flag="🇺🇾">Uruguay</option>
-                        <option value="AR" data-flag="🇦🇷">Argentina</option>
-                        <option value="BR" data-flag="🇧🇷">Brasil</option>
-                        <option value="CL" data-flag="🇨🇱">Chile</option>
-                        <option value="PY" data-flag="🇵🇾">Paraguay</option>
-                        <option value="CO" data-flag="🇨🇴">Colombia</option>
-                        <option value="PE" data-flag="🇵🇪">Perú</option>
-                        <option value="ES" data-flag="🇪🇸">España</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Idioma</label>
-                    <select id="langSelect" onchange="updateLang()">
-                        <option value="es">Español</option>
-                        <option value="pt">Português</option>
-                        <option value="en">English</option>
-                    </select>
+            <div class="city-badge" id="cityBadge">
+                <img src="/ciudad.png" alt="Ciudad" id="cityImage">
+                <div class="city-info">
+                    <span class="city-flag" id="cityFlag">🇺🇾</span>
+                    <span class="city-name" id="cityName">Montevideo, Uruguay</span>
                 </div>
             </div>
         </div>
@@ -537,8 +513,7 @@
         function selectLang(country, lang, flag, langCode) {
             document.getElementById('navFlag').textContent = flag;
             document.getElementById('navLang').textContent = langCode;
-            document.getElementById('countrySelect').value = country;
-            document.getElementById('langSelect').value = lang;
+            updateCityBadge(country);
             document.querySelectorAll('.lang-option').forEach(el => el.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
             setTimeout(() => {
@@ -548,12 +523,7 @@
             localStorage.setItem('uf_lang', lang);
         }
 
-        function updateCountry() {
-            const select = document.getElementById('countrySelect');
-            const option = select.options[select.selectedIndex];
-            const flag = option.getAttribute('data-flag');
-            document.getElementById('navFlag').textContent = flag;
-        }
+        function updateCountry() {}
 
         function updateLang() {
             const lang = document.getElementById('langSelect').value;
@@ -564,15 +534,37 @@
         (function detectLocation() {
             const saved = localStorage.getItem('uf_country');
             if (saved) {
-                document.getElementById('countrySelect').value = saved;
-                updateCountry();
+                updateCityBadge(saved);
+                return;
             }
-            const savedLang = localStorage.getItem('uf_lang');
-            if (savedLang) {
-                document.getElementById('langSelect').value = savedLang;
-                updateLang();
-            }
+            fetch('https://ipapi.co/json/')
+                .then(r => r.json())
+                .then(data => {
+                    const country = data.country_code || 'UY';
+                    updateCityBadge(country);
+                    localStorage.setItem('uf_country', country);
+                })
+                .catch(() => {
+                    updateCityBadge('UY');
+                });
         })();
+
+        function updateCityBadge(country) {
+            const cities = {
+                'UY': { flag: '🇺🇾', name: 'Montevideo, Uruguay', img: '/ciudad.png' },
+                'AR': { flag: '🇦🇷', name: 'Buenos Aires, Argentina', img: '/ciudadbsas.png' },
+                'BR': { flag: '🇧🇷', name: 'Asunción, Brasil', img: '/asuncion.png' },
+                'CL': { flag: '🇨🇱', name: 'Santiago, Chile', img: '/santiago.png' },
+                'PY': { flag: '🇵🇾', name: 'Asunción, Paraguay', img: '/asuncion.png' },
+                'CO': { flag: '🇨🇴', name: 'Bogotá, Colombia', img: '/ciudad.png' },
+                'PE': { flag: '🇵🇪', name: 'Lima, Perú', img: '/ciudad.png' },
+                'ES': { flag: '🇪🇸', name: 'Madrid, España', img: '/ciudad.png' }
+            };
+            const city = cities[country] || cities['UY'];
+            document.getElementById('cityImage').src = city.img;
+            document.getElementById('cityFlag').textContent = city.flag;
+            document.getElementById('cityName').textContent = city.name;
+        }
     </script>
 </body>
 </html>
