@@ -371,7 +371,7 @@
                 <img src="/ciudad.png" alt="Ciudad" class="hero-city" id="heroCity">
             </div>
             <div class="hero-image">
-                <img src="/fotoplaza.png" alt="UrbanFlow">
+                <img src="/hero-uruguay.png" alt="UrbanFlow" id="heroPhoto">
             </div>
         </div>
     </section>
@@ -714,17 +714,18 @@
 
         function updateCityBadge(country) {
             const cities = {
-                'UY': { img: '/ciudad.png' },
-                'AR': { img: '/ciudadbsas.png' },
-                'BR': { img: '/asuncion.png' },
-                'CL': { img: '/santiago.png' },
-                'PY': { img: '/asuncion.png' },
-                'CO': { img: '/ciudad.png' },
-                'PE': { img: '/ciudad.png' },
-                'ES': { img: '/ciudad.png' }
+                'UY': { badge: '/ciudad.png', hero: '/hero-uruguay.png' },
+                'AR': { badge: '/ciudadbsas.png', hero: '/hero-argentina.jpeg' },
+                'BR': { badge: '/rio.png', hero: '/hero-brasil.jpg' },
+                'CL': { badge: '/santiago.png', hero: '/hero-chile.jpg' },
+                'PY': { badge: '/asuncion.png', hero: '/hero-paraguay.jpg' },
+                'CO': { badge: '/ciudad.png', hero: '/hero-uruguay.png' },
+                'PE': { badge: '/ciudad.png', hero: '/hero-uruguay.png' },
+                'ES': { badge: '/ciudad.png', hero: '/hero-uruguay.png' }
             };
             const city = cities[country] || cities['UY'];
-            document.getElementById('heroCity').src = city.img;
+            document.getElementById('heroCity').src = city.badge;
+            document.getElementById('heroPhoto').src = city.hero;
         }
     </script>
 </body>
