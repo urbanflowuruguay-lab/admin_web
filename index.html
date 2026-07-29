@@ -8,7 +8,7 @@
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; background: #fff; color: #1a1a2e; -webkit-font-smoothing: antialiased; }
+        body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; background: #fff; color: #1B2A4A; -webkit-font-smoothing: antialiased; }
 
         .nav {
             position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -20,17 +20,17 @@
         .nav.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
         .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .nav-logo img { height: 40px; }
-        .nav-logo span { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+        .nav-logo span { font-size: 20px; font-weight: 700; color: #1B2A4A; }
         .nav-links { display: flex; align-items: center; gap: 4px; }
         .nav-links a {
             padding: 10px 18px; border-radius: 12px; font-size: 15px; font-weight: 500;
-            text-decoration: none; color: #5e6088; transition: all 0.2s;
+            text-decoration: none; color: #6B7280; transition: all 0.2s;
         }
-        .nav-links a:hover { color: #1a1a2e; background: #f5f5f7; }
-        .nav-links a.primary { background: #da3633; color: #fff; margin-left: 8px; }
-        .nav-links a.primary:hover { background: #b91c1c; }
+        .nav-links a:hover { color: #1B2A4A; background: #F1F5F9; }
+        .nav-links a.primary { background: #E63946; color: #fff; margin-left: 8px; }
+        .nav-links a.primary:hover { background: #DC2626; }
         .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
-        .hamburger svg { width: 28px; height: 28px; color: #1a1a2e; }
+        .hamburger svg { width: 28px; height: 28px; color: #1B2A4A; }
         .mobile-menu {
             display: none; position: fixed; top: 72px; left: 0; right: 0; bottom: 0;
             background: #fff; z-index: 99; padding: 24px 32px; flex-direction: column; gap: 4px;
@@ -38,12 +38,12 @@
         .mobile-menu.open { display: flex; }
         .mobile-menu a {
             padding: 16px 20px; border-radius: 12px; font-size: 17px; font-weight: 500;
-            text-decoration: none; color: #1a1a2e; transition: background 0.2s;
+            text-decoration: none; color: #1B2A4A; transition: background 0.2s;
         }
-        .mobile-menu a:hover { background: #f5f5f7; }
+        .mobile-menu a:hover { background: #F1F5F9; }
 
         .hero {
-            padding: 120px 32px 80px; background: #da3633;
+            padding: 120px 32px 80px; background: #1B2A4A;
             display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
             min-height: 100vh;
         }
@@ -53,7 +53,7 @@
             letter-spacing: -0.5px; margin-bottom: 20px; color: #fff;
         }
         .hero-content p {
-            font-size: 18px; line-height: 1.6; color: rgba(255,255,255,0.85);
+            font-size: 18px; line-height: 1.6; color: rgba(255,255,255,0.8);
             margin-bottom: 36px; max-width: 480px;
         }
         .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -61,9 +61,9 @@
             padding: 16px 32px; border-radius: 14px; font-size: 16px; font-weight: 600;
             text-decoration: none; transition: all 0.2s;
         }
-        .hero-actions a.white { background: #fff; color: #da3633; }
-        .hero-actions a.white:hover { background: #f5f5f7; transform: translateY(-2px); }
-        .hero-actions a.ghost { color: #fff; border: 2px solid rgba(255,255,255,0.4); }
+        .hero-actions a.white { background: #fff; color: #1B2A4A; }
+        .hero-actions a.white:hover { background: #F1F5F9; transform: translateY(-2px); }
+        .hero-actions a.ghost { color: #fff; border: 2px solid rgba(255,255,255,0.3); }
         .hero-actions a.ghost:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
         .hero-image {
             width: 100%; aspect-ratio: 4/3; border-radius: 24px;
@@ -83,13 +83,13 @@
         .feature-row.reverse > * { direction: ltr; }
         .feature-row img {
             width: 100%; aspect-ratio: 16/10; border-radius: 20px;
-            object-fit: cover; background: #f5f5f7;
+            object-fit: cover; background: #F1F5F9;
         }
         .feature-row h2 {
             font-size: clamp(28px, 3vw, 36px); font-weight: 800; letter-spacing: -0.3px;
             margin-bottom: 16px; line-height: 1.15;
         }
-        .feature-row p { font-size: 16px; line-height: 1.7; color: #5e6088; }
+        .feature-row p { font-size: 16px; line-height: 1.7; color: #6B7280; }
         .feature-list { list-style: none; margin-top: 24px; }
         .feature-list li {
             padding: 10px 0; font-size: 15px; color: #374151;
@@ -97,20 +97,20 @@
         }
         .feature-list li::before {
             content: ''; width: 24px; height: 24px; border-radius: 50%;
-            background: #fef2f2; display: flex; align-items: center; justify-content: center;
+            background: #FEF2F2; display: flex; align-items: center; justify-content: center;
             font-size: 12px; flex-shrink: 0;
         }
-        .feature-list li.check::before { content: '✓'; color: #da3633; font-weight: 700; }
+        .feature-list li.check::before { content: '✓'; color: #E63946; font-weight: 700; }
 
         .cards-section {
-            padding: 100px 32px; background: #f8f8fa;
+            padding: 100px 32px; background: #F8FAFC;
         }
         .cards-inner { max-width: 1200px; margin: 0 auto; }
         .cards-header { text-align: center; margin-bottom: 56px; }
         .cards-header .tag {
             display: inline-block; padding: 6px 16px; border-radius: 999px;
             font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-            background: #fef2f2; color: #da3633; margin-bottom: 16px;
+            background: #FEF2F2; color: #E63946; margin-bottom: 16px;
         }
         .cards-header h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 800; letter-spacing: -0.5px; }
         .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -121,10 +121,10 @@
         .card-item:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.06); }
         .card-icon {
             width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
-            font-size: 24px; margin-bottom: 20px; background: #fef2f2;
+            font-size: 24px; margin-bottom: 20px; background: #FEF2F2;
         }
         .card-item h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
-        .card-item p { font-size: 14px; line-height: 1.6; color: #5e6088; }
+        .card-item p { font-size: 14px; line-height: 1.6; color: #6B7280; }
 
         .roles-section {
             padding: 100px 32px;
@@ -134,7 +134,7 @@
         .roles-header .tag {
             display: inline-block; padding: 6px 16px; border-radius: 999px;
             font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-            background: #f0f0ff; color: #6C63FF; margin-bottom: 16px;
+            background: #EEF2FF; color: #6C63FF; margin-bottom: 16px;
         }
         .roles-header h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 800; letter-spacing: -0.5px; }
         .roles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -144,25 +144,25 @@
             transition: all 0.3s;
         }
         .role-card:hover { transform: translateY(-4px); }
-        .role-card.chofer { background: #fef2f2; }
-        .role-card.chofer:hover { box-shadow: 0 16px 40px rgba(218,54,51,0.12); }
-        .role-card.usuario { background: #eef2ff; }
+        .role-card.chofer { background: #FEF2F2; }
+        .role-card.chofer:hover { box-shadow: 0 16px 40px rgba(230,57,70,0.12); }
+        .role-card.usuario { background: #EEF2FF; }
         .role-card.usuario:hover { box-shadow: 0 16px 40px rgba(108,99,255,0.12); }
-        .role-card.servicios { background: #f0fdf4; }
+        .role-card.servicios { background: #F0FDF4; }
         .role-card.servicios:hover { box-shadow: 0 16px 40px rgba(22,163,74,0.12); }
         .role-card .icon { font-size: 36px; margin-bottom: 20px; }
         .role-card h3 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
-        .role-card p { font-size: 15px; line-height: 1.6; color: #5e6088; margin-bottom: 20px; }
+        .role-card p { font-size: 15px; line-height: 1.6; color: #6B7280; margin-bottom: 20px; }
         .role-card .link {
             font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
         }
-        .role-card.chofer .link { color: #da3633; }
+        .role-card.chofer .link { color: #E63946; }
         .role-card.usuario .link { color: #6C63FF; }
-        .role-card.servicios .link { color: #16a34a; }
+        .role-card.servicios .link { color: #16A34A; }
         .role-card:hover .link { gap: 10px; }
 
         .cta-section {
-            padding: 100px 32px; background: #1a1a2e; text-align: center;
+            padding: 100px 32px; background: #1B2A4A; text-align: center;
         }
         .cta-section h2 {
             font-size: clamp(32px, 4vw, 44px); font-weight: 800; letter-spacing: -0.5px;
@@ -172,30 +172,30 @@
         .cta-section a {
             display: inline-block; padding: 16px 36px; border-radius: 14px;
             font-size: 16px; font-weight: 600; text-decoration: none;
-            background: #da3633; color: #fff; transition: all 0.2s;
+            background: #E63946; color: #fff; transition: all 0.2s;
         }
-        .cta-section a:hover { background: #b91c1c; transform: translateY(-2px); }
+        .cta-section a:hover { background: #DC2626; transform: translateY(-2px); }
 
         .footer {
-            padding: 56px 32px 32px; background: #da3633; color: #fff;
+            padding: 56px 32px 32px; background: #1B2A4A; color: #fff;
         }
         .footer-inner {
             max-width: 1200px; margin: 0 auto;
             display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px;
         }
         .footer-brand img { max-width: 120px; margin-bottom: 16px; filter: brightness(0) invert(1); }
-        .footer-brand p { font-size: 14px; color: rgba(255,255,255,0.8); line-height: 1.6; max-width: 280px; }
-        .footer-col h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; color: rgba(255,255,255,0.6); }
-        .footer-col a { display: block; font-size: 14px; color: #fff; text-decoration: none; padding: 4px 0; opacity: 0.9; transition: opacity 0.2s; }
+        .footer-brand p { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; max-width: 280px; }
+        .footer-col h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; color: rgba(255,255,255,0.5); }
+        .footer-col a { display: block; font-size: 14px; color: #fff; text-decoration: none; padding: 4px 0; opacity: 0.85; transition: opacity 0.2s; }
         .footer-col a:hover { opacity: 1; }
         .footer-bottom {
             max-width: 1200px; margin: 32px auto 0; padding-top: 24px;
-            border-top: 1px solid rgba(255,255,255,0.2);
+            border-top: 1px solid rgba(255,255,255,0.15);
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 13px; color: rgba(255,255,255,0.7);
+            font-size: 13px; color: rgba(255,255,255,0.6);
         }
         .footer-social { display: flex; gap: 16px; }
-        .footer-social a { color: #fff; opacity: 0.8; transition: opacity 0.2s; font-size: 14px; }
+        .footer-social a { color: #fff; opacity: 0.7; transition: opacity 0.2s; font-size: 14px; text-decoration: none; }
         .footer-social a:hover { opacity: 1; }
 
         @media (max-width: 1024px) {
@@ -250,14 +250,14 @@
             </div>
         </div>
         <div class="hero-image">
-            <img src="/banner.png" alt="UrbanFlow">
+            <img src="/ciudad.png" alt="UrbanFlow">
         </div>
     </section>
 
     <section class="features">
         <div class="features-inner">
             <div class="feature-row">
-                <img src="/banner.png" alt="Gana dinero" style="background:#da3633;">
+                <img src="/autorojo.png" alt="Gana dinero">
                 <div>
                     <h2>Ganá dinero a tu ritmo</h2>
                     <p>Convertite en conductor y empezá a generar ingresos con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.</p>
@@ -270,7 +270,7 @@
                 </div>
             </div>
             <div class="feature-row reverse">
-                <img src="/banner.png" alt="Viaja seguro" style="background:#6C63FF;">
+                <img src="/personaentrandoauto.png" alt="Viaja seguro">
                 <div>
                     <h2>Viajá con seguridad y comodidad</h2>
                     <p>Solicitá tu viaje en segundos y seguí a tu chofer en tiempo real. Paga con efectivo, tarjeta o transferencia.</p>
