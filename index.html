@@ -76,17 +76,10 @@
         .hero-actions a.ghost { color: #fff; border: 2px solid rgba(255,255,255,0.3); }
         .hero-actions a.ghost:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
 
-        .city-badge {
-            display: inline-flex; align-items: center; gap: 16px;
-            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
-            border-radius: 16px; padding: 12px 20px; margin-top: 8px;
+        .hero-city {
+            width: 120%; max-width: 800px; margin-top: 30px;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.3));
         }
-        .city-badge img {
-            width: 80px; height: 50px; border-radius: 10px; object-fit: cover;
-        }
-        .city-info { display: flex; align-items: center; gap: 8px; }
-        .city-flag { font-size: 24px; }
-        .city-name { font-size: 14px; color: rgba(255,255,255,0.9); font-weight: 500; }
 
         .hero-image {
             width: 100%; aspect-ratio: 4/3; border-radius: 24px;
@@ -302,13 +295,7 @@
                 <a href="/login.html?role=chofer" class="white">Conduce con nosotros</a>
                 <a href="/login.html?role=usuario" class="ghost">Pedí un viaje</a>
             </div>
-            <div class="city-badge" id="cityBadge">
-                <img src="/ciudad.png" alt="Ciudad" id="cityImage">
-                <div class="city-info">
-                    <span class="city-flag" id="cityFlag">🇺🇾</span>
-                    <span class="city-name" id="cityName">Montevideo, Uruguay</span>
-                </div>
-            </div>
+            <img src="/ciudad.png" alt="Ciudad" class="hero-city" id="heroCity">
         </div>
         <div class="hero-image">
             <img src="/fotoplaza.png" alt="UrbanFlow">
@@ -551,19 +538,17 @@
 
         function updateCityBadge(country) {
             const cities = {
-                'UY': { flag: '🇺🇾', name: 'Montevideo, Uruguay', img: '/ciudad.png' },
-                'AR': { flag: '🇦🇷', name: 'Buenos Aires, Argentina', img: '/ciudadbsas.png' },
-                'BR': { flag: '🇧🇷', name: 'Asunción, Brasil', img: '/asuncion.png' },
-                'CL': { flag: '🇨🇱', name: 'Santiago, Chile', img: '/santiago.png' },
-                'PY': { flag: '🇵🇾', name: 'Asunción, Paraguay', img: '/asuncion.png' },
-                'CO': { flag: '🇨🇴', name: 'Bogotá, Colombia', img: '/ciudad.png' },
-                'PE': { flag: '🇵🇪', name: 'Lima, Perú', img: '/ciudad.png' },
-                'ES': { flag: '🇪🇸', name: 'Madrid, España', img: '/ciudad.png' }
+                'UY': { img: '/ciudad.png' },
+                'AR': { img: '/ciudadbsas.png' },
+                'BR': { img: '/asuncion.png' },
+                'CL': { img: '/santiago.png' },
+                'PY': { img: '/asuncion.png' },
+                'CO': { img: '/ciudad.png' },
+                'PE': { img: '/ciudad.png' },
+                'ES': { img: '/ciudad.png' }
             };
             const city = cities[country] || cities['UY'];
-            document.getElementById('cityImage').src = city.img;
-            document.getElementById('cityFlag').textContent = city.flag;
-            document.getElementById('cityName').textContent = city.name;
+            document.getElementById('heroCity').src = city.img;
         }
     </script>
 </body>
