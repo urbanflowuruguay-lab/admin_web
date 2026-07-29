@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow - Negocios</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: #0F1B2D; color: #fff; min-height: 100vh; }
+
+        .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(15,27,45,0.98); backdrop-filter: blur(20px); height: 72px; display: flex; align-items: center; justify-content: center; }
+        .nav-inner { width: 100%; max-width: 1200px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; }
+        .nav-logo { display: flex; align-items: center; text-decoration: none; }
+        .nav-logo img { height: 50px; filter: brightness(0) invert(1); }
+        .nav-back { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 15px; font-weight: 500; transition: color 0.2s; }
+        .nav-back:hover { color: #fff; }
+
+        .hero { padding: 140px 32px 80px; text-align: center; }
+        .hero h1 { font-size: clamp(32px, 5vw, 56px); font-weight: 800; margin-bottom: 16px; line-height: 1.1; }
+        .hero p { font-size: 18px; color: rgba(255,255,255,0.7); max-width: 600px; margin: 0 auto 40px; line-height: 1.6; }
+        .hero-btn { display: inline-block; padding: 16px 32px; background: #E63946; color: #fff; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+        .hero-btn:hover { background: #DC2626; transform: translateY(-2px); }
+
+        .screenshots { padding: 60px 32px 100px; max-width: 1200px; margin: 0 auto; }
+        .screenshots h2 { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 48px; }
+        .screens-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; }
+
+        .phone-frame {
+            background: #1B2A4A; border-radius: 32px; padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .phone-screen {
+            background: #2a3a5c; border-radius: 24px; aspect-ratio: 9/16;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.15);
+            position: relative; overflow: hidden;
+        }
+        .phone-screen span { position: relative; z-index: 1; }
+        .phone-label { text-align: center; margin-top: 16px; font-size: 14px; color: rgba(255,255,255,0.6); }
+
+        footer { background: #0a1220; padding: 40px 32px; text-align: center; color: rgba(255,255,255,0.5); font-size: 14px; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo"><img src="/logouf.png" alt="UrbanFlow"></a>
+            <a href="/" class="nav-back">← Volver al sitio</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Tu negocio en UrbanFlow</h1>
+        <p>Aparecé en la guía comercial, recibí pedidos online y hacé crecer tu empresa. Conocé las herramientas para negocios.</p>
+        <a href="/login.html?role=servicios" class="hero-btn">Sumá tu negocio</a>
+    </section>
+
+    <section class="screenshots">
+        <h2>Así se ve la app</h2>
+        <div class="screens-grid">
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen"><span>1</span></div>
+                </div>
+                <p class="phone-label">Panel de control</p>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen"><span>2</span></div>
+                </div>
+                <p class="phone-label">Gestión de pedidos</p>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen"><span>3</span></div>
+                </div>
+                <p class="phone-label">Carta digital</p>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen"><span>4</span></div>
+                </div>
+                <p class="phone-label">Inventario</p>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen"><span>5</span></div>
+                </div>
+                <p class="phone-label">Finanzas</p>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen"><span>6</span></div>
+                </div>
+                <p class="phone-label">Comunicación interna</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 UrbanFlow. Todos los derechos reservados.</p>
+    </footer>
+</body>
+</html>
