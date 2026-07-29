@@ -29,13 +29,15 @@
             position: relative; width: 200px; height: 200px; margin-bottom: 40px;
         }
         .flag-item {
-            position: absolute; width: 48px; height: 48px; border-radius: 50%;
+            position: absolute; width: 56px; height: 56px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 28px; background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.08);
             border: 2px solid rgba(255,255,255,0.1);
             animation: orbit 4s linear infinite;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
+        .flag-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
         .flag-item:nth-child(1) { animation-delay: 0s; }
         .flag-item:nth-child(2) { animation-delay: -0.5s; }
         .flag-item:nth-child(3) { animation-delay: -1s; }
@@ -83,9 +85,11 @@
         .result-city img { width: 100%; height: auto; }
 
         .result-flag {
-            font-size: 64px; margin-bottom: 16px;
+            width: 80px; height: 80px; border-radius: 50%; margin-bottom: 16px;
             animation: bounceIn 0.5s ease-out 0.2s both;
+            overflow: hidden; border: 3px solid rgba(255,255,255,0.2);
         }
+        .result-flag img { width: 100%; height: 100%; object-fit: cover; }
         .result-text {
             font-family: 'Playfair Display', serif;
             font-size: clamp(28px, 4vw, 40px); font-weight: 700;
@@ -138,14 +142,11 @@
     <div class="splash" id="splash">
         <img src="/logouf.png" alt="UrbanFlow" class="splash-logo">
         <div class="flags-ring">
-            <div class="flag-item">🇺🇾</div>
-            <div class="flag-item">🇦🇷</div>
-            <div class="flag-item">🇧🇷</div>
-            <div class="flag-item">🇨🇱</div>
-            <div class="flag-item">🇵🇾</div>
-            <div class="flag-item">🇨🇴</div>
-            <div class="flag-item">🇵🇪</div>
-            <div class="flag-item">🇪🇸</div>
+            <div class="flag-item"><img src="/banderauruguay.png" alt="Uruguay"></div>
+            <div class="flag-item"><img src="/banderaargentina.png" alt="Argentina"></div>
+            <div class="flag-item"><img src="/banderabrasil.png" alt="Brasil"></div>
+            <div class="flag-item"><img src="/banderachile.png" alt="Chile"></div>
+            <div class="flag-item"><img src="/banderaparaguay.png" alt="Paraguay"></div>
         </div>
         <div class="splash-text">Detectando tu ubicación<span class="splash-dots"></span></div>
     </div>
@@ -154,7 +155,7 @@
         <div class="result-city">
             <img id="resultCityImg" src="/ciudad.png" alt="Ciudad">
         </div>
-        <div class="result-flag" id="resultFlag">🇺🇾</div>
+        <div class="result-flag" id="resultFlag"><img src="/banderauruguay.png" alt="País"></div>
         <div class="result-text" id="resultText">Estás en Uruguay</div>
         <div class="result-sub" id="resultSub">Montevideo — Español</div>
         <div class="lang-options">
@@ -175,14 +176,14 @@
         let soundEnabled = false;
 
         const countries = {
-            'UY': { flag: '🇺🇾', name: 'Uruguay', city: 'Montevideo', img: '/ciudad.png', lang: 'es' },
-            'AR': { flag: '🇦🇷', name: 'Argentina', city: 'Buenos Aires', img: '/ciudadbsas.png', lang: 'es' },
-            'BR': { flag: '🇧🇷', name: 'Brasil', city: 'São Paulo', img: '/asuncion.png', lang: 'pt' },
-            'CL': { flag: '🇨🇱', name: 'Chile', city: 'Santiago', img: '/santiago.png', lang: 'es' },
-            'PY': { flag: '🇵🇾', name: 'Paraguay', city: 'Asunción', img: '/asuncion.png', lang: 'es' },
-            'CO': { flag: '🇨🇴', name: 'Colombia', city: 'Bogotá', img: '/ciudad.png', lang: 'es' },
-            'PE': { flag: '🇵🇪', name: 'Perú', city: 'Lima', img: '/ciudad.png', lang: 'es' },
-            'ES': { flag: '🇪🇸', name: 'España', city: 'Madrid', img: '/ciudad.png', lang: 'es' }
+            'UY': { flag: '/banderauruguay.png', name: 'Uruguay', city: 'Montevideo', img: '/ciudad.png', lang: 'es' },
+            'AR': { flag: '/banderaargentina.png', name: 'Argentina', city: 'Buenos Aires', img: '/ciudadbsas.png', lang: 'es' },
+            'BR': { flag: '/banderabrasil.png', name: 'Brasil', city: 'São Paulo', img: '/asuncion.png', lang: 'pt' },
+            'CL': { flag: '/banderachile.png', name: 'Chile', city: 'Santiago', img: '/santiago.png', lang: 'es' },
+            'PY': { flag: '/banderaparaguay.png', name: 'Paraguay', city: 'Asunción', img: '/asuncion.png', lang: 'es' },
+            'CO': { flag: '/banderauruguay.png', name: 'Colombia', city: 'Bogotá', img: '/ciudad.png', lang: 'es' },
+            'PE': { flag: '/banderauruguay.png', name: 'Perú', city: 'Lima', img: '/ciudad.png', lang: 'es' },
+            'ES': { flag: '/banderauruguay.png', name: 'España', city: 'Madrid', img: '/ciudad.png', lang: 'es' }
         };
 
         function toggleSound() {
@@ -241,7 +242,7 @@
                 document.getElementById('splash').classList.add('hidden');
 
                 document.getElementById('resultCityImg').src = c.img;
-                document.getElementById('resultFlag').textContent = c.flag;
+                document.getElementById('resultFlag').querySelector('img').src = c.flag;
                 document.getElementById('resultText').textContent = `Estás en ${c.name}`;
 
                 selectedLang = c.lang;
