@@ -242,6 +242,10 @@
             });
         }
 
+        window.addEventListener('load', () => {
+            tryAutoplay();
+        });
+
         document.addEventListener('click', function firstClick() {
             if (!soundEnabled) {
                 tryAutoplay();
