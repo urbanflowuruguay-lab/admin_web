@@ -52,19 +52,27 @@
 
         .hero {
             padding: 120px 32px 80px; background: #1B2A4A;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+            display: flex; align-items: center; justify-content: center;
             min-height: 100vh;
         }
-        .hero-content { max-width: 560px; }
-        .hero-content h1 {
+        .hero-content {
+            max-width: 1200px; margin: 0 auto; width: 100%;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+        }
+        .hero-text { text-align: center; }
+        .hero-text h1 {
             font-family: 'Playfair Display', Georgia, serif;
             font-size: clamp(32px, 4.5vw, 52px); font-weight: 800; line-height: 1.1;
             letter-spacing: -0.5px; margin-bottom: 20px; color: #fff;
             white-space: nowrap;
         }
-        .hero-content p {
-            font-size: 18px; line-height: 1.6; color: rgba(255,255,255,0.8);
-            margin-bottom: 36px; max-width: 480px;
+        .hero-text p {
+            font-size: 17px; line-height: 1.6; color: rgba(255,255,255,0.8);
+            margin-bottom: 28px; max-width: 520px; margin-left: auto; margin-right: auto;
+        }
+        .hero-tags {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px;
+            justify-content: center;
         }
         .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
         .hero-actions a {
@@ -296,8 +304,11 @@
         .stat-label { font-size: 14px; color: #6B7280; margin-top: 4px; }
 
         @media (max-width: 1024px) {
-            .hero { grid-template-columns: 1fr; padding: 100px 32px 60px; min-height: auto; gap: 40px; }
-            .hero-image { order: -1; max-width: 500px; }
+            .hero-content { grid-template-columns: 1fr; gap: 40px; }
+            .hero-text { text-align: center; }
+            .hero-image { max-width: 500px; margin: 0 auto; }
+            .hero-tags { justify-content: center; }
+            .hero-actions { justify-content: center; }
             .feature-row { grid-template-columns: 1fr; gap: 32px; }
             .feature-row.reverse { direction: ltr; }
             .cards-grid { grid-template-columns: 1fr 1fr; }
@@ -348,24 +359,26 @@
 
     <section class="hero">
         <div class="hero-content">
-            <h1>La ciudad en tus manos</h1>
-            <p>UrbanFlow es una plataforma de movilidad urbana que conecta chofers, pasajeros y negocios en una sola app. Viajá, enviá, pedí comida o descubrí eventos — todo desde un mismo lugar, en tiempo real y sin complicaciones.</p>
-            <div class="hero-tags">
-                <span class="htag">🚗 Viajes</span>
-                <span class="htag">📦 Envíos</span>
-                <span class="htag">🍔 Delivery</span>
-                <span class="htag">🛒 Marketplace</span>
-                <span class="htag">🎭 Ocio</span>
+            <div class="hero-text">
+                <h1>La ciudad en tus manos</h1>
+                <p>UrbanFlow es una plataforma de movilidad urbana que conecta chofers, pasajeros y negocios en una sola app. Viajá, enviá, pedí comida o descubrí eventos — todo desde un mismo lugar, en tiempo real y sin complicaciones.</p>
+                <div class="hero-tags">
+                    <span class="htag">🚗 Viajes</span>
+                    <span class="htag">📦 Envíos</span>
+                    <span class="htag">🍔 Delivery</span>
+                    <span class="htag">🛒 Marketplace</span>
+                    <span class="htag">🎭 Ocio</span>
+                </div>
+                <div class="hero-actions">
+                    <a href="/login.html?role=chofer" class="white">Quiero ser chofer</a>
+                    <a href="/login.html?role=usuario" class="ghost">Soy pasajero</a>
+                    <a href="/login.html?role=servicios" class="ghost">Tengo un negocio</a>
+                </div>
+                <img src="/ciudad.png" alt="Ciudad" class="hero-city" id="heroCity">
             </div>
-            <div class="hero-actions">
-                <a href="/login.html?role=chofer" class="white">Quiero ser chofer</a>
-                <a href="/login.html?role=usuario" class="ghost">Soy pasajero</a>
-                <a href="/login.html?role=servicios" class="ghost">Tengo un negocio</a>
+            <div class="hero-image">
+                <img src="/fotoplaza.png" alt="UrbanFlow">
             </div>
-            <img src="/ciudad.png" alt="Ciudad" class="hero-city" id="heroCity">
-        </div>
-        <div class="hero-image">
-            <img src="/fotoplaza.png" alt="UrbanFlow">
         </div>
     </section>
 
