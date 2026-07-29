@@ -277,7 +277,7 @@
         function enterSite() {
             localStorage.setItem('uf_country', detectedCountry);
             localStorage.setItem('uf_lang', selectedLang);
-            localStorage.setItem('uf_splash_done', '1');
+            sessionStorage.setItem('uf_from_splash', '1');
             audio.pause();
             window.location.href = '/';
         }
@@ -293,11 +293,6 @@
         }
 
         async function init() {
-            if (localStorage.getItem('uf_splash_done')) {
-                window.location.href = '/';
-                return;
-            }
-
             detectedCountry = await detectCountry();
             const c = countries[detectedCountry] || countries['UY'];
             if (!countries[detectedCountry]) detectedCountry = 'UY';
