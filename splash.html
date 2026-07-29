@@ -145,7 +145,7 @@
     </style>
 </head>
 <body>
-    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔇</button>
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
 
     <div class="splash" id="splash">
         <img src="/logouf.png" alt="UrbanFlow" class="splash-logo">
@@ -199,14 +199,11 @@
                 audio.pause();
                 btn.textContent = '🔇';
             } else {
-                audio.currentTime = 0;
                 audio.volume = 0.5;
                 audio.play().then(() => {
                     btn.textContent = '🔊';
                     startMusicTimer();
-                }).catch(e => {
-                    console.log('Audio play failed:', e);
-                });
+                }).catch(() => {});
             }
             soundEnabled = !soundEnabled;
         }
@@ -214,10 +211,15 @@
         function startMusicTimer() {
             if (audio.duration && audio.duration > 0) {
                 musicDuration = audio.duration;
+                const flagsRing = document.getElementById('flagsRing');
+                const flags = flagsRing.querySelectorAll('.flag-item');
+                flags.forEach(f => {
+                    f.style.animationDuration = musicDuration + 's';
+                });
                 const stopTime = (musicDuration - 3) * 1000;
                 if (stopTime > 0) {
                     setTimeout(() => {
-                        document.getElementById('flagsRing').classList.add('stop');
+                        flagsRing.classList.add('stop');
                     }, stopTime);
                 }
             }
