@@ -238,6 +238,55 @@
         .lang-option .check { color: #E63946; font-weight: 700; display: none; }
         .lang-option.selected .check { display: block; }
 
+        .maas-section {
+            padding: 100px 32px; background: #f8fafc;
+        }
+        .maas-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+        }
+        .maas-content .tag {
+            display: inline-block; padding: 6px 16px; border-radius: 999px;
+            font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+            background: #EEF2FF; color: #6C63FF; margin-bottom: 16px;
+        }
+        .maas-content h2 {
+            font-size: clamp(28px, 3vw, 36px); font-weight: 800; letter-spacing: -0.3px;
+            margin-bottom: 16px; line-height: 1.15;
+        }
+        .maas-content > p {
+            font-size: 16px; line-height: 1.7; color: #6B7280; margin-bottom: 32px;
+        }
+        .maas-features { display: flex; flex-direction: column; gap: 20px; }
+        .maas-item {
+            display: flex; gap: 16px; align-items: flex-start;
+        }
+        .maas-icon {
+            width: 48px; height: 48px; border-radius: 12px; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.04);
+        }
+        .maas-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+        .maas-item p { font-size: 13px; color: #6B7280; line-height: 1.5; }
+        .maas-image {
+            width: 100%; aspect-ratio: 4/3; border-radius: 20px;
+            overflow: hidden; background: #F1F5F9;
+        }
+        .maas-image img { width: 100%; height: 100%; object-fit: cover; }
+
+        .stats-section {
+            padding: 80px 32px;
+        }
+        .stats-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px;
+            text-align: center;
+        }
+        .stat-item { padding: 24px; }
+        .stat-icon { font-size: 32px; margin-bottom: 12px; }
+        .stat-value { font-size: clamp(32px, 4vw, 48px); font-weight: 800; color: #1B2A4A; letter-spacing: -0.5px; }
+        .stat-label { font-size: 14px; color: #6B7280; margin-top: 4px; }
+
         @media (max-width: 1024px) {
             .hero { grid-template-columns: 1fr; padding: 100px 32px 60px; min-height: auto; gap: 40px; }
             .hero-image { order: -1; max-width: 500px; }
@@ -245,15 +294,17 @@
             .feature-row.reverse { direction: ltr; }
             .cards-grid { grid-template-columns: 1fr 1fr; }
             .roles-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+            .maas-inner { grid-template-columns: 1fr; gap: 40px; }
+            .stats-inner { grid-template-columns: repeat(2, 1fr); }
             .footer-inner { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 768px) {
             .nav-links { display: none; }
             .hamburger { display: block; }
             .cards-grid { grid-template-columns: 1fr; }
+            .stats-inner { grid-template-columns: 1fr 1fr; gap: 16px; }
             .footer-inner { grid-template-columns: 1fr; gap: 32px; }
             .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
-            .country-selector { flex-direction: column; }
         }
     </style>
 </head>
@@ -336,25 +387,108 @@
     <section class="cards-section" id="features">
         <div class="cards-inner">
             <div class="cards-header">
-                <span class="tag">Servicios</span>
-                <h2>Más que un viaje</h2>
+                <span class="tag">Movilidad Urbana</span>
+                <h2>Tu ciudad, tu manera</h2>
             </div>
             <div class="cards-grid">
                 <div class="card-item">
                     <div class="card-icon">🚗</div>
                     <h3>Viajes</h3>
-                    <p>Pedí un viaje rápido y seguro a donde quieras. Elige entre diferentes categorías según tu presupuesto.</p>
+                    <p>Solicitá tu viaje en segundos. Elegí entre auto, taxi o van. Seguí a tu chofer en tiempo real con GPS.</p>
                 </div>
                 <div class="card-item">
                     <div class="card-icon">📦</div>
-                    <h3>Delivery</h3>
-                    <p>Recibí paquetes y compras en la puerta de tu casa. Rápido, seguro y con seguimiento en tiempo real.</p>
+                    <h3>Envíos</h3>
+                    <p>Enviá paquetes y documentos a cualquier punto de la ciudad. Rastreo en tiempo real y entrega garantizada.</p>
                 </div>
                 <div class="card-item">
-                    <div class="card-icon">🏪</div>
-                    <h3>Servicios</h3>
-                    <p>Conectá tu negocio con miles de clientes. Delivery, mudanzas, servicios profesionales y más.</p>
+                    <div class="card-icon">🐾</div>
+                    <h3>Mascotas</h3>
+                    <p>Viajes adaptados para tus mascotas. Chofers especializados y vehículos preparados para su comodidad.</p>
                 </div>
+                <div class="card-item">
+                    <div class="card-icon">🛒</div>
+                    <h3>Marketplace</h3>
+                    <p>Comprá y vendé productos nuevos o usados. Trueques, electrónica, ropa, hogar y más entre usuarios.</p>
+                </div>
+                <div class="card-item">
+                    <div class="card-icon">🍔</div>
+                    <h3>Gastronomía</h3>
+                    <p>Pedí comida de tus restaurantes favoritos. Pizza, sushi, hamburguesas y más con entrega rápida.</p>
+                </div>
+                <div class="card-item">
+                    <div class="card-icon">🎭</div>
+                    <h3>Ocio y Eventos</h3>
+                    <p>Descubrí eventos, bares, restaurantes y espectáculos. Pedí un viaje directamente desde la guía.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="maas-section">
+        <div class="maas-inner">
+            <div class="maas-content">
+                <span class="tag">MaaS</span>
+                <h2>Movilidad como Servicio</h2>
+                <p>UrbanFlow es una plataforma de movilidad urbana integral que integra múltiples modos de transporte y servicios en una sola app. No somos solo una app de viajes — somos tu compañero de movilidad completo.</p>
+                <div class="maas-features">
+                    <div class="maas-item">
+                        <div class="maas-icon">📱</div>
+                        <div>
+                            <h4>Multiplataforma</h4>
+                            <p>Android, iOS y web. Tu cuenta y datos sincronizados en todos tus dispositivos.</p>
+                        </div>
+                    </div>
+                    <div class="maas-item">
+                        <div class="maas-icon">🌍</div>
+                        <div>
+                            <h4>Multi país</h4>
+                            <p>Uruguay, Argentina, Brasil, Chile y Paraguay. Viajá sin fronteras con la misma app.</p>
+                        </div>
+                    </div>
+                    <div class="maas-item">
+                        <div class="maas-icon">🔗</div>
+                        <div>
+                            <h4>Integrado</h4>
+                            <p>Viajes, envíos, delivery, marketplace y ocio. Todo conectado en una sola plataforma.</p>
+                        </div>
+                    </div>
+                    <div class="maas-item">
+                        <div class="maas-icon">⚡</div>
+                        <div>
+                            <h4>En tiempo real</h4>
+                            <p>Tracking GPS, alertas de tránsito, disponibilidad de chofers. Información al instante.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="maas-image">
+                <img src="/ciudad.png" alt="Movilidad urbana">
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="stats-inner">
+            <div class="stat-item">
+                <div class="stat-icon">🛣️</div>
+                <div class="stat-value">10k+</div>
+                <div class="stat-label">Viajes realizados</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">🚗</div>
+                <div class="stat-value">500+</div>
+                <div class="stat-label">Chofers activos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">🏪</div>
+                <div class="stat-value">200+</div>
+                <div class="stat-label">Negocios conectados</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">🌍</div>
+                <div class="stat-value">5</div>
+                <div class="stat-label">Países disponibles</div>
             </div>
         </div>
     </section>
