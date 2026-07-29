@@ -23,8 +23,16 @@
             padding: 40px 20px;
             background: radial-gradient(ellipse at 50% 0%, rgba(108,99,255,0.15) 0%, transparent 60%);
         }
-        .logo { margin-bottom: 16px; }
-        .logo img { max-width: 280px; height: auto; }
+        .banner-wrap {
+            width: 100%; max-width: 960px; margin-bottom: 30px; position: relative;
+        }
+        .banner-wrap img { width: 100%; height: auto; border-radius: 12px; display: block; }
+        .banner-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .banner-overlay img { max-width: 200px; margin-bottom: 8px; }
+        .banner-overlay p { color: #e6edf3; font-size: 16px; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
         .tagline {
             font-size: 20px; color: #8b949e; margin-bottom: 60px;
             max-width: 500px; line-height: 1.5;
@@ -117,12 +125,13 @@
 </head>
 <body>
     <div class="hero">
-        <div style="width:100%; max-width:960px; margin-bottom:30px;">
-            <img src="/banner.png" style="width:100%; height:auto; border-radius:12px;" alt="Banner UrbanFlow">
+        <div class="banner-wrap">
+            <img src="/banner.png" alt="Banner UrbanFlow">
+            <div class="banner-overlay">
+                <img src="/logouf.png" alt="UrbanFlow">
+                <p>Transporte inteligente que conecta personas, negocios y comunidades.</p>
+            </div>
         </div>
-        <div class="logo"><img src="/logouf.png" alt="UrbanFlow"></div>
-        <p class="tagline">Transporte inteligente que conecta personas, negocios y comunidades.</p>
-
         <div class="roles">
             <a href="/login.html?role=chofer" class="role-card role-chofer">
                 <span class="role-icon">🚗</span>
