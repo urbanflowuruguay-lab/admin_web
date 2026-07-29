@@ -3,36 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - UrbanFlow</title>
+    <title>UrbanFlow - Mapa en Vivo</title>
     <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; margin: 0; display: flex; }
-        .sidebar { width: 250px; background-color: #0d1117; height: 100vh; color: white; padding: 20px; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; }
-        .sidebar h2 { text-align: center; color: #58a6ff; margin-bottom: 30px; }
-        .sidebar nav { flex: 1; }
-        .sidebar nav a { display: block; color: #c9d1d9; text-decoration: none; padding: 12px 15px; border-radius: 5px; margin-bottom: 5px; transition: 0.3s; background: rgba(255,255,255,0.05); font-size: 13px; }
-        .sidebar nav a:hover { background-color: #21262d; border-left: 4px solid #58a6ff; color: white; }
-        .sidebar .section-title { font-size: 10px; color: #8b949e; text-transform: uppercase; margin: 15px 0 8px 5px; letter-spacing: 1px; font-weight: bold; }
-        .content { flex-grow: 1; padding: 0; height: 100vh; display: flex; flex-direction: column; }
-        .content iframe { width: 100%; height: 100%; border: none; flex-grow: 1; }
-        .top-bar { background: #161b22; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; color: #c9d1d9; font-size: 18px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
-        .user-info { font-size: 12px; font-weight: normal; color: #8b949e; display: flex; align-items: center; gap: 12px; }
-        .btn-logout { background: #da3633; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
-        .btn-logout:hover { background: #f85149; }
-        .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #0d1117; overflow: hidden; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
         .map-controls {
             position: absolute; top: 15px; left: 15px; z-index: 10;
             background: rgba(22, 27, 34, 0.9); padding: 12px; border-radius: 10px;
             border: 1px solid #30363d; display: flex; flex-direction: column; gap: 8px;
         }
         .btn-group { display: flex; gap: 5px; }
-        .btn-map {
+        .btn {
             padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer;
             font-weight: bold; font-size: 11px; background: #21262d; color: #c9d1d9;
             border: 1px solid #30363d; text-transform: uppercase;
         }
-        .btn-map.active { background: #1f6feb; color: white; border-color: #58a6ff; }
+        .btn.active { background: #1f6feb; color: white; border-color: #58a6ff; }
         .marker-label {
             background: rgba(0,0,0,0.8); color: white; padding: 2px 6px;
             border-radius: 4px; font-size: 10px; white-space: nowrap;
@@ -42,6 +29,15 @@
             background-size: contain; background-position: center; background-repeat: no-repeat;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
         }
+        #btnAdmin {
+            position: absolute; bottom: 30px; right: 30px; z-index: 10;
+            background: #1f6feb; color: white; border: none; padding: 14px 28px;
+            border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        #btnAdmin:hover { background: #388bfd; }
+        .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -49,261 +45,171 @@
         <div class="spinner">Verificando acceso...</div>
     </div>
 
-    <div class="sidebar" id="sidebar" style="display:none;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 42px; margin-bottom: 5px;">&#128663;</div>
-            <h2 style="margin: 0; color: #58a6ff; font-size: 22px;">UrbanFlow</h2>
-            <p style="margin: 5px 0 0 0; color: #8b949e; font-size: 11px;">Panel de Administraci&#243;n</p>
+    <div class="map-controls">
+        <div style="font-weight: bold; font-size: 12px; color: #58a6ff;">MONITOR EN VIVO</div>
+        <div class="btn-group">
+            <button id="btnAll" class="btn active" onclick="setFilter('all')">TODOS</button>
+            <button id="btnAutos" class="btn" onclick="setFilter('auto')">AUTOS</button>
+            <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">TAXIS</button>
         </div>
-        
-        <nav>
-            <div class="section-title">Operaciones</div>
-            <a href="#" onclick="showMap(event)">&#128225; Mapa en Vivo</a>
-            <a href="usuarios.html" target="viewFrame">&#128101; Ver Pasajeros</a>
-            <a href="choferes_autos.html" target="viewFrame">&#128663; Choferes Autos</a>
-            <a href="choferes_taxis.html" target="viewFrame">&#128661; Choferes Taxis</a>
-            <a href="reportes_conductores.html" target="viewFrame">&#128203; Reportes de Choferes</a>
-            <a href="viajes.html" target="viewFrame">&#128506; Historial de Viajes</a>
-            
-            <div class="section-title">Marketing y Herramientas</div>
-            <a href="whatsapp_masivo.html" target="viewFrame">&#128241; WhatsApp Masivo</a>
-            <a href="editor_registro.html?t=20260705v2" target="viewFrame">&#128736;&#65039; Editor de Registro</a>
-            <a href="admin_a_la_vista.html" target="viewFrame">&#128506; A la Vista (Museo)</a>
-            <a href="config_tarifas.html" target="viewFrame">&#128176; Config. Tarifas</a>
-            
-            <div class="section-title">Mapa y Seguridad</div>
-            <a href="mapa_eventos.html" target="viewFrame">&#128506; Zonas y Eventos</a>
-            <a href="editor_fronteras.html" target="viewFrame">&#128208; Fronteras Depts</a>
-            <a href="alertas_zonas.html" target="viewFrame">&#128678; Alertas y Seguridad</a>
-            <a href="crash_logs.html" target="viewFrame">&#128202; Logs de Crash</a>
-            <a href="configuracion.html" target="viewFrame">&#9881;&#65039; Configuraci&#243;n</a>
-            <a href="cancelaciones.html" target="viewFrame">&#9201;&#65039; Cancelaciones</a>
-
-            <div class="section-title" style="color: #f2cc60;">&#128188; Gu&#237;as</div>
-            <a href="guia_ocio.html" target="viewFrame" style="background: rgba(233, 30, 99, 0.1);">&#127917; Gu&#237;a del Ocio</a>
-
-            <div class="section-title" style="color: #7ee787;">&#127978; E-Commerce</div>
-            <a href="empresas.html" target="viewFrame" style="background: rgba(35, 134, 54, 0.1);">&#127970; Gestionar Empresas</a>
-            <a href="usados.html" target="viewFrame" style="background: rgba(240, 136, 62, 0.1);">&#128722; Productos Usados (P2P)</a>
-
-            <div class="section-title" style="color: #f0883e;">&#129514; Testing</div>
-            <a href="testing_completo.html" target="viewFrame" style="background: rgba(240, 136, 62, 0.1);">&#129514; Testing del Sistema</a>
-        </nav>
-        <button onclick="deploy()" style="margin-top:auto; background: #1f6feb; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">&#128640; DEPLOY</button>
+        <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff;">Autos: 0</div>
+        <div id="st" style="font-size: 9px; color: #8b949e;">Conectando...</div>
     </div>
 
-    <div class="content" id="content" style="display:none;">
-        <div class="top-bar">
-            <span id="viewTitle">Panel de Administraci&#243;n</span>
-            <div class="user-info">
-                <span id="adminName"></span>
-                <button class="btn-logout" onclick="window.__logout && window.__logout()">Salir</button>
-            </div>
-        </div>
-        <iframe name="viewFrame" id="viewFrame"></iframe>
+    <div id="map"></div>
 
-        <div id="mapSection" style="display:none; position:relative; flex-grow:1; overflow:hidden;">
-            <div class="map-controls">
-                <div style="font-weight: bold; font-size: 12px; color: #58a6ff;">MONITOR EN VIVO</div>
-                <div class="btn-group">
-                    <button id="btnAll" class="btn-map active" onclick="mapSetFilter('all')">TODOS</button>
-                    <button id="btnAutos" class="btn-map" onclick="mapSetFilter('auto')">AUTOS</button>
-                    <button id="btnTaxis" class="btn-map" onclick="mapSetFilter('taxi')">TAXIS</button>
-                </div>
-                <div id="mapCounter" style="font-size: 14px; font-weight: bold; color: #58a6ff;">Autos: 0</div>
-                <div id="mapStatus" style="font-size: 9px; color: #8b949e;">Conectando...</div>
-            </div>
-            <div id="liveMap" style="width:100%; height:100%;"></div>
-        </div>
-    </div>
+    <button id="btnAdmin" onclick="location.href='panel.html'">Admin</button>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
     <script src="/auth-check.js"></script>
     <script>
         document.addEventListener('auth-ready', (e) => {
-            const auth = e.detail;
-            if (!auth) return;
+            if (!e.detail) { location.href = 'login.html'; return; }
             document.getElementById('authOverlay').style.display = 'none';
-            document.getElementById('sidebar').style.display = '';
-            document.getElementById('content').style.display = '';
-            const name = auth.profile?.full_name || auth.profile?.email || 'Admin';
-            document.getElementById('adminName').textContent = name;
         });
 
-        const title = document.getElementById('viewTitle');
-        const iframe = document.getElementById('viewFrame');
-        const mapSection = document.getElementById('mapSection');
-        let mapInited = false;
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
 
-        let liveMapObj = null;
-        function showMap(e) {
-            e.preventDefault();
-            iframe.style.display = 'none';
-            mapSection.style.display = '';
-            title.innerText = 'Mapa en Vivo';
-            if(!mapInited) { mapInited = true; initLiveMap(); }
-            else if(liveMapObj) { setTimeout(() => liveMapObj.resize(), 50); }
-        }
+        let currentFilter = 'all';
+        const markers = {};
+        const lastBroadcast = {};
+        const presenceIds = new Set();
+        let firstFound = false;
 
-        document.querySelectorAll('nav a[onclick*="viewFrame"]').forEach(link => {
-            link.addEventListener('click', () => {
-                mapSection.style.display = 'none';
-                iframe.style.display = '';
-            });
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://tiles.openfreemap.org/styles/dark',
+            center: [-56.1645, -34.9011], zoom: 13
         });
 
-        function deploy() {
-            if(!confirm('Redeployar la web?')) return;
-            fetch('https://api.vercel.com/v1/integrations/deploy/prj_Q6onlyGx6pKCM3l50qTMHeU4t0Q7/4kOdpqMupl', {method:'POST'})
-                .then(() => alert('Deploy iniciado! En 30seg se actualiza.'))
-                .catch(() => alert('Error al hacer deploy'));
+        function updateCounter() {
+            let count = 0;
+            const total = Object.keys(markers).length;
+            Object.keys(markers).forEach(id => {
+                if(currentFilter === 'all' || markers[id].t === currentFilter) count++;
+            });
+            document.getElementById('counter').innerText = 'Autos: ' + count + (currentFilter !== 'all' ? ' / ' + total : '');
         }
 
-        function initLiveMap() {
-            const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
-            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
-            let currentFilter = 'all';
-            const markers = {};
-            const lastBroadcast = {};
-            const presenceIds = new Set();
-            let firstFound = false;
-
-            const liveMap = new maplibregl.Map({
-                container: 'liveMap',
-                style: 'https://tiles.openfreemap.org/styles/dark',
-                center: [-56.1645, -34.9011], zoom: 13
+        function setFilter(f) {
+            currentFilter = f;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(f==='all'?'btnAll':f==='auto'?'btnAutos':'btnTaxis').classList.add('active');
+            Object.keys(markers).forEach(id => {
+                markers[id].el.style.display = (currentFilter==='all'||markers[id].t===currentFilter) ? 'flex' : 'none';
             });
-            liveMapObj = liveMap;
+            updateCounter();
+        }
 
-            function updateCounter() {
-                let count = 0;
-                const total = Object.keys(markers).length;
-                Object.keys(markers).forEach(id => {
-                    if(currentFilter === 'all' || markers[id].t === currentFilter) count++;
-                });
-                document.getElementById('mapCounter').innerText = 'Autos: ' + count + (currentFilter !== 'all' ? ' / ' + total : '');
-            }
+        function ss() {
+            const z = map.getZoom();
+            return z>=16?42:z>=14?30:z>=12?20:z>=10?14:10;
+        }
 
-            function mapSetFilter(f) {
-                currentFilter = f;
-                document.querySelectorAll('.btn-map').forEach(b => b.classList.remove('active'));
-                document.getElementById(f==='all'?'btnAll':f==='auto'?'btnAutos':'btnTaxis').classList.add('active');
-                Object.keys(markers).forEach(id => {
-                    markers[id].el.style.display = (currentFilter==='all'||markers[id].t===currentFilter) ? 'flex' : 'none';
-                });
+        function removeMarker(id) {
+            if(markers[id]) {
+                markers[id].mk.remove();
+                delete markers[id];
+                delete lastBroadcast[id];
                 updateCounter();
             }
-            window.mapSetFilter = mapSetFilter;
+        }
 
-            function ss() {
-                const z = liveMap.getZoom();
-                return z>=16?42:z>=14?30:z>=12?20:z>=10?14:10;
+        function upsert(d) {
+            if(!d||!d.lat||!d.lng||!d.id) return;
+            const id = String(d.id);
+            const now = Date.now();
+            if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) return;
+            lastBroadcast[id] = now;
+
+            if(markers[id]) {
+                markers[id].mk.setLngLat([parseFloat(d.lng), parseFloat(d.lat)]);
+                const car = markers[id].el.querySelector('.car-marker');
+                if(car) car.style.opacity = d.status==='ocupado'?'0.35':'1';
+                markers[id].el.style.opacity = '1';
+                markers[id].t = d.tipo || 'auto';
+            } else {
+                const s=ss(), l=Math.max(8,Math.round(s*0.28));
+                const c=document.createElement('div');
+                c.style.cssText='display:flex;flex-direction:column;align-items:center;';
+                const lb=document.createElement('div');
+                lb.className='marker-label'; lb.innerText=d.nombre||'Chofer';
+                lb.style.fontSize=l+'px'; lb.style.marginTop=-(s+8)+'px';
+                c.appendChild(lb);
+                const car=document.createElement('div');
+                car.className='car-marker';
+                car.style.width=s+'px'; car.style.height=s+'px';
+                car.style.backgroundImage='url('+(d.tipo==='taxi'?'/taxi.png':'/autorojo.png')+')';
+                car.style.opacity=d.status==='ocupado'?'0.35':'1';
+                c.appendChild(car);
+                const mk=new maplibregl.Marker({element:c,pitchAlignment:'viewport',rotationAlignment:'viewport'})
+                    .setLngLat([parseFloat(d.lng),parseFloat(d.lat)]).addTo(map);
+                markers[id]={mk,el:c,t:d.tipo||'auto'};
+                updateCounter();
+                if(!firstFound){firstFound=true;map.flyTo({center:[parseFloat(d.lng),parseFloat(d.lat)],zoom:15});}
             }
+        }
 
-            function removeMarker(id) {
-                if(markers[id]) {
-                    markers[id].mk.remove();
-                    delete markers[id];
-                    delete lastBroadcast[id];
-                    updateCounter();
-                }
-            }
+        let ch = null;
+        let sb = null;
 
-            function upsert(d) {
-                if(!d||!d.lat||!d.lng||!d.id) return;
-                const id = String(d.id);
-                const now = Date.now();
-                if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) return;
-                lastBroadcast[id] = now;
-
-                if(markers[id]) {
-                    markers[id].mk.setLngLat([parseFloat(d.lng), parseFloat(d.lat)]);
-                    const car = markers[id].el.querySelector('.car-marker');
-                    if(car) car.style.opacity = d.status==='ocupado'?'0.35':'1';
-                    markers[id].el.style.opacity = '1';
-                    markers[id].t = d.tipo || 'auto';
-                } else {
-                    const s=ss(), l=Math.max(8,Math.round(s*0.28));
-                    const c=document.createElement('div');
-                    c.style.cssText='display:flex;flex-direction:column;align-items:center;';
-                    const lb=document.createElement('div');
-                    lb.className='marker-label'; lb.innerText=d.nombre||'Chofer';
-                    lb.style.fontSize=l+'px'; lb.style.marginTop=-(s+8)+'px';
-                    c.appendChild(lb);
-                    const car=document.createElement('div');
-                    car.className='car-marker';
-                    car.style.width=s+'px'; car.style.height=s+'px';
-                    car.style.backgroundImage='url('+(d.tipo==='taxi'?'/taxi.png':'/autorojo.png')+')';
-                    car.style.opacity=d.status==='ocupado'?'0.35':'1';
-                    c.appendChild(car);
-                    const mk=new maplibregl.Marker({element:c,pitchAlignment:'viewport',rotationAlignment:'viewport'})
-                        .setLngLat([parseFloat(d.lng),parseFloat(d.lat)]).addTo(liveMap);
-                    markers[id]={mk,el:c,t:d.tipo||'auto'};
-                    updateCounter();
-                    if(!firstFound){firstFound=true;liveMap.flyTo({center:[parseFloat(d.lng),parseFloat(d.lat)],zoom:15});}
-                }
-            }
-
-            let ch = null;
-            let sb = null;
-
-            function setup() {
-                sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                ch = sb.channel('monitoreo_choferes');
-                ch.on('presence', {event:'sync'}, () => {
-                    const st = ch.presenceState();
-                    presenceIds.clear();
-                    Object.values(st).forEach(arr => arr.forEach(p => {
+        function setup() {
+            sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            ch = sb.channel('monitoreo_choferes');
+            ch.on('presence', {event:'sync'}, () => {
+                const st = ch.presenceState();
+                presenceIds.clear();
+                Object.values(st).forEach(arr => arr.forEach(p => {
+                    const id = String(p.id||p.user_id);
+                    if(id && !id.startsWith('admin')) presenceIds.add(id);
+                }));
+            })
+            .on('presence', {event:'leave'}, ({leftPresences}) => {
+                if(leftPresences) {
+                    leftPresences.forEach(p => {
                         const id = String(p.id||p.user_id);
-                        if(id && !id.startsWith('admin')) presenceIds.add(id);
-                    }));
-                })
-                .on('presence', {event:'leave'}, ({leftPresences}) => {
-                    if(leftPresences) {
-                        leftPresences.forEach(p => {
-                            const id = String(p.id||p.user_id);
-                            if(id) { presenceIds.delete(id); removeMarker(id); }
-                        });
-                    }
-                })
-                .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
-                .on('broadcast', {event:'connection'}, ({payload}) => {
-                    if(payload && payload.online === false && payload.id) {
-                        removeMarker(String(payload.id));
-                        presenceIds.delete(String(payload.id));
-                    }
-                })
-                .on('broadcast', {event:'disconnect'}, ({payload}) => {
-                    if(payload && payload.id) {
-                        removeMarker(String(payload.id));
-                        presenceIds.delete(String(payload.id));
-                    }
-                })
-                .subscribe((s) => {
-                    const el = document.getElementById('mapStatus');
-                    el.innerText = s==='SUBSCRIBED'?'EN VIVO':'Reconectando...';
-                    el.style.color = s==='SUBSCRIBED'?'#3fb950':'#f85149';
-                    if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') {
-                        setTimeout(() => { try{ch.unsubscribe();sb.removeChannel(ch);}catch(_){} setup(); }, 3000);
+                        if(id) { presenceIds.delete(id); removeMarker(id); }
+                    });
+                }
+            })
+            .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
+            .on('broadcast', {event:'connection'}, ({payload}) => {
+                if(payload && payload.online === false && payload.id) {
+                    removeMarker(String(payload.id));
+                    presenceIds.delete(String(payload.id));
+                }
+            })
+            .on('broadcast', {event:'disconnect'}, ({payload}) => {
+                if(payload && payload.id) {
+                    removeMarker(String(payload.id));
+                    presenceIds.delete(String(payload.id));
+                }
+            })
+            .subscribe((s) => {
+                const el = document.getElementById('st');
+                el.innerText = s==='SUBSCRIBED'?'EN VIVO':'Reconectando...';
+                el.style.color = s==='SUBSCRIBED'?'#3fb950':'#f85149';
+                if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') {
+                    setTimeout(() => { try{ch.unsubscribe();sb.removeChannel(ch);}catch(_){} setup(); }, 3000);
+                }
+            });
+        }
+
+        setup();
+
+        setInterval(() => {
+            if(!ch) return;
+            try {
+                const now = Date.now();
+                Object.keys(markers).forEach(id => {
+                    if(!presenceIds.has(id) || (now - lastBroadcast[id] > 2000)) {
+                        removeMarker(id);
                     }
                 });
-            }
-
-            setup();
-
-            setInterval(() => {
-                if(!ch) return;
-                try {
-                    const now = Date.now();
-                    Object.keys(markers).forEach(id => {
-                        if(!presenceIds.has(id) || (now - lastBroadcast[id] > 2000)) {
-                            removeMarker(id);
-                        }
-                    });
-                } catch(_){}
-            }, 500);
-        }
+            } catch(_){}
+        }, 500);
     </script>
 </body>
 </html>

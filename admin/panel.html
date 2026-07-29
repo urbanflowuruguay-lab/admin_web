@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - UrbanFlow</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; margin: 0; display: flex; }
+        .sidebar { width: 250px; background-color: #0d1117; height: 100vh; color: white; padding: 20px; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; color: #58a6ff; margin-bottom: 30px; }
+        .sidebar nav { flex: 1; }
+        .sidebar nav a { display: block; color: #c9d1d9; text-decoration: none; padding: 12px 15px; border-radius: 5px; margin-bottom: 5px; transition: 0.3s; background: rgba(255,255,255,0.05); font-size: 13px; }
+        .sidebar nav a:hover { background-color: #21262d; border-left: 4px solid #58a6ff; color: white; }
+        .sidebar .section-title { font-size: 10px; color: #8b949e; text-transform: uppercase; margin: 15px 0 8px 5px; letter-spacing: 1px; font-weight: bold; }
+        .content { flex-grow: 1; padding: 0; height: 100vh; display: flex; flex-direction: column; }
+        iframe { width: 100%; height: 100%; border: none; flex-grow: 1; }
+        .top-bar { background: #161b22; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-weight: bold; color: #c9d1d9; font-size: 18px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+        .user-info { font-size: 12px; font-weight: normal; color: #8b949e; display: flex; align-items: center; gap: 12px; }
+        .btn-logout { background: #da3633; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .btn-logout:hover { background: #f85149; }
+        .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div class="auth-overlay" id="authOverlay">
+        <div class="spinner">Verificando acceso...</div>
+    </div>
+
+    <div class="sidebar" id="sidebar" style="display:none;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 42px; margin-bottom: 5px;">&#128663;</div>
+            <h2 style="margin: 0; color: #58a6ff; font-size: 22px;">UrbanFlow</h2>
+            <p style="margin: 5px 0 0 0; color: #8b949e; font-size: 11px;">Panel de Administraci&#243;n</p>
+        </div>
+        
+        <nav>
+            <div class="section-title">Operaciones</div>
+            <a href="index.html">&#128225; Mapa en Vivo</a>
+            <a href="usuarios.html" target="viewFrame">&#128101; Ver Pasajeros</a>
+            <a href="choferes_autos.html" target="viewFrame">&#128663; Choferes Autos</a>
+            <a href="choferes_taxis.html" target="viewFrame">&#128661; Choferes Taxis</a>
+            <a href="reportes_conductores.html" target="viewFrame">&#128203; Reportes de Choferes</a>
+            <a href="viajes.html" target="viewFrame">&#128506; Historial de Viajes</a>
+            
+            <div class="section-title">Marketing y Herramientas</div>
+            <a href="whatsapp_masivo.html" target="viewFrame">&#128241; WhatsApp Masivo</a>
+            <a href="editor_registro.html?t=20260705v2" target="viewFrame">&#128736;&#65039; Editor de Registro</a>
+            <a href="admin_a_la_vista.html" target="viewFrame">&#128506; A la Vista (Museo)</a>
+            <a href="config_tarifas.html" target="viewFrame">&#128176; Config. Tarifas</a>
+            
+            <div class="section-title">Mapa y Seguridad</div>
+            <a href="mapa_eventos.html" target="viewFrame">&#128506; Zonas y Eventos</a>
+            <a href="editor_fronteras.html" target="viewFrame">&#128208; Fronteras Depts</a>
+            <a href="alertas_zonas.html" target="viewFrame">&#128678; Alertas y Seguridad</a>
+            <a href="crash_logs.html" target="viewFrame">&#128202; Logs de Crash</a>
+            <a href="configuracion.html" target="viewFrame">&#9881;&#65039; Configuraci&#243;n</a>
+            <a href="cancelaciones.html" target="viewFrame">&#9201;&#65039; Cancelaciones</a>
+
+            <div class="section-title" style="color: #f2cc60;">&#128188; Gu&#237;as</div>
+            <a href="guia_ocio.html" target="viewFrame" style="background: rgba(233, 30, 99, 0.1);">&#127917; Gu&#237;a del Ocio</a>
+
+            <div class="section-title" style="color: #7ee787;">&#127978; E-Commerce</div>
+            <a href="empresas.html" target="viewFrame" style="background: rgba(35, 134, 54, 0.1);">&#127970; Gestionar Empresas</a>
+            <a href="usados.html" target="viewFrame" style="background: rgba(240, 136, 62, 0.1);">&#128722; Productos Usados (P2P)</a>
+
+            <div class="section-title" style="color: #f0883e;">&#129514; Testing</div>
+            <a href="testing_completo.html" target="viewFrame" style="background: rgba(240, 136, 62, 0.1);">&#129514; Testing del Sistema</a>
+        </nav>
+        <button onclick="deploy()" style="margin-top:auto; background: #1f6feb; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">&#128640; DEPLOY</button>
+    </div>
+
+    <div class="content" id="content" style="display:none;">
+        <div class="top-bar">
+            <span id="viewTitle">Panel de Administraci&#243;n</span>
+            <div class="user-info">
+                <span id="adminName"></span>
+                <button class="btn-logout" onclick="window.__logout && window.__logout()">Salir</button>
+            </div>
+        </div>
+        <iframe name="viewFrame" id="viewFrame"></iframe>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/auth-check.js"></script>
+    <script>
+        document.addEventListener('auth-ready', (e) => {
+            const auth = e.detail;
+            if (!auth) return;
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('sidebar').style.display = '';
+            document.getElementById('content').style.display = '';
+            const name = auth.profile?.full_name || auth.profile?.email || 'Admin';
+            document.getElementById('adminName').textContent = name;
+        });
+
+        const title = document.getElementById('viewTitle');
+        const links = document.querySelectorAll('nav a');
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                title.innerText = link.innerText;
+            });
+        });
+
+        function deploy() {
+            if(!confirm('Redeployar la web?')) return;
+            fetch('https://api.vercel.com/v1/integrations/deploy/prj_Q6onlyGx6pKCM3l50qTMHeU4t0Q7/4kOdpqMupl', {method:'POST'})
+                .then(() => alert('Deploy iniciado! En 30seg se actualiza.'))
+                .catch(() => alert('Error al hacer deploy'));
+        }
+    </script>
+</body>
+</html>
