@@ -303,10 +303,11 @@
 
         @media (max-width: 1024px) {
             .hero-content { grid-template-columns: 1fr; gap: 40px; }
-        .hero-text { text-align: center; }
-            .hero-image { max-width: 500px; margin: 0 auto; }
+            .hero-text { text-align: center; }
+            .hero-image { max-width: 500px; margin: 0 auto !important; }
             .hero-tags { justify-content: center; }
             .hero-actions { justify-content: center; }
+            .hero-city { width: 100%; max-width: 500px; height: auto; margin: 20px auto 0; }
             .feature-row { grid-template-columns: 1fr; gap: 32px; }
             .feature-row.reverse { direction: ltr; }
             .cards-grid { grid-template-columns: 1fr 1fr; }
@@ -317,11 +318,13 @@
         }
         @media (max-width: 768px) {
             .nav-links { display: none; }
+            .nav-right { display: none; }
             .hamburger { display: block; }
             .cards-grid { grid-template-columns: 1fr; }
             .stats-inner { grid-template-columns: 1fr 1fr; gap: 16px; }
             .footer-inner { grid-template-columns: 1fr; gap: 32px; }
             .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+            .hero-city { width: 90%; max-width: 300px; }
         }
     </style>
 </head>
