@@ -18,9 +18,9 @@
             transition: box-shadow 0.3s;
         }
         .nav.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
-        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; margin-left: 30%; }
+        .nav-left { position: absolute; left: calc(50% - 568px); display: flex; align-items: center; }
+        .nav-logo { display: flex; align-items: center; text-decoration: none; margin: 0 auto; }
         .nav-logo img { height: 50px; filter: brightness(0) invert(1); }
-        .nav-logo span { font-size: 20px; font-weight: 700; color: #fff; }
         .nav-links { display: flex; align-items: center; gap: 4px; }
         .nav-links a {
             padding: 10px 18px; border-radius: 12px; font-size: 15px; font-weight: 500;
@@ -29,14 +29,13 @@
         .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.1); }
         .nav-links a.primary { background: #E63946; color: #fff; margin-left: 8px; }
         .nav-links a.primary:hover { background: #DC2626; }
-        .nav-right { display: flex; align-items: center; gap: 12px; }
         .lang-selector {
-            display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+            display: flex; align-items: center; gap: 6px; padding: 6px 12px;
             border-radius: 10px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.8);
             background: rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s; border: none;
         }
         .lang-selector:hover { background: rgba(255,255,255,0.2); color: #fff; }
-        .lang-selector .flag { font-size: 16px; }
+        .flag-img { width: 22px; height: 16px; border-radius: 3px; object-fit: cover; }
         .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
         .hamburger svg { width: 28px; height: 28px; color: #fff; }
         .mobile-menu {
@@ -245,7 +244,7 @@
         }
         .lang-option:hover { background: #F1F5F9; }
         .lang-option.selected { border-color: #E63946; background: #FEF2F2; }
-        .lang-option .flag { font-size: 24px; }
+        .lang-option .flag { width: 30px; height: 22px; border-radius: 4px; object-fit: cover; }
         .lang-option .name { flex: 1; }
         .lang-option .check { color: #E63946; font-weight: 700; display: none; }
         .lang-option.selected .check { display: block; }
@@ -325,6 +324,12 @@
 </head>
 <body>
     <nav class="nav" id="nav">
+        <div class="nav-left">
+            <button class="lang-selector" onclick="openLangModal()">
+                <img class="flag-img" id="navFlagImg" src="/banderauruguay.png" alt="UY">
+                <span id="navLang">ES</span>
+            </button>
+        </div>
         <a href="/" class="nav-logo">
             <img src="/logouf.png" alt="UrbanFlow">
         </a>
@@ -332,13 +337,6 @@
             <a href="#roles">Chofers</a>
             <a href="#features">Servicios</a>
             <a href="#roles">Pasajeros</a>
-        </div>
-        <div class="nav-right">
-            <button class="lang-selector" onclick="openLangModal()">
-                <span class="flag" id="navFlag">🇺🇾</span>
-                <span id="navLang">ES</span>
-            </button>
-            <a href="/login.html?role=admin" class="primary" style="padding: 10px 18px; border-radius: 12px; font-size: 15px; font-weight: 500; text-decoration: none; color: #fff; background: #E63946; transition: all 0.2s;">Admin</a>
         </div>
         <button class="hamburger" onclick="toggleMenu()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -349,7 +347,6 @@
         <a href="#roles" onclick="toggleMenu()">Chofers</a>
         <a href="#features" onclick="toggleMenu()">Servicios</a>
         <a href="#roles" onclick="toggleMenu()">Pasajeros</a>
-        <a href="/login.html?role=admin" onclick="toggleMenu()">Admin</a>
     </div>
 
     <section class="hero">
@@ -594,48 +591,48 @@
         <div class="lang-modal-content">
             <h3>Seleccioná tu país e idioma</h3>
             <div class="lang-options">
-                <div class="lang-option selected" onclick="selectLang('UY', 'es', '🇺🇾', 'ES')">
-                    <span class="flag">🇺🇾</span>
+                <div class="lang-option selected" onclick="selectLang('UY', 'es', '/banderauruguay.png', 'ES')">
+                    <img class="flag" src="/banderauruguay.png" alt="UY">
                     <span class="name">Uruguay — Español</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('AR', 'es', '🇦🇷', 'ES')">
-                    <span class="flag">🇦🇷</span>
+                <div class="lang-option" onclick="selectLang('AR', 'es', '/banderaargentina.png', 'ES')">
+                    <img class="flag" src="/banderaargentina.png" alt="AR">
                     <span class="name">Argentina — Español</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('BR', 'pt', '🇧🇷', 'PT')">
-                    <span class="flag">🇧🇷</span>
+                <div class="lang-option" onclick="selectLang('BR', 'pt', '/banderabrasil.png', 'PT')">
+                    <img class="flag" src="/banderabrasil.png" alt="BR">
                     <span class="name">Brasil — Português</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('CL', 'es', '🇨🇱', 'ES')">
-                    <span class="flag">🇨🇱</span>
+                <div class="lang-option" onclick="selectLang('CL', 'es', '/banderachile.png', 'ES')">
+                    <img class="flag" src="/banderachile.png" alt="CL">
                     <span class="name">Chile — Español</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('PY', 'es', '🇵🇾', 'ES')">
-                    <span class="flag">🇵🇾</span>
+                <div class="lang-option" onclick="selectLang('PY', 'es', '/banderaparaguay.png', 'ES')">
+                    <img class="flag" src="/banderaparaguay.png" alt="PY">
                     <span class="name">Paraguay — Español</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('CO', 'es', '🇨🇴', 'ES')">
-                    <span class="flag">🇨🇴</span>
+                <div class="lang-option" onclick="selectLang('CO', 'es', '/banderauruguay.png', 'ES')">
+                    <img class="flag" src="/banderauruguay.png" alt="CO">
                     <span class="name">Colombia — Español</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('PE', 'es', '🇵🇪', 'ES')">
-                    <span class="flag">🇵🇪</span>
+                <div class="lang-option" onclick="selectLang('PE', 'es', '/banderauruguay.png', 'ES')">
+                    <img class="flag" src="/banderauruguay.png" alt="PE">
                     <span class="name">Perú — Español</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('ES', 'es', '🇪🇸', 'ES')">
-                    <span class="flag">🇪🇸</span>
+                <div class="lang-option" onclick="selectLang('ES', 'es', '/banderauruguay.png', 'ES')">
+                    <img class="flag" src="/banderauruguay.png" alt="ES">
                     <span class="name">España — Español</span>
                     <span class="check">✓</span>
                 </div>
-                <div class="lang-option" onclick="selectLang('UY', 'en', '🇺🇾', 'EN')">
-                    <span class="flag">🌐</span>
+                <div class="lang-option" onclick="selectLang('UY', 'en', '/banderauruguay.png', 'EN')">
+                    <img class="flag" src="/banderauruguay.png" alt="EN">
                     <span class="name">English</span>
                     <span class="check">✓</span>
                 </div>
@@ -658,8 +655,8 @@
             document.getElementById('langModal').classList.add('open');
         }
 
-        function selectLang(country, lang, flag, langCode) {
-            document.getElementById('navFlag').textContent = flag;
+        function selectLang(country, lang, flagImg, langCode) {
+            document.getElementById('navFlagImg').src = flagImg;
             document.getElementById('navLang').textContent = langCode;
             updateCityBadge(country);
             document.querySelectorAll('.lang-option').forEach(el => el.classList.remove('selected'));
@@ -683,6 +680,7 @@
             const saved = localStorage.getItem('uf_country');
             if (saved) {
                 updateCityBadge(saved);
+                setNavFlag(saved);
                 return;
             }
             fetch('https://ipapi.co/json/')
@@ -690,12 +688,27 @@
                 .then(data => {
                     const country = data.country_code || 'UY';
                     updateCityBadge(country);
+                    setNavFlag(country);
                     localStorage.setItem('uf_country', country);
                 })
                 .catch(() => {
                     updateCityBadge('UY');
+                    setNavFlag('UY');
                 });
         })();
+
+        function setNavFlag(country) {
+            const flags = {
+                'UY': '/banderauruguay.png',
+                'AR': '/banderaargentina.png',
+                'BR': '/banderabrasil.png',
+                'CL': '/banderachile.png',
+                'PY': '/banderaparaguay.png'
+            };
+            const langs = { 'UY': 'ES', 'AR': 'ES', 'BR': 'PT', 'CL': 'ES', 'PY': 'ES' };
+            document.getElementById('navFlagImg').src = flags[country] || '/banderauruguay.png';
+            document.getElementById('navLang').textContent = langs[country] || 'ES';
+        }
 
         function updateCityBadge(country) {
             const cities = {
