@@ -145,9 +145,9 @@
     </style>
 </head>
 <body>
-    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔇</button>
 
-    <div class="splash" id="splash">
+    <div class="splash" id="splash" onclick="startAll()">
         <img src="/logouf.png" alt="UrbanFlow" class="splash-logo">
         <div class="flags-ring" id="flagsRing">
             <div class="flag-item"><img src="/banderauruguay.png" alt="Uruguay"></div>
@@ -156,7 +156,7 @@
             <div class="flag-item"><img src="/banderachile.png" alt="Chile"></div>
             <div class="flag-item"><img src="/banderaparaguay.png" alt="Paraguay"></div>
         </div>
-        <div class="splash-text">Detectando tu ubicación<span class="splash-dots"></span></div>
+        <div class="splash-text">Toca en cualquier lugar para comenzar</div>
     </div>
 
     <div class="result" id="result">
@@ -233,6 +233,23 @@
             if (soundEnabled && audio.duration > 0) startMusicTimer();
         });
 
+        let started = false;
+
+        function startAll() {
+            if (started) return;
+            started = true;
+            document.querySelector('.splash-text').textContent = 'Detectando tu ubicación...';
+            audio.volume = 0.5;
+            audio.play().then(() => {
+                soundEnabled = true;
+                btn.textContent = '🔊';
+                startMusicTimer();
+            }).catch(() => {});
+            detectCountry().then(country => {
+                detectedCountry = country;
+            });
+        }
+
         function tryAutoplay() {
             audio.volume = 0.5;
             audio.play().then(() => {
@@ -243,17 +260,6 @@
                 btn.textContent = '🔇';
             });
         }
-
-        window.addEventListener('load', () => {
-            tryAutoplay();
-        });
-
-        document.addEventListener('click', function firstClick() {
-            if (!soundEnabled) {
-                tryAutoplay();
-            }
-            document.removeEventListener('click', firstClick);
-        });
 
         function setLang(lang, el) {
             selectedLang = lang;
