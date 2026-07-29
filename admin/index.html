@@ -38,6 +38,35 @@
         #btnAdmin:hover { background: #388bfd; }
         .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
         .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
+
+        #adminOverlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 14, 26, 0.95); z-index: 100;
+            display: none; overflow-y: auto; padding: 30px;
+        }
+        #adminOverlay .admin-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px;
+        }
+        #adminOverlay .admin-header h2 { color: #58a6ff; margin: 0; font-size: 22px; }
+        #adminOverlay .admin-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px; max-width: 900px;
+        }
+        .admin-card {
+            background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+            padding: 20px; cursor: pointer; text-decoration: none; color: #c9d1d9;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            transition: 0.2s;
+        }
+        .admin-card:hover { border-color: #58a6ff; background: #1c2333; transform: translateY(-2px); }
+        .admin-card .icon { font-size: 32px; }
+        .admin-card .label { font-weight: bold; font-size: 13px; text-align: center; }
+        .admin-card .desc { font-size: 11px; color: #8b949e; text-align: center; line-height: 1.4; }
+        .btn-close-admin {
+            background: #da3633; color: white; border: none; padding: 8px 20px;
+            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -58,24 +87,90 @@
 
     <div id="map"></div>
 
-    <button id="btnAdmin" onclick="location.href='panel.html'">Admin</button>
+    <button id="btnAdmin" onclick="toggleAdmin()">Admin</button>
+
+    <div id="adminOverlay">
+        <div class="admin-header">
+            <h2>Panel de Administracion</h2>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button class="btn-close-admin" onclick="toggleAdmin()">Cerrar</button>
+            </div>
+        </div>
+        <div class="admin-grid">
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128663;</div>
+                <div class="label">Choferes Autos</div>
+                <div class="desc">Gestionar choferes de autos, habilitar/deshabilitar</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128661;</div>
+                <div class="label">Choferes Taxis</div>
+                <div class="desc">Gestionar choferes de taxi y sus documentos</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128101;</div>
+                <div class="label">Pasajeros</div>
+                <div class="desc">Ver lista de pasajeros registrados</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128506;</div>
+                <div class="label">Historial de Viajes</div>
+                <div class="desc">Consultar viajes completados y cancelados</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128203;</div>
+                <div class="label">Reportes</div>
+                <div class="desc">Reportes de conductores y estadisticas</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128241;</div>
+                <div class="label">WhatsApp Masivo</div>
+                <div class="desc">Enviar mensajes masivos por WhatsApp</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128176;</div>
+                <div class="label">Config. Tarifas</div>
+                <div class="desc">Configurar tarifas por zona y tipo de vehiculo</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#128506;</div>
+                <div class="label">Zonas y Eventos</div>
+                <div class="desc">Administrar zonas del mapa y eventos</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#127970;</div>
+                <div class="label">Empresas</div>
+                <div class="desc">Gestionar empresas y comercios adheridos</div>
+            </a>
+            <a class="admin-card" href="panel.html" target="_blank">
+                <div class="icon">&#9881;&#65039;</div>
+                <div class="label">Configuracion</div>
+                <div class="desc">Ajustes generales del sistema</div>
+            </a>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
     <script src="/auth-check.js"></script>
     <script>
         document.addEventListener('auth-ready', (e) => {
-            if (!e.detail) { location.href = 'login.html'; return; }
+            if (!e.detail) { location.href = '/login.html'; return; }
             document.getElementById('authOverlay').style.display = 'none';
         });
+
+        function toggleAdmin() {
+            const el = document.getElementById('adminOverlay');
+            el.style.display = el.style.display === 'none' || !el.style.display ? 'none' : '';
+        }
 
         const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
 
         let currentFilter = 'all';
         const markers = {};
-            const lastBroadcast = {};
-            let firstFound = false;
+        const lastBroadcast = {};
+        let firstFound = false;
 
         const map = new maplibregl.Map({
             container: 'map',
@@ -157,8 +252,7 @@
         function setup() {
             sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             ch = sb.channel('monitoreo_choferes');
-            ch.on('presence', {event:'sync'}, () => {
-            })
+            ch.on('presence', {event:'sync'}, () => {})
             .on('presence', {event:'leave'}, ({leftPresences}) => {
                 if(leftPresences) {
                     leftPresences.forEach(p => {
@@ -192,17 +286,17 @@
 
         setup();
 
-            setInterval(() => {
-                if(!ch) return;
-                try {
-                    const now = Date.now();
-                    Object.keys(markers).forEach(id => {
-                        if(now - lastBroadcast[id] > 5000) {
-                            removeMarker(id);
-                        }
-                    });
-                } catch(_){}
-            }, 500);
+        setInterval(() => {
+            if(!ch) return;
+            try {
+                const now = Date.now();
+                Object.keys(markers).forEach(id => {
+                    if(now - lastBroadcast[id] > 5000) {
+                        removeMarker(id);
+                    }
+                });
+            } catch(_){}
+        }, 500);
     </script>
 </body>
 </html>
