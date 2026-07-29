@@ -301,7 +301,11 @@
 
         @media (max-width: 1024px) {
             .hero-content { grid-template-columns: 1fr; gap: 40px; }
-            .hero-text { text-align: center; }
+        .hero-text { text-align: center; }
+        .hero-logo {
+            max-width: 140px; margin-bottom: 24px;
+            filter: brightness(0) invert(1);
+        }
             .hero-image { max-width: 500px; margin: 0 auto; }
             .hero-tags { justify-content: center; }
             .hero-actions { justify-content: center; }
@@ -356,6 +360,7 @@
     <section class="hero">
         <div class="hero-content">
             <div class="hero-text">
+                <img src="/logouf.png" alt="UrbanFlow" class="hero-logo">
                 <h1>La ciudad en tus manos</h1>
                 <p>UrbanFlow es una plataforma de movilidad urbana que conecta chofers, pasajeros y negocios en una sola app. Viajá, enviá, pedí comida o descubrí eventos — todo desde un mismo lugar, en tiempo real y sin complicaciones.</p>
                 <div class="hero-tags">
