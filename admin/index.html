@@ -3,11 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrbanFlow - Mapa en Vivo</title>
+    <title>Admin Panel - UrbanFlow</title>
     <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #0d1117; overflow: hidden; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #0d1117; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar {
+            width: 250px; background: #0d1117; height: 100vh; color: white; padding: 20px;
+            box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column;
+            border-right: 1px solid #30363d;
+        }
+        .sidebar nav { flex: 1; }
+        .sidebar nav a {
+            display: block; color: #c9d1d9; text-decoration: none; padding: 12px 15px;
+            border-radius: 5px; margin-bottom: 5px; transition: 0.3s;
+            background: rgba(255,255,255,0.05); font-size: 13px;
+        }
+        .sidebar nav a:hover { background-color: #21262d; border-left: 4px solid #58a6ff; color: white; }
+        .sidebar nav a.active-link { background: #1f6feb; color: white; border-left: 4px solid #58a6ff; }
+        .section-title { font-size: 10px; color: #8b949e; text-transform: uppercase; margin: 15px 0 8px 5px; letter-spacing: 1px; font-weight: bold; }
+        .main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; position: relative; }
         .map-controls {
             position: absolute; top: 15px; left: 15px; z-index: 10;
             background: rgba(22, 27, 34, 0.9); padding: 12px; border-radius: 10px;
@@ -29,43 +43,14 @@
             background-size: contain; background-position: center; background-repeat: no-repeat;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
         }
-        #btnAdmin {
-            position: absolute; bottom: 30px; right: 30px; z-index: 10;
-            background: #1f6feb; color: white; border: none; padding: 14px 28px;
-            border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-        #btnAdmin:hover { background: #388bfd; }
+        #liveMap { width: 100%; height: 100%; }
+        #mapContainer { width: 100%; height: 100%; display: block; }
+        iframe#viewFrame { width: 100%; height: 100%; border: none; display: none; }
         .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
         .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
-
-        #adminOverlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10, 14, 26, 0.95); z-index: 100;
-            display: none; overflow-y: auto; padding: 30px;
-        }
-        #adminOverlay .admin-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 25px;
-        }
-        #adminOverlay .admin-header h2 { color: #58a6ff; margin: 0; font-size: 22px; }
-        #adminOverlay .admin-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 15px; max-width: 900px;
-        }
-        .admin-card {
-            background: #161b22; border: 1px solid #30363d; border-radius: 10px;
-            padding: 20px; cursor: pointer; text-decoration: none; color: #c9d1d9;
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
-            transition: 0.2s;
-        }
-        .admin-card:hover { border-color: #58a6ff; background: #1c2333; transform: translateY(-2px); }
-        .admin-card .icon { font-size: 32px; }
-        .admin-card .label { font-weight: bold; font-size: 13px; text-align: center; }
-        .admin-card .desc { font-size: 11px; color: #8b949e; text-align: center; line-height: 1.4; }
-        .btn-close-admin {
-            background: #da3633; color: white; border: none; padding: 8px 20px;
-            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;
+        .btn-deploy {
+            margin-top: auto; background: #1f6feb; color: white; border: none;
+            padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;
         }
     </style>
 </head>
@@ -74,80 +59,63 @@
         <div class="spinner">Verificando acceso...</div>
     </div>
 
-    <div class="map-controls">
-        <div style="font-weight: bold; font-size: 12px; color: #58a6ff;">MONITOR EN VIVO</div>
-        <div class="btn-group">
-            <button id="btnAll" class="btn active" onclick="setFilter('all')">TODOS</button>
-            <button id="btnAutos" class="btn" onclick="setFilter('auto')">AUTOS</button>
-            <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">TAXIS</button>
+    <div class="sidebar" id="sidebar" style="display:none;">
+        <div style="text-align: center; margin-bottom: 15px;">
+            <div style="font-size: 36px; margin-bottom: 5px;">&#128663;</div>
+            <h2 style="margin: 0; color: #58a6ff; font-size: 20px;">UrbanFlow</h2>
+            <p style="margin: 5px 0 0 0; color: #8b949e; font-size: 11px;">Panel de Administracion</p>
         </div>
-        <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff;">Autos: 0</div>
-        <div id="st" style="font-size: 9px; color: #8b949e;">Conectando...</div>
+        
+        <nav>
+            <div class="section-title">Operaciones</div>
+            <a href="#" id="linkMapa" class="active-link" onclick="showMap(event)">&#128225; Mapa en Vivo</a>
+            <a href="usuarios.html" target="viewFrame" onclick="showFrame(event)">&#128101; Ver Pasajeros</a>
+            <a href="choferes_autos.html" target="viewFrame" onclick="showFrame(event)">&#128663; Choferes Autos</a>
+            <a href="choferes_taxis.html" target="viewFrame" onclick="showFrame(event)">&#128661; Choferes Taxis</a>
+            <a href="reportes_conductores.html" target="viewFrame" onclick="showFrame(event)">&#128203; Reportes de Choferes</a>
+            <a href="viajes.html" target="viewFrame" onclick="showFrame(event)">&#128506; Historial de Viajes</a>
+            
+            <div class="section-title">Marketing y Herramientas</div>
+            <a href="whatsapp_masivo.html" target="viewFrame" onclick="showFrame(event)">&#128241; WhatsApp Masivo</a>
+            <a href="editor_registro.html?t=20260705v2" target="viewFrame" onclick="showFrame(event)">&#128736;&#65039; Editor de Registro</a>
+            <a href="config_tarifas.html" target="viewFrame" onclick="showFrame(event)">&#128176; Config. Tarifas</a>
+            
+            <div class="section-title">Mapa y Seguridad</div>
+            <a href="mapa_eventos.html" target="viewFrame" onclick="showFrame(event)">&#128506; Zonas y Eventos</a>
+            <a href="editor_fronteras.html" target="viewFrame" onclick="showFrame(event)">&#128208; Fronteras Depts</a>
+            <a href="alertas_zonas.html" target="viewFrame" onclick="showFrame(event)">&#128678; Alertas y Seguridad</a>
+            <a href="crash_logs.html" target="viewFrame" onclick="showFrame(event)">&#128202; Logs de Crash</a>
+            <a href="configuracion.html" target="viewFrame" onclick="showFrame(event)">&#9881;&#65039; Configuracion</a>
+            <a href="cancelaciones.html" target="viewFrame" onclick="showFrame(event)">&#9201;&#65039; Cancelaciones</a>
+
+            <div class="section-title" style="color: #f2cc60;">&#128188; Guias</div>
+            <a href="guia_ocio.html" target="viewFrame" onclick="showFrame(event)" style="background: rgba(233, 30, 99, 0.1);">&#127917; Guia del Ocio</a>
+
+            <div class="section-title" style="color: #7ee787;">&#127978; E-Commerce</div>
+            <a href="empresas.html" target="viewFrame" onclick="showFrame(event)" style="background: rgba(35, 134, 54, 0.1);">&#127970; Gestionar Empresas</a>
+            <a href="usados.html" target="viewFrame" onclick="showFrame(event)" style="background: rgba(240, 136, 62, 0.1);">&#128722; Productos Usados (P2P)</a>
+
+            <div class="section-title" style="color: #f0883e;">&#129514; Testing</div>
+            <a href="testing_completo.html" target="viewFrame" onclick="showFrame(event)" style="background: rgba(240, 136, 62, 0.1);">&#129514; Testing del Sistema</a>
+        </nav>
+        <button class="btn-deploy" onclick="deploy()">&#128640; DEPLOY</button>
     </div>
 
-    <div id="map"></div>
-
-    <button id="btnAdmin" onclick="toggleAdmin()">Admin</button>
-
-    <div id="adminOverlay">
-        <div class="admin-header">
-            <h2>Panel de Administracion</h2>
-            <div style="display:flex; gap:10px; align-items:center;">
-                <button class="btn-close-admin" onclick="toggleAdmin()">Cerrar</button>
+    <div class="main" id="main" style="display:none;">
+        <div id="mapContainer">
+            <div class="map-controls">
+                <div style="font-weight: bold; font-size: 12px; color: #58a6ff;">MONITOR EN VIVO</div>
+                <div class="btn-group">
+                    <button id="btnAll" class="btn active" onclick="setFilter('all')">TODOS</button>
+                    <button id="btnAutos" class="btn" onclick="setFilter('auto')">AUTOS</button>
+                    <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">TAXIS</button>
+                </div>
+                <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff;">Autos: 0</div>
+                <div id="st" style="font-size: 9px; color: #8b949e;">Conectando...</div>
             </div>
+            <div id="liveMap"></div>
         </div>
-        <div class="admin-grid">
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128663;</div>
-                <div class="label">Choferes Autos</div>
-                <div class="desc">Gestionar choferes de autos, habilitar/deshabilitar</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128661;</div>
-                <div class="label">Choferes Taxis</div>
-                <div class="desc">Gestionar choferes de taxi y sus documentos</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128101;</div>
-                <div class="label">Pasajeros</div>
-                <div class="desc">Ver lista de pasajeros registrados</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128506;</div>
-                <div class="label">Historial de Viajes</div>
-                <div class="desc">Consultar viajes completados y cancelados</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128203;</div>
-                <div class="label">Reportes</div>
-                <div class="desc">Reportes de conductores y estadisticas</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128241;</div>
-                <div class="label">WhatsApp Masivo</div>
-                <div class="desc">Enviar mensajes masivos por WhatsApp</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128176;</div>
-                <div class="label">Config. Tarifas</div>
-                <div class="desc">Configurar tarifas por zona y tipo de vehiculo</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#128506;</div>
-                <div class="label">Zonas y Eventos</div>
-                <div class="desc">Administrar zonas del mapa y eventos</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#127970;</div>
-                <div class="label">Empresas</div>
-                <div class="desc">Gestionar empresas y comercios adheridos</div>
-            </a>
-            <a class="admin-card" href="panel.html" target="_blank">
-                <div class="icon">&#9881;&#65039;</div>
-                <div class="label">Configuracion</div>
-                <div class="desc">Ajustes generales del sistema</div>
-            </a>
-        </div>
+        <iframe name="viewFrame" id="viewFrame"></iframe>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -157,150 +125,178 @@
         document.addEventListener('auth-ready', (e) => {
             if (!e.detail) { location.href = '/login.html'; return; }
             document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('sidebar').style.display = '';
+            document.getElementById('main').style.display = '';
         });
 
-        function toggleAdmin() {
-            const el = document.getElementById('adminOverlay');
-            if(el.style.display === 'block') {
-                el.style.display = 'none';
-            } else {
-                el.style.display = 'block';
+        const mapContainer = document.getElementById('mapContainer');
+        const viewFrame = document.getElementById('viewFrame');
+        let mapInited = false;
+
+        function showMap(e) {
+            e.preventDefault();
+            mapContainer.style.display = '';
+            viewFrame.style.display = 'none';
+            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active-link'));
+            document.getElementById('linkMapa').classList.add('active-link');
+            if(mapInited) { setTimeout(() => liveMapObj && liveMapObj.resize(), 50); }
+            else { mapInited = true; initLiveMap(); }
+        }
+
+        function showFrame(e) {
+            e.preventDefault();
+            const link = e.currentTarget;
+            mapContainer.style.display = 'none';
+            viewFrame.style.display = '';
+            viewFrame.src = link.getAttribute('href');
+            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active-link'));
+            link.classList.add('active-link');
+        }
+
+        function deploy() {
+            if(!confirm('Redeployar la web?')) return;
+            fetch('https://api.vercel.com/v1/integrations/deploy/prj_Q6onlyGx6pKCM3l50qTMHeU4t0Q7/4kOdpqMupl', {method:'POST'})
+                .then(() => alert('Deploy iniciado! En 30seg se actualiza.'))
+                .catch(() => alert('Error al hacer deploy'));
+        }
+
+        let liveMapObj = null;
+
+        function initLiveMap() {
+            const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+            let currentFilter = 'all';
+            const markers = {};
+            const lastBroadcast = {};
+            let firstFound = false;
+
+            const liveMap = new maplibregl.Map({
+                container: 'liveMap',
+                style: 'https://tiles.openfreemap.org/styles/dark',
+                center: [-56.1645, -34.9011], zoom: 13
+            });
+            liveMapObj = liveMap;
+
+            function updateCounter() {
+                let count = 0;
+                const total = Object.keys(markers).length;
+                Object.keys(markers).forEach(id => {
+                    if(currentFilter === 'all' || markers[id].t === currentFilter) count++;
+                });
+                document.getElementById('counter').innerText = 'Autos: ' + count + (currentFilter !== 'all' ? ' / ' + total : '');
             }
-        }
 
-        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
-
-        let currentFilter = 'all';
-        const markers = {};
-        const lastBroadcast = {};
-        let firstFound = false;
-
-        const map = new maplibregl.Map({
-            container: 'map',
-            style: 'https://tiles.openfreemap.org/styles/dark',
-            center: [-56.1645, -34.9011], zoom: 13
-        });
-
-        function updateCounter() {
-            let count = 0;
-            const total = Object.keys(markers).length;
-            Object.keys(markers).forEach(id => {
-                if(currentFilter === 'all' || markers[id].t === currentFilter) count++;
-            });
-            document.getElementById('counter').innerText = 'Autos: ' + count + (currentFilter !== 'all' ? ' / ' + total : '');
-        }
-
-        function setFilter(f) {
-            currentFilter = f;
-            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(f==='all'?'btnAll':f==='auto'?'btnAutos':'btnTaxis').classList.add('active');
-            Object.keys(markers).forEach(id => {
-                markers[id].el.style.display = (currentFilter==='all'||markers[id].t===currentFilter) ? 'flex' : 'none';
-            });
-            updateCounter();
-        }
-
-        function ss() {
-            const z = map.getZoom();
-            return z>=16?42:z>=14?30:z>=12?20:z>=10?14:10;
-        }
-
-        function removeMarker(id) {
-            if(markers[id]) {
-                markers[id].mk.remove();
-                delete markers[id];
-                delete lastBroadcast[id];
+            function setFilter(f) {
+                currentFilter = f;
+                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(f==='all'?'btnAll':f==='auto'?'btnAutos':'btnTaxis').classList.add('active');
+                Object.keys(markers).forEach(id => {
+                    markers[id].el.style.display = (currentFilter==='all'||markers[id].t===currentFilter) ? 'flex' : 'none';
+                });
                 updateCounter();
             }
-        }
 
-        function upsert(d) {
-            if(!d||!d.lat||!d.lng||!d.id) return;
-            const id = String(d.id);
-            const now = Date.now();
-            if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) return;
-            lastBroadcast[id] = now;
-
-            if(markers[id]) {
-                markers[id].mk.setLngLat([parseFloat(d.lng), parseFloat(d.lat)]);
-                const car = markers[id].el.querySelector('.car-marker');
-                if(car) car.style.opacity = d.status==='ocupado'?'0.35':'1';
-                markers[id].el.style.opacity = '1';
-                markers[id].t = d.tipo || 'auto';
-            } else {
-                const s=ss(), l=Math.max(8,Math.round(s*0.28));
-                const c=document.createElement('div');
-                c.style.cssText='display:flex;flex-direction:column;align-items:center;';
-                const lb=document.createElement('div');
-                lb.className='marker-label'; lb.innerText=d.nombre||'Chofer';
-                lb.style.fontSize=l+'px'; lb.style.marginTop=-(s+8)+'px';
-                c.appendChild(lb);
-                const car=document.createElement('div');
-                car.className='car-marker';
-                car.style.width=s+'px'; car.style.height=s+'px';
-                car.style.backgroundImage='url('+(d.tipo==='taxi'?'/taxi.png':'/autorojo.png')+')';
-                car.style.opacity=d.status==='ocupado'?'0.35':'1';
-                c.appendChild(car);
-                const mk=new maplibregl.Marker({element:c,pitchAlignment:'viewport',rotationAlignment:'viewport'})
-                    .setLngLat([parseFloat(d.lng),parseFloat(d.lat)]).addTo(map);
-                markers[id]={mk,el:c,t:d.tipo||'auto'};
-                updateCounter();
-                if(!firstFound){firstFound=true;map.flyTo({center:[parseFloat(d.lng),parseFloat(d.lat)],zoom:15});}
+            function ss() {
+                const z = liveMap.getZoom();
+                return z>=16?42:z>=14?30:z>=12?20:z>=10?14:10;
             }
-        }
 
-        let ch = null;
-        let sb = null;
+            function removeMarker(id) {
+                if(markers[id]) {
+                    markers[id].mk.remove();
+                    delete markers[id];
+                    delete lastBroadcast[id];
+                    updateCounter();
+                }
+            }
 
-        function setup() {
-            sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            ch = sb.channel('monitoreo_choferes');
-            ch.on('presence', {event:'sync'}, () => {})
-            .on('presence', {event:'leave'}, ({leftPresences}) => {
-                if(leftPresences) {
-                    leftPresences.forEach(p => {
-                        const id = String(p.id||p.user_id);
-                        if(id && lastBroadcast[id] && (Date.now() - lastBroadcast[id] > 5000)) {
+            function upsert(d) {
+                if(!d||!d.lat||!d.lng||!d.id) return;
+                const id = String(d.id);
+                const now = Date.now();
+                if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) return;
+                lastBroadcast[id] = now;
+
+                if(markers[id]) {
+                    markers[id].mk.setLngLat([parseFloat(d.lng), parseFloat(d.lat)]);
+                    const car = markers[id].el.querySelector('.car-marker');
+                    if(car) car.style.opacity = d.status==='ocupado'?'0.35':'1';
+                    markers[id].el.style.opacity = '1';
+                    markers[id].t = d.tipo || 'auto';
+                } else {
+                    const s=ss(), l=Math.max(8,Math.round(s*0.28));
+                    const c=document.createElement('div');
+                    c.style.cssText='display:flex;flex-direction:column;align-items:center;';
+                    const lb=document.createElement('div');
+                    lb.className='marker-label'; lb.innerText=d.nombre||'Chofer';
+                    lb.style.fontSize=l+'px'; lb.style.marginTop=-(s+8)+'px';
+                    c.appendChild(lb);
+                    const car=document.createElement('div');
+                    car.className='car-marker';
+                    car.style.width=s+'px'; car.style.height=s+'px';
+                    car.style.backgroundImage='url('+(d.tipo==='taxi'?'/taxi.png':'/autorojo.png')+')';
+                    car.style.opacity=d.status==='ocupado'?'0.35':'1';
+                    c.appendChild(car);
+                    const mk=new maplibregl.Marker({element:c,pitchAlignment:'viewport',rotationAlignment:'viewport'})
+                        .setLngLat([parseFloat(d.lng),parseFloat(d.lat)]).addTo(liveMap);
+                    markers[id]={mk,el:c,t:d.tipo||'auto'};
+                    updateCounter();
+                    if(!firstFound){firstFound=true;liveMap.flyTo({center:[parseFloat(d.lng),parseFloat(d.lat)],zoom:15});}
+                }
+            }
+
+            let ch = null;
+            let sb = null;
+
+            function setup() {
+                sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                ch = sb.channel('monitoreo_choferes');
+                ch.on('presence', {event:'sync'}, () => {})
+                .on('presence', {event:'leave'}, ({leftPresences}) => {
+                    if(leftPresences) {
+                        leftPresences.forEach(p => {
+                            const id = String(p.id||p.user_id);
+                            if(id && lastBroadcast[id] && (Date.now() - lastBroadcast[id] > 5000)) {
+                                removeMarker(id);
+                            }
+                        });
+                    }
+                })
+                .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
+                .on('broadcast', {event:'connection'}, ({payload}) => {
+                    if(payload && payload.online === false && payload.id) {
+                        removeMarker(String(payload.id));
+                    }
+                })
+                .on('broadcast', {event:'disconnect'}, ({payload}) => {
+                    if(payload && payload.id) {
+                        removeMarker(String(payload.id));
+                    }
+                })
+                .subscribe((s) => {
+                    const el = document.getElementById('st');
+                    el.innerText = s==='SUBSCRIBED'?'EN VIVO':'Reconectando...';
+                    el.style.color = s==='SUBSCRIBED'?'#3fb950':'#f85149';
+                    if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') {
+                        setTimeout(() => { try{ch.unsubscribe();sb.removeChannel(ch);}catch(_){} setup(); }, 3000);
+                    }
+                });
+            }
+
+            setup();
+
+            setInterval(() => {
+                if(!ch) return;
+                try {
+                    const now = Date.now();
+                    Object.keys(markers).forEach(id => {
+                        if(now - lastBroadcast[id] > 5000) {
                             removeMarker(id);
                         }
                     });
-                }
-            })
-            .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
-            .on('broadcast', {event:'connection'}, ({payload}) => {
-                if(payload && payload.online === false && payload.id) {
-                    removeMarker(String(payload.id));
-                }
-            })
-            .on('broadcast', {event:'disconnect'}, ({payload}) => {
-                if(payload && payload.id) {
-                    removeMarker(String(payload.id));
-                }
-            })
-            .subscribe((s) => {
-                const el = document.getElementById('st');
-                el.innerText = s==='SUBSCRIBED'?'EN VIVO':'Reconectando...';
-                el.style.color = s==='SUBSCRIBED'?'#3fb950':'#f85149';
-                if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') {
-                    setTimeout(() => { try{ch.unsubscribe();sb.removeChannel(ch);}catch(_){} setup(); }, 3000);
-                }
-            });
+                } catch(_){}
+            }, 500);
         }
-
-        setup();
-
-        setInterval(() => {
-            if(!ch) return;
-            try {
-                const now = Date.now();
-                Object.keys(markers).forEach(id => {
-                    if(now - lastBroadcast[id] > 5000) {
-                        removeMarker(id);
-                    }
-                });
-            } catch(_){}
-        }, 500);
     </script>
 </body>
 </html>
