@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrbanFlow — Transporte inteligente</title>
+    <title>UrbanFlow — La ciudad en tus manos</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -29,6 +29,14 @@
         .nav-links a:hover { color: #1B2A4A; background: #F1F5F9; }
         .nav-links a.primary { background: #E63946; color: #fff; margin-left: 8px; }
         .nav-links a.primary:hover { background: #DC2626; }
+        .nav-right { display: flex; align-items: center; gap: 12px; }
+        .lang-selector {
+            display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+            border-radius: 10px; font-size: 13px; font-weight: 500; color: #6B7280;
+            background: #F1F5F9; cursor: pointer; transition: all 0.2s; border: none;
+        }
+        .lang-selector:hover { background: #E2E8F0; color: #1B2A4A; }
+        .lang-selector .flag { font-size: 16px; }
         .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
         .hamburger svg { width: 28px; height: 28px; color: #1B2A4A; }
         .mobile-menu {
@@ -56,7 +64,7 @@
             font-size: 18px; line-height: 1.6; color: rgba(255,255,255,0.8);
             margin-bottom: 36px; max-width: 480px;
         }
-        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
         .hero-actions a {
             padding: 16px 32px; border-radius: 14px; font-size: 16px; font-weight: 600;
             text-decoration: none; transition: all 0.2s;
@@ -65,6 +73,27 @@
         .hero-actions a.white:hover { background: #F1F5F9; transform: translateY(-2px); }
         .hero-actions a.ghost { color: #fff; border: 2px solid rgba(255,255,255,0.3); }
         .hero-actions a.ghost:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+
+        .country-selector {
+            background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 24px;
+            display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+        }
+        .country-selector label {
+            font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500;
+            display: block; margin-bottom: 8px;
+        }
+        .country-selector select {
+            padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1); color: #fff; font-size: 14px;
+            font-family: inherit; cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
+            padding-right: 32px;
+        }
+        .country-selector select option { background: #1B2A4A; color: #fff; }
+        .country-selector select:focus { outline: none; border-color: rgba(255,255,255,0.5); }
+        .country-selector .field { flex: 1; min-width: 140px; }
+
         .hero-image {
             width: 100%; aspect-ratio: 4/3; border-radius: 24px;
             overflow: hidden; background: rgba(255,255,255,0.1);
@@ -198,6 +227,30 @@
         .footer-social a { color: #fff; opacity: 0.7; transition: opacity 0.2s; font-size: 14px; text-decoration: none; }
         .footer-social a:hover { opacity: 1; }
 
+        .lang-modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .lang-modal.open { display: flex; }
+        .lang-modal-content {
+            background: #fff; border-radius: 20px; padding: 32px;
+            max-width: 400px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .lang-modal-content h3 { font-size: 20px; font-weight: 700; margin-bottom: 20px; text-align: center; }
+        .lang-options { display: flex; flex-direction: column; gap: 8px; }
+        .lang-option {
+            display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+            border-radius: 12px; cursor: pointer; transition: background 0.2s;
+            border: 2px solid transparent; font-size: 15px; font-weight: 500;
+        }
+        .lang-option:hover { background: #F1F5F9; }
+        .lang-option.selected { border-color: #E63946; background: #FEF2F2; }
+        .lang-option .flag { font-size: 24px; }
+        .lang-option .name { flex: 1; }
+        .lang-option .check { color: #E63946; font-weight: 700; display: none; }
+        .lang-option.selected .check { display: block; }
+
         @media (max-width: 1024px) {
             .hero { grid-template-columns: 1fr; padding: 100px 32px 60px; min-height: auto; gap: 40px; }
             .hero-image { order: -1; max-width: 500px; }
@@ -213,6 +266,7 @@
             .cards-grid { grid-template-columns: 1fr; }
             .footer-inner { grid-template-columns: 1fr; gap: 32px; }
             .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+            .country-selector { flex-direction: column; }
         }
     </style>
 </head>
@@ -226,7 +280,13 @@
             <a href="#roles">Chofers</a>
             <a href="#features">Servicios</a>
             <a href="#roles">Pasajeros</a>
-            <a href="/login.html?role=admin" class="primary">Admin</a>
+        </div>
+        <div class="nav-right">
+            <button class="lang-selector" onclick="openLangModal()">
+                <span class="flag" id="navFlag">🇺🇾</span>
+                <span id="navLang">ES</span>
+            </button>
+            <a href="/login.html?role=admin" class="primary" style="padding: 10px 18px; border-radius: 12px; font-size: 15px; font-weight: 500; text-decoration: none; color: #fff; background: #E63946; transition: all 0.2s;">Admin</a>
         </div>
         <button class="hamburger" onclick="toggleMenu()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -242,11 +302,34 @@
 
     <section class="hero">
         <div class="hero-content">
-            <h1>La ciudad es tuya. Viajá con nosotros.</h1>
+            <h1>La ciudad en tus manos</h1>
             <p>Pedí un viaje a través de la app o registrate para conducir con nosotros. En tu ciudad, a tu ritmo y en cualquier lugar.</p>
             <div class="hero-actions">
                 <a href="/login.html?role=chofer" class="white">Conduce con nosotros</a>
                 <a href="/login.html?role=usuario" class="ghost">Pedí un viaje</a>
+            </div>
+            <div class="country-selector">
+                <div class="field">
+                    <label>País</label>
+                    <select id="countrySelect" onchange="updateCountry()">
+                        <option value="UY" data-flag="🇺🇾">Uruguay</option>
+                        <option value="AR" data-flag="🇦🇷">Argentina</option>
+                        <option value="BR" data-flag="🇧🇷">Brasil</option>
+                        <option value="CL" data-flag="🇨🇱">Chile</option>
+                        <option value="PY" data-flag="🇵🇾">Paraguay</option>
+                        <option value="CO" data-flag="🇨🇴">Colombia</option>
+                        <option value="PE" data-flag="🇵🇪">Perú</option>
+                        <option value="ES" data-flag="🇪🇸">España</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Idioma</label>
+                    <select id="langSelect" onchange="updateLang()">
+                        <option value="es">Español</option>
+                        <option value="pt">Português</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div class="hero-image">
@@ -384,6 +467,59 @@
         </div>
     </footer>
 
+    <div class="lang-modal" id="langModal">
+        <div class="lang-modal-content">
+            <h3>Seleccioná tu país e idioma</h3>
+            <div class="lang-options">
+                <div class="lang-option selected" onclick="selectLang('UY', 'es', '🇺🇾', 'ES')">
+                    <span class="flag">🇺🇾</span>
+                    <span class="name">Uruguay — Español</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('AR', 'es', '🇦🇷', 'ES')">
+                    <span class="flag">🇦🇷</span>
+                    <span class="name">Argentina — Español</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('BR', 'pt', '🇧🇷', 'PT')">
+                    <span class="flag">🇧🇷</span>
+                    <span class="name">Brasil — Português</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('CL', 'es', '🇨🇱', 'ES')">
+                    <span class="flag">🇨🇱</span>
+                    <span class="name">Chile — Español</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('PY', 'es', '🇵🇾', 'ES')">
+                    <span class="flag">🇵🇾</span>
+                    <span class="name">Paraguay — Español</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('CO', 'es', '🇨🇴', 'ES')">
+                    <span class="flag">🇨🇴</span>
+                    <span class="name">Colombia — Español</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('PE', 'es', '🇵🇪', 'ES')">
+                    <span class="flag">🇵🇪</span>
+                    <span class="name">Perú — Español</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('ES', 'es', '🇪🇸', 'ES')">
+                    <span class="flag">🇪🇸</span>
+                    <span class="name">España — Español</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="lang-option" onclick="selectLang('UY', 'en', '🇺🇾', 'EN')">
+                    <span class="flag">🌐</span>
+                    <span class="name">English</span>
+                    <span class="check">✓</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function toggleMenu() {
             document.getElementById('mobileMenu').classList.toggle('open');
@@ -391,6 +527,50 @@
         window.addEventListener('scroll', () => {
             document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 10);
         });
+
+        function openLangModal() {
+            document.getElementById('langModal').classList.add('open');
+        }
+
+        function selectLang(country, lang, flag, langCode) {
+            document.getElementById('navFlag').textContent = flag;
+            document.getElementById('navLang').textContent = langCode;
+            document.getElementById('countrySelect').value = country;
+            document.getElementById('langSelect').value = lang;
+            document.querySelectorAll('.lang-option').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            setTimeout(() => {
+                document.getElementById('langModal').classList.remove('open');
+            }, 300);
+            localStorage.setItem('uf_country', country);
+            localStorage.setItem('uf_lang', lang);
+        }
+
+        function updateCountry() {
+            const select = document.getElementById('countrySelect');
+            const option = select.options[select.selectedIndex];
+            const flag = option.getAttribute('data-flag');
+            document.getElementById('navFlag').textContent = flag;
+        }
+
+        function updateLang() {
+            const lang = document.getElementById('langSelect').value;
+            const langMap = { es: 'ES', pt: 'PT', en: 'EN' };
+            document.getElementById('navLang').textContent = langMap[lang] || 'ES';
+        }
+
+        (function detectLocation() {
+            const saved = localStorage.getItem('uf_country');
+            if (saved) {
+                document.getElementById('countrySelect').value = saved;
+                updateCountry();
+            }
+            const savedLang = localStorage.getItem('uf_lang');
+            if (savedLang) {
+                document.getElementById('langSelect').value = savedLang;
+                updateLang();
+            }
+        })();
     </script>
 </body>
 </html>
