@@ -10,7 +10,7 @@
         .sidebar {
             width: 250px; background: #0d1117; height: 100vh; color: white; padding: 20px;
             box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column;
-            border-right: 1px solid #30363d;
+            border-right: 1px solid #30363d; flex-shrink: 0;
         }
         .sidebar nav { flex: 1; }
         .sidebar nav a {
@@ -21,7 +21,8 @@
         .sidebar nav a:hover { background-color: #21262d; border-left: 4px solid #58a6ff; color: white; }
         .sidebar nav a.active-link { background: #1f6feb; color: white; border-left: 4px solid #58a6ff; }
         .section-title { font-size: 10px; color: #8b949e; text-transform: uppercase; margin: 15px 0 8px 5px; letter-spacing: 1px; font-weight: bold; }
-        .main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; position: relative; }
+        .main { flex-grow: 1; height: 100vh; display: flex; flex-direction: column; position: relative; }
+
         .map-controls {
             position: absolute; top: 15px; left: 15px; z-index: 10;
             background: rgba(22, 27, 34, 0.9); padding: 12px; border-radius: 10px;
@@ -44,14 +45,31 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
         }
         #liveMap { width: 100%; height: 100%; }
-        #mapContainer { width: 100%; height: 100%; display: block; }
-        iframe#viewFrame { width: 100%; height: 100%; border: none; display: none; }
-        .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
+        #mapContainer { width: 100%; height: 100%; display: none; position: absolute; top:0; left:0; right:0; bottom:0; }
+        iframe#viewFrame { width: 100%; height: 100%; border: none; display: none; flex-grow: 1; }
+
+        #homeGrid {
+            flex-grow: 1; overflow-y: auto; padding: 30px; display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px; align-content: start;
+        }
+        .home-card {
+            background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+            padding: 20px; cursor: pointer; color: #c9d1d9;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            transition: 0.2s; text-align: center;
+        }
+        .home-card:hover { border-color: #58a6ff; background: #1c2333; transform: translateY(-2px); }
+        .home-card .icon { font-size: 36px; }
+        .home-card .label { font-weight: bold; font-size: 13px; }
+        .home-card .desc { font-size: 11px; color: #8b949e; line-height: 1.4; }
+
         .btn-deploy {
             margin-top: auto; background: #1f6feb; color: white; border: none;
             padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;
         }
+        .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -68,7 +86,8 @@
         
         <nav>
             <div class="section-title">Operaciones</div>
-            <a href="#" id="linkMapa" class="active-link" onclick="showMap(event)">&#128225; Mapa en Vivo</a>
+            <a href="#" class="active-link" data-action="home" onclick="showHome(event)">&#127968; Inicio</a>
+            <a href="#" data-action="mapa" onclick="showMap(event)">&#128225; Mapa en Vivo</a>
             <a href="usuarios.html" target="viewFrame" onclick="showFrame(event)">&#128101; Ver Pasajeros</a>
             <a href="choferes_autos.html" target="viewFrame" onclick="showFrame(event)">&#128663; Choferes Autos</a>
             <a href="choferes_taxis.html" target="viewFrame" onclick="showFrame(event)">&#128661; Choferes Taxis</a>
@@ -102,6 +121,104 @@
     </div>
 
     <div class="main" id="main" style="display:none;">
+        <div id="homeGrid">
+            <div class="home-card" onclick="showMap(event)">
+                <div class="icon">&#128225;</div>
+                <div class="label">Mapa en Vivo</div>
+                <div class="desc">Seguimiento en tiempo real de autos y taxis conectados</div>
+            </div>
+            <div class="home-card" onclick="loadCard('usuarios.html', this)">
+                <div class="icon">&#128101;</div>
+                <div class="label">Ver Pasajeros</div>
+                <div class="desc">Lista de pasajeros registrados en la plataforma</div>
+            </div>
+            <div class="home-card" onclick="loadCard('choferes_autos.html', this)">
+                <div class="icon">&#128663;</div>
+                <div class="label">Choferes Autos</div>
+                <div class="desc">Gestionar choferes de autos, habilitar y revisar documentos</div>
+            </div>
+            <div class="home-card" onclick="loadCard('choferes_taxis.html', this)">
+                <div class="icon">&#128661;</div>
+                <div class="label">Choferes Taxis</div>
+                <div class="desc">Gestionar choferes de taxi y sus habilitaciones</div>
+            </div>
+            <div class="home-card" onclick="loadCard('reportes_conductores.html', this)">
+                <div class="icon">&#128203;</div>
+                <div class="label">Reportes de Choferes</div>
+                <div class="desc">Estadisticas y reportes de conductores</div>
+            </div>
+            <div class="home-card" onclick="loadCard('viajes.html', this)">
+                <div class="icon">&#128506;</div>
+                <div class="label">Historial de Viajes</div>
+                <div class="desc">Consultar viajes completados y cancelados</div>
+            </div>
+            <div class="home-card" onclick="loadCard('whatsapp_masivo.html', this)">
+                <div class="icon">&#128241;</div>
+                <div class="label">WhatsApp Masivo</div>
+                <div class="desc">Enviar mensajes masivos por WhatsApp</div>
+            </div>
+            <div class="home-card" onclick="loadCard('editor_registro.html?t=20260705v2', this)">
+                <div class="icon">&#128736;&#65039;</div>
+                <div class="label">Editor de Registro</div>
+                <div class="desc">Personalizar el formulario de registro de usuarios</div>
+            </div>
+            <div class="home-card" onclick="loadCard('config_tarifas.html', this)">
+                <div class="icon">&#128176;</div>
+                <div class="label">Config. Tarifas</div>
+                <div class="desc">Configurar tarifas por zona y tipo de vehiculo</div>
+            </div>
+            <div class="home-card" onclick="loadCard('mapa_eventos.html', this)">
+                <div class="icon">&#128205;</div>
+                <div class="label">Zonas y Eventos</div>
+                <div class="desc">Administrar zonas del mapa y eventos</div>
+            </div>
+            <div class="home-card" onclick="loadCard('editor_fronteras.html', this)">
+                <div class="icon">&#128208;</div>
+                <div class="label">Fronteras Depts</div>
+                <div class="desc">Editar limites de departamentos en el mapa</div>
+            </div>
+            <div class="home-card" onclick="loadCard('alertas_zonas.html', this)">
+                <div class="icon">&#128678;</div>
+                <div class="label">Alertas y Seguridad</div>
+                <div class="desc">Gestionar alertas y zonas de seguridad</div>
+            </div>
+            <div class="home-card" onclick="loadCard('crash_logs.html', this)">
+                <div class="icon">&#128202;</div>
+                <div class="label">Logs de Crash</div>
+                <div class="desc">Revisar reportes de errores y crashes</div>
+            </div>
+            <div class="home-card" onclick="loadCard('configuracion.html', this)">
+                <div class="icon">&#9881;&#65039;</div>
+                <div class="label">Configuracion</div>
+                <div class="desc">Ajustes generales del sistema</div>
+            </div>
+            <div class="home-card" onclick="loadCard('cancelaciones.html', this)">
+                <div class="icon">&#9201;&#65039;</div>
+                <div class="label">Cancelaciones</div>
+                <div class="desc">Configurar politicas de cancelacion</div>
+            </div>
+            <div class="home-card" onclick="loadCard('guia_ocio.html', this)">
+                <div class="icon">&#127917;</div>
+                <div class="label">Guia del Ocio</div>
+                <div class="desc">Guias de ocio y entretenimiento de la ciudad</div>
+            </div>
+            <div class="home-card" onclick="loadCard('empresas.html', this)">
+                <div class="icon">&#127970;</div>
+                <div class="label">Gestionar Empresas</div>
+                <div class="desc">Administrar comercios y empresas adheridos</div>
+            </div>
+            <div class="home-card" onclick="loadCard('usados.html', this)">
+                <div class="icon">&#128722;</div>
+                <div class="label">Productos Usados (P2P)</div>
+                <div class="desc">Marketplace de productos entre usuarios</div>
+            </div>
+            <div class="home-card" onclick="loadCard('testing_completo.html', this)">
+                <div class="icon">&#129514;</div>
+                <div class="label">Testing del Sistema</div>
+                <div class="desc">Herramientas de testing y pruebas</div>
+            </div>
+        </div>
+
         <div id="mapContainer">
             <div class="map-controls">
                 <div style="font-weight: bold; font-size: 12px; color: #58a6ff;">MONITOR EN VIVO</div>
@@ -115,6 +232,7 @@
             </div>
             <div id="liveMap"></div>
         </div>
+
         <iframe name="viewFrame" id="viewFrame"></iframe>
     </div>
 
@@ -129,16 +247,36 @@
             document.getElementById('main').style.display = '';
         });
 
+        const homeGrid = document.getElementById('homeGrid');
         const mapContainer = document.getElementById('mapContainer');
         const viewFrame = document.getElementById('viewFrame');
         let mapInited = false;
+        let liveMapObj = null;
+
+        function setActive(action) {
+            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active-link'));
+            const link = document.querySelector('.sidebar nav a[data-action="'+action+'"]');
+            if(link) link.classList.add('active-link');
+        }
+
+        function hideAll() {
+            homeGrid.style.display = 'none';
+            mapContainer.style.display = 'none';
+            viewFrame.style.display = 'none';
+        }
+
+        function showHome(e) {
+            if(e) e.preventDefault();
+            hideAll();
+            homeGrid.style.display = '';
+            setActive('home');
+        }
 
         function showMap(e) {
-            e.preventDefault();
+            if(e) e.preventDefault();
+            hideAll();
             mapContainer.style.display = '';
-            viewFrame.style.display = 'none';
-            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active-link'));
-            document.getElementById('linkMapa').classList.add('active-link');
+            setActive('mapa');
             if(mapInited) { setTimeout(() => liveMapObj && liveMapObj.resize(), 50); }
             else { mapInited = true; initLiveMap(); }
         }
@@ -146,11 +284,17 @@
         function showFrame(e) {
             e.preventDefault();
             const link = e.currentTarget;
-            mapContainer.style.display = 'none';
+            hideAll();
             viewFrame.style.display = '';
             viewFrame.src = link.getAttribute('href');
             document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active-link'));
             link.classList.add('active-link');
+        }
+
+        function loadCard(url, el) {
+            hideAll();
+            viewFrame.style.display = '';
+            viewFrame.src = url;
         }
 
         function deploy() {
@@ -159,8 +303,6 @@
                 .then(() => alert('Deploy iniciado! En 30seg se actualiza.'))
                 .catch(() => alert('Error al hacer deploy'));
         }
-
-        let liveMapObj = null;
 
         function initLiveMap() {
             const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
