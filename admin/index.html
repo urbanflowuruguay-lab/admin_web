@@ -160,11 +160,15 @@
             ch = sb.channel('monitoreo_choferes');
             ch.on('presence', {event:'sync'}, () => {
                 const st = ch.presenceState();
-                presenceIds.clear();
+                const newIds = new Set();
                 Object.values(st).forEach(arr => arr.forEach(p => {
                     const id = String(p.id||p.user_id);
-                    if(id && !id.startsWith('admin')) presenceIds.add(id);
+                    if(id && !id.startsWith('admin')) newIds.add(id);
                 }));
+                presenceIds.forEach(id => {
+                    if(!newIds.has(id)) removeMarker(id);
+                });
+                newIds.forEach(id => presenceIds.add(id));
             })
             .on('presence', {event:'leave'}, ({leftPresences}) => {
                 if(leftPresences) {
