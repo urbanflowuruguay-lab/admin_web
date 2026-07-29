@@ -46,17 +46,17 @@
         .flag-item:nth-child(5) { animation: orbit 4s linear infinite; transform: rotate(288deg) translateY(-100px); }
 
         @keyframes orbit {
-            0% { transform: rotate(0deg) translateY(-100px); }
-            100% { transform: rotate(360deg) translateY(-100px); }
+            0% { transform: rotate(0deg) translateY(-100px) rotate(0deg); }
+            100% { transform: rotate(360deg) translateY(-100px) rotate(-360deg); }
         }
         .flag-item:nth-child(2) { animation-name: orbit2; }
         .flag-item:nth-child(3) { animation-name: orbit3; }
         .flag-item:nth-child(4) { animation-name: orbit4; }
         .flag-item:nth-child(5) { animation-name: orbit5; }
-        @keyframes orbit2 { 0% { transform: rotate(72deg) translateY(-100px); } 100% { transform: rotate(432deg) translateY(-100px); } }
-        @keyframes orbit3 { 0% { transform: rotate(144deg) translateY(-100px); } 100% { transform: rotate(504deg) translateY(-100px); } }
-        @keyframes orbit4 { 0% { transform: rotate(216deg) translateY(-100px); } 100% { transform: rotate(576deg) translateY(-100px); } }
-        @keyframes orbit5 { 0% { transform: rotate(288deg) translateY(-100px); } 100% { transform: rotate(648deg) translateY(-100px); } }
+        @keyframes orbit2 { 0% { transform: rotate(72deg) translateY(-100px) rotate(-72deg); } 100% { transform: rotate(432deg) translateY(-100px) rotate(-432deg); } }
+        @keyframes orbit3 { 0% { transform: rotate(144deg) translateY(-100px) rotate(-144deg); } 100% { transform: rotate(504deg) translateY(-100px) rotate(-504deg); } }
+        @keyframes orbit4 { 0% { transform: rotate(216deg) translateY(-100px) rotate(-216deg); } 100% { transform: rotate(576deg) translateY(-100px) rotate(-576deg); } }
+        @keyframes orbit5 { 0% { transform: rotate(288deg) translateY(-100px) rotate(-288deg); } 100% { transform: rotate(648deg) translateY(-100px) rotate(-648deg); } }
 
         .flags-ring.stop .flag-item { animation-play-state: paused; }
 
