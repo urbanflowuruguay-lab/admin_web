@@ -302,9 +302,10 @@
         .stat-label { font-size: 14px; color: #6B7280; margin-top: 4px; }
 
         @media (max-width: 1024px) {
+            .hero { overflow: hidden; }
             .hero-content { grid-template-columns: 1fr; gap: 40px; text-align: center; }
-            .hero-text { text-align: center; }
-            .hero-image { max-width: 500px; margin: 0 auto !important; transform: none !important; }
+            .hero-text { text-align: center; padding: 0 16px; }
+            .hero-image { max-width: 100%; margin: 0 auto !important; transform: none !important; }
             .hero-tags { justify-content: center; }
             .hero-actions { justify-content: center; flex-wrap: wrap; }
             .hero-city { width: 100%; max-width: 500px; height: auto; margin: 20px auto 0; display: block; }
@@ -318,9 +319,14 @@
             .footer-inner { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 768px) {
+            body { overflow-x: hidden; }
+            .nav { padding: 0 16px; }
+            .nav-inner { padding: 0 8px; }
             .nav-links { display: none; }
             .nav-right { display: none; }
             .hamburger { display: block; }
+            .hero { padding: 100px 16px 60px; }
+            .hero-text h1 { font-size: 28px; white-space: normal; }
             .cards-grid { grid-template-columns: 1fr; }
             .stats-inner { grid-template-columns: 1fr 1fr; gap: 16px; }
             .footer-inner { grid-template-columns: 1fr; gap: 32px; }
