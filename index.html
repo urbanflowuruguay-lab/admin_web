@@ -131,6 +131,13 @@
             font-size: 12px; flex-shrink: 0;
         }
         .feature-list li.check::before { content: '✓'; color: #E63946; font-weight: 700; }
+        .feature-btn {
+            display: inline-block; margin-top: 24px; padding: 14px 28px;
+            background: #E63946; color: #fff; border-radius: 12px;
+            font-size: 15px; font-weight: 600; text-decoration: none;
+            transition: all 0.2s;
+        }
+        .feature-btn:hover { background: #DC2626; transform: translateY(-2px); }
 
         .cards-section {
             padding: 100px 32px; background: #F8FAFC;
@@ -405,6 +412,7 @@
                         <li class="check">Elegí dónde y cómo trabajar</li>
                         <li class="check">Soporte 24/7</li>
                     </ul>
+                    <a href="/login.html?role=chofer" class="feature-btn">Quiero ser chofer</a>
                 </div>
             </div>
             <div class="feature-row reverse">
@@ -418,15 +426,16 @@
                         <li class="check">Viaje compartido con familiares</li>
                         <li class="check">Botón de emergencia</li>
                     </ul>
+                    <a href="/login.html?role=usuario" class="feature-btn">Quiero ser usuario</a>
                 </div>
             </div>
             <div class="feature-row">
                 <img src="/fotonegocio.png" alt="Negocio">
                 <div>
                     <h2>Hacé crecer tu negocio</h2>
-                    <p>Sumá tu comercio a UrbanFlow y llegá a miles de clientes. Tu negocio aparece en la guía comercial, y si es gastronomía, también en pedidos online y nuestro e-commerce.</p>
+                    <p>Sumá tu comercio a UrbanFlow y llegá a miles de clientes. Tu negocio aparece en la guía comercial de UrbanFlow, y si es gastronomía, también en pedidos online y nuestro e-commerce.</p>
                     <ul class="feature-list">
-                        <li class="check">Aparecé en la guía comercial de tu ciudad</li>
+                        <li class="check">Aparecé en la guía comercial de UrbanFlow</li>
                         <li class="check">Para restaurantes: carta digital mesa por mesa</li>
                         <li class="check">Para restaurantes: pedidos online y delivery</li>
                         <li class="check">Software completo con control de finanzas e inventario</li>
@@ -434,6 +443,7 @@
                         <li class="check">Tus productos en nuestro e-commerce</li>
                         <li class="check">Pagos instantáneos a tu cuenta</li>
                     </ul>
+                    <a href="/login.html?role=servicios" class="feature-btn">Quiero dar servicios con UrbanFlow</a>
                 </div>
             </div>
         </div>
