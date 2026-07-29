@@ -163,7 +163,9 @@
                 if(leftPresences) {
                     leftPresences.forEach(p => {
                         const id = String(p.id||p.user_id);
-                        if(id) removeMarker(id);
+                        if(id && lastBroadcast[id] && (Date.now() - lastBroadcast[id] > 5000)) {
+                            removeMarker(id);
+                        }
                     });
                 }
             })
@@ -195,7 +197,7 @@
                 try {
                     const now = Date.now();
                     Object.keys(markers).forEach(id => {
-                        if(now - lastBroadcast[id] > 3000) {
+                        if(now - lastBroadcast[id] > 5000) {
                             removeMarker(id);
                         }
                     });
