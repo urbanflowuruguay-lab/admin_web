@@ -351,9 +351,9 @@
                 <img src="/logouf.png" alt="UrbanFlow">
             </a>
             <div class="nav-links">
-                <a href="/login.html?role=chofer">Chofers</a>
-                <a href="/login.html?role=usuario">Pasajeros</a>
-                <a href="/login.html?role=servicios">Negocios</a>
+                <a href="/login.html?role=chofer" data-i18n="nav_chofers">Chofers</a>
+                <a href="/login.html?role=usuario" data-i18n="nav_pasajeros">Pasajeros</a>
+                <a href="/login.html?role=servicios" data-i18n="nav_negocios">Negocios</a>
             </div>
             <div class="nav-right">
                 <button class="lang-selector" onclick="openLangModal()">
@@ -368,27 +368,27 @@
     </nav>
 
     <div class="mobile-menu" id="mobileMenu">
-        <a href="/login.html?role=chofer" onclick="toggleMenu()">Chofers</a>
-        <a href="/login.html?role=usuario" onclick="toggleMenu()">Pasajeros</a>
-        <a href="/login.html?role=servicios" onclick="toggleMenu()">Negocios</a>
+        <a href="/login.html?role=chofer" onclick="toggleMenu()" data-i18n="nav_chofers">Chofers</a>
+        <a href="/login.html?role=usuario" onclick="toggleMenu()" data-i18n="nav_pasajeros">Pasajeros</a>
+        <a href="/login.html?role=servicios" onclick="toggleMenu()" data-i18n="nav_negocios">Negocios</a>
     </div>
 
     <section class="hero">
         <div class="hero-content">
             <div class="hero-text">
-                <h1>La ciudad en tus manos</h1>
-                <p>UrbanFlow es una plataforma de movilidad urbana que conecta chofers, pasajeros y negocios en una sola app. Viajá, enviá, pedí comida o descubrí eventos — todo desde un mismo lugar, en tiempo real y sin complicaciones.</p>
+                <h1 data-i18n="hero_title">La ciudad en tus manos</h1>
+                <p data-i18n="hero_desc">UrbanFlow es una plataforma de movilidad urbana que conecta chofers, pasajeros y negocios en una sola app. Viajá, enviá, pedí comida o descubrí eventos — todo desde un mismo lugar, en tiempo real y sin complicaciones.</p>
                 <div class="hero-tags">
-                    <span class="htag">🚗 Viajes</span>
-                    <span class="htag">📦 Envíos</span>
-                    <span class="htag">🍔 Delivery</span>
-                    <span class="htag">🛒 Marketplace</span>
-                    <span class="htag">🎭 Ocio</span>
+                    <span class="htag" data-i18n="tag_viajes">🚗 Viajes</span>
+                    <span class="htag" data-i18n="tag_envios">📦 Envíos</span>
+                    <span class="htag" data-i18n="tag_delivery">🍔 Delivery</span>
+                    <span class="htag" data-i18n="tag_marketplace">🛒 Marketplace</span>
+                    <span class="htag" data-i18n="tag_ocio">🎭 Ocio</span>
                 </div>
                 <div class="hero-actions">
-                    <a href="/login.html?role=chofer" class="white">Quiero ser chofer</a>
-                    <a href="/login.html?role=usuario" class="ghost">Soy pasajero</a>
-                    <a href="/login.html?role=servicios" class="ghost">Tengo un negocio</a>
+                    <a href="/login.html?role=chofer" class="white" data-i18n="btn_ser_chofer">Quiero ser chofer</a>
+                    <a href="/login.html?role=usuario" class="ghost" data-i18n="btn_soy_pasajero">Soy pasajero</a>
+                    <a href="/login.html?role=servicios" class="ghost" data-i18n="btn_tengo_negocio">Tengo un negocio</a>
                 </div>
                 <img src="/ciudad.png" alt="Ciudad" class="hero-city" id="heroCity">
             </div>
@@ -403,47 +403,47 @@
             <div class="feature-row">
                 <img src="/conductorenauto.png" alt="Gana dinero">
                 <div>
-                    <h2>Ganá dinero a tu ritmo</h2>
-                    <p>Convertite en conductor y empezá a generar ingresos con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.</p>
+                    <h2 data-i18n="feat_chofer_title">Ganá dinero a tu ritmo</h2>
+                    <p data-i18n="feat_chofer_desc">Convertite en conductor y empezá a generar ingresos con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.</p>
                     <ul class="feature-list">
-                        <li class="check">Elegí tus horarios</li>
-                        <li class="check">Pagos instantáneos</li>
-                        <li class="check">Poné el precio de tu viaje</li>
-                        <li class="check">Elegí dónde y cómo trabajar</li>
-                        <li class="check">Soporte 24/7</li>
+                        <li class="check" data-i18n="feat_chofer_1">Elegí tus horarios</li>
+                        <li class="check" data-i18n="feat_chofer_2">Pagos instantáneos</li>
+                        <li class="check" data-i18n="feat_chofer_3">Poné el precio de tu viaje</li>
+                        <li class="check" data-i18n="feat_chofer_4">Elegí dónde y cómo trabajar</li>
+                        <li class="check" data-i18n="feat_chofer_5">Soporte 24/7</li>
                     </ul>
-                    <a href="/login.html?role=chofer" class="feature-btn">Quiero ser chofer</a>
+                    <a href="/login.html?role=chofer" class="feature-btn" data-i18n="btn_quiero_ser_chofer">Quiero ser chofer</a>
                 </div>
             </div>
             <div class="feature-row reverse">
                 <img src="/personaentrandoauto.png" alt="Viaja seguro">
                 <div>
-                    <h2>Viajá con seguridad y comodidad</h2>
-                    <p>Solicitá tu viaje en segundos y seguí a tu chofer en tiempo real. Paga con efectivo, tarjeta o transferencia.</p>
+                    <h2 data-i18n="feat_usuario_title">Viajá con seguridad y comodidad</h2>
+                    <p data-i18n="feat_usuario_desc">Solicitá tu viaje en segundos y seguí a tu chofer en tiempo real. Paga con efectivo, tarjeta o transferencia.</p>
                     <ul class="feature-list">
-                        <li class="check">Tracking en tiempo real</li>
-                        <li class="check">Chofers verificados</li>
-                        <li class="check">Viaje compartido con familiares</li>
-                        <li class="check">Botón de emergencia</li>
+                        <li class="check" data-i18n="feat_usuario_1">Tracking en tiempo real</li>
+                        <li class="check" data-i18n="feat_usuario_2">Chofers verificados</li>
+                        <li class="check" data-i18n="feat_usuario_3">Viaje compartido con familiares</li>
+                        <li class="check" data-i18n="feat_usuario_4">Botón de emergencia</li>
                     </ul>
-                    <a href="/login.html?role=usuario" class="feature-btn">Quiero ser usuario</a>
+                    <a href="/login.html?role=usuario" class="feature-btn" data-i18n="btn_quiero_ser_usuario">Quiero ser usuario</a>
                 </div>
             </div>
             <div class="feature-row">
                 <img src="/fotonegocio.png" alt="Negocio">
                 <div>
-                    <h2>Hacé crecer tu negocio</h2>
-                    <p>Sumá tu comercio a UrbanFlow y llegá a miles de clientes. Tu negocio aparece en la guía comercial de UrbanFlow, y si es gastronomía, también en pedidos online y nuestro e-commerce.</p>
+                    <h2 data-i18n="feat_negocio_title">Hacé crecer tu negocio</h2>
+                    <p data-i18n="feat_negocio_desc">Sumá tu comercio a UrbanFlow y llegá a miles de clientes. Tu negocio aparece en la guía comercial de UrbanFlow, y si es gastronomía, también en pedidos online y nuestro e-commerce.</p>
                     <ul class="feature-list">
-                        <li class="check">Aparecé en la guía comercial de UrbanFlow</li>
-                        <li class="check">Para restaurantes: carta digital mesa por mesa</li>
-                        <li class="check">Para restaurantes: pedidos online y delivery</li>
-                        <li class="check">Software completo con control de finanzas e inventario</li>
-                        <li class="check">Comunicación interna directa por app del personal</li>
-                        <li class="check">Tus productos en nuestro e-commerce</li>
-                        <li class="check">Pagos instantáneos a tu cuenta</li>
+                        <li class="check" data-i18n="feat_negocio_1">Aparecé en la guía comercial de UrbanFlow</li>
+                        <li class="check" data-i18n="feat_negocio_2">Para restaurantes: carta digital mesa por mesa</li>
+                        <li class="check" data-i18n="feat_negocio_3">Para restaurantes: pedidos online y delivery</li>
+                        <li class="check" data-i18n="feat_negocio_4">Software completo con control de finanzas e inventario</li>
+                        <li class="check" data-i18n="feat_negocio_5">Comunicación interna directa por app del personal</li>
+                        <li class="check" data-i18n="feat_negocio_6">Tus productos en nuestro e-commerce</li>
+                        <li class="check" data-i18n="feat_negocio_7">Pagos instantáneos a tu cuenta</li>
                     </ul>
-                    <a href="/login.html?role=servicios" class="feature-btn">Quiero dar servicios con UrbanFlow</a>
+                    <a href="/login.html?role=servicios" class="feature-btn" data-i18n="btn_quiero_dar_servicios">Quiero dar servicios con UrbanFlow</a>
                 </div>
             </div>
         </div>
@@ -452,39 +452,39 @@
     <section class="cards-section" id="features">
         <div class="cards-inner">
             <div class="cards-header">
-                <span class="tag">Movilidad Urbana</span>
-                <h2>Tu ciudad, tu manera</h2>
+                <span class="tag" data-i18n="cards_tag">Movilidad Urbana</span>
+                <h2 data-i18n="cards_title">Tu ciudad, tu manera</h2>
             </div>
             <div class="cards-grid">
                 <div class="card-item">
                     <div class="card-icon">🚗</div>
-                    <h3>Viajes</h3>
-                    <p>Solicitá tu viaje en segundos. Elegí entre auto, taxi o van. Seguí a tu chofer en tiempo real con GPS.</p>
+                    <h3 data-i18n="card_viajes_title">Viajes</h3>
+                    <p data-i18n="card_viajes_desc">Solicitá tu viaje en segundos. Elegí entre auto, taxi o van. Seguí a tu chofer en tiempo real con GPS.</p>
                 </div>
                 <div class="card-item">
                     <div class="card-icon">📦</div>
-                    <h3>Envíos</h3>
-                    <p>Enviá paquetes y documentos a cualquier punto de la ciudad. Rastreo en tiempo real y entrega garantizada.</p>
+                    <h3 data-i18n="card_envios_title">Envíos</h3>
+                    <p data-i18n="card_envios_desc">Enviá paquetes y documentos a cualquier punto de la ciudad. Rastreo en tiempo real y entrega garantizada.</p>
                 </div>
                 <div class="card-item">
                     <div class="card-icon">🐾</div>
-                    <h3>Mascotas</h3>
-                    <p>Viajes adaptados para tus mascotas. Chofers especializados y vehículos preparados para su comodidad.</p>
+                    <h3 data-i18n="card_mascotas_title">Mascotas</h3>
+                    <p data-i18n="card_mascotas_desc">Viajes adaptados para tus mascotas. Chofers especializados y vehículos preparados para su comodidad.</p>
                 </div>
                 <div class="card-item">
                     <div class="card-icon">🛒</div>
-                    <h3>Marketplace</h3>
-                    <p>Comprá y vendé productos nuevos o usados. Trueques, electrónica, ropa, hogar y más entre usuarios.</p>
+                    <h3 data-i18n="card_marketplace_title">Marketplace</h3>
+                    <p data-i18n="card_marketplace_desc">Comprá y vendé productos nuevos o usados. Trueques, electrónica, ropa, hogar y más entre usuarios.</p>
                 </div>
                 <div class="card-item">
                     <div class="card-icon">🍔</div>
-                    <h3>Gastronomía</h3>
-                    <p>Pedí comida de tus restaurantes favoritos. Pizza, sushi, hamburguesas y más con entrega rápida.</p>
+                    <h3 data-i18n="card_gastro_title">Gastronomía</h3>
+                    <p data-i18n="card_gastro_desc">Pedí comida de tus restaurantes favoritos. Pizza, sushi, hamburguesas y más con entrega rápida.</p>
                 </div>
                 <div class="card-item">
                     <div class="card-icon">🎭</div>
-                    <h3>Ocio y Eventos</h3>
-                    <p>Descubrí eventos, bares, restaurantes y espectáculos. Pedí un viaje directamente desde la guía.</p>
+                    <h3 data-i18n="card_ocio_title">Ocio y Eventos</h3>
+                    <p data-i18n="card_ocio_desc">Descubrí eventos, bares, restaurantes y espectáculos. Pedí un viaje directamente desde la guía.</p>
                 </div>
             </div>
         </div>
@@ -494,35 +494,35 @@
         <div class="maas-inner">
             <div class="maas-content">
                 <span class="tag">MaaS</span>
-                <h2>Movilidad como Servicio</h2>
-                <p>UrbanFlow es una plataforma de movilidad urbana integral que integra múltiples modos de transporte y servicios en una sola app. No somos solo una app de viajes — somos tu compañero de movilidad completo.</p>
+                <h2 data-i18n="maas_title">Movilidad como Servicio</h2>
+                <p data-i18n="maas_desc">UrbanFlow es una plataforma de movilidad urbana integral que integra múltiples modos de transporte y servicios en una sola app. No somos solo una app de viajes — somos tu compañero de movilidad completo.</p>
                 <div class="maas-features">
                     <div class="maas-item">
                         <div class="maas-icon">📱</div>
                         <div>
-                            <h4>Multiplataforma</h4>
-                            <p>Android, iOS y web. Tu cuenta y datos sincronizados en todos tus dispositivos.</p>
+                            <h4 data-i18n="maas_1_title">Multiplataforma</h4>
+                            <p data-i18n="maas_1_desc">Android, iOS y web. Tu cuenta y datos sincronizados en todos tus dispositivos.</p>
                         </div>
                     </div>
                     <div class="maas-item">
                         <div class="maas-icon">🌍</div>
                         <div>
-                            <h4>Multi país</h4>
-                            <p>Uruguay, Argentina, Brasil, Chile y Paraguay. Viajá sin fronteras con la misma app.</p>
+                            <h4 data-i18n="maas_2_title">Multi país</h4>
+                            <p data-i18n="maas_2_desc">Uruguay, Argentina, Brasil, Chile y Paraguay. Viajá sin fronteras con la misma app.</p>
                         </div>
                     </div>
                     <div class="maas-item">
                         <div class="maas-icon">🔗</div>
                         <div>
-                            <h4>Integrado</h4>
-                            <p>Viajes, envíos, delivery, marketplace y ocio. Todo conectado en una sola plataforma.</p>
+                            <h4 data-i18n="maas_3_title">Integrado</h4>
+                            <p data-i18n="maas_3_desc">Viajes, envíos, delivery, marketplace y ocio. Todo conectado en una sola plataforma.</p>
                         </div>
                     </div>
                     <div class="maas-item">
                         <div class="maas-icon">⚡</div>
                         <div>
-                            <h4>En tiempo real</h4>
-                            <p>Tracking GPS, alertas de tránsito, disponibilidad de chofers. Información al instante.</p>
+                            <h4 data-i18n="maas_4_title">En tiempo real</h4>
+                            <p data-i18n="maas_4_desc">Tracking GPS, alertas de tránsito, disponibilidad de chofers. Información al instante.</p>
                         </div>
                     </div>
                 </div>
@@ -538,22 +538,22 @@
             <div class="stat-item">
                 <div class="stat-icon">🛣️</div>
                 <div class="stat-value">10k+</div>
-                <div class="stat-label">Viajes realizados</div>
+                <div class="stat-label" data-i18n="stat_1">Viajes realizados</div>
             </div>
             <div class="stat-item">
                 <div class="stat-icon">🚗</div>
                 <div class="stat-value">500+</div>
-                <div class="stat-label">Chofers activos</div>
+                <div class="stat-label" data-i18n="stat_2">Chofers activos</div>
             </div>
             <div class="stat-item">
                 <div class="stat-icon">🏪</div>
                 <div class="stat-value">200+</div>
-                <div class="stat-label">Negocios conectados</div>
+                <div class="stat-label" data-i18n="stat_3">Negocios conectados</div>
             </div>
             <div class="stat-item">
                 <div class="stat-icon">🌍</div>
                 <div class="stat-value">5</div>
-                <div class="stat-label">Países disponibles</div>
+                <div class="stat-label" data-i18n="stat_4">Países disponibles</div>
             </div>
         </div>
     </section>
@@ -561,68 +561,68 @@
     <section class="roles-section" id="roles">
         <div class="roles-inner">
             <div class="roles-header">
-                <span class="tag">Plataforma</span>
-                <h2>Una plataforma, tres experiencias</h2>
+                <span class="tag" data-i18n="roles_tag">Plataforma</span>
+                <h2 data-i18n="roles_title">Una plataforma, tres experiencias</h2>
             </div>
             <div class="roles-grid">
                 <a href="/login.html?role=chofer" class="role-card chofer">
                     <div class="icon">🚗</div>
-                    <h3>Soy Chofer</h3>
-                    <p>Ganá dinero con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.</p>
-                    <span class="link">Registrate como chofer →</span>
+                    <h3 data-i18n="role_chofer_title">Soy Chofer</h3>
+                    <p data-i18n="role_chofer_desc">Ganá dinero con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.</p>
+                    <span class="link" data-i18n="role_chofer_link">Registrate como chofer →</span>
                 </a>
                 <a href="/login.html?role=usuario" class="role-card usuario">
                     <div class="icon">👤</div>
-                    <h3>Soy Pasajero</h3>
-                    <p>Viajá rápido y seguro a donde quieras. Pedí tu viaje en segundos y seguí a tu chofer en tiempo real.</p>
-                    <span class="link">Creá tu cuenta →</span>
+                    <h3 data-i18n="role_usuario_title">Soy Pasajero</h3>
+                    <p data-i18n="role_usuario_desc">Viajá rápido y seguro a donde quieras. Pedí tu viaje en segundos y seguí a tu chofer en tiempo real.</p>
+                    <span class="link" data-i18n="role_usuario_link">Creá tu cuenta →</span>
                 </a>
                 <a href="/login.html?role=servicios" class="role-card servicios">
                     <div class="icon">🏪</div>
-                    <h3>Servicios</h3>
-                    <p>Compartí tu negocio en la plataforma. Recibí pedidos, gestiona entregas y hacé crecer tu empresa.</p>
-                    <span class="link">Unite a UrbanFlow →</span>
+                    <h3 data-i18n="role_negocio_title">Servicios</h3>
+                    <p data-i18n="role_negocio_desc">Compartí tu negocio en la plataforma. Recibí pedidos, gestiona entregas y hacé crecer tu empresa.</p>
+                    <span class="link" data-i18n="role_negocio_link">Unite a UrbanFlow →</span>
                 </a>
             </div>
         </div>
     </section>
 
     <section class="cta-section">
-        <h2>Estamos listos para llevarte</h2>
-        <p>Descargá la app y empezá a viajar hoy mismo</p>
-        <a href="#">Descargar app</a>
+        <h2 data-i18n="cta_title">Estamos listos para llevarte</h2>
+        <p data-i18n="cta_desc">Descargá la app y empezá a viajar hoy mismo</p>
+        <a href="#" data-i18n="cta_btn">Descargar app</a>
     </section>
 
     <footer class="footer">
         <div class="footer-inner">
             <div class="footer-brand">
                 <img src="/logouf.png" alt="UrbanFlow">
-                <p>Transporte seguro, rápido y confiable. Ya sea que quieras ganar dinero conduciendo o llegar a tu destino.</p>
+                <p data-i18n="footer_brand">Transporte seguro, rápido y confiable. Ya sea que quieras ganar dinero conduciendo o llegar a tu destino.</p>
             </div>
             <div class="footer-col">
-                <h4>Chofers</h4>
-                <a href="/login.html?role=chofer">Registrarse</a>
-                <a href="#">Tarifas</a>
-                <a href="#">Seguridad</a>
-                <a href="#">Ayuda</a>
+                <h4 data-i18n="footer_chofers">Chofers</h4>
+                <a href="/login.html?role=chofer" data-i18n="footer_registrarse">Registrarse</a>
+                <a href="#" data-i18n="footer_tarifas">Tarifas</a>
+                <a href="#" data-i18n="footer_seguridad">Seguridad</a>
+                <a href="#" data-i18n="footer_ayuda">Ayuda</a>
             </div>
             <div class="footer-col">
-                <h4>Pasajeros</h4>
-                <a href="/login.html?role=usuario">Crear cuenta</a>
-                <a href="#">Tarifas</a>
-                <a href="#">Seguridad</a>
-                <a href="#">Ayuda</a>
+                <h4 data-i18n="footer_pasajeros">Pasajeros</h4>
+                <a href="/login.html?role=usuario" data-i18n="footer_crear_cuenta">Crear cuenta</a>
+                <a href="#" data-i18n="footer_tarifas">Tarifas</a>
+                <a href="#" data-i18n="footer_seguridad">Seguridad</a>
+                <a href="#" data-i18n="footer_ayuda">Ayuda</a>
             </div>
             <div class="footer-col">
-                <h4>Empresa</h4>
-                <a href="#">Sobre nosotros</a>
-                <a href="#">Blog</a>
-                <a href="#">Prensa</a>
-                <a href="#">Contacto</a>
+                <h4 data-i18n="footer_empresa">Empresa</h4>
+                <a href="#" data-i18n="footer_sobre">Sobre nosotros</a>
+                <a href="#" data-i18n="footer_blog">Blog</a>
+                <a href="#" data-i18n="footer_prensa">Prensa</a>
+                <a href="#" data-i18n="footer_contacto">Contacto</a>
             </div>
         </div>
         <div class="footer-bottom">
-            <span>&copy; 2026 UrbanFlow. Todos los derechos reservados.</span>
+            <span data-i18n="footer_copyright">&copy; 2026 UrbanFlow. Todos los derechos reservados.</span>
             <div class="footer-social">
                 <a href="#">Facebook</a>
                 <a href="#">Instagram</a>
@@ -688,6 +688,150 @@
         if (!sessionStorage.getItem('uf_from_splash')) {
             window.location.href = '/splash.html';
         }
+
+        const translations = {
+            es: {
+                nav_chofers: 'Chofers', nav_pasajeros: 'Pasajeros', nav_negocios: 'Negocios',
+                hero_title: 'La ciudad en tus manos',
+                hero_desc: 'UrbanFlow es una plataforma de movilidad urbana que conecta chofers, pasajeros y negocios en una sola app. Viajá, enviá, pedí comida o descubrí eventos — todo desde un mismo lugar, en tiempo real y sin complicaciones.',
+                tag_viajes: '🚗 Viajes', tag_envios: '📦 Envíos', tag_delivery: '🍔 Delivery', tag_marketplace: '🛒 Marketplace', tag_ocio: '🎭 Ocio',
+                btn_ser_chofer: 'Quiero ser chofer', btn_soy_pasajero: 'Soy pasajero', btn_tengo_negocio: 'Tengo un negocio',
+                feat_chofer_title: 'Ganá dinero a tu ritmo',
+                feat_chofer_desc: 'Convertite en conductor y empezá a generar ingresos con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.',
+                feat_chofer_1: 'Elegí tus horarios', feat_chofer_2: 'Pagos instantáneos', feat_chofer_3: 'Poné el precio de tu viaje', feat_chofer_4: 'Elegí dónde y cómo trabajar', feat_chofer_5: 'Soporte 24/7',
+                btn_quiero_ser_chofer: 'Quiero ser chofer',
+                feat_usuario_title: 'Viajá con seguridad y comodidad',
+                feat_usuario_desc: 'Solicitá tu viaje en segundos y seguí a tu chofer en tiempo real. Paga con efectivo, tarjeta o transferencia.',
+                feat_usuario_1: 'Tracking en tiempo real', feat_usuario_2: 'Chofers verificados', feat_usuario_3: 'Viaje compartido con familiares', feat_usuario_4: 'Botón de emergencia',
+                btn_quiero_ser_usuario: 'Quiero ser usuario',
+                feat_negocio_title: 'Hacé crecer tu negocio',
+                feat_negocio_desc: 'Sumá tu comercio a UrbanFlow y llegá a miles de clientes. Tu negocio aparece en la guía comercial de UrbanFlow, y si es gastronomía, también en pedidos online y nuestro e-commerce.',
+                feat_negocio_1: 'Aparecé en la guía comercial de UrbanFlow', feat_negocio_2: 'Para restaurantes: carta digital mesa por mesa', feat_negocio_3: 'Para restaurantes: pedidos online y delivery', feat_negocio_4: 'Software completo con control de finanzas e inventario', feat_negocio_5: 'Comunicación interna directa por app del personal', feat_negocio_6: 'Tus productos en nuestro e-commerce', feat_negocio_7: 'Pagos instantáneos a tu cuenta',
+                btn_quiero_dar_servicios: 'Quiero dar servicios con UrbanFlow',
+                cards_tag: 'Movilidad Urbana', cards_title: 'Tu ciudad, tu manera',
+                card_viajes_title: 'Viajes', card_viajes_desc: 'Solicitá tu viaje en segundos. Elegí entre auto, taxi o van. Seguí a tu chofer en tiempo real con GPS.',
+                card_envios_title: 'Envíos', card_envios_desc: 'Enviá paquetes y documentos a cualquier punto de la ciudad. Rastreo en tiempo real y entrega garantizada.',
+                card_mascotas_title: 'Mascotas', card_mascotas_desc: 'Viajes adaptados para tus mascotas. Chofers especializados y vehículos preparados para su comodidad.',
+                card_marketplace_title: 'Marketplace', card_marketplace_desc: 'Comprá y vendé productos nuevos o usados. Trueques, electrónica, ropa, hogar y más entre usuarios.',
+                card_gastro_title: 'Gastronomía', card_gastro_desc: 'Pedí comida de tus restaurantes favoritos. Pizza, sushi, hamburguesas y más con entrega rápida.',
+                card_ocio_title: 'Ocio y Eventos', card_ocio_desc: 'Descubrí eventos, bares, restaurantes y espectáculos. Pedí un viaje directamente desde la guía.',
+                maas_title: 'Movilidad como Servicio',
+                maas_desc: 'UrbanFlow es una plataforma de movilidad urbana integral que integra múltiples modos de transporte y servicios en una sola app. No somos solo una app de viajes — somos tu compañero de movilidad completo.',
+                maas_1_title: 'Multiplataforma', maas_1_desc: 'Android, iOS y web. Tu cuenta y datos sincronizados en todos tus dispositivos.',
+                maas_2_title: 'Multi país', maas_2_desc: 'Uruguay, Argentina, Brasil, Chile y Paraguay. Viajá sin fronteras con la misma app.',
+                maas_3_title: 'Integrado', maas_3_desc: 'Viajes, envíos, delivery, marketplace y ocio. Todo conectado en una sola plataforma.',
+                maas_4_title: 'En tiempo real', maas_4_desc: 'Tracking GPS, alertas de tránsito, disponibilidad de chofers. Información al instante.',
+                stat_1: 'Viajes realizados', stat_2: 'Chofers activos', stat_3: 'Negocios conectados', stat_4: 'Países disponibles',
+                roles_tag: 'Plataforma', roles_title: 'Una plataforma, tres experiencias',
+                role_chofer_title: 'Soy Chofer', role_chofer_desc: 'Ganá dinero con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.', role_chofer_link: 'Registrate como chofer →',
+                role_usuario_title: 'Soy Pasajero', role_usuario_desc: 'Viajá rápido y seguro a donde quieras. Pedí tu viaje en segundos y seguí a tu chofer en tiempo real.', role_usuario_link: 'Creá tu cuenta →',
+                role_negocio_title: 'Servicios', role_negocio_desc: 'Compartí tu negocio en la plataforma. Recibí pedidos, gestiona entregas y hacé crecer tu empresa.', role_negocio_link: 'Unite a UrbanFlow →',
+                cta_title: 'Estamos listos para llevarte', cta_desc: 'Descargá la app y empezá a viajar hoy mismo', cta_btn: 'Descargar app',
+                footer_brand: 'Transporte seguro, rápido y confiable. Ya sea que quieras ganar dinero conduciendo o llegar a tu destino.',
+                footer_chofers: 'Chofers', footer_pasajeros: 'Pasajeros', footer_empresa: 'Empresa',
+                footer_registrarse: 'Registrarse', footer_crear_cuenta: 'Crear cuenta', footer_tarifas: 'Tarifas', footer_seguridad: 'Seguridad', footer_ayuda: 'Ayuda',
+                footer_sobre: 'Sobre nosotros', footer_blog: 'Blog', footer_prensa: 'Prensa', footer_contacto: 'Contacto',
+                footer_copyright: '© 2026 UrbanFlow. Todos los derechos reservados.'
+            },
+            pt: {
+                nav_chofers: 'Motoristas', nav_pasajeros: 'Passageiros', nav_negocios: 'Negócios',
+                hero_title: 'A cidade nas suas mãos',
+                hero_desc: 'UrbanFlow é uma plataforma de mobilidade urbana que conecta motoristas, passageiros e negócios em um só app. Viaje, envie, peça comida ou descubra eventos — tudo em um só lugar, em tempo real e sem complicações.',
+                tag_viajes: '🚗 Viagens', tag_envios: '📦 Entregas', tag_delivery: '🍔 Delivery', tag_marketplace: '🛒 Marketplace', tag_ocio: '🎭 Lazer',
+                btn_ser_chofer: 'Quero ser motorista', btn_soy_pasajero: 'Sou passageiro', btn_tengo_negocio: 'Tenho um negócio',
+                feat_chofer_title: 'Ganhe dinheiro no seu ritmo',
+                feat_chofer_desc: 'Torne-se motorista e comece a gerar renda com seu carro. Horários flexíveis, pagamentos semanais e um app que te acompanha em cada viagem.',
+                feat_chofer_1: 'Escolha seus horários', feat_chofer_2: 'Pagamentos instantâneos', feat_chofer_3: 'Defina o preço da sua viagem', feat_chofer_4: 'Escolha onde e como trabalhar', feat_chofer_5: 'Suporte 24/7',
+                btn_quiero_ser_chofer: 'Quero ser motorista',
+                feat_usuario_title: 'Viaje com segurança e conforto',
+                feat_usuario_desc: 'Solicite sua viagem em segundos e acompanhe seu motorista em tempo real. Pague com dinheiro, cartão ou transferência.',
+                feat_usuario_1: 'Rastreamento em tempo real', feat_usuario_2: 'Motoristas verificados', feat_usuario_3: 'Viagem compartilhada com familiares', feat_usuario_4: 'Botão de emergência',
+                btn_quiero_ser_usuario: 'Quero ser passageiro',
+                feat_negocio_title: 'Faça seu negócio crescer',
+                feat_negocio_desc: 'Adicione seu comércio ao UrbanFlow e alcance milhares de clientes. Seu negócio aparece na guia comercial do UrbanFlow, e se for gastronomia, também em pedidos online e nosso e-commerce.',
+                feat_negocio_1: 'Apareça na guia comercial do UrbanFlow', feat_negocio_2: 'Para restaurantes: cardápio digital mesa por mesa', feat_negocio_3: 'Para restaurantes: pedidos online e delivery', feat_negocio_4: 'Software completo com controle de finanças e estoque', feat_negocio_5: 'Comunicação interna direta por app do pessoal', feat_negocio_6: 'Seus produtos em nosso e-commerce', feat_negocio_7: 'Pagamentos instantâneos na sua conta',
+                btn_quiero_dar_servicios: 'Quero oferecer serviços com UrbanFlow',
+                cards_tag: 'Mobilidade Urbana', cards_title: 'Sua cidade, seu jeito',
+                card_viajes_title: 'Viagens', card_viajes_desc: 'Solicite sua viagem em segundos. Escolha entre carro, táxi ou van. Acompanhe seu motorista em tempo real com GPS.',
+                card_envios_title: 'Entregas', card_envios_desc: 'Envie pacotes e documentos para qualquer ponto da cidade. Rastreamento em tempo real e entrega garantida.',
+                card_mascotas_title: 'Animais', card_mascotas_desc: 'Viagens adaptadas para seus pets. Motoristas especializados e veículos preparados para seu conforto.',
+                card_marketplace_title: 'Marketplace', card_marketplace_desc: 'Compre e venda produtos novos ou usados. Trocas, eletrônicos, roupas, casa e mais entre usuários.',
+                card_gastro_title: 'Gastronomia', card_gastro_desc: 'Peça comida de seus restaurantes favoritos. Pizza, sushi, hambúrgueres e mais com entrega rápida.',
+                card_ocio_title: 'Lazer e Eventos', card_ocio_desc: 'Descubra eventos, bares, restaurantes e espetáculos. Peça uma viagem diretamente da guia.',
+                maas_title: 'Mobilidade como Serviço',
+                maas_desc: 'UrbanFlow é uma plataforma de mobilidade urbana integral que integra múltiplos modos de transporte e serviços em um só app. Não somos apenas um app de viagens — somos seu companheiro de mobilidade completo.',
+                maas_1_title: 'Multiplataforma', maas_1_desc: 'Android, iOS e web. Sua conta e dados sincronizados em todos os seus dispositivos.',
+                maas_2_title: 'Multi país', maas_2_desc: 'Uruguai, Argentina, Brasil, Chile e Paraguai. Viaje sem fronteiras com o mesmo app.',
+                maas_3_title: 'Integrado', maas_3_desc: 'Viagens, entregas, delivery, marketplace e lazer. Tudo conectado em uma só plataforma.',
+                maas_4_title: 'Em tempo real', maas_4_desc: 'Rastreamento GPS, alertas de trânsito, disponibilidade de motoristas. Informação instantânea.',
+                stat_1: 'Viagens realizadas', stat_2: 'Motoristas ativos', stat_3: 'Negócios conectados', stat_4: 'Países disponíveis',
+                roles_tag: 'Plataforma', roles_title: 'Uma plataforma, três experiências',
+                role_chofer_title: 'Sou Motorista', role_chofer_desc: 'Ganhe dinheiro com seu carro. Horários flexíveis, pagamentos semanais e um app que te acompanha em cada viagem.', role_chofer_link: 'Cadastre-se como motorista →',
+                role_usuario_title: 'Sou Passageiro', role_usuario_desc: 'Viaje rápido e seguro para onde quiser. Peça sua viagem em segundos e acompanhe seu motorista em tempo real.', role_usuario_link: 'Crie sua conta →',
+                role_negocio_title: 'Serviços', role_negocio_desc: 'Compartilhe seu negócio na plataforma. Receba pedidos, gerencie entregas e faça sua empresa crescer.', role_negocio_link: 'Junte-se ao UrbanFlow →',
+                cta_title: 'Estamos prontos para te levar', cta_desc: 'Baixe o app e comece a viajar hoje mesmo', cta_btn: 'Baixar app',
+                footer_brand: 'Transporte seguro, rápido e confiável. Seja para ganhar dinheiro dirigindo ou chegar ao seu destino.',
+                footer_chofers: 'Motoristas', footer_pasajeros: 'Passageiros', footer_empresa: 'Empresa',
+                footer_registrarse: 'Cadastrar', footer_crear_cuenta: 'Criar conta', footer_tarifas: 'Tarifas', footer_seguridad: 'Segurança', footer_ayuda: 'Ajuda',
+                footer_sobre: 'Sobre nós', footer_blog: 'Blog', footer_prensa: 'Imprensa', footer_contacto: 'Contato',
+                footer_copyright: '© 2026 UrbanFlow. Todos os direitos reservados.'
+            },
+            en: {
+                nav_chofers: 'Drivers', nav_pasajeros: 'Passengers', nav_negocios: 'Business',
+                hero_title: 'The city in your hands',
+                hero_desc: 'UrbanFlow is an urban mobility platform that connects drivers, passengers and businesses in one app. Travel, send, order food or discover events — all in one place, in real time and without complications.',
+                tag_viajes: '🚗 Rides', tag_envios: '📦 Deliveries', tag_delivery: '🍔 Delivery', tag_marketplace: '🛒 Marketplace', tag_ocio: '🎭 Entertainment',
+                btn_ser_chofer: 'I want to be a driver', btn_soy_pasajero: "I'm a passenger", btn_tengo_negocio: 'I have a business',
+                feat_chofer_title: 'Earn money at your own pace',
+                feat_chofer_desc: 'Become a driver and start earning income with your car. Flexible hours, weekly payments and an app that accompanies you on every trip.',
+                feat_chofer_1: 'Choose your schedule', feat_chofer_2: 'Instant payments', feat_chofer_3: 'Set your trip price', feat_chofer_4: 'Choose where and how to work', feat_chofer_5: '24/7 support',
+                btn_quiero_ser_chofer: 'I want to be a driver',
+                feat_usuario_title: 'Travel safely and comfortably',
+                feat_usuario_desc: 'Request your trip in seconds and follow your driver in real time. Pay with cash, card or transfer.',
+                feat_usuario_1: 'Real-time tracking', feat_usuario_2: 'Verified drivers', feat_usuario_3: 'Shared trip with family', feat_usuario_4: 'Emergency button',
+                btn_quiero_ser_usuario: 'I want to be a passenger',
+                feat_negocio_title: 'Grow your business',
+                feat_negocio_desc: 'Add your business to UrbanFlow and reach thousands of customers. Your business appears in the UrbanFlow commercial directory, and if it is gastronomy, also in online orders and our e-commerce.',
+                feat_negocio_1: 'Appear in the UrbanFlow commercial directory', feat_negocio_2: 'For restaurants: digital menu table by table', feat_negocio_3: 'For restaurants: online orders and delivery', feat_negocio_4: 'Complete software with finance and inventory control', feat_negocio_5: 'Direct internal communication via staff app', feat_negocio_6: 'Your products in our e-commerce', feat_negocio_7: 'Instant payments to your account',
+                btn_quiero_dar_servicios: 'I want to offer services with UrbanFlow',
+                cards_tag: 'Urban Mobility', cards_title: 'Your city, your way',
+                card_viajes_title: 'Rides', card_viajes_desc: 'Request your trip in seconds. Choose between car, taxi or van. Follow your driver in real time with GPS.',
+                card_envios_title: 'Deliveries', card_envios_desc: 'Send packages and documents to any point in the city. Real-time tracking and guaranteed delivery.',
+                card_mascotas_title: 'Pets', card_mascotas_desc: 'Trips adapted for your pets. Specialized drivers and vehicles prepared for their comfort.',
+                card_marketplace_title: 'Marketplace', card_marketplace_desc: 'Buy and sell new or used products. Swaps, electronics, clothing, home and more between users.',
+                card_gastro_title: 'Food', card_gastro_desc: 'Order food from your favorite restaurants. Pizza, sushi, burgers and more with fast delivery.',
+                card_ocio_title: 'Entertainment & Events', card_ocio_desc: 'Discover events, bars, restaurants and shows. Request a trip directly from the guide.',
+                maas_title: 'Mobility as a Service',
+                maas_desc: 'UrbanFlow is a comprehensive urban mobility platform that integrates multiple modes of transportation and services in one app. We are not just a ride app — we are your complete mobility companion.',
+                maas_1_title: 'Multiplatform', maas_1_desc: 'Android, iOS and web. Your account and data synced across all your devices.',
+                maas_2_title: 'Multi-country', maas_2_desc: 'Uruguay, Argentina, Brazil, Chile and Paraguay. Travel across borders with the same app.',
+                maas_3_title: 'Integrated', maas_3_desc: 'Rides, deliveries, delivery, marketplace and entertainment. All connected in one platform.',
+                maas_4_title: 'Real-time', maas_4_desc: 'GPS tracking, traffic alerts, driver availability. Instant information.',
+                stat_1: 'Trips completed', stat_2: 'Active drivers', stat_3: 'Connected businesses', stat_4: 'Available countries',
+                roles_tag: 'Platform', roles_title: 'One platform, three experiences',
+                role_chofer_title: 'I am a Driver', role_chofer_desc: 'Earn money with your car. Flexible hours, weekly payments and an app that accompanies you on every trip.', role_chofer_link: 'Register as a driver →',
+                role_usuario_title: 'I am a Passenger', role_usuario_desc: 'Travel fast and safe wherever you want. Request your trip in seconds and follow your driver in real time.', role_usuario_link: 'Create your account →',
+                role_negocio_title: 'Services', role_negocio_desc: 'Share your business on the platform. Receive orders, manage deliveries and grow your company.', role_negocio_link: 'Join UrbanFlow →',
+                cta_title: 'We are ready to take you', cta_desc: 'Download the app and start traveling today', cta_btn: 'Download app',
+                footer_brand: 'Safe, fast and reliable transportation. Whether you want to earn money driving or reach your destination.',
+                footer_chofers: 'Drivers', footer_pasajeros: 'Passengers', footer_empresa: 'Company',
+                footer_registrarse: 'Register', footer_crear_cuenta: 'Create account', footer_tarifas: 'Pricing', footer_seguridad: 'Safety', footer_ayuda: 'Help',
+                footer_sobre: 'About us', footer_blog: 'Blog', footer_prensa: 'Press', footer_contacto: 'Contact',
+                footer_copyright: '© 2026 UrbanFlow. All rights reserved.'
+            }
+        };
+
+        let currentLang = localStorage.getItem('uf_lang') || 'es';
+
+        function applyTranslations(lang) {
+            currentLang = lang;
+            const t = translations[lang] || translations.es;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.textContent = t[key];
+            });
+        }
+
         function toggleMenu() {
             document.getElementById('mobileMenu').classList.toggle('open');
         }
@@ -703,6 +847,7 @@
             document.getElementById('navFlagImg').src = flagImg;
             document.getElementById('navLang').textContent = langCode;
             updateCityBadge(country);
+            applyTranslations(lang);
             document.querySelectorAll('.lang-option').forEach(el => el.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
             setTimeout(() => {
@@ -722,9 +867,11 @@
 
         (function detectLocation() {
             const saved = localStorage.getItem('uf_country');
+            const savedLang = localStorage.getItem('uf_lang');
             if (saved) {
                 updateCityBadge(saved);
                 setNavFlag(saved);
+                if (savedLang) applyTranslations(savedLang);
                 return;
             }
             fetch('https://ipapi.co/json/')
@@ -733,11 +880,15 @@
                     const country = data.country_code || 'UY';
                     updateCityBadge(country);
                     setNavFlag(country);
+                    const lang = country === 'BR' ? 'pt' : 'es';
+                    applyTranslations(lang);
                     localStorage.setItem('uf_country', country);
+                    localStorage.setItem('uf_lang', lang);
                 })
                 .catch(() => {
                     updateCityBadge('UY');
                     setNavFlag('UY');
+                    applyTranslations('es');
                 });
         })();
 
