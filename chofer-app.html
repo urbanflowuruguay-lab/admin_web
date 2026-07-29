@@ -22,24 +22,31 @@
         .hero-btn { display: inline-block; padding: 16px 32px; background: #E63946; color: #fff; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
         .hero-btn:hover { background: #DC2626; transform: translateY(-2px); }
 
+        .steps { padding: 60px 32px; max-width: 1000px; margin: 0 auto; }
+        .step { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; margin-bottom: 100px; }
+        .step.reverse { direction: rtl; }
+        .step.reverse > * { direction: ltr; }
+        .step-number { font-size: 80px; font-weight: 800; color: rgba(230,57,70,0.2); line-height: 1; margin-bottom: 16px; }
+        .step h2 { font-size: 28px; font-weight: 700; margin-bottom: 16px; }
+        .step p { font-size: 16px; color: rgba(255,255,255,0.7); line-height: 1.7; margin-bottom: 16px; }
+        .step ul { list-style: none; margin-top: 16px; }
+        .step li { padding: 8px 0; font-size: 15px; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 10px; }
+        .step li::before { content: '✓'; color: #E63946; font-weight: 700; }
+
+        .phone-frame { background: #1B2A4A; border-radius: 32px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 300px; margin: 0 auto; }
+        .phone-screen { background: #2a3a5c; border-radius: 24px; aspect-ratio: 9/16; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.15); }
+        .phone-label { text-align: center; margin-top: 12px; font-size: 13px; color: rgba(255,255,255,0.5); }
+
         .screenshots { padding: 60px 32px 100px; max-width: 1200px; margin: 0 auto; }
         .screenshots h2 { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 48px; }
         .screens-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; }
 
-        .phone-frame {
-            background: #1B2A4A; border-radius: 32px; padding: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .phone-screen {
-            background: #2a3a5c; border-radius: 24px; aspect-ratio: 9/16;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.15);
-            position: relative; overflow: hidden;
-        }
-        .phone-screen span { position: relative; z-index: 1; }
-        .phone-label { text-align: center; margin-top: 16px; font-size: 14px; color: rgba(255,255,255,0.6); }
-
         footer { background: #0a1220; padding: 40px 32px; text-align: center; color: rgba(255,255,255,0.5); font-size: 14px; }
+
+        @media (max-width: 768px) {
+            .step { grid-template-columns: 1fr; gap: 32px; text-align: center; }
+            .step.reverse { direction: ltr; }
+        }
     </style>
 </head>
 <body>
@@ -52,8 +59,92 @@
 
     <section class="hero">
         <h1>Ser Chofer en UrbanFlow</h1>
-        <p>Gana dinero con tu auto, elegí tus horarios y trabajá a tu ritmo. Conocé cómo funciona la app para choferes.</p>
+        <p>Gana dinero con tu auto, elegí tus horarios y trabajá a tu ritmo. Conocé el proceso de registro y cómo configurar tu trabajo.</p>
         <a href="/login.html?role=chofer" class="hero-btn">Registrate ahora</a>
+    </section>
+
+    <section class="steps">
+        <div class="step">
+            <div>
+                <div class="step-number">01</div>
+                <h2>Registrate</h2>
+                <p>Dejá todos tus datos personales y de vehículo para que nuestro equipo pueda verificarte. Esto incluye tu libreta de conducir, cédula del vehículo y documentación requerida.</p>
+                <ul>
+                    <li>Datos personales completos</li>
+                    <li>Libreta de conducir (frente y dorso)</li>
+                    <li>Cédula del vehículo</li>
+                    <li>Foto del vehículo</li>
+                    <li>Número de teléfono</li>
+                </ul>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen">1</div>
+                </div>
+                <p class="phone-label">Formulario de registro</p>
+            </div>
+        </div>
+
+        <div class="step reverse">
+            <div>
+                <div class="step-number">02</div>
+                <h2>Verificación</h2>
+                <p>El equipo de UrbanFlow revisa tu documentación. Si la verificación es positiva, podrás trabajar en el lugar donde tenés tu habilitación, según las regulaciones locales.</p>
+                <ul>
+                    <li>Revisión de documentación</li>
+                    <li>Verificación de antecedentes</li>
+                    <li>Aprobación según habilitación local</li>
+                    <li>Notificación por la app</li>
+                </ul>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen">2</div>
+                </div>
+                <p class="phone-label">Estado de verificación</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div>
+                <div class="step-number">03</div>
+                <h2>Configurá tus reglas</h2>
+                <p>Siendo chofer aprobado, creá tus reglas de trabajo. Elegí los parámetros más importantes para vos:</p>
+                <ul>
+                    <li><strong>Precio por km:</strong> Vos elegís cuánto cobrás por kilómetro</li>
+                    <li><strong>Precio mínimo:</strong> Tarifa mínima por viaje</li>
+                    <li><strong>Mascotas:</strong> Si aceptás o no, y cuánto cobrás (o si es gratis)</li>
+                    <li><strong>Complementos:</strong> Viajes asociados a entregas de comida rápida. Solo sacrificás la tarifa mínima, pero seguís cobrando tu precio por km</li>
+                    <li><strong>Paquetes:</strong> Si aceptás o no llevar paquetes</li>
+                </ul>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen">3</div>
+                </div>
+                <p class="phone-label">Configuración de reglas</p>
+            </div>
+        </div>
+
+        <div class="step reverse">
+            <div>
+                <div class="step-number">04</div>
+                <h2>¿Qué son los complementos?</h2>
+                <p>Todo viaje que se haga para negocios se llama <strong>complemento</strong>. Son entregas de comida rápida donde solo sacrificás el valor de la tarifa mínima, pero seguís cobrando el precio por km que elegiste. Esto te permite ganar extra mientras trabajás.</p>
+                <ul>
+                    <li>Entregas de comida rápida</li>
+                    <li>Sacrificás tarifa mínima, cobrás tu precio por km</li>
+                    <li>Ganá extra con viajes de negocios</li>
+                    <li>Colaborás con los negocios de UrbanFlow</li>
+                </ul>
+            </div>
+            <div>
+                <div class="phone-frame">
+                    <div class="phone-screen">4</div>
+                </div>
+                <p class="phone-label">Mapa de viajes</p>
+            </div>
+        </div>
     </section>
 
     <section class="screenshots">
@@ -61,39 +152,21 @@
         <div class="screens-grid">
             <div>
                 <div class="phone-frame">
-                    <div class="phone-screen"><span>1</span></div>
-                </div>
-                <p class="phone-label">Pantalla de inicio</p>
-            </div>
-            <div>
-                <div class="phone-frame">
-                    <div class="phone-screen"><span>2</span></div>
-                </div>
-                <p class="phone-label">Mapa de viajes</p>
-            </div>
-            <div>
-                <div class="phone-frame">
-                    <div class="phone-screen"><span>3</span></div>
-                </div>
-                <p class="phone-label">Detalle de viaje</p>
-            </div>
-            <div>
-                <div class="phone-frame">
-                    <div class="phone-screen"><span>4</span></div>
+                    <div class="phone-screen">5</div>
                 </div>
                 <p class="phone-label">Ganancias</p>
             </div>
             <div>
                 <div class="phone-frame">
-                    <div class="phone-screen"><span>5</span></div>
+                    <div class="phone-screen">6</div>
                 </div>
-                <p class="phone-label">Configuración</p>
+                <p class="phone-label">Historial de viajes</p>
             </div>
             <div>
                 <div class="phone-frame">
-                    <div class="phone-screen"><span>6</span></div>
+                    <div class="phone-screen">7</div>
                 </div>
-                <p class="phone-label">Historial</p>
+                <p class="phone-label">Configuración</p>
             </div>
         </div>
     </section>
