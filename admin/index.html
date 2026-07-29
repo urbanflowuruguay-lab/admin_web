@@ -161,7 +161,11 @@
 
         function toggleAdmin() {
             const el = document.getElementById('adminOverlay');
-            el.style.display = el.style.display === 'none' || !el.style.display ? 'none' : '';
+            if(el.style.display === 'block') {
+                el.style.display = 'none';
+            } else {
+                el.style.display = 'block';
+            }
         }
 
         const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
