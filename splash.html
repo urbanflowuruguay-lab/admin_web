@@ -26,31 +26,39 @@
         }
 
         .flags-ring {
-            position: relative; width: 200px; height: 200px; margin-bottom: 40px;
+            position: relative; width: 240px; height: 240px; margin-bottom: 40px;
         }
         .flag-item {
-            position: absolute; width: 56px; height: 56px; border-radius: 50%;
+            position: absolute; top: 50%; left: 50%;
+            width: 56px; height: 56px; margin: -28px 0 0 -28px;
+            border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             background: rgba(255,255,255,0.08);
             border: 2px solid rgba(255,255,255,0.1);
-            animation: orbit 4s linear infinite;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             overflow: hidden;
         }
         .flag-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        .flag-item:nth-child(1) { animation-delay: 0s; }
-        .flag-item:nth-child(2) { animation-delay: -0.5s; }
-        .flag-item:nth-child(3) { animation-delay: -1s; }
-        .flag-item:nth-child(4) { animation-delay: -1.5s; }
-        .flag-item:nth-child(5) { animation-delay: -2s; }
-        .flag-item:nth-child(6) { animation-delay: -2.5s; }
-        .flag-item:nth-child(7) { animation-delay: -3s; }
-        .flag-item:nth-child(8) { animation-delay: -3.5s; }
+        .flag-item:nth-child(1) { animation: orbit 4s linear infinite; transform: rotate(0deg) translateY(-100px); }
+        .flag-item:nth-child(2) { animation: orbit 4s linear infinite; transform: rotate(72deg) translateY(-100px); }
+        .flag-item:nth-child(3) { animation: orbit 4s linear infinite; transform: rotate(144deg) translateY(-100px); }
+        .flag-item:nth-child(4) { animation: orbit 4s linear infinite; transform: rotate(216deg) translateY(-100px); }
+        .flag-item:nth-child(5) { animation: orbit 4s linear infinite; transform: rotate(288deg) translateY(-100px); }
 
         @keyframes orbit {
-            0% { transform: rotate(0deg) translateX(100px) rotate(0deg); }
-            100% { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+            0% { transform: rotate(0deg) translateY(-100px); }
+            100% { transform: rotate(360deg) translateY(-100px); }
         }
+        .flag-item:nth-child(2) { animation-name: orbit2; }
+        .flag-item:nth-child(3) { animation-name: orbit3; }
+        .flag-item:nth-child(4) { animation-name: orbit4; }
+        .flag-item:nth-child(5) { animation-name: orbit5; }
+        @keyframes orbit2 { 0% { transform: rotate(72deg) translateY(-100px); } 100% { transform: rotate(432deg) translateY(-100px); } }
+        @keyframes orbit3 { 0% { transform: rotate(144deg) translateY(-100px); } 100% { transform: rotate(504deg) translateY(-100px); } }
+        @keyframes orbit4 { 0% { transform: rotate(216deg) translateY(-100px); } 100% { transform: rotate(576deg) translateY(-100px); } }
+        @keyframes orbit5 { 0% { transform: rotate(288deg) translateY(-100px); } 100% { transform: rotate(648deg) translateY(-100px); } }
+
+        .flags-ring.stop .flag-item { animation-play-state: paused; }
 
         .splash-text {
             font-size: 16px; color: rgba(255,255,255,0.6);
@@ -141,7 +149,7 @@
 
     <div class="splash" id="splash">
         <img src="/logouf.png" alt="UrbanFlow" class="splash-logo">
-        <div class="flags-ring">
+        <div class="flags-ring" id="flagsRing">
             <div class="flag-item"><img src="/banderauruguay.png" alt="Uruguay"></div>
             <div class="flag-item"><img src="/banderaargentina.png" alt="Argentina"></div>
             <div class="flag-item"><img src="/banderabrasil.png" alt="Brasil"></div>
@@ -174,6 +182,7 @@
         let selectedLang = 'es';
         let detectedCountry = 'UY';
         let soundEnabled = false;
+        let musicDuration = 0;
         const audio = document.getElementById('bgMusic');
         const btn = document.getElementById('soundBtn');
 
@@ -194,19 +203,40 @@
                 audio.volume = 0.5;
                 audio.play().then(() => {
                     btn.textContent = '🔊';
+                    startMusicTimer();
                 }).catch(e => {
                     console.log('Audio play failed:', e);
-                    btn.textContent = '🔇';
                 });
             }
             soundEnabled = !soundEnabled;
         }
+
+        function startMusicTimer() {
+            if (audio.duration && audio.duration > 0) {
+                musicDuration = audio.duration;
+                const stopTime = (musicDuration - 3) * 1000;
+                if (stopTime > 0) {
+                    setTimeout(() => {
+                        document.getElementById('flagsRing').classList.add('stop');
+                    }, stopTime);
+                }
+            }
+        }
+
+        audio.addEventListener('loadedmetadata', () => {
+            if (soundEnabled) startMusicTimer();
+        });
+
+        audio.addEventListener('durationchange', () => {
+            if (soundEnabled && audio.duration > 0) startMusicTimer();
+        });
 
         function tryAutoplay() {
             audio.volume = 0.5;
             audio.play().then(() => {
                 soundEnabled = true;
                 btn.textContent = '🔊';
+                startMusicTimer();
             }).catch(() => {
                 btn.textContent = '🔇';
             });
@@ -236,6 +266,7 @@
             localStorage.setItem('uf_country', detectedCountry);
             localStorage.setItem('uf_lang', selectedLang);
             localStorage.setItem('uf_splash_done', '1');
+            audio.pause();
             window.location.href = '/';
         }
 
