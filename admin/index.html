@@ -74,9 +74,8 @@
 
         let currentFilter = 'all';
         const markers = {};
-        const lastBroadcast = {};
-        const presenceIds = new Set();
-        let firstFound = false;
+            const lastBroadcast = {};
+            let firstFound = false;
 
         const map = new maplibregl.Map({
             container: 'map',
@@ -159,22 +158,12 @@
             sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             ch = sb.channel('monitoreo_choferes');
             ch.on('presence', {event:'sync'}, () => {
-                const st = ch.presenceState();
-                const newIds = new Set();
-                Object.values(st).forEach(arr => arr.forEach(p => {
-                    const id = String(p.id||p.user_id);
-                    if(id && !id.startsWith('admin')) newIds.add(id);
-                }));
-                presenceIds.forEach(id => {
-                    if(!newIds.has(id)) removeMarker(id);
-                });
-                newIds.forEach(id => presenceIds.add(id));
             })
             .on('presence', {event:'leave'}, ({leftPresences}) => {
                 if(leftPresences) {
                     leftPresences.forEach(p => {
                         const id = String(p.id||p.user_id);
-                        if(id) { presenceIds.delete(id); removeMarker(id); }
+                        if(id) removeMarker(id);
                     });
                 }
             })
@@ -182,13 +171,11 @@
             .on('broadcast', {event:'connection'}, ({payload}) => {
                 if(payload && payload.online === false && payload.id) {
                     removeMarker(String(payload.id));
-                    presenceIds.delete(String(payload.id));
                 }
             })
             .on('broadcast', {event:'disconnect'}, ({payload}) => {
                 if(payload && payload.id) {
                     removeMarker(String(payload.id));
-                    presenceIds.delete(String(payload.id));
                 }
             })
             .subscribe((s) => {
@@ -203,17 +190,17 @@
 
         setup();
 
-        setInterval(() => {
-            if(!ch) return;
-            try {
-                const now = Date.now();
-                Object.keys(markers).forEach(id => {
-                    if(!presenceIds.has(id) || (now - lastBroadcast[id] > 2000)) {
-                        removeMarker(id);
-                    }
-                });
-            } catch(_){}
-        }, 500);
+            setInterval(() => {
+                if(!ch) return;
+                try {
+                    const now = Date.now();
+                    Object.keys(markers).forEach(id => {
+                        if(now - lastBroadcast[id] > 3000) {
+                            removeMarker(id);
+                        }
+                    });
+                } catch(_){}
+            }, 500);
     </script>
 </body>
 </html>
