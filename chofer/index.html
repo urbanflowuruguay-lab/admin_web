@@ -108,30 +108,30 @@
 
         async function loadProfile() {
             const { data: profile } = await sb.from("perfiles").select("*").eq("id", userId).single();
-            const { data: chofer } = await sb.from("choferes").select("*").eq("user_id", userId).single();
 
-            if (!chofer) {
-                document.getElementById("profileInfo").innerHTML = '<p style="color:#f85149;">No se encontro tu registro de chofer.</p>';
+            if (!profile || profile.type !== "chofer") {
+                document.getElementById("profileInfo").innerHTML = '<p style="color:#f85149;">No se encontro tu perfil de chofer.</p>';
                 return;
             }
 
-            const statusClass = chofer.status === 'habilitado' ? 'status-habilitado' : chofer.status === 'rechazado' ? 'status-rechazado' : 'status-pendiente';
-            const statusText = chofer.status === 'habilitado' ? 'Habilitado' : chofer.status === 'rechazado' ? 'Rechazado' : 'Pendiente';
+            const statusClass = profile.status === 'aprobado' ? 'status-habilitado' : profile.status === 'rechazado' ? 'status-rechazado' : 'status-pendiente';
+            const statusText = profile.status === 'aprobado' ? 'Aprobado' : profile.status === 'rechazado' ? 'Rechazado' : 'Pendiente';
 
             document.getElementById("profileInfo").innerHTML = `
-                <div class="info-row"><span class="info-label">Nombre</span><span class="info-value">${chofer.nombre || '-'}</span></div>
-                <div class="info-row"><span class="info-label">Email</span><span class="info-value">${profile?.email || '-'}</span></div>
-                <div class="info-row"><span class="info-label">Telefono</span><span class="info-value">${chofer.telefono || '-'}</span></div>
-                <div class="info-row"><span class="info-label">Vehiculo</span><span class="info-value">${chofer.tipo_vehiculo || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Nombre</span><span class="info-value">${profile.full_name || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Email</span><span class="info-value">${profile.email || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Telefono</span><span class="info-value">${profile.phone || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Vehiculo</span><span class="info-value">${profile.tipo_vehiculo || '-'}</span></div>
+                <div class="info-row"><span class="info-label">Matricula</span><span class="info-value">${profile.matricula || '-'}</span></div>
                 <div class="info-row"><span class="info-label">Estado</span><span class="status-badge ${statusClass}">${statusText}</span></div>
             `;
 
-            if (chofer.status === 'pendiente') {
+            if (profile.status === 'pendiente') {
                 document.getElementById("pendingCard").style.display = '';
-            } else if (chofer.status === 'habilitado') {
+            } else if (profile.status === 'aprobado') {
                 document.getElementById("activeCard").style.display = '';
                 loadFiles();
-            } else if (chofer.status === 'rechazado') {
+            } else if (profile.status === 'rechazado') {
                 document.getElementById("rejectedCard").style.display = '';
             }
         }

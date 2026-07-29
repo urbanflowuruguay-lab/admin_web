@@ -88,20 +88,12 @@
             <form onsubmit="handleSubmit(event)">
                 <div class="register-fields" id="registerFields">
                     <div class="form-group">
-                        <label for="nombre">Nombre completo</label>
-                        <input type="text" id="nombre" placeholder="Tu nombre">
+                        <label for="regEmail">Email (se usara para iniciar sesion)</label>
+                        <input type="email" id="regEmail" placeholder="tu@email.com">
                     </div>
                     <div class="form-group">
-                        <label for="telefono">Telefono</label>
-                        <input type="tel" id="telefono" placeholder="+598 99 123 456">
-                    </div>
-                    <div class="form-group" id="vehiculoGroup" style="display:none;">
-                        <label for="vehiculo">Tipo de vehiculo</label>
-                        <select id="vehiculo">
-                            <option value="auto">Auto</option>
-                            <option value="moto">Moto</option>
-                            <option value="van">Van</option>
-                        </select>
+                        <label for="regPassword">Contrasena (minimo 6 caracteres)</label>
+                        <input type="password" id="regPassword" placeholder="Minimo 6 caracteres">
                     </div>
                 </div>
                 <div class="form-group">
@@ -164,7 +156,6 @@
             document.getElementById("registerFields").style.display = isRegister ? "" : "none";
             document.getElementById("toggleText").textContent = isRegister ? "Ya tenes cuenta?" : "No tenes cuenta?";
             document.getElementById("toggleLink").textContent = isRegister ? "Inicia sesion" : "Registrate";
-            document.getElementById("vehiculoGroup").style.display = (isRegister && role === "chofer") ? "" : "none";
             showError("");
         }
 
@@ -182,31 +173,20 @@
 
             let result;
             if (isRegister) {
-                const nombre = document.getElementById("nombre").value.trim();
-                const telefono = document.getElementById("telefono").value.trim();
-                result = await sb.auth.signUp({ email, password, options: { data: { nombre, telefono, role } } });
+                const regEmail = document.getElementById("regEmail").value.trim();
+                const regPass = document.getElementById("regPassword").value.trim();
+                if (!regEmail || !regPass) { showError("Completa email y contrasena"); return; }
+                if (regPass.length < 6) { showError("La contrasena debe tener al menos 6 caracteres"); return; }
+
+                result = await sb.auth.signUp({ email: regEmail, password: regPass, options: { data: { role } } });
 
                 if (!result.error && result.data.user) {
                     await sb.from("perfiles").upsert({
                         id: result.data.user.id,
-                        email: email,
-                        full_name: nombre,
-                        phone: telefono,
+                        email: regEmail,
                         type: role,
-                        role: role === "admin" ? "admin" : "user",
-                        status: "activo"
+                        status: "pendiente"
                     });
-
-                    if (role === "chofer") {
-                        const vehiculo = document.getElementById("vehiculo").value;
-                        await sb.from("choferes").upsert({
-                            user_id: result.data.user.id,
-                            nombre: nombre,
-                            telefono: telefono,
-                            tipo_vehiculo: vehiculo,
-                            status: "pendiente"
-                        });
-                    }
 
                     if (result.data.session) {
                         await redirectByRole(result.data.user.id);
@@ -235,38 +215,28 @@
         }
 
         async function redirectByRole(userId) {
-            const { data: profile } = await sb.from("perfiles").select("type, role, status").eq("id", userId).single();
+            const { data: profile } = await sb.from("perfiles").select("type, status, role").eq("id", userId).single();
 
             if (profile && profile.role === "admin") {
                 window.location.href = "/admin/";
                 return;
             }
 
-            const { data: empresas } = await sb.from("empresas").select("id, status").eq("usuario_id", userId);
-            if (empresas && empresas.length > 0) {
-                if (empresas[0].status === "aprobado") { window.location.href = "/empresa/"; return; }
-                showError("Tu empresa esta " + empresas[0].status + ". Espera aprobacion.");
+            if (profile && profile.type === "chofer") {
+                if (profile.status === "aprobado") { window.location.href = "/chofer/"; return; }
+                showError("Tu cuenta de chofer esta " + profile.status + ".");
                 await sb.auth.signOut();
                 return;
             }
 
-            if (role === "chofer") {
-                const { data: chofer } = await sb.from("choferes").select("id, status").eq("user_id", userId).single();
-                if (chofer) {
-                    if (chofer.status === "habilitado") { window.location.href = "/chofer/"; return; }
-                    showError("Tu cuenta de chofer esta " + chofer.status + ".");
-                    await sb.auth.signOut();
-                    return;
-                }
-            }
-
-            if (profile && (profile.type === "chofer" || profile.type === "usuario" || profile.type === "servicios")) {
-                showError("Tu cuenta esta pendiente. Pronto podras acceder.");
+            if (profile && profile.type === "servicios") {
+                if (profile.status === "aprobado") { window.location.href = "/servicios/"; return; }
+                showError("Tu cuenta esta " + profile.status + ".");
                 await sb.auth.signOut();
                 return;
             }
 
-            showError("Tu cuenta no tiene acceso. Usa la app movil.");
+            showError("Tu cuenta esta pendiente. Pronto podras acceder.");
             await sb.auth.signOut();
         }
 
