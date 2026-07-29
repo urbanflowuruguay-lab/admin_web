@@ -75,6 +75,14 @@
         .hero-actions a.white:hover { background: #F1F5F9; transform: translateY(-2px); }
         .hero-actions a.ghost { color: #fff; border: 2px solid rgba(255,255,255,0.3); }
         .hero-actions a.ghost:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
+        .hero-tags {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px;
+        }
+        .htag {
+            padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+            background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
 
         .hero-city {
             width: 120%; max-width: 800px; margin-top: 30px;
@@ -341,10 +349,18 @@
     <section class="hero">
         <div class="hero-content">
             <h1>La ciudad en tus manos</h1>
-            <p>Pedí un viaje a través de la app o registrate para conducir con nosotros. En tu ciudad, a tu ritmo y en cualquier lugar.</p>
+            <p>UrbanFlow es una plataforma de movilidad urbana que conecta chofers, pasajeros y negocios en una sola app. Viajá, enviá, pedí comida o descubrí eventos — todo desde un mismo lugar, en tiempo real y sin complicaciones.</p>
+            <div class="hero-tags">
+                <span class="htag">🚗 Viajes</span>
+                <span class="htag">📦 Envíos</span>
+                <span class="htag">🍔 Delivery</span>
+                <span class="htag">🛒 Marketplace</span>
+                <span class="htag">🎭 Ocio</span>
+            </div>
             <div class="hero-actions">
-                <a href="/login.html?role=chofer" class="white">Conduce con nosotros</a>
-                <a href="/login.html?role=usuario" class="ghost">Pedí un viaje</a>
+                <a href="/login.html?role=chofer" class="white">Quiero ser chofer</a>
+                <a href="/login.html?role=usuario" class="ghost">Soy pasajero</a>
+                <a href="/login.html?role=servicios" class="ghost">Tengo un negocio</a>
             </div>
             <img src="/ciudad.png" alt="Ciudad" class="hero-city" id="heroCity">
         </div>
