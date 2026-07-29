@@ -519,6 +519,10 @@
         }
 
         (function detectLocation() {
+            if (!localStorage.getItem('uf_splash_done')) {
+                window.location.href = '/splash.html';
+                return;
+            }
             const saved = localStorage.getItem('uf_country');
             if (saved) {
                 updateCityBadge(saved);
