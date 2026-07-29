@@ -136,12 +136,14 @@
         const mapSection = document.getElementById('mapSection');
         let mapInited = false;
 
+        let liveMapObj = null;
         function showMap(e) {
             e.preventDefault();
             iframe.style.display = 'none';
             mapSection.style.display = '';
             title.innerText = 'Mapa en Vivo';
             if(!mapInited) { mapInited = true; initLiveMap(); }
+            else if(liveMapObj) { setTimeout(() => liveMapObj.resize(), 50); }
         }
 
         document.querySelectorAll('nav a[onclick*="viewFrame"]').forEach(link => {
@@ -172,6 +174,7 @@
                 style: 'https://tiles.openfreemap.org/styles/dark',
                 center: [-56.1645, -34.9011], zoom: 13
             });
+            liveMapObj = liveMap;
 
             function updateCounter() {
                 let count = 0;
