@@ -13,13 +13,14 @@
         .nav {
             position: fixed; top: 0; left: 0; right: 0; z-index: 100;
             background: rgba(27,42,74,0.95); backdrop-filter: blur(20px);
-            padding: 0 32px; height: 72px;
-            display: flex; align-items: center; justify-content: space-between;
+            height: 72px;
+            display: flex; align-items: center; justify-content: center;
             transition: box-shadow 0.3s;
         }
         .nav.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
-        .nav-left { position: absolute; left: calc(50% - 568px); display: flex; align-items: center; }
-        .nav-logo { display: flex; align-items: center; text-decoration: none; margin: 0 auto; }
+        .nav-inner { width: 100%; max-width: 1200px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; position: relative; }
+        .nav-left { display: flex; align-items: center; }
+        .nav-logo { display: flex; align-items: center; text-decoration: none; }
         .nav-logo img { height: 50px; filter: brightness(0) invert(1); }
         .nav-links { display: flex; align-items: center; gap: 4px; }
         .nav-links a {
@@ -324,23 +325,25 @@
 </head>
 <body>
     <nav class="nav" id="nav">
-        <div class="nav-left">
-            <button class="lang-selector" onclick="openLangModal()">
-                <img class="flag-img" id="navFlagImg" src="/banderauruguay.png" alt="UY">
-                <span id="navLang">ES</span>
+        <div class="nav-inner">
+            <div class="nav-left">
+                <button class="lang-selector" onclick="openLangModal()">
+                    <img class="flag-img" id="navFlagImg" src="/banderauruguay.png" alt="UY">
+                    <span id="navLang">ES</span>
+                </button>
+            </div>
+            <a href="/" class="nav-logo">
+                <img src="/logouf.png" alt="UrbanFlow">
+            </a>
+            <div class="nav-links">
+                <a href="#roles">Chofers</a>
+                <a href="#features">Servicios</a>
+                <a href="#roles">Pasajeros</a>
+            </div>
+            <button class="hamburger" onclick="toggleMenu()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
         </div>
-        <a href="/" class="nav-logo">
-            <img src="/logouf.png" alt="UrbanFlow">
-        </a>
-        <div class="nav-links">
-            <a href="#roles">Chofers</a>
-            <a href="#features">Servicios</a>
-            <a href="#roles">Pasajeros</a>
-        </div>
-        <button class="hamburger" onclick="toggleMenu()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
     </nav>
 
     <div class="mobile-menu" id="mobileMenu">
