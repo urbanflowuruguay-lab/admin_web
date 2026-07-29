@@ -3,185 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrbanFlow — Tu ciudad, tu movimiento</title>
-    <meta name="description" content="UrbanFlow: la plataforma de transporte que conecta tu ciudad. Solicita viajes, gestiona tu negocio y más.">
+    <title>UrbanFlow — Transporte inteligente</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #011122;
-            color: #e6edf3;
-            min-height: 100vh;
-        }
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 40px 20px;
-            background: radial-gradient(ellipse at 50% 0%, rgba(108,99,255,0.15) 0%, transparent 60%);
-        }
-        .banner-wrap {
-            width: 100%; max-width: 960px; margin-bottom: 30px; position: relative;
-        }
-        .banner-wrap img { width: 100%; height: auto; border-radius: 12px; display: block; }
-        .banner-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .banner-overlay img { max-width: 200px; margin-bottom: 8px; }
-        .banner-overlay p { color: #e6edf3; font-size: 16px; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
-        .tagline {
-            font-size: 20px; color: #8b949e; margin-bottom: 60px;
-            max-width: 500px; line-height: 1.5;
-        }
-        .roles {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 28px;
-            max-width: 960px;
-            width: 100%;
-            margin-bottom: 60px;
-        }
-        @media (max-width: 768px) {
-            .roles { grid-template-columns: 1fr; max-width: 360px; }
-            .hero { padding: 20px 15px; }
-            .banner-overlay img { max-width: 140px; }
-            .banner-overlay p { font-size: 13px; }
-            .role-card { padding: 28px 20px; }
-            .role-icon { font-size: 40px; }
-            .role-card h2 { font-size: 18px; }
-            .role-card p { font-size: 13px; }
-            .app-badges { flex-direction: column; align-items: center; }
-            .app-badge { width: 100%; max-width: 260px; justify-content: center; }
-        }
-        .role-card {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 16px;
-            padding: 40px 28px;
-            text-align: center;
-            transition: all 0.3s;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .role-card:hover {
-            border-color: #58A6FF;
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(88,166,255,0.15);
-        }
-        .role-icon {
-            font-size: 52px;
-            margin-bottom: 20px;
-            display: block;
-        }
-        .role-card h2 {
-            font-size: 22px;
-            margin-bottom: 12px;
-            color: #e6edf3;
-        }
-        .role-card p {
-            font-size: 14px;
-            color: #8b949e;
-            line-height: 1.6;
-            margin-bottom: 24px;
-        }
-        .role-btn {
-            display: inline-block;
-            padding: 12px 32px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            margin-top: auto;
-        }
-        .role-chofer .role-btn { background: #da3633; color: white; }
-        .role-chofer .role-btn:hover { background: #f85149; }
-        .role-chofer:hover { border-color: #da3633; box-shadow: 0 8px 30px rgba(218,54,51,0.15); }
-        .role-usuario .role-btn { background: #6C63FF; color: white; }
-        .role-usuario .role-btn:hover { background: #5a52e0; }
-        .role-usuario:hover { border-color: #6C63FF; box-shadow: 0 8px 30px rgba(108,99,255,0.15); }
-        .role-servicios .role-btn { background: #238636; color: white; }
-        .role-servicios .role-btn:hover { background: #2ea043; }
-        .role-servicios:hover { border-color: #238636; box-shadow: 0 8px 30px rgba(35,134,54,0.15); }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #fff; color: #1a1a2e; -webkit-font-smoothing: antialiased; }
 
-        .app-badges {
-            display: flex; gap: 12px; justify-content: center;
+        .nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(255,255,255,0.92); backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            padding: 0 24px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .app-badge {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 10px 20px; background: #161b22;
-            border: 1px solid #30363d; border-radius: 8px;
-            color: #e6edf3; text-decoration: none; font-size: 13px;
-            transition: border-color 0.2s;
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-logo img { height: 36px; }
+        .nav-logo span { font-size: 18px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.3px; }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-links a {
+            padding: 10px 20px; border-radius: 999px; font-size: 14px; font-weight: 500;
+            text-decoration: none; transition: all 0.2s ease;
         }
-        .app-badge:hover { border-color: #58A6FF; }
-        .app-badge .store { font-size: 10px; color: #8b949e; }
+        .nav-links a.outline { color: #1a1a2e; border: 1.5px solid #d1d5db; }
+        .nav-links a.outline:hover { border-color: #1a1a2e; background: #f9fafb; }
+        .nav-links a.filled { background: #1a1a2e; color: #fff; border: 1.5px solid #1a1a2e; }
+        .nav-links a.filled:hover { background: #000; }
+        .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
+        .hamburger svg { width: 24px; height: 24px; }
+        .mobile-menu {
+            display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
+            background: #fff; z-index: 99; padding: 24px; flex-direction: column; gap: 8px;
+        }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a {
+            padding: 16px 20px; border-radius: 12px; font-size: 16px; font-weight: 500;
+            text-decoration: none; color: #1a1a2e; transition: background 0.2s;
+        }
+        .mobile-menu a:hover { background: #f3f4f6; }
+
+        .hero {
+            padding: 120px 24px 80px; max-width: 1280px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+            min-height: 100vh;
+        }
+        .hero-text h1 {
+            font-size: clamp(40px, 5vw, 64px); font-weight: 800; line-height: 1.05;
+            letter-spacing: -1.5px; margin-bottom: 24px; color: #1a1a2e;
+        }
+        .hero-text h1 span { color: #da3633; }
+        .hero-text p {
+            font-size: 18px; line-height: 1.6; color: #6b7280;
+            margin-bottom: 40px; max-width: 480px;
+        }
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .hero-actions a {
+            padding: 16px 32px; border-radius: 12px; font-size: 16px; font-weight: 600;
+            text-decoration: none; transition: all 0.2s ease;
+        }
+        .hero-actions a.primary { background: #1a1a2e; color: #fff; }
+        .hero-actions a.primary:hover { background: #000; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .hero-actions a.secondary { color: #1a1a2e; border: 1.5px solid #d1d5db; }
+        .hero-actions a.secondary:hover { border-color: #1a1a2e; background: #f9fafb; }
+        .hero-image {
+            position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 24px;
+            overflow: hidden; background: #f3f4f6;
+        }
+        .hero-image img { width: 100%; height: 100%; object-fit: cover; }
+        .hero-badge {
+            position: absolute; bottom: 20px; left: 20px; background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 12px;
+            display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .hero-badge .dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .roles {
+            padding: 100px 24px; background: #f9fafb;
+        }
+        .roles-inner { max-width: 1280px; margin: 0 auto; }
+        .roles-header {
+            text-align: center; margin-bottom: 64px;
+        }
+        .roles-header h2 {
+            font-size: clamp(32px, 4vw, 44px); font-weight: 800; letter-spacing: -1px;
+            margin-bottom: 16px;
+        }
+        .roles-header p { font-size: 18px; color: #6b7280; max-width: 560px; margin: 0 auto; }
+        .roles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .role-card {
+            background: #fff; border-radius: 20px; padding: 40px 32px;
+            border: 1px solid rgba(0,0,0,0.06); transition: all 0.3s ease;
+            text-decoration: none; color: inherit; display: block;
+        }
+        .role-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-color: transparent; }
+        .role-icon {
+            width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; margin-bottom: 24px;
+        }
+        .role-icon.chofer { background: #fef2f2; }
+        .role-icon.usuario { background: #eef2ff; }
+        .role-icon.servicios { background: #f0fdf4; }
+        .role-card h3 { font-size: 22px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
+        .role-card p { font-size: 15px; line-height: 1.6; color: #6b7280; margin-bottom: 24px; }
+        .role-card .arrow {
+            display: inline-flex; align-items: center; gap: 8px; font-size: 14px;
+            font-weight: 600; transition: gap 0.2s;
+        }
+        .role-card.chofer .arrow { color: #da3633; }
+        .role-card.usuario .arrow { color: #6C63FF; }
+        .role-card.servicios .arrow { color: #16a34a; }
+        .role-card:hover .arrow { gap: 12px; }
+
+        .stats {
+            padding: 100px 24px; max-width: 1280px; margin: 0 auto;
+        }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; text-align: center; }
+        .stat-item h3 { font-size: clamp(36px, 4vw, 52px); font-weight: 800; letter-spacing: -1px; color: #1a1a2e; }
+        .stat-item p { font-size: 15px; color: #6b7280; margin-top: 8px; }
+
+        .features {
+            padding: 100px 24px; background: #f9fafb;
+        }
+        .features-inner { max-width: 1280px; margin: 0 auto; }
+        .features-header { text-align: center; margin-bottom: 64px; }
+        .features-header h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+        .features-header p { font-size: 18px; color: #6b7280; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .feature-card {
+            background: #fff; border-radius: 20px; padding: 36px 28px;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .feature-card .icon { font-size: 32px; margin-bottom: 20px; }
+        .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+        .feature-card p { font-size: 14px; line-height: 1.6; color: #6b7280; }
+
+        .download {
+            padding: 100px 24px; text-align: center;
+        }
+        .download h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+        .download p { font-size: 18px; color: #6b7280; margin-bottom: 40px; }
+        .store-badges { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .store-badges a {
+            display: inline-flex; align-items: center; gap: 12px; background: #1a1a2e;
+            color: #fff; padding: 14px 28px; border-radius: 12px; text-decoration: none;
+            transition: all 0.2s;
+        }
+        .store-badges a:hover { background: #000; transform: translateY(-1px); }
+        .store-badges a svg { width: 24px; height: 24px; fill: #fff; }
+        .store-badges .store-text { text-align: left; }
+        .store-badges .store-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+        .store-badges .store-name { font-size: 16px; font-weight: 600; }
 
         .footer {
-            text-align: center; padding: 32px 20px;
-            color: #484f58; font-size: 13px;
-            border-top: 1px solid #161b22;
+            padding: 48px 24px; border-top: 1px solid rgba(0,0,0,0.06);
+            text-align: center; color: #9ca3af; font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: block; }
+            .hero { grid-template-columns: 1fr; padding: 100px 24px 60px; min-height: auto; gap: 40px; }
+            .hero-image { order: -1; }
+            .roles-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 40px; }
+            .features-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="hero">
-        <div class="banner-wrap">
-            <img src="/banner.png" alt="Banner UrbanFlow">
-            <div class="banner-overlay">
-                <img src="/logouf.png" alt="UrbanFlow">
-                <p>Transporte inteligente que conecta personas, negocios y comunidades.</p>
+    <nav class="nav">
+        <a href="/" class="nav-logo">
+            <img src="/logouf.png" alt="UrbanFlow">
+            <span>UrbanFlow</span>
+        </a>
+        <div class="nav-links">
+            <a href="#roles" class="outline">Soy chofer</a>
+            <a href="#roles" class="outline">Soy pasajero</a>
+            <a href="#features" class="outline">Servicios</a>
+            <a href="/login.html?role=admin" class="outline">Admin</a>
+        </div>
+        <button class="hamburger" onclick="toggleMenu()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+    </nav>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#roles" onclick="toggleMenu()">Soy chofer</a>
+        <a href="#roles" onclick="toggleMenu()">Soy pasajero</a>
+        <a href="#features" onclick="toggleMenu()">Servicios</a>
+        <a href="/login.html?role=admin" onclick="toggleMenu()">Admin</a>
+    </div>
+
+    <section class="hero">
+        <div class="hero-text">
+            <h1>Movete por la ciudad <span>sin complicaciones</span></h1>
+            <p>Transporte seguro, rapido y confiable. Ya sea que quieras ganar dinero conduciendo o llegar a tu destino, UrbanFlow lo hace posible.</p>
+            <div class="hero-actions">
+                <a href="/login.html?role=chofer" class="primary">Quiero ser chofer</a>
+                <a href="/login.html?role=usuario" class="secondary">Solicitar viaje</a>
             </div>
         </div>
-        <div class="roles">
-            <a href="/login.html?role=chofer" class="role-card role-chofer">
-                <span class="role-icon">🚗</span>
-                <h2>Chofer</h2>
-                <p>Conecta con pasajeros, administra tus viajes y genera ingresos con tu vehiculo.</p>
-                <span class="role-btn">Soy Chofer</span>
-            </a>
-            <a href="/login.html?role=usuario" class="role-card role-usuario">
-                <span class="role-icon">👤</span>
-                <h2>Usuario</h2>
-                <p>Solicita viajes rapidos y seguros. Paga con efectivo o tarjeta desde la app.</p>
-                <span class="role-btn">Soy Pasajero</span>
-            </a>
-            <a href="/login.html?role=servicios" class="role-card role-servicios">
-                <span class="role-icon">🏪</span>
-                <h2>Servicios</h2>
-                <p>Empresas y comercios: gestion pedidos, delivery y reservas en una sola plataforma.</p>
-                <span class="role-btn">Mi Negocio</span>
-            </a>
+        <div class="hero-image">
+            <img src="/banner.png" alt="UrbanFlow">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                Chofers en linea ahora
+            </div>
         </div>
+    </section>
 
-        <div class="app-badges">
-            <a href="#" class="app-badge">
-                <span>▶</span>
-                <div>
-                    <div class="store">Disponible en</div>
-                    <div>Google Play</div>
+    <section class="roles" id="roles">
+        <div class="roles-inner">
+            <div class="roles-header">
+                <h2>Una plataforma, tres experiencias</h2>
+                <p>Elegi como queres usar UrbanFlow y empezá hoy mismo</p>
+            </div>
+            <div class="roles-grid">
+                <a href="/login.html?role=chofer" class="role-card chofer">
+                    <div class="role-icon chofer">🚗</div>
+                    <h3>Soy Chofer</h3>
+                    <p>Gana dinero con tu auto. Horarios flexibles, pagos semanales y una app que te acompaña en cada viaje.</p>
+                    <span class="arrow">Registrate como chofer <span>→</span></span>
+                </a>
+                <a href="/login.html?role=usuario" class="role-card usuario">
+                    <div class="role-icon usuario">👤</div>
+                    <h3>Soy Pasajero</h3>
+                    <p>Viaja rapido y seguro a donde quieras. Pedí tu viaje en segundos y segui tu chofer en tiempo real.</p>
+                    <span class="arrow">Creá tu cuenta <span>→</span></span>
+                </a>
+                <a href="/login.html?role=servicios" class="role-card servicios">
+                    <div class="role-icon servicios">🏪</div>
+                    <h3>Servicios</h3>
+                    <p> porówna tu negocio en la plataforma. Recibe pedidos, gestiona entregas y haz crecer tu empresa.</p>
+                    <span class="arrow">Unite a UrbanFlow <span>→</span></span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3>500+</h3>
+                <p>Chofers activos</p>
+            </div>
+            <div class="stat-item">
+                <h3>10k+</h3>
+                <p>Viajes completados</p>
+            </div>
+            <div class="stat-item">
+                <h3>4.8</h3>
+                <p>Calificacion promedio</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Soporte disponible</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="features-inner">
+            <div class="features-header">
+                <h2>Todo lo que necesitas</h2>
+                <p>Una plataforma completa para chofers, pasajeros y negocios</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">📍</div>
+                    <h3>Tracking en tiempo real</h3>
+                    <p>Segui a tu chofer en el mapa mientras se dirige a tu ubicacion. Sin sorpresas.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">💳</div>
+                    <h3>Pagos seguros</h3>
+                    <p>Paga con efectivo, tarjeta o transferencia. Todo registrado en la app.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🛡️</div>
+                    <h3>Viaje seguro</h3>
+                    <p>Chofers verificados, viaje compartido con familiares y botón de emergencia.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📊</div>
+                    <h3>Ganancias transparentes</h3>
+                    <p>Chofers ven sus ganancias diarias, semanales y detailed reports sin complicaciones.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">⏰</div>
+                    <h3>Horarios flexibles</h3>
+                    <p>Trabaja cuando quieras. No hay turnos ni obligaciones. Vos decidis.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🏪</div>
+                    <h3>Servicios integrados</h3>
+                    <p>Delivery, mudanzas, servicios profesionales. Todo desde una sola app.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="download">
+        <h2>Descargá la app</h2>
+        <p>Disponible para Android. Próximamente en iOS.</p>
+        <div class="store-badges">
+            <a href="#">
+                <svg viewBox="0 0 24 24"><path d="M3 20.5v-17c0-.83.67-1.5 1.5-1.5S6 2.67 6 3.5v17c0 .83-.67 1.5-1.5 1.5S3 21.33 3 20.5zM15.5 12L6 3.5v17l9.5-8.5z"/></svg>
+                <div class="store-text">
+                    <div class="store-label">Descargar en</div>
+                    <div class="store-name">Google Play</div>
                 </div>
             </a>
-            <a href="#" class="app-badge">
-                <span></span>
-                <div>
-                    <div class="store">Descarga en</div>
-                    <div>App Store</div>
-                </div>
-            </a>
         </div>
-    </div>
+    </section>
 
-    <div class="footer">
+    <footer class="footer">
         <p>&copy; 2026 UrbanFlow. Todos los derechos reservados.</p>
-    </div>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('mobileMenu').classList.toggle('open');
+        }
+    </script>
 </body>
 </html>

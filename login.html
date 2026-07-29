@@ -5,71 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UrbanFlow — Acceso</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0e1a; color: #e6edf3; min-height: 100vh;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #f9fafb; color: #1a1a2e; min-height: 100vh;
             display: flex; align-items: center; justify-content: center;
+            -webkit-font-smoothing: antialiased;
         }
-        .login-container { width: 100%; max-width: 420px; padding: 20px; }
-        .logo-section { text-align: center; margin-bottom: 30px; }
-        .logo-section img { max-width: 160px; margin-bottom: 10px; }
+        .login-container { width: 100%; max-width: 440px; padding: 24px; }
+        .logo-section { text-align: center; margin-bottom: 32px; }
+        .logo-section img { max-width: 140px; margin-bottom: 16px; }
         .role-badge {
-            display: inline-block; padding: 6px 16px; border-radius: 20px;
-            font-size: 13px; font-weight: 600; margin-bottom: 8px;
+            display: inline-block; padding: 8px 20px; border-radius: 999px;
+            font-size: 13px; font-weight: 600; letter-spacing: 0.3px;
         }
-        .role-chofer .role-badge { background: rgba(218,54,51,0.15); color: #f85149; border: 1px solid rgba(218,54,51,0.3); }
-        .role-usuario .role-badge { background: rgba(108,99,255,0.15); color: #a5a0ff; border: 1px solid rgba(108,99,255,0.3); }
-        .role-servicios .role-badge { background: rgba(35,134,54,0.15); color: #3fb950; border: 1px solid rgba(35,134,54,0.3); }
-        .logo-section p { color: #8b949e; font-size: 14px; }
+        .role-chofer .role-badge { background: #fef2f2; color: #da3633; border: 1px solid #fecaca; }
+        .role-usuario .role-badge { background: #eef2ff; color: #6C63FF; border: 1px solid #c7d2fe; }
+        .role-servicios .role-badge { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .logo-section p { color: #6b7280; font-size: 15px; margin-top: 8px; }
         .card {
-            background: #161b22; border: 1px solid #30363d;
-            border-radius: 12px; padding: 32px;
+            background: #fff; border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 20px; padding: 40px 32px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
         }
-        .card h2 { font-size: 20px; margin-bottom: 24px; text-align: center; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
-        .form-group input, .form-group select {
-            width: 100%; padding: 12px 14px; background: #0d1117;
-            border: 1px solid #30363d; border-radius: 8px;
-            color: #e6edf3; font-size: 15px; outline: none; transition: border-color 0.2s;
+        .card h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; text-align: center; letter-spacing: -0.3px; }
+        .card .subtitle { font-size: 14px; color: #6b7280; text-align: center; margin-bottom: 28px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 8px; }
+        .form-group input {
+            width: 100%; padding: 14px 16px; background: #f9fafb;
+            border: 1.5px solid #e5e7eb; border-radius: 12px;
+            color: #1a1a2e; font-size: 15px; font-family: inherit;
+            outline: none; transition: all 0.2s ease;
         }
-        .form-group input:focus, .form-group select:focus { border-color: #58A6FF; }
-        .form-group input::placeholder { color: #484f58; }
-        .form-group select option { background: #0d1117; color: #e6edf3; }
+        .form-group input:focus { border-color: #1a1a2e; background: #fff; }
+        .form-group input::placeholder { color: #9ca3af; }
         .btn {
-            width: 100%; padding: 12px; color: white; border: none;
-            border-radius: 8px; font-size: 15px; font-weight: 600;
-            cursor: pointer; transition: background 0.2s; margin-top: 8px;
+            width: 100%; padding: 16px; color: white; border: none;
+            border-radius: 12px; font-size: 16px; font-weight: 600;
+            font-family: inherit; cursor: pointer; transition: all 0.2s ease;
+            margin-top: 8px;
         }
         .btn-chofer { background: #da3633; }
-        .btn-chofer:hover { background: #f85149; }
+        .btn-chofer:hover { background: #b91c1c; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(218,54,51,0.3); }
         .btn-usuario { background: #6C63FF; }
-        .btn-usuario:hover { background: #5a52e0; }
-        .btn-servicios { background: #238636; }
-        .btn-servicios:hover { background: #2ea043; }
-        .btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+        .btn-usuario:hover { background: #5558e6; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(108,99,255,0.3); }
+        .btn-servicios { background: #16a34a; }
+        .btn-servicios:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+        .btn:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
         .error-msg {
-            background: #3a1a1a; border: 1px solid #f85149; color: #f85149;
-            padding: 10px 14px; border-radius: 8px; font-size: 13px;
-            margin-bottom: 16px; display: none;
+            background: #fef2f2; border: 1px solid #fecaca; color: #da3633;
+            padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500;
+            margin-bottom: 20px; display: none;
         }
         .error-msg.show { display: block; }
         .toggle-text {
-            text-align: center; margin-top: 16px; font-size: 13px; color: #8b949e;
+            text-align: center; margin-top: 20px; font-size: 14px; color: #6b7280;
         }
-        .toggle-text a { color: #58A6FF; text-decoration: none; cursor: pointer; }
+        .toggle-text a { color: #1a1a2e; font-weight: 600; text-decoration: none; cursor: pointer; }
         .toggle-text a:hover { text-decoration: underline; }
-        .back-link { text-align: center; margin-top: 20px; }
-        .back-link a { color: #58A6FF; text-decoration: none; font-size: 13px; }
-        .back-link a:hover { text-decoration: underline; }
+        .back-link { text-align: center; margin-top: 24px; }
+        .back-link a { color: #6b7280; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+        .back-link a:hover { color: #1a1a2e; }
         .register-fields { display: none; }
+        .divider {
+            display: flex; align-items: center; gap: 16px; margin: 24px 0;
+            color: #9ca3af; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 1px; background: #e5e7eb;
+        }
+        .pending-msg {
+            background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+            padding: 16px 20px; border-radius: 12px; font-size: 14px;
+            text-align: center; line-height: 1.5;
+        }
+        .pending-msg strong { font-weight: 600; }
         @media (max-width: 480px) {
-            .login-container { padding: 15px; }
-            .card { padding: 24px 18px; }
-            .logo-section img { max-width: 120px; }
-            .role-badge { font-size: 12px; padding: 5px 12px; }
-            .form-group input, .form-group select { font-size: 16px; padding: 14px; }
+            .login-container { padding: 16px; }
+            .card { padding: 28px 20px; }
+            .logo-section img { max-width: 110px; }
+            .form-group input { font-size: 16px; padding: 16px; }
         }
     </style>
 </head>
@@ -83,26 +100,27 @@
 
         <div class="card">
             <h2 id="formTitle">Iniciar sesion</h2>
+            <p class="subtitle" id="formSubtitle">Ingresa tus datos para continuar</p>
             <div class="error-msg" id="errorMsg"></div>
 
             <form onsubmit="handleSubmit(event)">
                 <div class="register-fields" id="registerFields">
                     <div class="form-group">
-                        <label for="regEmail">Email (se usara para iniciar sesion)</label>
+                        <label for="regEmail">Email</label>
                         <input type="email" id="regEmail" placeholder="tu@email.com">
                     </div>
                     <div class="form-group">
-                        <label for="regPassword">Contrasena (minimo 6 caracteres)</label>
+                        <label for="regPassword">Contrasena</label>
                         <input type="password" id="regPassword" placeholder="Minimo 6 caracteres">
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="loginFields">
                     <label for="email">Email</label>
                     <input type="email" id="email" placeholder="tu@email.com" required autocomplete="email">
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="loginPasswordField">
                     <label for="password">Contrasena</label>
-                    <input type="password" id="password" placeholder="Minimo 6 caracteres" required autocomplete="current-password">
+                    <input type="password" id="password" placeholder="Ingresa tu contrasena" required autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn" id="btnSubmit">Entrar</button>
             </form>
@@ -129,14 +147,14 @@
         let isRegister = false;
 
         const roleConfig = {
-            chofer: { label: "Chofer", desc: "Genera ingresos con tu vehiculo", icon: "🚗", color: "chofer" },
-            usuario: { label: "Pasajero", desc: "Solicita viajes rapidos y seguros", icon: "👤", color: "usuario" },
-            servicios: { label: "Servicios", desc: "Gestiona tu negocio en la plataforma", icon: "🏪", color: "servicios" }
+            chofer: { label: "Chofer", desc: "Genera ingresos con tu vehiculo", color: "chofer" },
+            usuario: { label: "Pasajero", desc: "Solicita viajes rapidos y seguros", color: "usuario" },
+            servicios: { label: "Servicios", desc: "Gestiona tu negocio en la plataforma", color: "servicios" }
         };
         const cfg = roleConfig[role] || roleConfig.usuario;
 
         document.getElementById("loginBox").className = "login-container role-" + cfg.color;
-        document.getElementById("roleBadge").textContent = cfg.icon + " " + cfg.label;
+        document.getElementById("roleBadge").textContent = cfg.label;
         document.getElementById("roleDesc").textContent = cfg.desc;
         document.getElementById("btnSubmit").className = "btn btn-" + cfg.color;
 
@@ -152,8 +170,11 @@
         function toggleMode() {
             isRegister = !isRegister;
             document.getElementById("formTitle").textContent = isRegister ? "Crear cuenta" : "Iniciar sesion";
-            document.getElementById("btnSubmit").textContent = isRegister ? "Registrarme" : "Entrar";
+            document.getElementById("formSubtitle").textContent = isRegister ? "Registrate para empezar a usar UrbanFlow" : "Ingresa tus datos para continuar";
+            document.getElementById("btnSubmit").textContent = isRegister ? "Crear cuenta" : "Entrar";
             document.getElementById("registerFields").style.display = isRegister ? "" : "none";
+            document.getElementById("loginFields").style.display = isRegister ? "none" : "";
+            document.getElementById("loginPasswordField").style.display = isRegister ? "none" : "";
             document.getElementById("toggleText").textContent = isRegister ? "Ya tenes cuenta?" : "No tenes cuenta?";
             document.getElementById("toggleLink").textContent = isRegister ? "Inicia sesion" : "Registrate";
             showError("");
@@ -161,29 +182,31 @@
 
         async function handleSubmit(e) {
             e.preventDefault();
-            const email = document.getElementById("email").value.trim();
-            const password = document.getElementById("password").value.trim();
             const btn = document.getElementById("btnSubmit");
 
-            if (!email || !password) { showError("Completa email y contrasena"); return; }
-            if (isRegister && password.length < 6) { showError("La contrasena debe tener al menos 6 caracteres"); return; }
+            let email, password;
+            if (isRegister) {
+                email = document.getElementById("regEmail").value.trim();
+                password = document.getElementById("regPassword").value.trim();
+                if (!email || !password) { showError("Completa email y contrasena"); return; }
+                if (password.length < 6) { showError("La contrasena debe tener al menos 6 caracteres"); return; }
+            } else {
+                email = document.getElementById("email").value.trim();
+                password = document.getElementById("password").value.trim();
+                if (!email || !password) { showError("Completa email y contrasena"); return; }
+            }
 
             btn.disabled = true;
             btn.textContent = isRegister ? "Creando cuenta..." : "Entrando...";
 
             let result;
             if (isRegister) {
-                const regEmail = document.getElementById("regEmail").value.trim();
-                const regPass = document.getElementById("regPassword").value.trim();
-                if (!regEmail || !regPass) { showError("Completa email y contrasena"); return; }
-                if (regPass.length < 6) { showError("La contrasena debe tener al menos 6 caracteres"); return; }
-
-                result = await sb.auth.signUp({ email: regEmail, password: regPass, options: { data: { role } } });
+                result = await sb.auth.signUp({ email, password, options: { data: { role } } });
 
                 if (!result.error && result.data.user) {
                     await sb.from("perfiles").upsert({
                         id: result.data.user.id,
-                        email: regEmail,
+                        email: email,
                         type: role,
                         status: "pendiente"
                     });
@@ -194,7 +217,7 @@
                     }
                     showError("Cuenta creada. Revisa tu email para confirmar.");
                     btn.disabled = false;
-                    btn.textContent = "Registrarme";
+                    btn.textContent = "Crear cuenta";
                     return;
                 }
             } else {
@@ -206,7 +229,7 @@
             }
 
             btn.disabled = false;
-            btn.textContent = isRegister ? "Registrarme" : "Entrar";
+            btn.textContent = isRegister ? "Crear cuenta" : "Entrar";
             if (result.error) {
                 if (result.error.message.includes("already")) showError("Este email ya esta registrado. Inicia sesion.");
                 else if (result.error.message.includes("Invalid login")) showError("Email o contrasena incorrectos");
