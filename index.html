@@ -74,7 +74,12 @@
             display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px;
             justify-content: center;
         }
-        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+        .htag {
+            padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+            background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 32px; }
         .hero-actions a {
             padding: 16px 32px; border-radius: 14px; font-size: 16px; font-weight: 600;
             text-decoration: none; transition: all 0.2s;
@@ -83,15 +88,6 @@
         .hero-actions a.white:hover { background: #F1F5F9; transform: translateY(-2px); }
         .hero-actions a.ghost { color: #fff; border: 2px solid rgba(255,255,255,0.3); }
         .hero-actions a.ghost:hover { border-color: #fff; background: rgba(255,255,255,0.1); }
-        .hero-tags {
-            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px;
-        }
-        .htag {
-            padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
-            background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9);
-            border: 1px solid rgba(255,255,255,0.15);
-        }
-
         .hero-city {
             width: 120%; max-width: 800px; margin-top: 30px;
             filter: drop-shadow(0 10px 30px rgba(0,0,0,0.3));
