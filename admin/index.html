@@ -51,7 +51,8 @@
         #homeGrid {
             padding: 30px; overflow-y: auto; display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px; align-content: start;
+            grid-auto-rows: minmax(140px, 1fr);
+            gap: 15px; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
         }
         .home-card {
             background: #161b22; border: 1px solid #30363d; border-radius: 10px;
@@ -143,7 +144,7 @@
             document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('sidebar').style.display = '';
             document.getElementById('main').style.display = '';
-            go('mapa');
+            go('home');
         });
 
         const views = { mapContainer: document.getElementById('mapContainer'), homeGrid: document.getElementById('homeGrid'), viewFrame: document.getElementById('viewFrame') };
