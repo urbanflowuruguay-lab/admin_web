@@ -121,7 +121,7 @@
                 <div class="zone-card ${z.active ? 'active' : ''}">
                     <div class="zone-header">
                         <div>
-                            <div class="zone-name">${z.zone_name}</div>
+                            <div class="zone-name">${z.zone_name} <span style="color:#8b949e;font-size:14px;">${z.currency || '$'}</span></div>
                             <div class="zone-dept">${z.department} — ${z.country_code}</div>
                         </div>
                         <div>
@@ -237,12 +237,15 @@
         async function addNewZone() {
             const name = prompt('Nombre de la zona:', 'Nueva Zona');
             if (!name) return;
-            const dept = prompt('Departamento:', 'Montevideo');
+            const dept = prompt('Departamento/Provincia:', 'Montevideo');
             if (!dept) return;
+            const country = prompt('País (código):', 'UY');
+            if (!country) return;
+            const currency = prompt('Moneda ($, R$, AR$):', '$');
 
             const { data, error } = await sb.from('taxi_zones').insert({
-                zone_name: name, department: dept, country_code: 'UY',
-                bajada_bandera: 66.00, ficha_price: 3.83,
+                zone_name: name, department: dept, country_code: country.toUpperCase(),
+                currency: currency, bajada_bandera: 66.00, ficha_price: 3.83,
                 initial_distance_m: 0, ficha_distance_m: 100, ficha_time_sec: 18,
                 out_of_zone_index: 1.5, active: true
             }).select().single();
