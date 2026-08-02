@@ -241,7 +241,7 @@
             const { data: profile } = await sb.from("perfiles").select("type, status, role").eq("id", userId).single();
 
             if (profile && profile.role === "admin") {
-                window.location.href = "/admin/";
+                window.location.href = "/";
                 return;
             }
 
