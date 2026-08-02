@@ -140,18 +140,23 @@
                             <input type="number" value="${z.ficha_price}" id="fp_${z.id}" step="0.01" min="0">
                         </div>
                         <div class="form-group">
+                            <label>Metros Iniciales</label>
+                            <input type="number" value="${z.initial_distance_m || 0}" id="idm_${z.id}" step="1" min="0">
+                            <div class="hint">Metros antes de la 1ra ficha</div>
+                        </div>
+                        <div class="form-group">
                             <label>Metros por Ficha</label>
                             <input type="number" value="${z.ficha_distance_m}" id="fd_${z.id}" step="1" min="1">
                             <div class="hint">Cada cuántos metros cae 1 ficha</div>
                         </div>
+                    </div>
+
+                    <div class="grid-4" style="margin-top:15px;">
                         <div class="form-group">
                             <label>Segundos por Ficha</label>
                             <input type="number" value="${z.ficha_time_sec}" id="ft_${z.id}" step="1" min="1">
                             <div class="hint">Tiempo parado/&lt;25kmh = 1 ficha</div>
                         </div>
-                    </div>
-
-                    <div class="grid-3" style="margin-top:15px;">
                         <div class="form-group">
                             <label>Índice Fuera de Zona</label>
                             <input type="number" value="${z.out_of_zone_index}" id="ooz_${z.id}" step="0.1" min="1">
@@ -204,6 +209,7 @@
         async function saveZone(id) {
             const bb = parseFloat(document.getElementById(`bb_${id}`).value);
             const fp = parseFloat(document.getElementById(`fp_${id}`).value);
+            const idm = parseInt(document.getElementById(`idm_${id}`).value) || 0;
             const fd = parseInt(document.getElementById(`fd_${id}`).value);
             const ft = parseInt(document.getElementById(`ft_${id}`).value);
             const ooz = parseFloat(document.getElementById(`ooz_${id}`).value);
@@ -211,8 +217,8 @@
             const hs = parseFloat(document.getElementById(`hs_${id}`).value);
 
             const { error } = await sb.from('taxi_zones').update({
-                bajada_bandera: bb, ficha_price: fp, ficha_distance_m: fd,
-                ficha_time_sec: ft, out_of_zone_index: ooz,
+                bajada_bandera: bb, ficha_price: fp, initial_distance_m: idm,
+                ficha_distance_m: fd, ficha_time_sec: ft, out_of_zone_index: ooz,
                 night_surcharge_pct: ns, holiday_surcharge_pct: hs,
                 updated_at: new Date().toISOString()
             }).eq('id', id);
@@ -237,7 +243,7 @@
             const { data, error } = await sb.from('taxi_zones').insert({
                 zone_name: name, department: dept, country_code: 'UY',
                 bajada_bandera: 66.00, ficha_price: 3.83,
-                ficha_distance_m: 100, ficha_time_sec: 18,
+                initial_distance_m: 0, ficha_distance_m: 100, ficha_time_sec: 18,
                 out_of_zone_index: 1.5, active: true
             }).select().single();
 
