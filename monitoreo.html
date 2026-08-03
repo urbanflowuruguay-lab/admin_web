@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Monitoreo Real-Time - UrbanFlow</title>
+    <title>Monitoreo - UrbanFlow</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
     <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
@@ -13,209 +13,203 @@
             position: absolute; top: 15px; left: 15px; z-index: 10;
             background: rgba(22, 27, 34, 0.9); padding: 12px; border-radius: 10px;
             border: 1px solid #30363d; display: flex; flex-direction: column; gap: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
         .btn-group { display: flex; gap: 5px; }
         .btn {
             padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer;
             font-weight: bold; font-size: 11px; background: #21262d; color: #c9d1d9;
-            transition: 0.2s; border: 1px solid #30363d; text-transform: uppercase;
+            border: 1px solid #30363d; text-transform: uppercase;
         }
         .btn.active { background: #1f6feb; color: white; border-color: #58a6ff; }
-        
-        .stats {
-            position: absolute; top: 15px; right: 15px; z-index: 10;
-            background: rgba(22, 27, 34, 0.9); padding: 12px; border-radius: 10px;
-            border: 1px solid #30363d; font-size: 11px; min-width: 120px;
-        }
-        .stat-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #21262d; padding-bottom: 2px; }
-        .stat-item:last-child { border: none; }
-        
         .marker-label {
-            background: rgba(0,0,0,0.7); color: white; padding: 2px 6px;
+            background: rgba(0,0,0,0.8); color: white; padding: 2px 6px;
             border-radius: 4px; font-size: 10px; white-space: nowrap;
             font-weight: bold; border: 1px solid #58a6ff; pointer-events: none;
         }
         .car-marker {
-            background-size: contain;
-            background-position: center;
-            background-repeat: no-repeat;
+            background-size: contain; background-position: center; background-repeat: no-repeat;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
-            transition: transform 0.4s linear, opacity 0.3s ease; /* Movimiento fluido sin parpadeo */
         }
     </style>
 </head>
 <body>
-
 <div class="controls">
-    <div style="font-weight: bold; font-size: 12px; color: #58a6ff; margin-bottom: 2px;">🛰️ MONITOR EN VIVO</div>
+    <div style="font-weight: bold; font-size: 12px; color: #58a6ff;">MONITOR EN VIVO</div>
     <div class="btn-group">
         <button id="btnAll" class="btn active" onclick="setFilter('all')">TODOS</button>
-        <button id="btnAutos" class="btn" onclick="setFilter('auto')">🚗 AUTOS</button>
-        <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">🚕 TAXIS</button>
+        <button id="btnAutos" class="btn" onclick="setFilter('auto')">AUTOS</button>
+        <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">TAXIS</button>
     </div>
-    <div id="statusInfo" style="font-size: 9px; color: #8b949e;">Conectando...</div>
+    <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff; line-height: 1.6;">🚗 Autos: 0<br>🚕 Taxis: 0</div>
+    <div id="st" style="font-size: 9px; color: #8b949e;">Conectando...</div>
 </div>
-
-<div class="stats">
-    <div class="stat-item"><span>Total:</span> <span id="countTotal" style="font-weight: bold;">0</span></div>
-    <div class="stat-item" style="color: #58a6ff;"><span>Autos:</span> <span id="countAutos">0</span></div>
-    <div class="stat-item" style="color: #f2d335;"><span>Taxis:</span> <span id="countTaxis">0</span></div>
-</div>
-
 <div id="map"></div>
-
 <script>
-    const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
 
-    let currentFilter = 'all';
-    const markers = {};
-    const lastUpdate = {};
-    let firstMarkerFound = false;
+let currentFilter = 'all';
+const markers = {};
+const lastBroadcast = {};
+const presenceIds = new Set();
+let firstFound = false;
+let ch = null;
+let sb = null;
 
-    const map = new maplibregl.Map({
-        container: 'map',
-        style: 'https://tiles.openfreemap.org/styles/dark',
-        center: [-56.1645, -34.9011],
-        zoom: 13
+const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/dark',
+    center: [-56.1645, -34.9011], zoom: 13
+});
+
+function updateCounter() {
+    let autos = 0, taxis = 0;
+    Object.keys(markers).forEach(id => {
+        if(markers[id].t === 'taxi') taxis++;
+        else autos++;
     });
-
-    function setFilter(filter) {
-        currentFilter = filter;
-        document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-        const b = document.getElementById('btn' + filter.charAt(0).toUpperCase() + filter.slice(1) + (filter === 'all' ? '' : 's'));
-        if(b) b.classList.add('active');
-        updateMarkersVisibility();
+    const el = document.getElementById('counter');
+    if(currentFilter === 'all') {
+        el.innerHTML = '🚗 Autos: ' + autos + '<br>🚕 Taxis: ' + taxis;
+    } else if(currentFilter === 'auto') {
+        el.innerText = '🚗 Autos: ' + autos;
+    } else {
+        el.innerText = '🚕 Taxis: ' + taxis;
     }
+}
 
-    function updateMarkersVisibility() {
-        Object.keys(markers).forEach(id => {
-            const isVisible = (currentFilter === 'all' || markers[id].data.tipo === currentFilter);
-            markers[id].marker.getElement().style.display = isVisible ? 'flex' : 'none';
-        });
-    }
-
-    function sz() {
-        const z = map.getZoom();
-        return z >= 16 ? 42 : z >= 14 ? 30 : z >= 12 ? 20 : z >= 10 ? 14 : 10;
-    }
-
-    map.on('zoom', () => {
-        const s = sz(), ls = Math.max(8, Math.round(s * 0.28));
-        Object.values(markers).forEach(({ marker }) => {
-            const el = marker.getElement();
-            const c = el.querySelector('.car-marker');
-            if (c) { c.style.width = s + 'px'; c.style.height = s + 'px'; }
-            const l = el.querySelector('.marker-label');
-            if (l) { l.style.fontSize = ls + 'px'; l.style.marginTop = -(s + 8) + 'px'; }
-        });
+function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(f==='all'?'btnAll':f==='auto'?'btnAutos':'btnTaxis').classList.add('active');
+    Object.keys(markers).forEach(id => {
+        markers[id].el.style.display = (currentFilter==='all'||markers[id].t===currentFilter) ? 'flex' : 'none';
     });
+    updateCounter();
+}
 
-    function updateStats() {
-        let t = 0, a = 0, x = 0;
-        Object.values(markers).forEach(m => { t++; m.data.tipo === 'taxi' ? x++ : a++; });
-        document.getElementById('countTotal').innerText = t;
-        document.getElementById('countAutos').innerText = a;
-        document.getElementById('countTaxis').innerText = x;
+function ss() {
+    const z = map.getZoom();
+    return z>=16?42:z>=14?30:z>=12?20:z>=10?14:10;
+}
+
+function removeMarker(id) {
+    if(markers[id]) {
+        markers[id].mk.remove();
+        delete markers[id];
+        delete lastBroadcast[id];
+        updateCounter();
     }
+}
 
-    const channel = supabaseClient.channel('monitoreo_choferes', {
-        config: { presence: { key: 'admin-' + Math.floor(Math.random()*10000) } }
-    });
+function upsert(d) {
+    if(!d||!d.lat||!d.lng||!d.id) return;
+    const id = String(d.id);
+    const now = Date.now();
+    if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) return;
+    lastBroadcast[id] = now;
 
-    channel
-        .on('presence', { event: 'sync' }, () => {
-            const state = channel.presenceState();
-            Object.values(state).forEach(arr => arr.forEach(p => {
-                const id = String(p.id || p.user_id);
-                if (id && !id.startsWith('admin')) {
-                    // Solo inicializamos si no existe, evitamos moverlo aquí para no causar parpadeos con el sync
-                    if (!markers[id]) {
-                        upsertMarker({ id, nombre: p.nombre, tipo: p.tipo, lat: p.lat, lng: p.lng, status: p.status });
-                    }
+    if(markers[id]) {
+        markers[id].mk.setLngLat([parseFloat(d.lng), parseFloat(d.lat)]);
+        const car = markers[id].el.querySelector('.car-marker');
+        if(car) car.style.opacity = d.status==='ocupado'?'0.35':'1';
+        markers[id].el.style.opacity = '1';
+        markers[id].t = d.tipo || 'auto';
+    } else {
+        const s=ss(), l=Math.max(8,Math.round(s*0.28));
+        const c=document.createElement('div');
+        c.style.cssText='display:flex;flex-direction:column;align-items:center;';
+        const lb=document.createElement('div');
+        lb.className='marker-label'; lb.innerText=d.nombre||'Chofer';
+        lb.style.fontSize=l+'px'; lb.style.marginTop=-(s+8)+'px';
+        c.appendChild(lb);
+        const car=document.createElement('div');
+        car.className='car-marker';
+        car.style.width=s+'px'; car.style.height=s+'px';
+        car.style.backgroundImage='url('+(d.tipo==='taxi'?'/taxi.png':'/autorojo.png')+')';
+        car.style.opacity=d.status==='ocupado'?'0.35':'1';
+        c.appendChild(car);
+        const mk=new maplibregl.Marker({element:c,pitchAlignment:'viewport',rotationAlignment:'viewport'})
+            .setLngLat([parseFloat(d.lng),parseFloat(d.lat)]).addTo(map);
+        markers[id]={mk,el:c,t:d.tipo||'auto'};
+        updateCounter();
+        if(!firstFound){firstFound=true;map.flyTo({center:[parseFloat(d.lng),parseFloat(d.lat)],zoom:15});}
+    }
+    setFilter(currentFilter);
+}
+
+function setup() {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    ch = sb.channel('monitoreo_choferes');
+    ch    .on('presence', {event:'sync'}, () => {
+        const st = ch.presenceState();
+        presenceIds.clear();
+        Object.values(st).forEach(arr => arr.forEach(p => {
+            const id = String(p.id||p.user_id);
+            if(id && !id.startsWith('admin')) {
+                presenceIds.add(id);
+            }
+        }));
+    })
+    .on('presence', {event:'leave'}, ({key, leftPresences}) => {
+        if(leftPresences) {
+            leftPresences.forEach(p => {
+                const id = String(p.id||p.user_id);
+                if(id) {
+                    presenceIds.delete(id);
+                    removeMarker(id);
                 }
-            }));
-            updateStats();
-        })
-        .on('broadcast', { event: 'location' }, ({ payload }) => {
-            if (payload && payload.id) upsertMarker(payload);
-        })
-        .subscribe(async (s) => {
-            document.getElementById('statusInfo').innerText = "Estado: " + s;
-            if (s === 'SUBSCRIBED') {
-                document.getElementById('statusInfo').style.color = "#238636";
-                await channel.track({ online_at: new Date().toISOString() });
-            }
-        });
-
-    function upsertMarker(data) {
-        if (!data.lat || !data.lng || !data.id) return;
-        const id = String(data.id);
-        const now = Date.now();
-
-        // Si la posición no cambió significativamente, ignoramos para evitar micro-movimientos
-        if (markers[id] && markers[id].data.lat === data.lat && markers[id].data.lng === data.lng) return;
-        
-        lastUpdate[id] = now;
-
-        if (markers[id]) {
-            const m = markers[id];
-            m.marker.setLngLat([data.lng, data.lat]);
-            m.data = data;
-            const el = m.marker.getElement();
-            const car = el.querySelector('.car-marker');
-            if (car) car.style.opacity = data.status === 'ocupado' ? '0.35' : '1';
-            el.querySelector('.marker-label').innerText = data.nombre || 'Chofer';
-            el.style.opacity = '1';
-        } else {
-            const s = sz(), ls = Math.max(8, Math.round(s * 0.28));
-            const c = document.createElement('div');
-            c.style.cssText = 'display:flex;flex-direction:column;align-items:center;transition:opacity 0.3s;';
-
-            const l = document.createElement('div');
-            l.className = 'marker-label'; l.innerText = data.nombre || 'Chofer';
-            l.style.fontSize = ls + 'px'; l.style.marginTop = -(s + 8) + 'px';
-            c.appendChild(l);
-
-            const carIcon = document.createElement('div');
-            carIcon.className = 'car-marker';
-            carIcon.style.width = s + 'px'; carIcon.style.height = s + 'px';
-            carIcon.style.backgroundImage = `url(${data.tipo === 'taxi' ? '/taxi.png' : '/autorojo.png'})`;
-            carIcon.style.opacity = data.status === 'ocupado' ? '0.35' : '1';
-            c.appendChild(carIcon);
-
-            const marker = new maplibregl.Marker({ element: c, pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
-                .setLngLat([data.lng, data.lat])
-                .addTo(map);
-
-            markers[id] = { marker, data };
-
-            if (!firstMarkerFound) {
-                firstMarkerFound = true;
-                map.flyTo({ center: [data.lng, data.lat], zoom: 15 });
-            }
+            });
         }
-        updateMarkersVisibility();
-    }
+    })
+    .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
+    .on('broadcast', {event:'connection'}, ({payload}) => {
+        // Solo remover si el chofer se DESCONECTA (online === false)
+        // Si se CONECTA (online === true), no hacer nada — el marker se crea con location
+        if(payload && payload.online === false && payload.id) {
+            removeMarker(String(payload.id));
+            presenceIds.delete(String(payload.id));
+        }
+    })
+    .on('broadcast', {event:'disconnect'}, ({payload}) => {
+        if(payload && payload.id) {
+            removeMarker(String(payload.id));
+            presenceIds.delete(String(payload.id));
+        }
+    })
+    .subscribe((s) => {
+        const el = document.getElementById('st');
+        el.innerText = s==='SUBSCRIBED'?'EN VIVO':'Reconectando...';
+        el.style.color = s==='SUBSCRIBED'?'#3fb950':'#f85149';
+        if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') {
+            setTimeout(() => { try{ch.unsubscribe();sb.removeChannel(ch);}catch(_){} setup(); }, 3000);
+        }
+    });
+}
 
-    // Limpieza de choferes sin señal (60 segundos)
-    setInterval(() => {
+setup();
+
+setInterval(() => {
+    if(!ch) return;
+    try {
         const now = Date.now();
         Object.keys(markers).forEach(id => {
-            const diff = now - (lastUpdate[id] || 0);
-            if (diff > 60000) {
-                markers[id].marker.remove();
-                delete markers[id];
-                delete lastUpdate[id];
-                updateStats();
-            } else if (diff > 30000) {
-                markers[id].marker.getElement().style.opacity = '0.3';
+            // No remover si nunca tuvo broadcast (marker nuevo)
+            if(!lastBroadcast[id]) return;
+            // Solo remover si hace más de 10 segundos que no hay broadcast
+            if(now - lastBroadcast[id] > 10000) {
+                removeMarker(id);
             }
         });
-    }, 5000);
-</script>
+    } catch(_){}
+}, 3000);
 
+document.addEventListener('visibilitychange', () => {
+    if(!document.hidden && ch) {
+        try { ch.unsubscribe(); sb.removeChannel(ch); } catch(_){}
+        setup();
+    }
+});
+</script>
 </body>
 </html>
