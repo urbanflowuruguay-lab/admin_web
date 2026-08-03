@@ -144,6 +144,7 @@ function setup() {
                 presenceIds.add(id);
             }
         }));
+        console.log('[Monitoreo] Presence sync:', Array.from(presenceIds));
     })
     .on('presence', {event:'leave'}, ({key, leftPresences}) => {
         if(leftPresences) {
@@ -156,8 +157,12 @@ function setup() {
             });
         }
     })
-    .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
+    .on('broadcast', {event:'location'}, ({payload}) => {
+        console.log('[Monitoreo] Location received:', payload?.id, payload?.lat, payload?.lng);
+        upsert(payload);
+    })
     .on('broadcast', {event:'connection'}, ({payload}) => {
+        console.log('[Monitoreo] Connection event:', payload);
         // Solo remover si el chofer se DESCONECTA (online === false)
         // Si se CONECTA (online === true), no hacer nada — el marker se crea con location
         if(payload && payload.online === false && payload.id) {
