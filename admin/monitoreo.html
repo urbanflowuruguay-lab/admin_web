@@ -40,7 +40,7 @@
         <button id="btnAutos" class="btn" onclick="setFilter('auto')">AUTOS</button>
         <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">TAXIS</button>
     </div>
-    <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff;">Autos: 0</div>
+    <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff; line-height: 1.6;">🚗 Autos: 0<br>🚕 Taxis: 0</div>
     <div id="st" style="font-size: 9px; color: #8b949e;">Conectando...</div>
 </div>
 <div id="map"></div>
@@ -63,12 +63,19 @@ const map = new maplibregl.Map({
 });
 
 function updateCounter() {
-    let count = 0;
+    let autos = 0, taxis = 0;
     Object.keys(markers).forEach(id => {
-        if(currentFilter === 'all' || markers[id].t === currentFilter) count++;
+        if(markers[id].t === 'taxi') taxis++;
+        else autos++;
     });
-    const total = Object.keys(markers).length;
-    document.getElementById('counter').innerText = 'Autos: ' + count + (currentFilter !== 'all' ? ' / ' + total : '');
+    const el = document.getElementById('counter');
+    if(currentFilter === 'all') {
+        el.innerHTML = '🚗 Autos: ' + autos + '<br>🚕 Taxis: ' + taxis;
+    } else if(currentFilter === 'auto') {
+        el.innerText = '🚗 Autos: ' + autos;
+    } else {
+        el.innerText = '🚕 Taxis: ' + taxis;
+    }
 }
 
 function setFilter(f) {
@@ -96,11 +103,18 @@ function removeMarker(id) {
 }
 
 function upsert(d) {
-    if(!d||!d.lat||!d.lng||!d.id) return;
+    if(!d||!d.lat||!d.lng||!d.id) {
+        console.log('[Monitoreo] upsert REJECTED - missing data:', d);
+        return;
+    }
     const id = String(d.id);
     const now = Date.now();
-    if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) return;
+    if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) {
+        console.log('[Monitoreo] upsert DEBOUNCED:', id);
+        return;
+    }
     lastBroadcast[id] = now;
+    console.log('[Monitoreo] upsert OK:', id, 'lat:', d.lat, 'lng:', d.lng, 'markers count:', Object.keys(markers).length);
 
     if(markers[id]) {
         markers[id].mk.setLngLat([parseFloat(d.lng), parseFloat(d.lat)]);
