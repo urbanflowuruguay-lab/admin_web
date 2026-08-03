@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Fichas Taxi - UrbanFlow</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/auth-check.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; background-color: #0d1117; color: #c9d1d9; margin: 0; }
+        h1 { color: #f39c12; display: flex; align-items: center; gap: 15px; }
+        .description { color: #8b949e; margin-bottom: 20px; font-size: 14px; }
+        .card { background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 25px; }
+        .card h3 { color: #f39c12; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 15px; text-align: center; }
+        .stat-box .label { color: #8b949e; font-size: 12px; text-transform: uppercase; }
+        .stat-box .value { color: #f39c12; font-size: 28px; font-weight: bold; margin-top: 5px; }
+        .search-bar input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; font-size: 14px; box-sizing: border-box; margin-bottom: 20px; }
+        .search-bar input:focus { border-color: #f39c12; outline: none; }
+        .driver-card { background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .driver-card:hover { border-color: #f39c12; }
+        .driver-info { display: flex; align-items: center; gap: 15px; }
+        .driver-avatar { width: 45px; height: 45px; border-radius: 50%; background: #161b22; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .driver-name { font-weight: bold; color: #f39c12; font-size: 15px; }
+        .driver-meta { color: #8b949e; font-size: 12px; }
+        .fichas-count { font-size: 24px; font-weight: bold; color: #4ade80; text-align: center; }
+        .fichas-count.low { color: #f85149; }
+        .fichas-label { color: #8b949e; font-size: 11px; text-align: center; }
+        .btn { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-add { background: #238636; color: white; }
+        .btn-subtract { background: #da3633; color: white; }
+        .btn-history { background: #58a6ff; color: #0d1117; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; max-width: 450px; width: 90%; }
+        .modal h2 { color: #f39c12; margin-top: 0; }
+        .modal label { display: block; color: #8b949e; font-size: 12px; text-transform: uppercase; margin-bottom: 6px; margin-top: 15px; }
+        .modal input, .modal textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; font-size: 14px; box-sizing: border-box; }
+        .modal input:focus { border-color: #f39c12; outline: none; }
+        .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-row button { flex: 1; }
+        .btn-cancel { background: #30363d; color: white; }
+        .history-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #30363d; font-size: 13px; }
+        .history-type { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .history-type.add { background: #1a3a1a; color: #4ade80; }
+        .history-type.sub { background: #3a1a1a; color: #f85149; }
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; color: white; font-weight: bold; z-index: 9999; }
+        .toast.success { background: #238636; }
+        .toast.error { background: #da3633; }
+    </style>
+</head>
+<body>
+    <h1>Fichas Taxi</h1>
+    <p class="description">Administre los creditos de los choferes taxi. Cada viaje consume 1 ficha.</p>
+
+    <div class="stats">
+        <div class="stat-box"><div class="label">Choferes Taxi</div><div class="value" id="statTotal">0</div></div>
+        <div class="stat-box"><div class="label">Fichas en Circulacion</div><div class="value" id="statFichas">0</div></div>
+        <div class="stat-box"><div class="label">Sin Fichas</div><div class="value" id="statNoFichas" style="color:#f85149;">0</div></div>
+    </div>
+
+    <div class="search-bar"><input type="text" id="searchInput" placeholder="Buscar por nombre, matricula o telefono..." oninput="renderDrivers()"></div>
+
+    <div class="card"><h3>Choferes Taxi</h3><div id="driversContainer"></div></div>
+
+    <div class="modal-overlay" id="addModal"><div class="modal">
+        <h2>Agregar Fichas</h2>
+        <input type="hidden" id="addDriverId">
+        <label>Chofer</label><input type="text" id="addDriverName" readonly style="opacity:0.7;">
+        <label>Fichas actuales</label><input type="text" id="addCurrentFichas" readonly style="opacity:0.7;">
+        <label>Fichas a agregar</label><input type="number" id="addAmount" min="1" value="10">
+        <label>Motivo</label><textarea id="addReason" rows="2" placeholder="Ej: Recarga manual"></textarea>
+        <div class="btn-row">
+            <button class="btn btn-add" onclick="confirmAdd()">Agregar</button>
+            <button class="btn btn-cancel" onclick="closeModal('addModal')">Cancelar</button>
+        </div>
+    </div></div>
+
+    <div class="modal-overlay" id="subtractModal"><div class="modal">
+        <h2>Restar Fichas</h2>
+        <input type="hidden" id="subDriverId">
+        <label>Chofer</label><input type="text" id="subDriverName" readonly style="opacity:0.7;">
+        <label>Fichas actuales</label><input type="text" id="subCurrentFichas" readonly style="opacity:0.7;">
+        <label>Fichas a restar</label><input type="number" id="subAmount" min="1" value="1">
+        <label>Motivo</label><textarea id="subReason" rows="2" placeholder="Ej: Ajuste manual"></textarea>
+        <div class="btn-row">
+            <button class="btn btn-subtract" onclick="confirmSubtract()">Restar</button>
+            <button class="btn btn-cancel" onclick="closeModal('subtractModal')">Cancelar</button>
+        </div>
+    </div></div>
+
+    <div class="modal-overlay" id="historyModal"><div class="modal" style="max-width:600px;">
+        <h2>Historial de Fichas</h2>
+        <input type="hidden" id="histDriverId">
+        <label>Chofer</label><input type="text" id="histDriverName" readonly style="opacity:0.7;">
+        <div id="historyList" style="margin-top:15px; max-height:400px; overflow-y:auto;"></div>
+        <div class="btn-row" style="margin-top:15px;"><button class="btn btn-cancel" onclick="closeModal('historyModal')">Cerrar</button></div>
+    </div></div>
+
+    <script>
+        let sb = null;
+        let allDrivers = [];
+
+        document.addEventListener('auth-ready', async (e) => {
+            sb = e.detail.sb;
+            loadDrivers();
+        });
+
+        async function loadDrivers() {
+            if (!sb) return;
+            try {
+                const { data, error } = await sb.from('perfiles')
+                    .select('id, full_name, phone, matricula, tipo_vehiculo, fichas, status')
+                    .eq('tipo_vehiculo', 'taxi').order('full_name');
+                if (error) throw error;
+                allDrivers = data || [];
+                renderDrivers();
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        function renderDrivers() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = q ? allDrivers.filter(d =>
+                (d.full_name||'').toLowerCase().includes(q) ||
+                (d.matricula||'').toLowerCase().includes(q) ||
+                (d.phone||'').includes(q)
+            ) : allDrivers;
+
+            document.getElementById('statTotal').textContent = allDrivers.length;
+            document.getElementById('statFichas').textContent = allDrivers.reduce((s, d) => s + (d.fichas || 0), 0);
+            document.getElementById('statNoFichas').textContent = allDrivers.filter(d => (d.fichas || 0) <= 0).length;
+
+            const container = document.getElementById('driversContainer');
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#8b949e;">No se encontraron choferes taxi.</p>';
+                return;
+            }
+            container.innerHTML = filtered.map(d => {
+                const f = d.fichas || 0;
+                const lc = f <= 5 ? 'low' : '';
+                const st = d.status === 'aprobado' ? '<span style="color:#4ade80;font-size:11px;">Activo</span>' : '<span style="color:#f85149;font-size:11px;">' + d.status + '</span>';
+                const n = (d.full_name||'').replace(/'/g, "\\'");
+                return '<div class="driver-card"><div class="driver-info"><div class="driver-avatar">T</div><div><div class="driver-name">' + (d.full_name||'Sin nombre') + '</div><div class="driver-meta">' + (d.matricula||'-') + ' | ' + (d.phone||'-') + ' ' + st + '</div></div></div><div style="display:flex;align-items:center;gap:10px;"><div><div class="fichas-count ' + lc + '">' + f + '</div><div class="fichas-label">fichas</div></div><button class="btn btn-add" onclick="openAdd(\'' + d.id + '\',\'' + n + '\',' + f + ')">+</button><button class="btn btn-subtract" onclick="openSubtract(\'' + d.id + '\',\'' + n + '\',' + f + ')">-</button><button class="btn btn-history" onclick="openHistory(\'' + d.id + '\',\'' + n + '\')">H</button></div></div>';
+            }).join('');
+        }
+
+        function openAdd(id, name, current) {
+            document.getElementById('addDriverId').value = id;
+            document.getElementById('addDriverName').value = name;
+            document.getElementById('addCurrentFichas').value = current;
+            document.getElementById('addAmount').value = 10;
+            document.getElementById('addReason').value = '';
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        function openSubtract(id, name, current) {
+            document.getElementById('subDriverId').value = id;
+            document.getElementById('subDriverName').value = name;
+            document.getElementById('subCurrentFichas').value = current;
+            document.getElementById('subAmount').value = 1;
+            document.getElementById('subReason').value = '';
+            document.getElementById('subtractModal').classList.add('active');
+        }
+
+        async function confirmAdd() {
+            const id = document.getElementById('addDriverId').value;
+            const amount = parseInt(document.getElementById('addAmount').value) || 0;
+            const reason = document.getElementById('addReason').value || 'Recarga manual';
+            if (amount <= 0) { showToast('Cantidad invalida', 'error'); return; }
+            const driver = allDrivers.find(d => d.id === id);
+            const newFichas = (driver?.fichas || 0) + amount;
+            try {
+                const { error } = await sb.from('perfiles').update({ fichas: newFichas }).eq('id', id);
+                if (error) throw error;
+                await sb.from('fichas_history').insert({ driver_id: id, type: 'add', amount: amount, balance_after: newFichas, reason: reason, created_at: new Date().toISOString() }).catch(() => {});
+                showToast('+' + amount + ' fichas para ' + (driver?.full_name || ''), 'success');
+                closeModal('addModal');
+                loadDrivers();
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        async function confirmSubtract() {
+            const id = document.getElementById('subDriverId').value;
+            const amount = parseInt(document.getElementById('subAmount').value) || 0;
+            const reason = document.getElementById('subReason').value || 'Ajuste manual';
+            if (amount <= 0) { showToast('Cantidad invalida', 'error'); return; }
+            const driver = allDrivers.find(d => d.id === id);
+            const current = driver?.fichas || 0;
+            if (amount > current) { showToast('No hay suficientes fichas', 'error'); return; }
+            const newFichas = current - amount;
+            try {
+                const { error } = await sb.from('perfiles').update({ fichas: newFichas }).eq('id', id);
+                if (error) throw error;
+                await sb.from('fichas_history').insert({ driver_id: id, type: 'subtract', amount: amount, balance_after: newFichas, reason: reason, created_at: new Date().toISOString() }).catch(() => {});
+                showToast('-' + amount + ' fichas de ' + (driver?.full_name || ''), 'success');
+                closeModal('subtractModal');
+                loadDrivers();
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        async function openHistory(id, name) {
+            document.getElementById('histDriverId').value = id;
+            document.getElementById('histDriverName').value = name;
+            document.getElementById('historyList').innerHTML = '<p style="color:#8b949e;">Cargando...</p>';
+            document.getElementById('historyModal').classList.add('active');
+            try {
+                const { data, error } = await sb.from('fichas_history').select('*').eq('driver_id', id).order('created_at', { ascending: false }).limit(50);
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    document.getElementById('historyList').innerHTML = '<p style="color:#8b949e;text-align:center;">Sin historial</p>';
+                    return;
+                }
+                document.getElementById('historyList').innerHTML = data.map(h => {
+                    const date = new Date(h.created_at).toLocaleString('es-UY');
+                    const tc = h.type === 'add' ? 'add' : 'sub';
+                    const tl = h.type === 'add' ? '+AGREGADO' : '-RESTADO';
+                    const sign = h.type === 'add' ? '+' : '-';
+                    return '<div class="history-row"><div><span class="history-type ' + tc + '">' + tl + '</span> <span style="margin-left:8px;">' + sign + h.amount + ' fichas</span></div><div style="text-align:right;"><div>Saldo: ' + h.balance_after + '</div><div style="color:#8b949e;font-size:11px;">' + date + '</div><div style="color:#6e7681;font-size:11px;">' + (h.reason || '') + '</div></div></div>';
+                }).join('');
+            } catch (e) {
+                document.getElementById('historyList').innerHTML = '<p style="color:#f85149;">Error: ' + e.message + '</p>';
+            }
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function showToast(msg, type) {
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
