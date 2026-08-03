@@ -53,6 +53,8 @@ const markers = {};
 const lastBroadcast = {};
 const presenceIds = new Set();
 let firstFound = false;
+let ch = null;
+let sb = null;
 
 const map = new maplibregl.Map({
     container: 'map',
@@ -129,9 +131,6 @@ function upsert(d) {
     setFilter(currentFilter);
 }
 
-let ch = null;
-let sb = null;
-
 function setup() {
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     ch = sb.channel('monitoreo_choferes');
@@ -193,17 +192,21 @@ setInterval(() => {
     try {
         const now = Date.now();
         Object.keys(markers).forEach(id => {
-            // Solo remover si hace más de 8 segundos que no hay broadcast
-            // (el chofer envía cada ~1s, pero allowimos margen por red)
-            if(now - lastBroadcast[id] > 8000) {
+            // No remover si nunca tuvo broadcast (marker nuevo)
+            if(!lastBroadcast[id]) return;
+            // Solo remover si hace más de 10 segundos que no hay broadcast
+            if(now - lastBroadcast[id] > 10000) {
+                console.log('[Monitoreo] Removing stale marker:', id, 'last seen', now - lastBroadcast[id], 'ms ago');
                 removeMarker(id);
             }
         });
     } catch(_){}
-}, 2000);
+}, 3000);
 
 document.addEventListener('visibilitychange', () => {
     if(!document.hidden && ch) {
+        console.log('[Monitoreo] Tab visible again, resubscribing...');
+        // NO limpiar markers al resuscribir — solo reconectar el canal
         try { ch.unsubscribe(); sb.removeChannel(ch); } catch(_){}
         setup();
     }
