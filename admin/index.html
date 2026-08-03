@@ -126,7 +126,7 @@
                     <button id="btnAutos" class="btn" onclick="setFilter('auto')">AUTOS</button>
                     <button id="btnTaxis" class="btn" onclick="setFilter('taxi')">TAXIS</button>
                 </div>
-                <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff;">Autos: 0</div>
+                <div id="counter" style="font-size: 14px; font-weight: bold; color: #58a6ff; line-height: 1.6;">🚗 Autos: 0<br>🚕 Taxis: 0</div>
                 <div id="st" style="font-size: 9px; color: #8b949e;">Conectando...</div>
             </div>
             <div id="liveMap"></div>
@@ -221,9 +221,19 @@
             liveMapObj = liveMap;
 
             function updateCounter() {
-                let count = 0; const total = Object.keys(markers).length;
-                Object.keys(markers).forEach(id => { if(currentFilter === 'all' || markers[id].t === currentFilter) count++; });
-                document.getElementById('counter').innerText = 'Autos: ' + count + (currentFilter !== 'all' ? ' / ' + total : '');
+                let autos = 0, taxis = 0;
+                Object.keys(markers).forEach(id => {
+                    if(markers[id].t === 'taxi') taxis++;
+                    else autos++;
+                });
+                const el = document.getElementById('counter');
+                if(currentFilter === 'all') {
+                    el.innerHTML = '🚗 Autos: ' + autos + '<br>🚕 Taxis: ' + taxis;
+                } else if(currentFilter === 'auto') {
+                    el.innerText = '🚗 Autos: ' + autos;
+                } else {
+                    el.innerText = '🚕 Taxis: ' + taxis;
+                }
             }
 
             function setFilter(f) {
@@ -298,7 +308,7 @@
                 });
             }
             setup();
-            setInterval(()=>{if(!ch)return;try{const now=Date.now();Object.keys(markers).forEach(id=>{if(now-lastBroadcast[id]>5000)removeMarker(id);});}catch(_){}},500);
+            setInterval(()=>{if(!ch)return;try{const now=Date.now();Object.keys(markers).forEach(id=>{if(!lastBroadcast[id])return;if(now-lastBroadcast[id]>10000)removeMarker(id);});}catch(_){}},3000);
         }
     </script>
 </body>
