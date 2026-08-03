@@ -107,8 +107,8 @@
         async function loadUIValue() {
             if (!sb) return;
             try {
-                const { data } = await sb.from('config_tarifas').select('ui_value').eq('pais_code', 'UY').single();
-                if (data && data.ui_value) uiToPesos = data.ui_value;
+                const { data } = await sb.from('config_tarifas').select('ui_value').eq('pais_code', 'UY');
+                if (data && data.length > 0 && data[0].ui_value) uiToPesos = data[0].ui_value;
             } catch (e) { console.log('UI value not found, using default'); }
         }
 
