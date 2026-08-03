@@ -107,9 +107,17 @@
         async function loadUIValue() {
             if (!sb) return;
             try {
-                const { data } = await sb.from('config_tarifas').select('ui_value').eq('pais_code', 'UY');
-                if (data && data.length > 0 && data[0].ui_value) uiToPesos = data[0].ui_value;
-            } catch (e) { console.log('UI value not found, using default'); }
+                const { data, error } = await sb.from('config_tarifas').select('ui_value').eq('pais_code', 'UY');
+                if (!error && data && data.length > 0 && data[0].ui_value && data[0].ui_value > 0) {
+                    uiToPesos = data[0].ui_value;
+                    return;
+                }
+            } catch (e) { console.log('DB fetch failed, trying API'); }
+            try {
+                const resp = await fetch('/api/update-ui');
+                const result = await resp.json();
+                if (result.success && result.value) uiToPesos = result.value;
+            } catch (e) { console.log('API fetch also failed'); }
         }
 
         async function loadZones() {
