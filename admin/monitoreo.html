@@ -103,18 +103,11 @@ function removeMarker(id) {
 }
 
 function upsert(d) {
-    if(!d||!d.lat||!d.lng||!d.id) {
-        console.log('[Monitoreo] upsert REJECTED - missing data:', d);
-        return;
-    }
+    if(!d||!d.lat||!d.lng||!d.id) return;
     const id = String(d.id);
     const now = Date.now();
-    if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) {
-        console.log('[Monitoreo] upsert DEBOUNCED:', id);
-        return;
-    }
+    if(lastBroadcast[id] && (now - lastBroadcast[id] < 300)) return;
     lastBroadcast[id] = now;
-    console.log('[Monitoreo] upsert OK:', id, 'lat:', d.lat, 'lng:', d.lng, 'markers count:', Object.keys(markers).length);
 
     if(markers[id]) {
         markers[id].mk.setLngLat([parseFloat(d.lng), parseFloat(d.lat)]);
@@ -148,7 +141,7 @@ function upsert(d) {
 function setup() {
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     ch = sb.channel('monitoreo_choferes');
-    ch.on('presence', {event:'sync'}, () => {
+    ch    .on('presence', {event:'sync'}, () => {
         const st = ch.presenceState();
         presenceIds.clear();
         Object.values(st).forEach(arr => arr.forEach(p => {
@@ -157,7 +150,6 @@ function setup() {
                 presenceIds.add(id);
             }
         }));
-        console.log('[Monitoreo] Presence sync:', Array.from(presenceIds));
     })
     .on('presence', {event:'leave'}, ({key, leftPresences}) => {
         if(leftPresences) {
@@ -170,12 +162,8 @@ function setup() {
             });
         }
     })
-    .on('broadcast', {event:'location'}, ({payload}) => {
-        console.log('[Monitoreo] Location received:', payload?.id, payload?.lat, payload?.lng);
-        upsert(payload);
-    })
+    .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
     .on('broadcast', {event:'connection'}, ({payload}) => {
-        console.log('[Monitoreo] Connection event:', payload);
         // Solo remover si el chofer se DESCONECTA (online === false)
         // Si se CONECTA (online === true), no hacer nada — el marker se crea con location
         if(payload && payload.online === false && payload.id) {
@@ -210,7 +198,6 @@ setInterval(() => {
             if(!lastBroadcast[id]) return;
             // Solo remover si hace más de 10 segundos que no hay broadcast
             if(now - lastBroadcast[id] > 10000) {
-                console.log('[Monitoreo] Removing stale marker:', id, 'last seen', now - lastBroadcast[id], 'ms ago');
                 removeMarker(id);
             }
         });
@@ -219,8 +206,6 @@ setInterval(() => {
 
 document.addEventListener('visibilitychange', () => {
     if(!document.hidden && ch) {
-        console.log('[Monitoreo] Tab visible again, resubscribing...');
-        // NO limpiar markers al resuscribir — solo reconectar el canal
         try { ch.unsubscribe(); sb.removeChannel(ch); } catch(_){}
         setup();
     }
