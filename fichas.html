@@ -172,7 +172,7 @@
             try {
                 const { error } = await sb.from('perfiles').update({ fichas: newFichas }).eq('id', id);
                 if (error) throw error;
-                await sb.from('fichas_history').insert({ driver_id: id, type: 'add', amount: amount, balance_after: newFichas, reason: reason, created_at: new Date().toISOString() }).catch(() => {});
+                await sb.from('fichas_history').insert({ driver_id: id, type: 'add', amount: amount, balance_after: newFichas, reason: reason, created_at: new Date().toISOString() });
                 showToast('+' + amount + ' fichas para ' + (driver?.full_name || ''), 'success');
                 closeModal('addModal');
                 loadDrivers();
@@ -191,7 +191,7 @@
             try {
                 const { error } = await sb.from('perfiles').update({ fichas: newFichas }).eq('id', id);
                 if (error) throw error;
-                await sb.from('fichas_history').insert({ driver_id: id, type: 'subtract', amount: amount, balance_after: newFichas, reason: reason, created_at: new Date().toISOString() }).catch(() => {});
+                await sb.from('fichas_history').insert({ driver_id: id, type: 'subtract', amount: amount, balance_after: newFichas, reason: reason, created_at: new Date().toISOString() });
                 showToast('-' + amount + ' fichas de ' + (driver?.full_name || ''), 'success');
                 closeModal('subtractModal');
                 loadDrivers();
