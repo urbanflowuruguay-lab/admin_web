@@ -196,19 +196,27 @@
                         <span style="color:#4ade80; font-size:13px;">Valor UI actual (BCU):</span>
                         <span style="color:#fff; font-weight:bold; font-size:18px;">$${uiToPesos.toFixed(2)}</span>
                     </div>
-                    <div class="grid-3">
+                    <div class="grid-4">
                         <div class="form-group">
-                            <label>Precio en UI</label>
+                            <label>UrbanFlow cobra (UI)</label>
                             <input type="number" value="${z.urbanflow_ficha_price || 10}" id="ufp_${z.id}" step="0.01" min="0">
-                            <div class="hint">Unidad Indexada — lo que cobra UrbanFlow por cada viaje</div>
+                            <div class="hint">Lo que UrbanFlow recibe por viaje</div>
                         </div>
                         <div class="form-group">
                             <label>Equivalente en Pesos</label>
                             <div style="padding:12px; background:#161b22; border-radius:8px; border:1px solid #30363d; font-size:16px; font-weight:bold; color:#f39c12;">
                                 $ <span id="ufpPesos_${z.id}">${((z.urbanflow_ficha_price || 10) * uiToPesos).toFixed(2)}</span>
-                                <span style="font-size:12px; color:#8b949e; margin-left:8px;">(${(z.urbanflow_ficha_price || 10)} UI × ${uiToPesos})</span>
+                                <span style="font-size:12px; color:#8b949e; margin-left:8px;">(${(z.urbanflow_ficha_price || 10)} UI × ${uiToPesos.toFixed(2)})</span>
                             </div>
-                            <div class="hint">1 UI ≈ $${uiToPesos} (se actualiza automáticamente)</div>
+                            <div class="hint">1 UI ≈ $${uiToPesos.toFixed(2)}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Cobrar al chofer (UI)</label>
+                            <div style="padding:12px; background:#1a0f05; border-radius:8px; border:1px solid #f39c12; font-size:16px; font-weight:bold; color:#f39c12;">
+                                <span id="ufpCharge_${z.id}">${((z.urbanflow_ficha_price || 10) / (1 - 0.0788)).toFixed(2)}</span> UI
+                                <div style="font-size:12px; color:#8b949e; margin-top:4px;">≈ $<span id="ufpChargePesos_${z.id}">${(((z.urbanflow_ficha_price || 10) / (1 - 0.0788)) * uiToPesos).toFixed(2)}</span></div>
+                            </div>
+                            <div class="hint">Después de MP (7.88%) queda ${z.urbanflow_ficha_price || 10} UI</div>
                         </div>
                         <div class="form-group">
                             <label>Mínimo Recarga (fichas)</label>
@@ -243,7 +251,12 @@
                     ufpInput.addEventListener('input', () => {
                         const val = parseFloat(ufpInput.value) || 0;
                         const pesosEl = document.getElementById(`ufpPesos_${z.id}`);
+                        const chargeEl = document.getElementById(`ufpCharge_${z.id}`);
+                        const chargePesosEl = document.getElementById(`ufpChargePesos_${z.id}`);
                         if (pesosEl) pesosEl.textContent = (val * uiToPesos).toFixed(2);
+                        const chargeUI = val / (1 - 0.0788);
+                        if (chargeEl) chargeEl.textContent = chargeUI.toFixed(2);
+                        if (chargePesosEl) chargePesosEl.textContent = (chargeUI * uiToPesos).toFixed(2);
                     });
                 }
             });
