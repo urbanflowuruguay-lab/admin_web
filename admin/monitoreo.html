@@ -158,6 +158,8 @@ function setup() {
     })
     .on('broadcast', {event:'location'}, ({payload}) => upsert(payload))
     .on('broadcast', {event:'connection'}, ({payload}) => {
+        // Solo remover si el chofer se DESCONECTA (online === false)
+        // Si se CONECTA (online === true), no hacer nada — el marker se crea con location
         if(payload && payload.online === false && payload.id) {
             removeMarker(String(payload.id));
             presenceIds.delete(String(payload.id));
@@ -186,12 +188,14 @@ setInterval(() => {
     try {
         const now = Date.now();
         Object.keys(markers).forEach(id => {
-            if(!presenceIds.has(id) || (now - lastBroadcast[id] > 2000)) {
+            // Solo remover si hace más de 8 segundos que no hay broadcast
+            // (el chofer envía cada ~1s, pero allowimos margen por red)
+            if(now - lastBroadcast[id] > 8000) {
                 removeMarker(id);
             }
         });
     } catch(_){}
-}, 500);
+}, 2000);
 
 document.addEventListener('visibilitychange', () => {
     if(!document.hidden && ch) {
