@@ -72,12 +72,43 @@
         .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0e1a; display: flex; align-items: center; justify-content: center; z-index: 9999; }
         .auth-overlay .spinner { color: #58a6ff; font-size: 18px; }
         .hidden { display: none !important; }
+
+        .hamburger {
+            display: none; position: fixed; top: 10px; left: 10px; z-index: 200;
+            background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+            padding: 10px 12px; cursor: pointer; color: #c9d1d9; font-size: 20px;
+        }
+        .hamburger:hover { background: #21262d; }
+        .sidebar-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 99;
+        }
+        .sidebar-overlay.active { display: block; }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed; top: 0; left: -280px; z-index: 100;
+                width: 260px; transition: left 0.3s;
+            }
+            .sidebar.open { left: 0; }
+            .hamburger { display: block; }
+            .main { width: 100%; }
+            .map-controls { top: 55px; left: 10px; }
+            #homeGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding: 60px 15px 15px 15px; }
+            .home-card { padding: 15px; }
+            .home-card .icon { font-size: 28px; }
+            .home-card .label { font-size: 12px; }
+            .home-card .desc { font-size: 10px; }
+        }
     </style>
 </head>
 <body>
     <div class="auth-overlay" id="authOverlay">
         <div class="spinner">Verificando acceso...</div>
     </div>
+
+    <div class="hamburger" id="hamburger" onclick="toggleSidebar()">&#9776;</div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <div class="sidebar" id="sidebar" style="display:none;">
         <div style="text-align: center; margin-bottom: 15px;">
@@ -141,6 +172,13 @@
     <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
     <script src="/auth-check.js"></script>
     <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
         document.addEventListener('auth-ready', (e) => {
             if (!e.detail) { location.href = '/login.html'; return; }
             document.getElementById('authOverlay').style.display = 'none';
@@ -162,6 +200,7 @@
             document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active-link'));
             const link = e ? e.currentTarget : document.querySelector('[data-view="'+view+'"]');
             if(link) link.classList.add('active-link');
+            if(window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('active'); }
 
             if(view === 'mapa') {
                 views.mapContainer.classList.remove('hidden');
