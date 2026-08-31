@@ -1313,7 +1313,7 @@ async function saveAllScraped() {
 
         const body = {
             escenario_id: ev.escenario_id, nombre: ev.nombre, artista: ev.artista || null,
-            fecha: ev.fecha || null, fecha_fin: ev.fecha_fin || null, hora: ev.hora || null, precio: null, genero: ev.genero || null,
+            fecha: ev.fecha || null, fecha_fin: ev.fecha_fin || null, hora: cinesData ? null : (ev.hora || null), precio: null, genero: ev.genero || null,
             url_entrada: ev.url_entrada || null, url_santander: ev.url_santander || null,
             foto_url: fixPhotoUrl(ev.foto_url) || null, descripcion: ev.descripcion || null,
             cines: cinesData, activo: true
