@@ -783,7 +783,7 @@ async function doScrape() {
     scrapedEvents = [];
 
     try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const proxyUrl = `/api/scrape-proxy?url=${encodeURIComponent(url)}`;
         log.textContent += `Fetch via proxy...\n`;
         const resp = await fetch(proxyUrl);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -808,7 +808,7 @@ async function doScrape() {
         for (let i = 0; i < events.length && i < 10; i++) {
             if (!events[i].foto_url && events[i].url_entrada) {
                 try {
-                    const pUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(events[i].url_entrada)}`;
+                        const pUrl = `/api/scrape-proxy?url=${encodeURIComponent(events[i].url_entrada)}`;
                     const pResp = await fetch(pUrl);
                     if (pResp.ok) {
                         const pHtml = await pResp.text();
@@ -1126,6 +1126,5 @@ document.getElementById('scrapeEscenario').addEventListener('change', function()
 
 loadData();
 </script>
-<script src="/auth-check.js"></script>
 </body>
 </html>
