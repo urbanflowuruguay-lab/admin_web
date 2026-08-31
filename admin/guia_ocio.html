@@ -58,7 +58,7 @@
 
         .scraped-card { background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
         .scraped-card .header { display: flex; gap: 12px; align-items: flex-start; }
-        .scraped-card .photo-preview { width: 100px; height: 70px; border-radius: 8px; object-fit: cover; background: #2a2d3e; flex-shrink: 0; }
+        .scraped-card .photo-preview { width: 80px; height: 120px; border-radius: 6px; object-fit: cover; background: #2a2d3e; flex-shrink: 0; border: 2px solid #3a3d4e; }
         .scraped-card .fields { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .scraped-card .fields .full { grid-column: 1 / -1; }
         .scraped-card .fields input { font-size: 12px; padding: 6px 8px; }
@@ -113,7 +113,7 @@
                 <div class="section-header">
                     <h2>Escenarios</h2>
                     <div style="display:flex;gap:8px;">
-                        <button class="btn btn-danger" onclick="deletePastEvents()">🗑 Borrar pasados</button>
+                        <button class="btn btn-ghost" onclick="fixBrokenPhotos()" style="font-size:12px;">🔧 Arreglar fotos rotas</button>
                         <button class="btn btn-primary" onclick="openAddEscenario()">+ Nuevo escenario</button>
                     </div>
                 </div>
@@ -122,7 +122,9 @@
                 <div id="eventosSection" style="display:none; margin-top: 20px;">
                     <div class="section-header">
                         <h2 id="eventosTitle">Eventos de: </h2>
-                        <div style="display:flex;gap:8px;">
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <span id="selectedEvtCount" style="font-size:12px;color:#888;"></span>
+                            <button class="btn btn-danger" id="btnDeleteSelectedEvt" style="display:none;" onclick="deleteSelectedEvents()">🗑 Borrar seleccionados</button>
                             <button class="btn btn-ghost" onclick="closeEventos()">← Volver</button>
                             <button class="btn btn-primary" onclick="openAddEvento()">+ Agregar evento</button>
                         </div>
@@ -154,8 +156,14 @@
                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://www.movie.com.uy/movies', 'Cines en Montevideo')">🎬 Movie</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://grupocine.com.uy/cartelera', 'Cines en Montevideo')">🎬 Grupocine</button>
+                        <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://cartelera.montevideo.com.uy/cine', 'Cines en Montevideo')">🎬 Cartelera MVD</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://mirandolacartelera.com/uruguay', 'Cines en Montevideo')">🎬 Mirandola</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://www.cine.com/uy/cartelera', 'Cines en Montevideo')">🎬 Cine.com</button>
+                        <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://teatrodeverano.montevideo.gub.uy/ahome.aspx', 'Teatro de Verano')">🎭 Teatro de Verano</button>
+                        <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://www.saladelmuseo.com.uy', 'Sala del Museo')">🎭 Sala del Museo</button>
+                        <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://www.montevideomusicbox.com.uy', 'Montevideo Music Box')">🎵 Music Box</button>
+                        <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://www.antelarena.com.uy/events', 'Antel Arena')">🏟️ Antel Arena</button>
+                        <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://teatroelgalpon.org.uy', 'Teatro El Galpón')">🎭 Teatro El Galpón</button>
                     </div>
                 </div>
 
@@ -379,6 +387,8 @@ async function loadData() {
     escenarios = await er.json();
     const evr = await fetch(`${SUPA_URL}/rest/v1/eventos?select=*,escenarios(nombre)&activo=eq.true&order=fecha`, { headers: HK });
     eventos = await evr.json();
+    const hoy = new Date().toISOString().slice(0, 10);
+    eventos = eventos.filter(e => !e.fecha || e.fecha >= hoy);
 
     // Load cines config from localStorage
     try { cinesConfig = JSON.parse(localStorage.getItem('cinesConfig') || '{}'); } catch(e) { cinesConfig = {}; }
@@ -493,6 +503,8 @@ function showTab(tab, btn) {
     if (tab === 'cines') renderCinesLogos();
 }
 
+let selectedEvtIds = new Set();
+
 function renderEscenarios() {
     const el = document.getElementById('escenariosList');
     if (escenarios.length === 0) {
@@ -520,6 +532,7 @@ function renderEscenarios() {
 
 function selectEscenario(id) {
     selectedEscId = id;
+    selectedEvtIds.clear();
     renderEscenarios();
     document.getElementById('eventosSection').style.display = 'block';
     renderEventosFor(id);
@@ -528,8 +541,52 @@ function selectEscenario(id) {
 
 function closeEventos() {
     selectedEscId = null;
+    selectedEvtIds.clear();
     document.getElementById('eventosSection').style.display = 'none';
     renderEscenarios();
+}
+
+function toggleSelectAllEvt(checked) {
+    const evts = eventos.filter(e => e.escenario_id === selectedEscId);
+    if (checked) { evts.forEach(e => selectedEvtIds.add(e.id)); }
+    else { selectedEvtIds.clear(); }
+    renderEventosFor(selectedEscId);
+}
+
+function toggleSelectEvt(id, checked) {
+    if (checked) { selectedEvtIds.add(id); } else { selectedEvtIds.delete(id); }
+    updateEvtSelectedCount();
+}
+
+function updateEvtSelectedCount() {
+    const n = selectedEvtIds.size;
+    document.getElementById('selectedEvtCount').textContent = n > 0 ? `${n} seleccionados` : '';
+    document.getElementById('btnDeleteSelectedEvt').style.display = n > 0 ? 'inline-flex' : 'none';
+}
+
+async function deleteSelectedEvents() {
+    if (selectedEvtIds.size === 0) return;
+    if (!confirm(`Eliminar ${selectedEvtIds.size} evento(s)? Esto no se puede deshacer.`)) return;
+    let deleted = 0;
+    for (const id of selectedEvtIds) {
+        await fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${id}`, { method: 'DELETE', headers: HK });
+        deleted++;
+    }
+    selectedEvtIds.clear();
+    alert(`${deleted} eventos eliminados`);
+    loadData();
+}
+
+function selectEscenario(id) {
+    selectedEscId = id;
+    document.getElementById('eventosSection').style.display = 'block';
+    renderEventosFor(id);
+    document.getElementById('eventosSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeEventos() {
+    selectedEscId = null;
+    document.getElementById('eventosSection').style.display = 'none';
 }
 
 function renderEventosFor(escId) {
@@ -539,14 +596,18 @@ function renderEventosFor(escId) {
     const el = document.getElementById('eventosList');
     if (evts.length === 0) {
         el.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>Sin eventos. Agregalos o raspa la web del escenario.</p></div>';
+        updateEvtSelectedCount();
         return;
     }
-    el.innerHTML = evts.map(e => {
+    el.innerHTML = `<div style="margin-bottom:8px;"><label style="font-size:12px;color:#888;cursor:pointer;"><input type="checkbox" id="selectAllEvt" onchange="toggleSelectAllEvt(this.checked)"> Marcar todos (${evts.length})</label></div>` +
+    evts.map(e => {
         const photo = e.foto_url ? `<img src="${e.foto_url}" class="event-photo" onerror="this.outerHTML='<div class=\\'event-photo no-photo\\'>🎵</div>'">` : '<div class="event-photo no-photo">🎵</div>';
         const dateStr = e.fecha ? (e.fecha_fin ? formatDate(e.fecha) + ' al ' + formatDate(e.fecha_fin) : formatDate(e.fecha)) : 'Sin fecha';
         const ticketBtn = e.url_entrada ? `<a href="${e.url_entrada}" target="_blank" class="btn btn-warning" style="font-size:11px;">Entradas</a>` : '';
         const santanderBtn = e.url_santander ? `<a href="${e.url_santander}" target="_blank" class="btn" style="font-size:11px;background:#EC0000;color:white;">Santander</a>` : '';
+        const checked = selectedEvtIds.has(e.id) ? 'checked' : '';
         return `<div class="event-card">
+            <input type="checkbox" ${checked} onchange="toggleSelectEvt('${e.id}', this.checked)" style="margin-right:8px;cursor:pointer;align-self:center;">
             ${photo}
             <div class="event-info">
                 <div class="name">${e.nombre}</div>
@@ -562,6 +623,7 @@ function renderEventosFor(escId) {
             </div>
         </div>`;
     }).join('');
+    updateEvtSelectedCount();
 }
 
 function formatDate(f) {
@@ -588,6 +650,18 @@ function parseDate(text) {
     return text;
 }
 
+function fixPhotoUrl(url) {
+    if (!url) return '';
+    url = url.trim();
+    if (url.startsWith('https:https://')) url = 'https://' + url.slice(12);
+    if (url.startsWith('http:https://')) url = 'https://' + url.slice(12);
+    if (url.startsWith('http:http://')) url = 'http://' + url.slice(11);
+    if (url.startsWith('https:http://')) url = 'http://' + url.slice(12);
+    if (url.startsWith('//')) url = 'https:' + url;
+    if (!url.startsWith('http')) return '';
+    return url;
+}
+
 function extractImageUrl(html, baseUrl) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -612,28 +686,39 @@ const SCRAPERS = {
         const events = [];
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const items = doc.querySelectorAll('.widgetkit-gallery-item, .zoo-item, article, .show-item');
-        items.forEach(item => {
-            const titleEl = item.querySelector('h2, h3, .title, .widgetkit-title, strong, a[title]');
-            const dateEl = item.querySelector('.date, time, .widgetkit-date');
-            const linkEl = item.querySelector('a[href*="show"]');
+        const months = { ENE:1, FEB:2, MAR:3, ABR:4, MAY:5, JUN:6, JUL:7, AGO:8, SEP:9, OCT:10, NOV:11, DIC:12 };
+        const seen = new Set();
+        doc.querySelectorAll('.zoo-panel-teaser, .zoo-article-teaser, article').forEach(item => {
+            const nameEl = item.querySelector('.name, h2, h3, .title');
             const imgEl = item.querySelector('img[src]');
-            const name = titleEl?.textContent?.trim() || '';
-            const dateText = dateEl?.textContent?.trim() || '';
-            const link = linkEl?.href || linkEl?.getAttribute('href') || '';
+            const dayEl = item.querySelector('.tm-article-date-day');
+            const monthEl = item.querySelector('.tm-article-date-month');
+            const linkEl = item.querySelector('a[href*="show"], a[href*="item"]');
+            const name = nameEl?.textContent?.trim() || '';
+            if (!name || name.length < 2 || seen.has(name)) return;
+            seen.add(name);
             let photo = imgEl?.getAttribute('src') || '';
-            if (photo && !photo.startsWith('http')) photo = new URL(photo, 'https://www.saladelmuseo.com.uy').href;
-            if (name && name.length > 2 && !name.includes('©') && !name.includes('Santander')) {
-                events.push({ nombre: name, fecha: parseDate(dateText), url_entrada: link, foto_url: photo });
-            }
+            if (photo && !photo.startsWith('http')) photo = 'https://www.saladelmuseo.com.uy' + photo;
+            let link = linkEl?.getAttribute('href') || '';
+            if (link && !link.startsWith('http')) link = 'https://www.saladelmuseo.com.uy' + link;
+            const dia = dayEl?.textContent?.trim() || '';
+            const mes = (monthEl?.textContent?.trim() || '').toUpperCase();
+            const mesNum = months[mes] || 0;
+            let fecha = '';
+            if (dia && mesNum) fecha = `2026-${String(mesNum).padStart(2,'0')}-${String(parseInt(dia)).padStart(2,'0')}`;
+            events.push({ nombre: name, fecha: fecha, url_entrada: link, foto_url: photo });
         });
-        const titleRegex = /<h[23][^>]*>([^<]+)<\/h[23]>/gi;
-        let match;
-        while ((match = titleRegex.exec(html)) !== null) {
-            const t = match[1].trim();
-            if (t.length > 3 && !events.find(e => e.nombre === t) && !t.includes('©') && !t.includes('Santander') && !t.includes('Preguntas')) {
-                events.push({ nombre: t, fecha: '', url_entrada: '', foto_url: '' });
-            }
+        if (events.length === 0) {
+            doc.querySelectorAll('.widgetkit-gallery-item, .zoo-item, .show-item').forEach(item => {
+                const titleEl = item.querySelector('h2, h3, .title, strong, a[title]');
+                const imgEl = item.querySelector('img[src]');
+                const name = titleEl?.textContent?.trim() || '';
+                if (!name || name.length < 2 || seen.has(name)) return;
+                seen.add(name);
+                let photo = imgEl?.getAttribute('src') || '';
+                if (photo && !photo.startsWith('http')) photo = 'https://www.saladelmuseo.com.uy' + photo;
+                events.push({ nombre: name, fecha: '', url_entrada: '', foto_url: photo });
+            });
         }
         return events;
     },
@@ -641,21 +726,31 @@ const SCRAPERS = {
         const events = [];
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const items = doc.querySelectorAll('.event-item, .event-card, article, [class*="event"]');
-        items.forEach(item => {
-            const titleEl = item.querySelector('h2, h3, .title, strong');
-            const dateEl = item.querySelector('.date, time');
-            const linkEl = item.querySelector('a[href*="event"]');
+        const seen = new Set();
+        const months = { ene:1, feb:2, mar:3, abr:4, may:5, jun:6, jul:7, ago:8, sep:9, set:9, oct:10, nov:11, dic:12 };
+        doc.querySelectorAll('.eventItem, .event-item, .event-card, article, [class*="event"]').forEach(item => {
+            const titleEl = item.querySelector('.h3.title a, .title a, h2 a, h3 a, h4 a');
+            const taglineEl = item.querySelector('.h4.tagline, .tagline');
+            const dayEl = item.querySelector('.m-date__day');
+            const monthEl = item.querySelector('.m-date__month');
+            const yearEl = item.querySelector('.m-date__year');
+            const linkEl = item.querySelector('a[href*="events/detail"], a[href*="event"]');
             const imgEl = item.querySelector('img[src]');
             const name = titleEl?.textContent?.trim() || '';
-            const dateText = dateEl?.textContent?.trim() || '';
-            let link = linkEl?.href || linkEl?.getAttribute('href') || '';
+            if (!name || name.length < 3 || seen.has(name)) return;
+            seen.add(name);
+            const tagline = taglineEl?.textContent?.trim() || '';
+            let link = linkEl?.getAttribute('href') || '';
             if (link && !link.startsWith('http')) link = 'https://www.antelarena.com.uy' + link;
             let photo = imgEl?.getAttribute('src') || '';
             if (photo && !photo.startsWith('http')) photo = 'https://www.antelarena.com.uy' + photo;
-            if (name && name.length > 3) {
-                events.push({ nombre: name, fecha: parseDate(dateText), url_entrada: link, foto_url: photo });
-            }
+            const day = parseInt(dayEl?.textContent?.trim()) || 0;
+            const mon = (monthEl?.textContent?.trim() || '').toLowerCase();
+            const monNum = months[mon] || 0;
+            const year = parseInt(yearEl?.textContent?.trim()) || 2026;
+            let fecha = '';
+            if (day && monNum) fecha = `${year}-${String(monNum).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            events.push({ nombre: name + (tagline ? ' - ' + tagline : ''), fecha, url_entrada: link, foto_url: photo });
         });
         return events;
     },
@@ -736,6 +831,159 @@ const SCRAPERS = {
             });
         }
         return events;
+    },
+    'teatrodeverano.montevideo.gub.uy': (html) => {
+        const events = [];
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const seen = new Set();
+        const months = { enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6, julio:7, agosto:8, septiembre:9, octubre:10, noviembre:11, diciembre:12 };
+        doc.querySelectorAll('h2.h3, h2[class*="h3"]').forEach(el => {
+            const linkEl = el.querySelector('a[href]');
+            const name = linkEl?.textContent?.trim() || el.textContent?.trim() || '';
+            if (!name || name.length < 3 || seen.has(name)) return;
+            seen.add(name);
+            let link = linkEl?.getAttribute('href') || '';
+            if (link && !link.startsWith('http')) link = 'https://teatrodeverano.montevideo.gub.uy' + link;
+            const dateEl = el.closest('.fondointro, .slide, section')?.querySelector('h3.h4, h3[class*="h4"]');
+            const dateText = dateEl?.textContent?.trim() || '';
+            let fecha = '';
+            const dateMatch = dateText.match(/(\d+)\s+de\s+(\w+)(?:,?\s*(\d{1,2}):(\d{2}))?/);
+            if (dateMatch) {
+                const day = parseInt(dateMatch[1]);
+                const mon = months[dateMatch[2]?.toLowerCase()] || 0;
+                if (day && mon) fecha = `2026-${String(mon).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            }
+            let photo = '';
+            const imgEl = el.closest('.fondointro, .slide, section')?.querySelector('img[src]');
+            if (imgEl) photo = fixPhotoUrl(imgEl.getAttribute('src'));
+            const buyEl = el.closest('.fondointro, .slide, section')?.querySelector('a[href*="tickantel"]');
+            let buyLink = buyEl?.getAttribute('href') || '';
+            events.push({ nombre: name, fecha, url_entrada: buyLink || link, url_detalle: link, foto_url: photo });
+        });
+        return events;
+    },
+    'montevideomusicbox.com.uy': (html) => {
+        const events = [];
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const months = { ENE:1, FEB:2, MAR:3, ABR:4, MAY:5, JUN:6, JUL:7, AGO:8, SET:9, OCT:10, NOV:11, DIC:12 };
+        const seen = new Set();
+        function addEvent(name, dia, mes, hora, genero, photo, link) {
+            if (!name || name.length < 2 || seen.has(name)) return;
+            seen.add(name);
+            const mesNum = months[mes?.toUpperCase()] || 0;
+            let fecha = '';
+            if (dia && mesNum) fecha = `2026-${String(mesNum).padStart(2,'0')}-${String(parseInt(dia)).padStart(2,'0')}`;
+            events.push({ nombre: name, fecha: fecha, hora: (hora||'').replace('HS','').trim(), genero: genero||'', url_entrada: link||'', foto_url: photo||'' });
+        }
+        doc.querySelectorAll('.cosopum').forEach(card => {
+            const titleEl = card.querySelector('.titulo');
+            const imgEl = card.querySelector('img[src]');
+            const diaEl = card.querySelector('.dia');
+            const mesEl = card.querySelector('.mes');
+            const horaEl = card.querySelector('.hora');
+            const badgeEl = card.querySelector('.badge');
+            const linkEl = card.querySelector('a[href]');
+            const name = titleEl?.textContent?.trim() || '';
+            let photo = imgEl?.getAttribute('src') || '';
+            if (photo && !photo.startsWith('http')) photo = 'https://www.montevideomusicbox.com.uy/' + photo;
+            let link = linkEl?.getAttribute('href') || '';
+            if (link && !link.startsWith('http')) link = 'https://www.montevideomusicbox.com.uy/' + link;
+            addEvent(name, diaEl?.textContent?.trim(), mesEl?.textContent?.trim(), horaEl?.textContent?.trim(), badgeEl?.textContent?.trim(), photo, link);
+        });
+        doc.querySelectorAll('.carousel-item').forEach(item => {
+            const titleEl = item.querySelector('.titulo-evento-inicio');
+            const imgEl = item.querySelector('img.img-portada');
+            const diaEl = item.querySelector('.dia-evento-inicio');
+            const mesEl = item.querySelector('.mes-evento-inicio');
+            const horaEl = item.querySelector('.hora-evento-inicio');
+            const badgeEl = item.querySelector('.badge');
+            const linkEl = item.querySelector('a[href*="evento.php"]');
+            const name = titleEl?.textContent?.trim() || '';
+            let photo = imgEl?.getAttribute('src') || '';
+            if (photo && !photo.startsWith('http')) photo = 'https://www.montevideomusicbox.com.uy/' + photo;
+            let link = linkEl?.getAttribute('href') || '';
+            if (link && !link.startsWith('http')) link = 'https://www.montevideomusicbox.com.uy/' + link;
+            addEvent(name, diaEl?.textContent?.trim(), mesEl?.textContent?.trim(), horaEl?.textContent?.trim(), badgeEl?.textContent?.trim(), photo, link);
+        });
+        return events;
+    },
+    'cartelera.montevideo.com.uy': (html) => {
+        const CINEMAS = {
+            'Cine Colonia Shopping': { direccion: 'Shopping Total, Av. Roosevelt s/n, Colonia', lat: -34.472, lon: -56.865, depto: 'Colonia' },
+            'Cinemateca': { direccion: 'Bucheli 1415, Montevideo', lat: -34.901, lon: -56.189, depto: 'Montevideo' },
+            'Cines del Este - Maldonado': { direccion: 'Shopping Punta del Este, Ruta 10 y 9 de Julio, Punta del Este', lat: -34.947, lon: -54.935, depto: 'Maldonado' },
+            'Grupocine Ejido': { direccion: 'Ejido 1371, Montevideo', lat: -34.883, lon: -56.189, depto: 'Montevideo' },
+            'Grupocine Las Piedras Shopping': { direccion: 'Las Piedras Shopping, Ruta 6, Las Piedras', lat: -34.733, lon: -56.217, depto: 'Canelones' },
+            'Grupocine Punta Carretas': { direccion: 'Punta Carretas Shopping, Ramírez 1264, Montevideo', lat: -34.912, lon: -56.162, depto: 'Montevideo' },
+            'Grupocine Punta del Este': { direccion: 'La Barra, Maldonado', lat: -34.935, lon: -54.836, depto: 'Maldonado' },
+            'Grupocine Sierriz Shopping - Rivera': { direccion: 'Sierriz Shopping, Rivera', lat: -30.905, lon: -55.55, depto: 'Rivera' },
+            'Grupocine Torre de los Profesionales': { direccion: 'Torre de los Profesionales, 18 de Julio 1092, Montevideo', lat: -34.883, lon: -56.185, depto: 'Montevideo' },
+            'Life Cinemas Costa Urbana - Ciudad de la Costa': { direccion: 'Costa Urbana Shopping, Ciudad de la Costa', lat: -34.807, lon: -56.038, depto: 'Canelones' },
+            'Life Cinemas Punta Shopping - Punta del Este': { direccion: 'Punta Shopping, Ruta 10, Punta del Este', lat: -34.913, lon: -54.935, depto: 'Maldonado' },
+            'Life Cinemas Tres Cruces': { direccion: 'Tres Cruces Shopping, Av. Italia 3057, Montevideo', lat: -34.867, lon: -56.168, depto: 'Montevideo' },
+            'Life Cultural Alfabeta': { direccion: 'Constituyente 1652, Montevideo', lat: -34.899, lon: -56.179, depto: 'Montevideo' },
+            'Movie Montevideo': { direccion: 'Av. 18 de Julio 1776, Montevideo', lat: -34.883, lon: -56.189, depto: 'Montevideo' },
+            'Movie Nuevocentro': { direccion: 'Nuevocentro Shopping, Camino Maldonado, Montevideo', lat: -34.876, lon: -56.163, depto: 'Montevideo' },
+            'Movie Portones': { direccion: 'Portones Shopping, Av. Bolivia 3530, Montevideo', lat: -34.862, lon: -56.128, depto: 'Montevideo' },
+            'Movie Punta Carretas': { direccion: 'Punta Carretas Shopping, Ramírez 1264, Montevideo', lat: -34.912, lon: -56.162, depto: 'Montevideo' },
+            'Opera': { direccion: 'Colón 1378, Montevideo', lat: -34.905, lon: -56.192, depto: 'Montevideo' }
+        };
+        const movies = {};
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const articles = doc.querySelectorAll('article.evento');
+        articles.forEach(article => {
+            const titleEl = article.querySelector('h2.name a');
+            const imgEl = article.querySelector('.foto.poster img, .poster-container img');
+            const genreEl = article.querySelector('.event-data .text strong');
+            const name = titleEl?.textContent?.trim() || '';
+            if (!name) return;
+            const link = titleEl?.getAttribute('href') || '';
+            let photo = imgEl?.getAttribute('src') || '';
+            if (photo && !photo.startsWith('http')) photo = 'https://cartelera.montevideo.com.uy' + photo;
+            const genero = genreEl?.textContent?.trim() || '';
+            const detailUrl = link && !link.startsWith('http') ? 'https://cartelera.montevideo.com.uy' + link : link;
+            if (!movies[name]) {
+                movies[name] = { nombre: name, genero, url_entrada: detailUrl, foto_url: photo, cines: {} };
+            }
+            const salas = article.querySelectorAll('.salas > li');
+            salas.forEach(sala => {
+                const cineEl = sala.querySelector('.heading.small.bold');
+                const cineName = cineEl?.textContent?.trim() || '';
+                if (!cineName) return;
+                const horarios = [];
+                sala.querySelectorAll('li.hour').forEach(h => {
+                    const t = h.textContent?.trim().replace(/\s+/g, '');
+                    if (t) horarios.push(t);
+                });
+                const langs = [];
+                sala.querySelectorAll('.subheading').forEach(s => {
+                    const l = s.textContent?.trim();
+                    if (l && !l.includes('Funciones')) langs.push(l);
+                });
+                const ci = CINEMAS[cineName] || {};
+                movies[name].cines[cineName] = {
+                    nombre: cineName, direccion: ci.direccion || '', lat: ci.lat, lon: ci.lon, depto: ci.depto || '',
+                    horarios: horarios.join(', '), idiomas: langs.join(', ')
+                };
+            });
+        });
+        const events = [];
+        for (const m of Object.values(movies)) {
+            const cinesArr = Object.values(m.cines);
+            const deptos = [...new Set(cinesArr.map(c => c.depto).filter(Boolean))];
+            const hoy = new Date().toISOString().slice(0, 10);
+            events.push({
+                nombre: m.nombre, fecha: hoy, genero: m.genero, url_entrada: m.url_entrada, foto_url: m.foto_url,
+                cines: cinesArr,
+                cines_count: cinesArr.length,
+                departamentos: deptos.join(', '),
+                hora: cinesArr.map(c => `${c.nombre}: ${c.horarios}`).join(' | ')
+            });
+        }
+        return events;
     }
 };
 
@@ -783,42 +1031,151 @@ async function doScrape() {
     scrapedEvents = [];
 
     try {
-        const proxyUrl = `/api/scrape-proxy?url=${encodeURIComponent(url)}`;
-        log.textContent += `Fetch via proxy...\n`;
-        const resp = await fetch(proxyUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const html = await resp.text();
-        log.textContent += `HTML recibido: ${html.length} chars\n`;
-
         let events = [];
-        for (const [domain, scraper] of Object.entries(SCRAPERS)) {
-            if (url.includes(domain)) {
-                log.textContent += `Scraper especializado: ${domain}\n`;
-                events = scraper(html);
-                break;
-            }
-        }
-        if (events.length === 0) {
-            log.textContent += `Scraper generico...\n`;
-            events = genericScrape(html);
-        }
 
-        // Try to get photos from individual pages if no photos
-        log.textContent += `Buscando fotos...\n`;
-        for (let i = 0; i < events.length && i < 10; i++) {
-            if (!events[i].foto_url && events[i].url_entrada) {
+        if (url.includes('movie.com.uy')) {
+            log.textContent += `Usando API de Movie...\n`;
+            const endpoints = [
+                'https://api.movie.com.uy/api/shows/cinema/weekly',
+                'https://api.movie.com.uy/api/shows/theater/weekly',
+                'https://api.movie.com.uy/api/shows/othershows/weekly'
+            ];
+            const posterBase = 'https://movieprodportalstoweb.blob.core.windows.net/movieposters/';
+            const seen = new Set();
+            for (const ep of endpoints) {
                 try {
-                        const pUrl = `/api/scrape-proxy?url=${encodeURIComponent(events[i].url_entrada)}`;
-                    const pResp = await fetch(pUrl);
-                    if (pResp.ok) {
-                        const pHtml = await pResp.text();
-                        events[i].foto_url = extractImageUrl(pHtml, events[i].url_entrada);
-                        if (events[i].foto_url) log.textContent += `  Foto: ${events[i].nombre}\n`;
+                    const apiResp = await fetch(`/api/scrape-proxy?url=${encodeURIComponent(ep)}`);
+                    if (!apiResp.ok) continue;
+                    const apiData = await apiResp.json();
+                    const items = apiData.billboardItems || apiData || [];
+                    log.textContent += `  ${ep.split('/').pop()}: ${items.length} items\n`;
+                    for (const item of items) {
+                        const c = item.content || {};
+                        const name = c.title || '';
+                        if (!name || seen.has(name)) continue;
+                        seen.add(name);
+                        const photo = c.posterUrl ? posterBase + c.posterUrl : (c.bannerUrl || '');
+                        const fecha = c.releaseDate ? c.releaseDate.slice(0, 10) : '';
+                        const genero = c.genre || '';
+                        const slug = c.urlSlug || '';
+                        const link = slug ? `https://www.movie.com.uy/movie/${slug}` : '';
+                        events.push({ nombre: name, fecha: fecha, genero: genero, url_entrada: link, foto_url: photo });
+                    }
+                } catch(e) { log.textContent += `  Error ${ep.split('/').pop()}: ${e.message}\n`; }
+            }
+
+        } else if (url.includes('grupocine.com.uy')) {
+            log.textContent += `Usando API de Grupocine...\n`;
+            const apiResp = await fetch(`/api/scrape-proxy?url=${encodeURIComponent('https://grupocine.com.uy/api/peliculas')}`);
+            if (!apiResp.ok) throw new Error(`Grupocine API HTTP ${apiResp.status}`);
+            const items = await apiResp.json();
+            log.textContent += `API respondió: ${(items || []).length} películas\n`;
+            for (const item of (items || [])) {
+                const name = item.nombre || '';
+                if (!name) continue;
+                const photo = item.imagen_web ? `https://grupocine.com.uy/storage/${item.imagen_web}` : (item.banner ? `https://grupocine.com.uy/storage/${item.banner}` : '');
+                const fecha = item.fecha_estreno ? item.fecha_estreno.slice(0, 10) : '';
+                const genero = item.genero || '';
+                const slug = item.slug || '';
+                const link = slug ? `https://grupocine.com.uy/pelicula/${slug}` : '';
+                events.push({ nombre: name, fecha: fecha, genero: genero, url_entrada: link, foto_url: photo });
+            }
+        } else if (url.includes('cartelera.montevideo.com.uy')) {
+            log.textContent += `Usando scraper de Cartelera MVD...\n`;
+            const proxyUrl = `/api/scrape-proxy?url=${encodeURIComponent(url)}`;
+            const resp = await fetch(proxyUrl);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const html = await resp.text();
+            log.textContent += `HTML recibido: ${html.length} chars\n`;
+            events = SCRAPERS['cartelera.montevideo.com.uy'](html);
+            log.textContent += `Cartelera MVD: ${events.length} eventos con horarios por cine\n`;
+
+            log.textContent += `Buscando pósters en Movie API...\n`;
+            const posterBase = 'https://movieprodportalstoweb.blob.core.windows.net/movieposters/';
+            const apiMap = {};
+            const endpoints = [
+                'https://api.movie.com.uy/api/shows/cinema/weekly',
+                'https://api.movie.com.uy/api/shows/theater/weekly',
+                'https://api.movie.com.uy/api/shows/othershows/weekly'
+            ];
+            for (const ep of endpoints) {
+                try {
+                    const apiResp = await fetch(`/api/scrape-proxy?url=${encodeURIComponent(ep)}`);
+                    if (!apiResp.ok) continue;
+                    const apiData = await apiResp.json();
+                    const items = apiData.billboardItems || apiData || [];
+                    for (const item of items) {
+                        const c = item.content || {};
+                        if (c.title && c.posterUrl) {
+                            const norm = c.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                            apiMap[norm] = posterBase + c.posterUrl;
+                        }
                     }
                 } catch(e) {}
-                await new Promise(r => setTimeout(r, 300));
+            }
+            let matched = 0;
+            for (const ev of events) {
+                const norm = ev.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                if (apiMap[norm]) { ev.foto_url = apiMap[norm]; matched++; }
+            }
+            log.textContent += `Pósters encontrados: ${matched}/${events.length}\n`;
+
+        } else {
+            const proxyUrl = `/api/scrape-proxy?url=${encodeURIComponent(url)}`;
+            log.textContent += `Fetch via proxy...\n`;
+            const resp = await fetch(proxyUrl);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const html = await resp.text();
+            log.textContent += `HTML recibido: ${html.length} chars\n`;
+
+            let foundScraper = false;
+            for (const [domain, scraper] of Object.entries(SCRAPERS)) {
+                if (url.includes(domain)) {
+                    log.textContent += `Scraper especializado: ${domain}\n`;
+                    events = scraper(html);
+                    log.textContent += `${events.length} eventos del scraper\n`;
+                    foundScraper = true;
+                    break;
+                }
+            }
+            if (!foundScraper) {
+                log.textContent += `⚠️ No hay scraper para esta URL. Dominios soportados: ${Object.keys(SCRAPERS).join(', ')}\n`;
+            }
+            if (events.length === 0) {
+                if (html.includes('kpsdk-load') || html.includes('kpsdk-ready') || html.includes('Kasada') || html.includes('challenge-platform')) {
+                    log.textContent += `⚠️ Este sitio tiene protección anti-bot. Intentá agregar los eventos manualmente.\n`;
+                } else if (html.length < 500) {
+                    log.textContent += `⚠️ Respuesta muy corta (${html.length} chars). La URL puede ser incorrecta.\n`;
+                } else {
+                    log.textContent += `Scraper generico...\n`;
+                    events = genericScrape(html);
+                }
+            }
+
+            log.textContent += `Buscando fotos...\n`;
+            for (let i = 0; i < events.length && i < 10; i++) {
+                if (!events[i].foto_url) {
+                    const photoUrl = events[i].url_detalle || events[i].url_entrada;
+                    if (photoUrl) {
+                        try {
+                            const pUrl = `/api/scrape-proxy?url=${encodeURIComponent(photoUrl)}`;
+                            const pResp = await fetch(pUrl);
+                            if (pResp.ok) {
+                                const pHtml = await pResp.text();
+                                events[i].foto_url = fixPhotoUrl(extractImageUrl(pHtml, photoUrl));
+                                if (events[i].foto_url) log.textContent += `  Foto: ${events[i].nombre}\n`;
+                            }
+                        } catch(e) {}
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                }
             }
         }
+
+        const hoy = new Date().toISOString().slice(0, 10);
+        const antes = events.length;
+        events = events.filter(e => !e.fecha || e.fecha >= hoy);
+        if (antes !== events.length) log.textContent += `Filtrados ${antes - events.length} eventos pasados\n`;
 
         log.textContent += `\n${events.length} eventos encontrados\n`;
         scrapedEvents = events.map(e => ({ ...e, escenario_id: escId }));
@@ -833,19 +1190,30 @@ function showScraped(events) {
     document.getElementById('scrapedCount').textContent = `Eventos encontrados: ${events.length}`;
     const el = document.getElementById('scrapedList');
     el.innerHTML = events.map((e, i) => {
-        const photo = e.foto_url ? `<img src="${e.foto_url}" class="photo-preview" onerror="this.outerHTML='<div class=\\'photo-preview no-photo\\'>🎵</div>'">` : '<div class="photo-preview no-photo">🎵</div>';
+        const photo = e.foto_url ? `<img src="${e.foto_url}" class="photo-preview" onerror="this.outerHTML='<div class=\\'photo-preview no-photo\\'>🎬</div>'">` : '<div class="photo-preview no-photo">🎬</div>';
+        let cinesHtml = '';
+        if (e.cines && e.cines.length > 0) {
+            cinesHtml = `<div class="full" style="background:#0d1017;padding:8px;border-radius:6px;margin-top:4px;font-size:11px;max-height:150px;overflow-y:auto;">
+                <strong style="color:#60a5fa;">📍 ${e.cines.length} cine(s) - ${e.departamentos||''}</strong><br>
+                ${e.cines.map(c => `<div style="margin:4px 0;padding:4px 0;border-bottom:1px solid #1a1d2e;">
+                    <strong>${c.nombre}</strong> <span style="color:#888;">(${c.depto||''})</span><br>
+                    <span style="color:#888;">${c.direccion}</span><br>
+                    <span style="color:#60a5fa;">🕐 ${c.horarios}</span>
+                    ${c.idiomas ? `<br><span style="color:#888;">${c.idiomas}</span>` : ''}
+                </div>`).join('')}
+            </div>`;
+        }
         return `<div class="scraped-card" id="scraped_${i}">
             <div class="header">
                 ${photo}
                 <div class="fields">
-                    <div class="full"><label>Nombre</label><input type="text" value="${escHtml(e.nombre)}" onchange="scrapedEvents[${i}].nombre=this.value"></div>
+                    <div class="full"><label>Película</label><input type="text" value="${escHtml(e.nombre)}" onchange="scrapedEvents[${i}].nombre=this.value"></div>
                     <div><label>Fecha</label><input type="date" value="${e.fecha||''}" onchange="scrapedEvents[${i}].fecha=this.value"></div>
-                    <div><label>Fecha fin</label><input type="date" value="${e.fecha_fin||''}" onchange="scrapedEvents[${i}].fecha_fin=this.value"></div>
-                    <div><label>Genero</label><input type="text" value="${escHtml(e.genero||'')}" onchange="scrapedEvents[${i}].genero=this.value"></div>
+                    <div><label>Género</label><input type="text" value="${escHtml(e.genero||'')}" onchange="scrapedEvents[${i}].genero=this.value"></div>
+                    <div><label>Cines</label><input type="text" value="${e.cines_count||0}" readonly style="color:#60a5fa;"></div>
+                    ${cinesHtml}
                     <div class="full"><label>Foto URL</label><input type="text" value="${escHtml(e.foto_url||'')}" onchange="scrapedEvents[${i}].foto_url=this.value"></div>
-                    <div class="full"><div class="file-upload"><input type="file" accept="image/*" onchange="uploadScrapedFoto(${i}, this)"></div></div>
                     <div class="full"><label>URL entradas</label><input type="text" value="${escHtml(e.url_entrada||'')}" onchange="scrapedEvents[${i}].url_entrada=this.value"></div>
-                    <div class="full"><label>URL Santander (compras)</label><input type="text" value="${escHtml(e.url_santander||'')}" onchange="scrapedEvents[${i}].url_santander=this.value"></div>
                 </div>
             </div>
             <div class="scraped-actions">
@@ -916,21 +1284,33 @@ async function saveAllScraped() {
     const log = document.getElementById('scrapeLog');
     let saved = 0;
     for (const ev of scrapedEvents) {
-        const existing = eventos.find(e => e.escenario_id === ev.escenario_id && e.nombre.toLowerCase().trim() === ev.nombre.toLowerCase().trim());
+        let existing = eventos.find(e => e.escenario_id === ev.escenario_id && e.nombre.toLowerCase().trim() === ev.nombre.toLowerCase().trim());
         if (existing) { log.textContent += `Ya existe: ${ev.nombre}\n`; continue; }
+
+        const cinesData = (ev.cines && ev.cines.length > 0) ? ev.cines.map(c => ({
+            nombre: c.nombre || '',
+            direccion: c.direccion || '',
+            lat: c.lat || 0,
+            lon: c.lon || 0,
+            horarios: c.horarios || '',
+            idiomas: c.idiomas || '',
+            logo_url: c.logo_url || ''
+        })) : null;
+
         const body = {
             escenario_id: ev.escenario_id, nombre: ev.nombre, artista: ev.artista || null,
-            fecha: ev.fecha || null, fecha_fin: ev.fecha_fin || null, hora: null, precio: null, genero: ev.genero || null,
+            fecha: ev.fecha || null, fecha_fin: ev.fecha_fin || null, hora: ev.hora || null, precio: null, genero: ev.genero || null,
             url_entrada: ev.url_entrada || null, url_santander: ev.url_santander || null,
-            foto_url: ev.foto_url || null, descripcion: null, activo: true
+            foto_url: fixPhotoUrl(ev.foto_url) || null, descripcion: ev.descripcion || null,
+            cines: cinesData, activo: true
         };
         try {
             await fetch(`${SUPA_URL}/rest/v1/eventos`, { method: 'POST', headers: HK, body: JSON.stringify(body) });
-            log.textContent += `Guardado: ${ev.nombre}\n`;
+            log.textContent += `Guardado: ${ev.nombre} (${ev.cines_count||0} cines)\n`;
             saved++;
         } catch(e) { log.textContent += `Error: ${ev.nombre}: ${e.message}\n`; }
     }
-    log.textContent += `\nCompletado: ${saved} eventos guardados\n`;
+    log.textContent += `\nCompletado: ${saved} películas guardadas\n`;
     clearScraped();
     loadData();
 }
@@ -1017,6 +1397,20 @@ async function deletePastEvents() {
         deleted++;
     }
     alert(`${deleted} eventos pasados eliminados`);
+    loadData();
+}
+
+async function fixBrokenPhotos() {
+    const broken = eventos.filter(e => e.foto_url && (e.foto_url.startsWith('https:https://') || e.foto_url.startsWith('http:https://') || e.foto_url.startsWith('http:http://') || e.foto_url.startsWith('https:http://')));
+    if (broken.length === 0) { alert('No hay fotos rotas'); return; }
+    if (!confirm(`Corregir ${broken.length} foto(s) con URL rota?`)) return;
+    let fixed = 0;
+    for (const e of broken) {
+        const newUrl = fixPhotoUrl(e.foto_url);
+        await fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${e.id}`, { method: 'PATCH', headers: HK, body: JSON.stringify({ foto_url: newUrl || null }) });
+        fixed++;
+    }
+    alert(`${fixed} fotos corregidas`);
     loadData();
 }
 
