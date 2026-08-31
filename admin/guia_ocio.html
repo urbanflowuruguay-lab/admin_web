@@ -1058,7 +1058,11 @@ async function doScrape() {
                         if (!name || seen.has(name)) continue;
                         seen.add(name);
                         const photo = c.posterUrl ? posterBase + c.posterUrl : (c.bannerUrl || '');
-                        const fecha = c.releaseDate ? c.releaseDate.slice(0, 10) : '';
+                        let fecha = '';
+                        if (c.releaseDate) {
+                            const d = new Date(c.releaseDate);
+                            fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        }
                         const genero = c.genre || '';
                         const slug = c.urlSlug || '';
                         const link = slug ? `https://www.movie.com.uy/movie/${slug}` : '';
@@ -1077,7 +1081,11 @@ async function doScrape() {
                 const name = item.nombre || '';
                 if (!name) continue;
                 const photo = item.imagen_web ? `https://grupocine.com.uy/storage/${item.imagen_web}` : (item.banner ? `https://grupocine.com.uy/storage/${item.banner}` : '');
-                const fecha = item.fecha_estreno ? item.fecha_estreno.slice(0, 10) : '';
+                let fecha = '';
+                if (item.fecha_estreno) {
+                    const d = new Date(item.fecha_estreno);
+                    fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                }
                 const genero = item.genero || '';
                 const slug = item.slug || '';
                 const link = slug ? `https://grupocine.com.uy/pelicula/${slug}` : '';
