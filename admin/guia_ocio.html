@@ -1194,13 +1194,17 @@ function showScraped(events) {
         const photo = e.foto_url ? `<img src="${e.foto_url}" class="photo-preview" onerror="this.outerHTML='<div class=\\'photo-preview no-photo\\'>🎬</div>'">` : '<div class="photo-preview no-photo">🎬</div>';
         let cinesHtml = '';
         if (e.cines && e.cines.length > 0) {
-            cinesHtml = `<div class="full" style="background:#0d1017;padding:8px;border-radius:6px;margin-top:4px;font-size:11px;max-height:150px;overflow-y:auto;">
-                <strong style="color:#60a5fa;">📍 ${e.cines.length} cine(s) - ${e.departamentos||''}</strong><br>
-                ${e.cines.map(c => `<div style="margin:4px 0;padding:4px 0;border-bottom:1px solid #1a1d2e;">
-                    <strong>${c.nombre}</strong> <span style="color:#888;">(${c.depto||''})</span><br>
-                    <span style="color:#888;">${c.direccion}</span><br>
-                    <span style="color:#60a5fa;">🕐 ${c.horarios}</span>
-                    ${c.idiomas ? `<br><span style="color:#888;">${c.idiomas}</span>` : ''}
+            cinesHtml = `<div class="full" style="margin-top:6px;">
+                <label>🎬 Cines (${e.cines.length})</label>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+                    ${e.cines.map((c, ci) => `<button type="button" class="btn btn-ghost" style="font-size:10px;padding:3px 8px;border-radius:12px;" onclick="toggleCineDetail(${i}, ${ci})" id="cineBtn_${i}_${ci}">${c.nombre}</button>`).join('')}
+                </div>
+                ${e.cines.map((c, ci) => `<div id="cineDetail_${i}_${ci}" style="display:none;background:#0d1017;border:1px solid #2a2d3e;border-radius:8px;padding:10px;margin-top:6px;font-size:11px;">
+                    <div style="color:#60a5fa;font-weight:bold;margin-bottom:4px;">${c.nombre}</div>
+                    <div style="color:#888;">📍 ${c.direccion || 'Sin dirección'}</div>
+                    <div style="color:#60a5fa;margin-top:2px;">🕐 ${c.horarios || 'Sin horarios'}</div>
+                    ${c.idiomas ? `<div style="color:#888;margin-top:2px;">🗣 ${c.idiomas}</div>` : ''}
+                    ${c.lat && c.lon ? `<div style="color:#555;margin-top:2px;">Coord: ${c.lat}, ${c.lon}</div>` : ''}
                 </div>`).join('')}
             </div>`;
         }
@@ -1211,7 +1215,6 @@ function showScraped(events) {
                     <div class="full"><label>Película</label><input type="text" value="${escHtml(e.nombre)}" onchange="scrapedEvents[${i}].nombre=this.value"></div>
                     <div><label>Fecha</label><input type="date" value="${e.fecha||''}" onchange="scrapedEvents[${i}].fecha=this.value"></div>
                     <div><label>Género</label><input type="text" value="${escHtml(e.genero||'')}" onchange="scrapedEvents[${i}].genero=this.value"></div>
-                    <div><label>Cines</label><input type="text" value="${e.cines_count||0}" readonly style="color:#60a5fa;"></div>
                     ${cinesHtml}
                     <div class="full"><label>Foto URL</label><input type="text" value="${escHtml(e.foto_url||'')}" onchange="scrapedEvents[${i}].foto_url=this.value"></div>
                     <div class="full"><label>URL entradas</label><input type="text" value="${escHtml(e.url_entrada||'')}" onchange="scrapedEvents[${i}].url_entrada=this.value"></div>
@@ -1222,6 +1225,15 @@ function showScraped(events) {
             </div>
         </div>`;
     }).join('');
+}
+
+function toggleCineDetail(eventIdx, cineIdx) {
+    const detail = document.getElementById(`cineDetail_${eventIdx}_${cineIdx}`);
+    const btn = document.getElementById(`cineBtn_${eventIdx}_${cineIdx}`);
+    if (!detail) return;
+    const isVisible = detail.style.display !== 'none';
+    detail.style.display = isVisible ? 'none' : 'block';
+    if (btn) btn.style.background = isVisible ? '' : '#1e40af';
 }
 
 function previewUpload(input, previewId) {
