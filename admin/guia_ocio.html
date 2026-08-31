@@ -972,7 +972,8 @@ const SCRAPERS = {
         });
         const events = [];
         for (const m of Object.values(movies)) {
-            const cinesArr = Object.values(m.cines);
+            const cinesArr = Object.values(m.cines).filter(c => c.direccion && c.horarios);
+            if (cinesArr.length === 0) continue;
             const deptos = [...new Set(cinesArr.map(c => c.depto).filter(Boolean))];
             const hoy = new Date().toISOString().slice(0, 10);
             events.push({
