@@ -1288,10 +1288,12 @@ function showScraped(events) {
     const el = document.getElementById('scrapedList');
     el.innerHTML = events.map((e, i) => {
         const photo = e.foto_url ? `<img src="${e.foto_url}" class="photo-preview" onerror="this.outerHTML='<div class=\\'photo-preview no-photo\\'>🎬</div>'">` : '<div class="photo-preview no-photo">🎬</div>';
+        const venueNames = (e.cines && e.cines.length > 0) ? e.cines.map(c => c.nombre).join(', ') : '';
+        const displayName = venueNames ? `${e.nombre} <span style="font-size:12px;color:#888;">(${venueNames})</span>` : e.nombre;
         let cinesHtml = '';
         if (e.cines && e.cines.length > 0) {
             cinesHtml = `<div class="full" style="margin-top:6px;">
-                <label>🎬 Cines (${e.cines.length})</label>
+                <label>🎭 Salas (${e.cines.length})</label>
                 <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
                     ${e.cines.map((c, ci) => `<button type="button" class="btn btn-ghost" style="font-size:10px;padding:3px 8px;border-radius:12px;" onclick="toggleCineDetail(${i}, ${ci})" id="cineBtn_${i}_${ci}">${c.nombre}</button>`).join('')}
                 </div>
@@ -1301,16 +1303,20 @@ function showScraped(events) {
                     <div style="color:#60a5fa;margin-top:2px;">🕐 ${c.horarios || 'Sin horarios'}</div>
                     ${c.idiomas ? `<div style="color:#888;margin-top:2px;">🗣 ${c.idiomas}</div>` : ''}
                     ${c.lat && c.lon ? `<div style="color:#555;margin-top:2px;">Coord: ${c.lat}, ${c.lon}</div>` : ''}
+                    ${c.direccion ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.direccion)}" target="_blank" style="display:inline-block;margin-top:6px;padding:4px 12px;background:#16a34a;color:#fff;border-radius:6px;text-decoration:none;font-size:11px;">🚗 Pedir coche</a>` : ''}
                 </div>`).join('')}
             </div>`;
         }
+        const hasAnyAddress = e.cines && e.cines.some(c => c.direccion);
+        const rideBtn = hasAnyAddress ? `<div class="full" style="margin-top:6px;"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.cines.find(c => c.direccion)?.direccion || '')}" target="_blank" style="display:inline-block;padding:6px 16px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:bold;">🚗 Pedir coche</a></div>` : '';
         return `<div class="scraped-card" id="scraped_${i}">
             <div class="header">
                 ${photo}
                 <div class="fields">
-                    <div class="full"><label>Película</label><input type="text" value="${escHtml(e.nombre)}" onchange="scrapedEvents[${i}].nombre=this.value"></div>
+                    <div class="full"><label>Película / Obra</label><div style="font-size:16px;font-weight:bold;color:#e0e0e0;padding:4px 0;">${displayName}</div><input type="hidden" value="${escHtml(e.nombre)}" onchange="scrapedEvents[${i}].nombre=this.value"></div>
                     <div><label>Fecha</label><input type="date" value="${e.fecha||''}" onchange="scrapedEvents[${i}].fecha=this.value"></div>
                     <div><label>Género</label><input type="text" value="${escHtml(e.genero||'')}" onchange="scrapedEvents[${i}].genero=this.value"></div>
+                    ${rideBtn}
                     ${cinesHtml}
                     <div class="full"><label>Foto URL</label><input type="text" value="${escHtml(e.foto_url||'')}" onchange="scrapedEvents[${i}].foto_url=this.value"></div>
                     <div class="full"><label>URL entradas</label><input type="text" value="${escHtml(e.url_entrada||'')}" onchange="scrapedEvents[${i}].url_entrada=this.value"></div>
