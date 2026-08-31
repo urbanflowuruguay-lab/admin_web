@@ -157,6 +157,7 @@
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://www.movie.com.uy/movies', 'Cines en Montevideo')">🎬 Movie</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://grupocine.com.uy/cartelera', 'Cines en Montevideo')">🎬 Grupocine</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://cartelera.montevideo.com.uy/cine', 'Cines en Montevideo')">🎬 Cartelera MVD</button>
+                        <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://cartelera.montevideo.com.uy/teatro', 'Teatro en Montevideo')">🎭 Cartelera Teatro</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://mirandolacartelera.com/uruguay', 'Cines en Montevideo')">🎬 Mirandola</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://www.cine.com/uy/cartelera', 'Cines en Montevideo')">🎬 Cine.com</button>
                         <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="quickUrl('https://teatrodeverano.montevideo.gub.uy/ahome.aspx', 'Teatro de Verano')">🎭 Teatro de Verano</button>
@@ -987,6 +988,28 @@ const SCRAPERS = {
             });
         }
         return events;
+    },
+    'cartelera.montevideo.com.uy/teatro': (html) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const articles = doc.querySelectorAll('article.evento');
+        const events = [];
+        const now = new Date();
+        const hoy = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        articles.forEach(article => {
+            const titleEl = article.querySelector('h2.name a');
+            const imgEl = article.querySelector('.foto.poster img, .poster-container img');
+            const name = titleEl?.textContent?.trim() || '';
+            if (!name) return;
+            const link = titleEl?.getAttribute('href') || '';
+            let photo = imgEl?.getAttribute('src') || '';
+            if (photo && !photo.startsWith('http')) photo = 'https://cartelera.montevideo.com.uy' + photo;
+            const detailUrl = link && !link.startsWith('http') ? 'https://cartelera.montevideo.com.uy' + link : link;
+            const genreEl = article.querySelector('.event-data .text strong');
+            const genero = genreEl?.textContent?.trim() || '';
+            events.push({ nombre: name, fecha: hoy, genero, url_entrada: detailUrl, foto_url: photo });
+        });
+        return events;
     }
 };
 
@@ -1092,44 +1115,106 @@ async function doScrape() {
                 events.push({ nombre: name, fecha: fecha, genero: genero, url_entrada: link, foto_url: photo });
             }
         } else if (url.includes('cartelera.montevideo.com.uy')) {
-            log.textContent += `Usando scraper de Cartelera MVD...\n`;
+            const isTeatro = url.includes('/teatro');
+            log.textContent += isTeatro ? `Usando scraper de Cartelera MVD (Teatro)...\n` : `Usando scraper de Cartelera MVD (Cine)...\n`;
             const proxyUrl = `/api/scrape-proxy?url=${encodeURIComponent(url)}`;
             const resp = await fetch(proxyUrl);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const html = await resp.text();
             log.textContent += `HTML recibido: ${html.length} chars\n`;
-            events = SCRAPERS['cartelera.montevideo.com.uy'](html);
-            log.textContent += `Cartelera MVD: ${events.length} eventos con horarios por cine\n`;
-
-            log.textContent += `Buscando pósters en Movie API...\n`;
-            const posterBase = 'https://movieprodportalstoweb.blob.core.windows.net/movieposters/';
-            const apiMap = {};
-            const endpoints = [
-                'https://api.movie.com.uy/api/shows/cinema/weekly',
-                'https://api.movie.com.uy/api/shows/theater/weekly',
-                'https://api.movie.com.uy/api/shows/othershows/weekly'
-            ];
-            for (const ep of endpoints) {
-                try {
-                    const apiResp = await fetch(`/api/scrape-proxy?url=${encodeURIComponent(ep)}`);
-                    if (!apiResp.ok) continue;
-                    const apiData = await apiResp.json();
-                    const items = apiData.billboardItems || apiData || [];
-                    for (const item of items) {
-                        const c = item.content || {};
-                        if (c.title && c.posterUrl) {
-                            const norm = c.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-                            apiMap[norm] = posterBase + c.posterUrl;
+            if (isTeatro) {
+                events = SCRAPERS['cartelera.montevideo.com.uy/teatro'](html);
+                log.textContent += `Cartelera MVD Teatro: ${events.length} obras encontradas\n`;
+                log.textContent += `Enriqueciendo con datos de salas y horarios...\n`;
+                const BATCH = 5;
+                for (let i = 0; i < events.length; i += BATCH) {
+                    const batch = events.slice(i, i + BATCH);
+                    const results = await Promise.allSettled(batch.map(async (ev) => {
+                        if (!ev.url_entrada) return null;
+                        try {
+                            const r = await fetch(`/api/scrape-proxy?url=${encodeURIComponent(ev.url_entrada)}`);
+                            if (!r.ok) return null;
+                            const d = await r.text();
+                            const p = new DOMParser();
+                            const doc = p.parseFromString(d, 'text/html');
+                            const meta = doc.querySelector('meta[name="description"]')?.content || '';
+                            const salas = [];
+                            doc.querySelectorAll('.salas > li').forEach(li => {
+                                const sala = li.querySelector('.heading.small.bold')?.textContent?.trim() || '';
+                                if (!sala) return;
+                                const addrEl = li.querySelector('.event-data .text') || null;
+                                let addr = '';
+                                if (addrEl) {
+                                    const full = addrEl.textContent?.trim() || '';
+                                    const m = full.match(/Direcci[oó]n:\s*(.+)/i);
+                                    if (m) addr = m[1].trim();
+                                }
+                                const horarios = [];
+                                li.querySelectorAll('.lista-horarios > li').forEach(hli => {
+                                    const fecha = hli.querySelector('.subheading')?.textContent?.trim() || '';
+                                    const horas = [];
+                                    hli.querySelectorAll('.hour').forEach(h => horas.push(h.textContent?.trim().replace(/\s+/g,'')));
+                                    if (fecha || horas.length) horarios.push({ fecha, horas: horas.join(', ') });
+                                });
+                                salas.push({ nombre: sala, direccion: addr, horarios });
+                            });
+                            const loc = doc.querySelector('.event-data .text strong[itemprop="contentRating"]')?.textContent?.trim() || '';
+                            const precio = doc.querySelector('[itemprop="description"]')?.textContent?.trim()?.split('$')[1] ? '$' + doc.querySelector('[itemprop="description"]')?.textContent?.trim()?.split('$')[1]?.split('.')[0] : '';
+                            return { ev, salas, meta, precio };
+                        } catch(e) { return null; }
+                    }));
+                    let enriched = 0;
+                    for (const r of results) {
+                        if (r.status !== 'fulfilled' || !r.value) continue;
+                        const { ev, salas, meta, precio } = r.value;
+                        if (salas.length > 0) {
+                            ev.cines = salas.map(s => ({
+                                nombre: s.nombre, direccion: s.direccion || '', lat: 0, lon: 0, depto: 'Montevideo',
+                                horarios: s.horarios.map(h => `${h.fecha} ${h.horas}`).join(' | '),
+                                idiomas: ''
+                            }));
+                            ev.cines_count = salas.length;
                         }
+                        if (precio) ev.precio = precio;
+                        enriched++;
                     }
-                } catch(e) {}
+                    log.textContent += `  ${Math.min(i + BATCH, events.length)}/${events.length} enriquecidos (${enriched} con salas)\n`;
+                    await new Promise(r => setTimeout(r, 300));
+                }
+            } else {
+                events = SCRAPERS['cartelera.montevideo.com.uy'](html);
+                log.textContent += `Cartelera MVD: ${events.length} eventos con horarios por cine\n`;
+
+                log.textContent += `Buscando pósters en Movie API...\n`;
+                const posterBase = 'https://movieprodportalstoweb.blob.core.windows.net/movieposters/';
+                const apiMap = {};
+                const endpoints = [
+                    'https://api.movie.com.uy/api/shows/cinema/weekly',
+                    'https://api.movie.com.uy/api/shows/theater/weekly',
+                    'https://api.movie.com.uy/api/shows/othershows/weekly'
+                ];
+                for (const ep of endpoints) {
+                    try {
+                        const apiResp = await fetch(`/api/scrape-proxy?url=${encodeURIComponent(ep)}`);
+                        if (!apiResp.ok) continue;
+                        const apiData = await apiResp.json();
+                        const items = apiData.billboardItems || apiData || [];
+                        for (const item of items) {
+                            const c = item.content || {};
+                            if (c.title && c.posterUrl) {
+                                const norm = c.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                                apiMap[norm] = posterBase + c.posterUrl;
+                            }
+                        }
+                    } catch(e) {}
+                }
+                let matched = 0;
+                for (const ev of events) {
+                    const norm = ev.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+                    if (apiMap[norm]) { ev.foto_url = apiMap[norm]; matched++; }
+                }
+                log.textContent += `Pósters encontrados: ${matched}/${events.length}\n`;
             }
-            let matched = 0;
-            for (const ev of events) {
-                const norm = ev.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-                if (apiMap[norm]) { ev.foto_url = apiMap[norm]; matched++; }
-            }
-            log.textContent += `Pósters encontrados: ${matched}/${events.length}\n`;
 
         } else {
             const proxyUrl = `/api/scrape-proxy?url=${encodeURIComponent(url)}`;
