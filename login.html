@@ -144,9 +144,10 @@
 
         const params = new URLSearchParams(window.location.search);
         const role = params.get("role");
+        const startRegister = params.get("register") === "1";
         // Normalizar "empresa" a "servicios" para mantener compatibilidad
         const normalizedRole = role === "empresa" ? "servicios" : role;
-        let isRegister = false;
+        let isRegister = startRegister;
 
         const roleConfig = {
             chofer: { label: "Chofer", desc: "Genera ingresos con tu vehiculo", color: "chofer" },
@@ -160,12 +161,12 @@
             document.getElementById("loginBox").innerHTML = `
                 <div class="logo-section">
                     <img src="/logouf.png" alt="UrbanFlow">
+                    <div class="role-badge" style="background:rgba(108,99,255,0.15);color:#a5a1ff;border:1px solid rgba(108,99,255,0.3);">Bienvenido</div>
+                    <p>Elegí cómo querés usar UrbanFlow</p>
                 </div>
-                <div class="card">
-                    <h2>¿Quién sos?</h2>
-                    <p class="subtitle">Elegí cómo querés usar UrbanFlow</p>
+                <div class="card" style="padding:24px 32px;">
                     <a href="/login.html?role=usuario" class="btn btn-usuario" style="text-decoration:none;margin-bottom:12px;display:block;text-align:center;">Soy usuario</a>
-                    <a href="/login.html?role=servicios" class="btn btn-servicios" style="text-decoration:none;margin-bottom:12px;display:block;text-align:center;">Soy empresa colaboradora</a>
+                    <a href="/login.html?role=empresa" class="btn btn-servicios" style="text-decoration:none;margin-bottom:12px;display:block;text-align:center;">Soy empresa colaboradora</a>
                     <a href="/login.html?role=chofer" class="btn btn-chofer" style="text-decoration:none;display:block;text-align:center;">Soy chofer</a>
                 </div>
                 <div class="back-link"><a href="/">Volver al sitio</a></div>
@@ -176,6 +177,10 @@
             document.getElementById("roleBadge").textContent = cfg.label;
             document.getElementById("roleDesc").textContent = cfg.desc;
             document.getElementById("btnSubmit").className = "btn btn-" + cfg.color;
+
+            if (isRegister) {
+                setTimeout(() => toggleMode(), 100);
+            }
         }
 
         const errorParam = params.get("error");
