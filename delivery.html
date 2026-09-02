@@ -193,9 +193,10 @@
 
 <div class="nombre-input" id="nombreInput">
     <div class="nombre-box">
-        <h3>Tu nombre</h3>
-        <input type="text" id="clienteNombre" placeholder="Como te llamas?">
-        <div class="btn-row">
+        <h3>Datos de entrega</h3>
+        <input type="text" id="clienteNombre" placeholder="Tu nombre" style="margin-bottom:8px">
+        <input type="text" id="clienteDireccion" placeholder="Dirección de entrega (calle, nro, apto)">
+        <div class="btn-row" style="margin-top:12px">
             <button style="background:var(--bg3);color:var(--text)" onclick="hideNombreInput()">Volver</button>
             <button style="background:var(--success);color:white" onclick="showPago()">Continuar</button>
         </div>
@@ -296,15 +297,15 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const params = new URLSearchParams(window.location.search);
-const mesaToken = params.get("mesa") || "";
+const mesaToken = params.get("mesa") || "delivery";
 let empresaId = params.get("empresa") || "";
 
 let empresaData = null;
-let mesaData = null;
+let mesaData = { numero: 'Delivery', id: 'delivery' };
 let productos = [];
 let carrito = [];
-let clienteToken = localStorage.getItem("cliente_token_" + mesaToken) || crypto.randomUUID();
-localStorage.setItem("cliente_token_" + mesaToken, clienteToken);
+let clienteToken = localStorage.getItem("cliente_token_delivery") || crypto.randomUUID();
+localStorage.setItem("cliente_token_delivery", clienteToken);
 let carritoPanelOpen = false;
 
 const themes = {
@@ -363,38 +364,20 @@ function applyPortadaTheme(templateId) {
 }
 
 async function init() {
-    if (!mesaToken) {
-        document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>QR invalido. Pedile a un camarero.</p></div>';
+    if (!empresaId) {
+        document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Falta empresa. Usa link con ?empresa=ID</p></div>';
         return;
     }
     try {
-        let mesaRes = await sb.from("mesas").select("*").eq("mesa_token", mesaToken).maybeSingle();
-        if (!mesaRes.data) {
-            const alt = await sb.from("mesas").select("*").eq("id", mesaToken).maybeSingle();
-            if (alt.data) mesaRes = alt;
-        }
-        // Si no viene empresaId en URL, sacarla de la mesa
-        let empresaIdFinal = empresaId;
-        if (!empresaIdFinal && mesaRes.data) {
-            empresaIdFinal = mesaRes.data.empresa_id;
-        }
-        if (!empresaIdFinal) {
-            document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Mesa no encontrada</p><p style="font-size:11px;margin-top:8px;opacity:0.6">token:'+mesaToken+'</p></div>';
-            return;
-        }
         const [empRes, prodRes] = await Promise.all([
-            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaIdFinal).maybeSingle(),
-            sb.from("productos_empresa").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("categoria")
+            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaId).maybeSingle(),
+            sb.from("productos_empresa").select("*").eq("empresa_id", empresaId).eq("activo", true).order("categoria")
         ]);
-        if (!mesaRes.data) {
-            const alt2 = await sb.from("mesas").select("*").eq("empresa_id", empresaIdFinal).limit(1).maybeSingle();
-            if (alt2.data) mesaRes = alt2;
-        }
 
         empresaData = empRes.data;
-        mesaData = mesaRes.data;
         productos = prodRes.data || [];
-        // guardar empresaId resuelto para usar en pedidos
+        // delivery no usa mesa real
+        mesaData = { numero: 'Delivery', id: 'delivery' };
         if (empresaData) empresaId = empresaData.id;
         if (!empresaData || !mesaData) {
             document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Mesa no encontrada</p></div>';
@@ -404,7 +387,7 @@ async function init() {
 
         // Portada
         document.getElementById("portadaNombre").textContent = empresaData.nombre;
-        document.getElementById("portadaMesa").textContent = `Mesa #${mesaData.numero}`;
+        document.getElementById("portadaMesa").textContent = `Delivery a domicilio`;
         if (empresaData.logo_url) {
             const logo = document.getElementById("portadaLogo");
             logo.src = empresaData.logo_url;
@@ -557,8 +540,13 @@ function hideNombreInput() {
 
 function showPago() {
     const nombre = document.getElementById("clienteNombre").value.trim();
+    const dir = document.getElementById("clienteDireccion").value.trim();
     if (!nombre) {
         document.getElementById("clienteNombre").style.borderColor = "var(--danger)";
+        return;
+    }
+    if (!dir) {
+        document.getElementById("clienteDireccion").style.borderColor = "var(--danger)";
         return;
     }
     document.getElementById("nombreInput").classList.remove("show");
@@ -581,6 +569,7 @@ async function confirmarPedido() {
     hidePago();
     const total = carrito.reduce((s, c) => s + c.precio * c.qty, 0);
     try {
+        const direccion = document.getElementById("clienteDireccion").value.trim();
         const { data, error } = await sb.from("pedidos").insert({
             empresa_id: empresaId,
             mesa_token: mesaToken,
@@ -589,11 +578,13 @@ async function confirmarPedido() {
             items: JSON.stringify(carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio }))),
             total: total,
             estado: "recibido",
-            tipo_entrega: "Mesa",
+            tipo_entrega: "delivery",
+            tipo: "delivery",
+            direccion_entrega: direccion,
             metodo_pago: selectedPago || "efectivo",
             metodo_pago_estado: selectedPago === "tarjeta_app" ? "pendiente" : "pendiente",
-            mesa_numero: mesaData ? mesaData.numero : 0,
-            notas: `Mesa #${mesaData ? mesaData.numero : '?'} - ${nombre}`
+            mesa_numero: 0,
+            notas: `Delivery - ${nombre} - ${direccion}`
         }).select();
 
         if (error) throw error;
