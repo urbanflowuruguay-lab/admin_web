@@ -1133,6 +1133,7 @@
                     const estado = m.estado || 'libre';
                     const color = estado === 'libre' ? 'var(--green)' : estado === 'ocupada' ? 'var(--orange)' : 'var(--blue)';
                     const label = estado === 'libre' ? 'Libre' : estado === 'ocupada' ? 'Ocupada' : 'Reservada';
+                    const token = m.mesa_token || m.id;
                     return `
                         <div style="background:var(--bg2);border:2px solid ${color};border-radius:12px;padding:16px;text-align:center">
                             <div style="font-size:28px;margin-bottom:6px">🪑</div>
@@ -1143,7 +1144,7 @@
                                 <button class="btn-primary" style="padding:5px 10px;font-size:11px" onclick="toggleMesa('${m.id}', '${estado}')">
                                     ${estado === 'libre' ? 'Ocupar' : 'Liberar'}
                                 </button>
-                                <button class="btn-primary" style="padding:5px 10px;font-size:11px;background:var(--accent2)" onclick="showQR('${m.mesa_token}', ${m.numero})">
+                                <button class="btn-primary" style="padding:5px 10px;font-size:11px;background:var(--accent2)" onclick="showQR('${token}', ${m.numero})">
                                     <i class="fas fa-qrcode"></i> QR
                                 </button>
                                 <button style="padding:5px 10px;font-size:11px;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer" onclick="deleteMesa('${m.id}')">
@@ -1578,19 +1579,25 @@
             const container = document.getElementById('qrContainer');
             container.innerHTML = '<p style="color:var(--text2)">Generando QR...</p>';
             
-            QRCode.toDataURL(url, {
-                width: 250,
-                margin: 2,
-                color: { dark: '#000000', light: '#ffffff' }
-            }, function(err, dataUrl) {
-                if (err) {
-                    console.error('QR Error:', err);
-                    container.innerHTML = '<p style="color:var(--danger)">Error al generar QR</p>';
-                    return;
-                }
-                container.innerHTML = '<img src="' + dataUrl + '" style="width:250px;height:250px;border-radius:8px" />';
-                showModal('qr');
-            });
+            showModal('qr');
+            
+            try {
+                QRCode.toDataURL(url, {
+                    width: 250,
+                    margin: 2,
+                    errorCorrectionLevel: 'M'
+                }, function(err, dataUrl) {
+                    if (err) {
+                        console.error('QR Error:', err);
+                        container.innerHTML = '<p style="color:var(--danger)">Error: ' + err.message + '</p>';
+                        return;
+                    }
+                    container.innerHTML = '<img src="' + dataUrl + '" style="width:250px;height:250px;border-radius:8px" />';
+                });
+            } catch(e) {
+                console.error('QR Exception:', e);
+                container.innerHTML = '<p style="color:var(--danger)">Excepción: ' + e.message + '</p>';
+            }
         }
 
         function printQR() {
