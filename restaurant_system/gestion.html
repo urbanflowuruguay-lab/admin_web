@@ -347,6 +347,7 @@
             </nav>
 
             <main class="content">
+                <audio id="pedidoSound" src="/audiouf.mp3" preload="auto"></audio>
                 <!-- DASHBOARD -->
                 <div class="section active" id="section-dashboard">
                     <div class="section-header">
@@ -1435,8 +1436,16 @@
                     .limit(50);
 
                 if (error) throw error;
-
+                const prevIds = new Set((localData.pedidos||[]).map(x=>x.id));
+                const nuevos = (data||[]).filter(x=>!prevIds.has(x.id));
                 localData.pedidos = data || [];
+                if (nuevos.length > 0 && prevIds.size > 0) {
+                    const audio = document.getElementById('pedidoSound');
+                    if (audio) { audio.currentTime=0; audio.play().catch(()=>{}); }
+                    if (Notification && Notification.permission === 'granted') {
+                        new Notification('Nuevo pedido', { body: `${nuevos[0].cliente_nombre||'Cliente'} - Mesa #${nuevos[0].mesa_numero||'?'}` });
+                    }
+                }
             } catch (err) {
                 console.error('Error loading pedidos:', err);
             }
