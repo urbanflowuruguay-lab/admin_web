@@ -62,6 +62,10 @@
         .back-link a { color: #8b949e; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
         .back-link a:hover { color: #e6edf3; }
         .register-fields { display: none; }
+        #authLoader { display:flex;align-items:center;justify-content:center;padding:60px 0; }
+        #authLoader .spinner { width:36px;height:36px;border:3px solid #30363d;border-top-color:#6C63FF;border-radius:50%;animation:spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .card.hidden { display:none; }
         @media (max-width: 480px) {
             .login-container { padding: 16px; }
             .card { padding: 28px 20px; }
@@ -78,7 +82,8 @@
             <p>Accedé a tu cuenta de UrbanFlow</p>
         </div>
 
-        <div class="card">
+        <div id="authLoader"><div class="spinner"></div></div>
+        <div class="card hidden" id="loginCard">
             <h2 id="formTitle">Iniciar sesión</h2>
             <p class="subtitle" id="formSubtitle">Ingresa tus datos para continuar</p>
             <div class="error-msg" id="errorMsg"></div>
@@ -135,7 +140,12 @@
 
         (async () => {
             const { data: { session } } = await sb.auth.getSession();
-            if (session) await redirectByRole(session.user.id);
+            if (session) {
+                await redirectByRole(session.user.id);
+            } else {
+                document.getElementById('authLoader').style.display='none';
+                document.getElementById('loginCard').classList.remove('hidden');
+            }
         })();
 
         function toggleMode() {
