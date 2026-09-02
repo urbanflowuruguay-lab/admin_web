@@ -1587,13 +1587,14 @@
             showModal('qr');
             
             const size = 300;
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:relative;width:'+size+'px;height:'+size+'px;margin:0 auto';
             
-            const qrCanvas = document.createElement('canvas');
-            new QRCode(qrCanvas, {
+            const qrDiv = document.createElement('div');
+            wrapper.appendChild(qrDiv);
+            container.appendChild(wrapper);
+            
+            new QRCode(qrDiv, {
                 text: url,
                 width: size,
                 height: size,
@@ -1603,6 +1604,14 @@
             });
             
             setTimeout(() => {
+                const qrCanvas = qrDiv.querySelector('canvas');
+                if (!qrCanvas) return;
+                
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = size;
+                finalCanvas.height = size;
+                const ctx = finalCanvas.getContext('2d');
+                
                 ctx.drawImage(qrCanvas, 0, 0, size, size);
                 
                 const logo = new Image();
@@ -1614,19 +1623,20 @@
                     
                     ctx.fillStyle = '#ffffff';
                     ctx.beginPath();
-                    ctx.roundRect(x - 6, y - 6, logoSize + 12, logoSize + 12, 8);
+                    ctx.roundRect(x - 8, y - 8, logoSize + 16, logoSize + 16, 8);
                     ctx.fill();
                     
                     ctx.drawImage(logo, x, y, logoSize, logoSize);
+                    
                     container.innerHTML = '';
-                    container.appendChild(canvas);
+                    container.appendChild(finalCanvas);
                 };
                 logo.onerror = function() {
                     container.innerHTML = '';
-                    container.appendChild(canvas);
+                    container.appendChild(qrCanvas);
                 };
                 logo.src = '../logouf.png';
-            }, 200);
+            }, 300);
         }
 
         function downloadQR() {
