@@ -1584,11 +1584,11 @@
             try {
                 new QRCode(container, {
                     text: url,
-                    width: 250,
-                    height: 250,
+                    width: 300,
+                    height: 300,
                     colorDark: '#000000',
                     colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M
+                    correctLevel: QRCode.CorrectLevel.H
                 });
             } catch(e) {
                 console.error('QR Exception:', e);
