@@ -835,6 +835,14 @@
                 <textarea id="prodDescripcion"></textarea>
             </div>
             <div class="form-group">
+                <label>Foto</label>
+                <div onclick="document.getElementById('prodFoto').click()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
+                    <img id="prodFotoPreview" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+                    <span id="prodFotoPlaceholder" style="color:var(--text2);font-size:12px">Click para subir foto</span>
+                </div>
+                <input type="file" id="prodFoto" accept="image/*" style="display:none">
+            </div>
+            <div class="form-group">
                 <label>Precio ($)</label>
                 <input type="number" id="prodPrecio">
             </div>
@@ -852,6 +860,14 @@
                 <div id="catNuevaWrap" style="display:none;margin-top:8px">
                     <input type="text" id="catNueva" placeholder="Nombre nueva categoría">
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Disponible en</label>
+                <select id="prodDisponible">
+                    <option value="ambas">Ambas (Mesa y Online)</option>
+                    <option value="mesa">Solo Mesa (carta QR)</option>
+                    <option value="online">Solo Online (delivery/retiro)</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>Stock Inicial</label>
@@ -1791,18 +1807,35 @@
         // =============================================
         // SAVE DATA
         // =============================================
-        function saveProducto() {
+        document.getElementById('prodFoto')?.addEventListener('change', function() {
+            const f = this.files[0]; if (!f) return;
+            document.getElementById('prodFotoPreview').src = URL.createObjectURL(f);
+            document.getElementById('prodFotoPreview').style.display='block';
+            document.getElementById('prodFotoPlaceholder').style.display='none';
+        });
+        async function saveProducto() {
             let cat = document.getElementById('prodCategoria').value;
             if (cat === 'nueva') {
                 const nombreCat = document.getElementById('catNueva').value.trim();
                 if (!nombreCat) { alert('Ingresá nombre de categoría'); return; }
                 cat = 'cat_' + Date.now();
                 localData.categorias.push({ id: cat, nombre: nombreCat });
-                // agregar al select para futuro
                 const opt = document.createElement('option'); opt.value = cat; opt.textContent = nombreCat;
                 document.getElementById('prodCategoria').appendChild(opt);
                 document.getElementById('catNueva').value = '';
                 document.getElementById('catNuevaWrap').style.display='none';
+            }
+            const disponible = document.getElementById('prodDisponible').value;
+            let fotoUrl = null;
+            const file = document.getElementById('prodFoto').files[0];
+            if (file) {
+                const empresaId = localData.currentUser?.empresa_id;
+                const path = `empresa_${empresaId}/prod_${Date.now()}.jpg`;
+                const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+                if (!error) {
+                    const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                    fotoUrl = data.publicUrl;
+                }
             }
             const prod = {
                 id: 'prod_' + Date.now(),
@@ -1813,9 +1846,13 @@
                 stock: parseInt(document.getElementById('prodStock').value),
                 stock_minimo: 10,
                 activo: true,
+                foto_url: fotoUrl,
+                disponible: disponible,
                 created_at: new Date().toISOString()
             };
             localData.productos.push(prod);
+            // reset foto
+            document.getElementById('prodFoto').value=''; document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block';
             closeModal('producto');
             loadProductos();
             logAccion('producto_creado', 'productos', { nombre: prod.nombre });
