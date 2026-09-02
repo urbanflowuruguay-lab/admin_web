@@ -840,14 +840,18 @@
             </div>
             <div class="form-group">
                 <label>Categoría</label>
-                <select id="prodCategoria">
+                <select id="prodCategoria" onchange="if(this.value==='nueva'){document.getElementById('catNuevaWrap').style.display='block'}else{document.getElementById('catNuevaWrap').style.display='none'}">
                     <option value="cat_001">Entradas</option>
                     <option value="cat_002">Parrilla</option>
                     <option value="cat_003">Pizzas</option>
                     <option value="cat_004">Pastas</option>
                     <option value="cat_005">Bebidas</option>
                     <option value="cat_006">Postres</option>
+                    <option value="nueva">+ Nueva categoría...</option>
                 </select>
+                <div id="catNuevaWrap" style="display:none;margin-top:8px">
+                    <input type="text" id="catNueva" placeholder="Nombre nueva categoría">
+                </div>
             </div>
             <div class="form-group">
                 <label>Stock Inicial</label>
@@ -1788,12 +1792,24 @@
         // SAVE DATA
         // =============================================
         function saveProducto() {
+            let cat = document.getElementById('prodCategoria').value;
+            if (cat === 'nueva') {
+                const nombreCat = document.getElementById('catNueva').value.trim();
+                if (!nombreCat) { alert('Ingresá nombre de categoría'); return; }
+                cat = 'cat_' + Date.now();
+                localData.categorias.push({ id: cat, nombre: nombreCat });
+                // agregar al select para futuro
+                const opt = document.createElement('option'); opt.value = cat; opt.textContent = nombreCat;
+                document.getElementById('prodCategoria').appendChild(opt);
+                document.getElementById('catNueva').value = '';
+                document.getElementById('catNuevaWrap').style.display='none';
+            }
             const prod = {
                 id: 'prod_' + Date.now(),
                 nombre: document.getElementById('prodNombre').value,
                 descripcion: document.getElementById('prodDescripcion').value,
                 precio: parseFloat(document.getElementById('prodPrecio').value),
-                categorias: [document.getElementById('prodCategoria').value],
+                categorias: [cat],
                 stock: parseInt(document.getElementById('prodStock').value),
                 stock_minimo: 10,
                 activo: true,
