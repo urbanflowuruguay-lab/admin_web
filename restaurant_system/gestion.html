@@ -1582,8 +1582,8 @@
         }
 
         function showQR(mesaToken, mesaNumero) {
-            const empresaId = localStorage.getItem('urbanflow_empresa_id');
-            const url = `${window.location.origin}/mesa.html?mesa=${mesaToken}&empresa=${empresaId}`;
+            // QR ultra simple: solo token, el lector busca empresa en Supabase
+            const url = `${window.location.origin}/mesa.html?mesa=${mesaToken}`;
             
             document.getElementById('qrMesaTitle').textContent = `QR Mesa #${mesaNumero}`;
             document.getElementById('qrUrl').textContent = url;

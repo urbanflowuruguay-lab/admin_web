@@ -352,27 +352,37 @@ function applyPortadaTheme(templateId) {
 }
 
 async function init() {
-    if (!mesaToken || !empresaId) {
+    if (!mesaToken) {
         document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>QR invalido. Pedile a un camarero.</p></div>';
         return;
     }
     try {
-        const [empRes, prodRes] = await Promise.all([
-            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaId).single(),
-            sb.from("productos_empresa").select("*").eq("empresa_id", empresaId).eq("activo", true).order("categoria")
-        ]);
-
         let mesaRes = await sb.from("mesas").select("*").eq("mesa_token", mesaToken).single();
         if (!mesaRes.data) {
             mesaRes = await sb.from("mesas").select("*").eq("id", mesaToken).single();
         }
+        // Si no viene empresaId en URL, sacarla de la mesa
+        let empresaIdFinal = empresaId;
+        if (!empresaIdFinal && mesaRes.data) {
+            empresaIdFinal = mesaRes.data.empresa_id;
+        }
+        if (!empresaIdFinal) {
+            document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Mesa no encontrada</p></div>';
+            return;
+        }
+        const [empRes, prodRes] = await Promise.all([
+            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaIdFinal).single(),
+            sb.from("productos_empresa").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("categoria")
+        ]);
         if (!mesaRes.data) {
-            mesaRes = await sb.from("mesas").select("*").eq("empresa_id", empresaId).single();
+            mesaRes = await sb.from("mesas").select("*").eq("empresa_id", empresaIdFinal).single();
         }
 
         empresaData = empRes.data;
         mesaData = mesaRes.data;
         productos = prodRes.data || [];
+        // guardar empresaId resuelto para usar en pedidos
+        if (empresaData) empresaId = empresaData.id;
         if (!empresaData || !mesaData) {
             document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Mesa no encontrada</p></div>';
             return;
