@@ -357,11 +357,19 @@ async function init() {
         return;
     }
     try {
-        const [empRes, mesaRes, prodRes] = await Promise.all([
+        const [empRes, prodRes] = await Promise.all([
             sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaId).single(),
-            sb.from("mesas").select("*").eq("mesa_token", mesaToken).single(),
             sb.from("productos_empresa").select("*").eq("empresa_id", empresaId).eq("activo", true).order("categoria")
         ]);
+
+        let mesaRes = await sb.from("mesas").select("*").eq("mesa_token", mesaToken).single();
+        if (!mesaRes.data) {
+            mesaRes = await sb.from("mesas").select("*").eq("id", mesaToken).single();
+        }
+        if (!mesaRes.data) {
+            mesaRes = await sb.from("mesas").select("*").eq("empresa_id", empresaId).single();
+        }
+
         empresaData = empRes.data;
         mesaData = mesaRes.data;
         productos = prodRes.data || [];
