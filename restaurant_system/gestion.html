@@ -1544,6 +1544,13 @@
         // =============================================
         // MESAS
         // =============================================
+        function generateToken() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+            let token = '';
+            for (let i = 0; i < 8; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
+            return token;
+        }
+
         async function saveMesa() {
             const numero = parseInt(document.getElementById('mesaNumero').value);
             const capacidad = parseInt(document.getElementById('mesaCapacidad').value) || 4;
@@ -1560,7 +1567,7 @@
                     numero: numero,
                     capacidad: capacidad,
                     estado: 'libre',
-                    mesa_token: crypto.randomUUID()
+                    mesa_token: generateToken()
                 });
 
                 if (error) throw error;
@@ -1617,13 +1624,13 @@
                 const logo = new Image();
                 logo.crossOrigin = 'anonymous';
                 logo.onload = function() {
-                    const logoAreaSize = size * 0.25;
+                    const logoAreaSize = size * 0.28;
                     const x = (size - logoAreaSize) / 2;
                     const y = (size - logoAreaSize) / 2;
                     
                     ctx.fillStyle = '#000000';
                     ctx.beginPath();
-                    ctx.roundRect(x, y, logoAreaSize, logoAreaSize, 6);
+                    ctx.roundRect(x, y, logoAreaSize, logoAreaSize, 8);
                     ctx.fill();
                     
                     const ratio = Math.min(logoAreaSize / logo.naturalWidth, logoAreaSize / logo.naturalHeight);
