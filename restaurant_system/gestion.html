@@ -2011,39 +2011,14 @@
                 // Default data
                 localData = {
                     restaurante: { nombre: "La Parrilla", descripcion: "Parrilla uruguaya desde 1990", telefono: "21234567", email: "info@laparrilla.com.uy", direccion: "Av. 18 de Julio 1234" },
-                    productos: [
-                        { id: "prod_001", nombre: "Hamburguesa Clásica", precio: 400, categorias: ["cat_001"], stock: 50, activo: true },
-                        { id: "prod_002", nombre: "Pilsen 1870", precio: 180, categorias: ["cat_005"], stock: 100, activo: true },
-                        { id: "prod_003", nombre: "Pizza Muzzarella", precio: 380, categorias: ["cat_003"], stock: 30, activo: true }
-                    ],
-                    categorias: [
-                        { id: "cat_001", nombre: "Entradas" },
-                        { id: "cat_002", nombre: "Parrilla" },
-                        { id: "cat_003", nombre: "Pizzas" },
-                        { id: "cat_005", nombre: "Bebidas" }
-                    ],
-                    pedidos: [
-                        { id: "ped_001", numero: 123, cliente_nombre: "Juan Pérez", tipo: "delivery", estado: "en_camino", items: [{ nombre: "Hamburguesa", cantidad: 2 }], total_cliente: 1653, created_at: new Date().toISOString() }
-                    ],
-                    inventario: [
-                        { producto_id: "prod_001", nombre: "Hamburguesa Clásica", stock_actual: 50, stock_minimo: 10, ultima_actualizacion: new Date().toISOString() },
-                        { producto_id: "prod_002", nombre: "Pilsen 1870", stock_actual: 100, stock_minimo: 20, ultima_actualizacion: new Date().toISOString() }
-                    ],
-                    clientes: [
-                        { id: "cli_001", nombre: "Juan Pérez", telefono: "099123456", email: "juan@email.com", statisticas: { total_pedidos: 15, total_gastado: 12500 }, fidelidad: { puntos_actuales: 125 } }
-                    ],
-                    empleados: [
-                        { id: "emp_001", nombre: "Carlos López", pin: "0000", roles: ["rol_dueno"], activo: true, email: "carlos@laparrilla.com.uy" },
-                        { id: "emp_002", nombre: "María García", pin: "1234", roles: ["rol_cajero"], activo: true, email: "maria@laparrilla.com.uy" },
-                        { id: "emp_003", nombre: "Pedro Martínez", pin: "5678", roles: ["rol_cocinero"], activo: true, email: "pedro@laparrilla.com.uy" }
-                    ],
-                    zonas: [
-                        { id: "zona_001", nombre: "Centro", costo_envio: 50, tiempo_estimado_min: 30, pedido_minimo: 300, activo: true },
-                        { id: "zona_002", nombre: "Pocitos", costo_envio: 70, tiempo_estimado_min: 40, pedido_minimo: 400, activo: true }
-                    ],
-                    cobros: [
-                        { id: "cob_001", pedido_id: "ped_001", numero_pedido: 123, cliente_nombre: "Juan Pérez", fecha: new Date().toISOString().split('T')[0], total_cliente: 1653, uf_fee_monto: 13, mp_fee_monto: 130.15, total_recibido: 1509.85 }
-                    ],
+                    productos: [],
+                    categorias: [],
+                    pedidos: [],
+                    inventario: [],
+                    clientes: [],
+                    empleados: [],
+                    zonas: [],
+                    cobros: [],
                     auditoria: [],
                     currentUser: null
                 };
