@@ -689,8 +689,11 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                             <div style="padding: 20px; background: var(--bg3); border-radius: 8px;">
                                 <h4 style="margin-bottom: 10px;"><i class="fas fa-hard-drive"></i> Datos Locales</h4>
-                                <p style="color: var(--text2); font-size: 13px;">C:\UrbanFlow\LaParrilla\</p>
-                                <p style="color: var(--green); font-size: 12px; margin-top: 5px;">✅ Activo</p>
+                                <p id="carpetaPath" style="color: var(--text2); font-size: 13px;">No seleccionada</p>
+                                <p id="carpetaEstado" style="color: var(--text2); font-size: 12px; margin-top: 5px;">Sin configurar</p>
+                                <button class="btn-primary" onclick="crearCarpetaEmpresa()" style="margin-top: 10px; font-size: 12px; padding: 6px 12px;">
+                                    <i class="fas fa-folder-plus"></i> Crear/Elegir carpeta
+                                </button>
                             </div>
                             <div style="padding: 20px; background: var(--bg3); border-radius: 8px;">
                                 <h4 style="margin-bottom: 10px;"><i class="fas fa-cloud"></i> Respaldo Nube</h4>
@@ -1302,6 +1305,34 @@
             } catch (err) {
                 console.error('Error loading config:', err);
             }
+        }
+        let carpetaHandle = null;
+        async function crearCarpetaEmpresa() {
+            if (!window.showDirectoryPicker) {
+                alert('Tu navegador no soporta elegir carpeta. Usa Chrome/Edge. Se descargará un backup en Descargas.');
+                const data = JSON.stringify(localData, null, 2);
+                const blob = new Blob([data], {type:'application/json'});
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = `backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+                return;
+            }
+            try {
+                carpetaHandle = await window.showDirectoryPicker({mode:'readwrite'});
+                document.getElementById('carpetaPath').textContent = carpetaHandle.name;
+                document.getElementById('carpetaEstado').innerHTML = '<span style="color:var(--green)">✅ Carpeta vinculada</span>';
+                // guardar handle en IndexedDB para persistir
+                const db = await new Promise((res, rej) => {
+                    const req = indexedDB.open('urbanflow_carpeta',1);
+                    req.onupgradeneeded = e => e.target.result.createObjectStore('s');
+                    req.onsuccess = e => res(e.target.result);
+                    req.onerror = e => rej(e);
+                });
+                const tx = db.transaction('s','readwrite'); tx.objectStore('s').put(carpetaHandle,'handle');
+                // crear archivo de prueba
+                const fileHandle = await carpetaHandle.getFileHandle('urbanflow_test.txt', {create:true});
+                const w = await fileHandle.createWritable(); await w.write('Carpeta UrbanFlow vinculada OK - '+new Date().toISOString()); await w.close();
+                alert('Carpeta creada/vinculada: '+carpetaHandle.name);
+            } catch(e) { if (e.name!=='AbortError') alert('Error: '+e.message); }
         }
         // Logo y portada upload
         document.getElementById('logoFile')?.addEventListener('change', async function() {
