@@ -892,12 +892,15 @@
             <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Escaneá para abrir la carta digital</p>
             <div id="qrContainer" style="margin-bottom:16px"></div>
             <p id="qrUrl" style="color:var(--text2);font-size:11px;word-break:break-all;margin-bottom:16px"></p>
-            <div style="display:flex;gap:8px;justify-content:center">
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
                 <button class="btn-primary" onclick="printQR()">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
                 <button class="btn-primary" onclick="downloadQR()" style="background:var(--accent2)">
                     <i class="fas fa-download"></i> Descargar
+                </button>
+                <button class="btn-primary" onclick="verCarta()" style="background:var(--green)">
+                    <i class="fas fa-external-link-alt"></i> Ver carta
                 </button>
             </div>
         </div>
@@ -1610,6 +1613,11 @@
             link.download = 'QR Mesa.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
+        }
+
+        function verCarta() {
+            const url = document.getElementById('qrUrl').textContent;
+            if (url) window.open(url, '_blank');
         }
 
         async function deleteMesa(id) {
