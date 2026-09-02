@@ -1,0 +1,41 @@
+{
+  "id": "uuid_restaurante_001",
+  "nombre": "La Parrilla",
+  "descripcion": "Parrilla uruguaya desde 1990",
+  "rubro": "restaurante",
+  "sub_rubro": "parrilla",
+  "telefono": "21234567",
+  "email": "info@laparrilla.com.uy",
+  "direccion": "Av. 18 de Julio 1234",
+  "lat": -34.9011,
+  "lon": -56.1645,
+  "horarios": {
+    "lunes": {"inicio": "11:00", "fin": "23:00"},
+    "martes": {"inicio": "11:00", "fin": "23:00"},
+    "miercoles": {"inicio": "11:00", "fin": "23:00"},
+    "jueves": {"inicio": "11:00", "fin": "23:00"},
+    "viernes": {"inicio": "11:00", "fin": "00:00"},
+    "sabado": {"inicio": "11:00", "fin": "00:00"},
+    "domingo": {"inicio": "12:00", "fin": "22:00"}
+  },
+  "configuracion": {
+    "moneda": "UYU",
+    "iva_porcentaje": 22,
+    "iva_incluido": true,
+    "pedido_minimo": 300,
+    "tiempo_preparacion_estimado": 30,
+    "acepta_efectivo": true,
+    "acepta_credito": true,
+    "acepta_debito": true,
+    "acepta_mp": true,
+    "delivery_propio": true,
+    "retiro_en_local": true,
+    "reservas": true,
+    "mesas_qr": true
+  },
+  "plantilla": "dark_elegance",
+  "logo_url": null,
+  "portada_url": null,
+  "activo": true,
+  "created_at": "2026-09-01"
+}

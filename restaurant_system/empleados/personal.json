@@ -1,0 +1,72 @@
+[
+  {
+    "id": "emp_001",
+    "nombre": "Carlos López",
+    "pin": "0000",
+    "roles": ["rol_dueno"],
+    "activo": true,
+    "email": "carlos@laparrilla.com.uy",
+    "telefono": "099111111",
+    "foto_url": null,
+    "fecha_ingreso": "2026-01-01",
+    "salario": 80000,
+    "tipo_salario": "fijo",
+    "created_at": "2026-01-01"
+  },
+  {
+    "id": "emp_002",
+    "nombre": "María García",
+    "pin": "1234",
+    "roles": ["rol_cajero", "rol_vendedor"],
+    "activo": true,
+    "email": "maria@laparrilla.com.uy",
+    "telefono": "099222222",
+    "foto_url": null,
+    "fecha_ingreso": "2026-03-15",
+    "salario": 45000,
+    "tipo_salario": "fijo",
+    "created_at": "2026-03-15"
+  },
+  {
+    "id": "emp_003",
+    "nombre": "Pedro Martínez",
+    "pin": "5678",
+    "roles": ["rol_cocinero"],
+    "activo": true,
+    "email": "pedro@laparrilla.com.uy",
+    "telefono": "099333333",
+    "foto_url": null,
+    "fecha_ingreso": "2026-02-01",
+    "salario": 50000,
+    "tipo_salario": "fijo",
+    "created_at": "2026-02-01"
+  },
+  {
+    "id": "emp_004",
+    "nombre": "Ana Rodríguez",
+    "pin": "9012",
+    "roles": ["rol_cocinero"],
+    "activo": true,
+    "email": "ana@laparrilla.com.uy",
+    "telefono": "099444444",
+    "foto_url": null,
+    "fecha_ingreso": "2026-04-01",
+    "salario": 45000,
+    "tipo_salario": "fijo",
+    "created_at": "2026-04-01"
+  },
+  {
+    "id": "emp_005",
+    "nombre": "Roberto García",
+    "pin": "3456",
+    "roles": ["rol_delivery"],
+    "activo": true,
+    "email": "roberto@laparrilla.com.uy",
+    "telefono": "099555555",
+    "foto_url": null,
+    "fecha_ingreso": "2026-05-01",
+    "salario": 35000,
+    "tipo_salario": "fijo",
+    "created_at": "2026-05-01"
+  }
+]

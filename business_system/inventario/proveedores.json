@@ -1,0 +1,80 @@
+[
+  {
+    "id": "prov_001",
+    "nombre": "Distribuidora Farmacéutica",
+    "contacto": "Dr. Juan Pérez",
+    "telefono": "099123456",
+    "email": "ventas@distfarma.com.uy",
+    "direccion": "Av. Boulevard Artigas 1234",
+    "productos_suministrados": ["prod_001"],
+    "condiciones_pago": "30 días",
+    "habilitado": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prov_002",
+    "nombre": "Importadora de Cosméticos",
+    "contacto": "María Santos",
+    "telefono": "099789012",
+    "email": "ventas@importcosmeticos.com.uy",
+    "direccion": "Zona Franca Montevideo",
+    "productos_suministrados": ["prod_002"],
+    "condiciones_pago": "15 días",
+    "habilitado": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prov_003",
+    "nombre": "Distribuidora de Limpieza",
+    "contacto": "Carlos García",
+    "telefono": "099345678",
+    "email": "ventas@distlimpieza.com.uy",
+    "direccion": "Camino Maldonado km 20",
+    "productos_suministrados": ["prod_003"],
+    "condiciones_pago": "30 días",
+    "habilitado": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prov_004",
+    "nombre": "Botellera del Sur",
+    "contacto": "Pedro López",
+    "telefono": "099456789",
+    "email": "ventas@botellerasur.com.uy",
+    "direccion": "Ruta 1 km 50",
+    "productos_suministrados": ["prod_004"],
+    "condiciones_pago": "15 días",
+    "habilitado": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prov_005",
+    "nombre": "Importadora de Electrónica",
+    "contacto": "Ana Martínez",
+    "telefono": "099567890",
+    "email": "ventas@impelectronica.com.uy",
+    "direccion": "Zona Franca Montevideo",
+    "productos_suministrados": ["prod_005"],
+    "condiciones_pago": "30 días",
+    "habilitado": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prov_006",
+    "nombre": "Indumentaria Total",
+    "contacto": "Roberto Rodríguez",
+    "telefono": "099678901",
+    "email": "ventas@indumentariatotal.com.uy",
+    "direccion": "Av. Bella Italia 4567",
+    "productos_suministrados": ["prod_006"],
+    "condiciones_pago": "60 días",
+    "habilitado": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  }
+]

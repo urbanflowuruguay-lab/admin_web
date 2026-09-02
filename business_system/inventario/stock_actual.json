@@ -1,0 +1,80 @@
+[
+  {
+    "producto_id": "prod_001",
+    "nombre": "Paracetamol 500mg",
+    "stock_actual": 100,
+    "stock_minimo": 20,
+    "unidad": "cajas",
+    "proveedor_default": "prov_001",
+    "costo_unitario": 80,
+    "ubicacion": "Estantería A1",
+    "lote": "LOT-2026-001",
+    "fecha_vencimiento": "2027-12-31",
+    "ultima_actualizacion": "2026-09-01T12:00:00Z"
+  },
+  {
+    "producto_id": "prod_002",
+    "nombre": "Protector Solar FPS 50",
+    "stock_actual": 50,
+    "stock_minimo": 10,
+    "unidad": "unidades",
+    "proveedor_default": "prov_002",
+    "costo_unitario": 400,
+    "ubicacion": "Estantería B2",
+    "lote": "LOT-2026-002",
+    "fecha_vencimiento": "2028-06-30",
+    "ultima_actualizacion": "2026-09-01T12:00:00Z"
+  },
+  {
+    "producto_id": "prod_003",
+    "nombre": "Jabón Líquido Antibacterial",
+    "stock_actual": 80,
+    "stock_minimo": 15,
+    "unidad": "unidades",
+    "proveedor_default": "prov_003",
+    "costo_unitario": 120,
+    "ubicacion": "Estantería C1",
+    "lote": "LOT-2026-003",
+    "fecha_vencimiento": "2028-01-31",
+    "ultima_actualizacion": "2026-09-01T12:00:00Z"
+  },
+  {
+    "producto_id": "prod_004",
+    "nombre": "Agua Mineral 1.5L",
+    "stock_actual": 200,
+    "stock_minimo": 50,
+    "unidad": "botellas",
+    "proveedor_default": "prov_004",
+    "costo_unitario": 25,
+    "ubicacion": "Almacén",
+    "lote": "LOT-2026-004",
+    "fecha_vencimiento": "2027-03-31",
+    "ultima_actualizacion": "2026-09-01T12:00:00Z"
+  },
+  {
+    "producto_id": "prod_005",
+    "nombre": "Cargador USB-C",
+    "stock_actual": 40,
+    "stock_minimo": 10,
+    "unidad": "unidades",
+    "proveedor_default": "prov_005",
+    "costo_unitario": 250,
+    "ubicacion": "Estantería D1",
+    "lote": null,
+    "fecha_vencimiento": null,
+    "ultima_actualizacion": "2026-09-01T12:00:00Z"
+  },
+  {
+    "producto_id": "prod_006",
+    "nombre": "Remera Básica Algodón",
+    "stock_actual": 100,
+    "stock_minimo": 20,
+    "unidad": "unidades",
+    "proveedor_default": "prov_006",
+    "costo_unitario": 200,
+    "ubicacion": "Estantería E1",
+    "lote": null,
+    "fecha_vencimiento": null,
+    "ultima_actualizacion": "2026-09-01T12:00:00Z"
+  }
+]

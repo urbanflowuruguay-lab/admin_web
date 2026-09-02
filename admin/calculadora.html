@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Precios - UrbanFlow</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; min-height: 100vh; }
+        h1 { color: #58a6ff; font-size: 18px; margin-bottom: 15px; text-align: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .section { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+        .section h3 { color: #f39c12; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; border-bottom: 1px solid #30363d; padding-bottom: 6px; }
+        .field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+        .field label { font-size: 10px; color: #8b949e; text-transform: uppercase; font-weight: bold; }
+        .field input, .field select { padding: 8px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: white; font-size: 13px; width: 100%; }
+        .field input:focus { border-color: #58a6ff; outline: none; }
+        .field .hint { font-size: 9px; color: #6e7681; }
+        .field-inline { display: flex; gap: 8px; }
+        .field-inline .field { flex: 1; }
+        .results { background: linear-gradient(135deg, #1a2a1a, #0d2818); border: 2px solid #238636; border-radius: 10px; padding: 14px; margin-top: 12px; }
+        .results h3 { color: #4ade80; border-color: #238636; }
+        .result-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #1a3a1a; font-size: 12px; }
+        .result-row:last-child { border-bottom: none; }
+        .result-row .label { color: #8b949e; }
+        .result-row .value { color: #4ade80; font-weight: bold; }
+        .result-row.total { border-top: 2px solid #4ade80; margin-top: 5px; padding-top: 8px; }
+        .result-row.total .label { color: #ffffff; font-weight: bold; font-size: 14px; }
+        .result-row.total .value { color: #4ade80; font-size: 18px; }
+        .result-row.passenger { background: #1a2a3a; border-radius: 6px; padding: 8px; margin-top: 5px; border: 1px solid #58a6ff; }
+        .result-row.passenger .label { color: #58a6ff; font-weight: bold; font-size: 14px; }
+        .result-row.passenger .value { color: #58a6ff; font-size: 18px; }
+        .btn-calc { background: #238636; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%; margin-top: 12px; }
+        .btn-calc:hover { background: #2ea043; }
+        .btn-load { background: #58a6ff; color: #0d1117; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; margin-bottom: 12px; }
+        .btn-load:hover { background: #79b8ff; }
+        .tag { display: inline-block; background: #21262d; color: #8b949e; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-left: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Calculadora de Precios UrbanFlow</h1>
+    <button class="btn-load" onclick="loadFromDB()">Cargar valores de config_tarifas</button>
+
+    <div class="grid">
+        <div>
+            <div class="section">
+                <h3>Configuracion Base</h3>
+                <div class="field">
+                    <label>Precio por km ($)</label>
+                    <input type="number" id="pricePerKm" value="40" step="0.01">
+                </div>
+                <div class="field">
+                    <label>Precio minimo ($)</label>
+                    <input type="number" id="minFare" value="100" step="0.01">
+                </div>
+                <div class="field-inline">
+                    <div class="field">
+                        <label>Valor UI ($)</label>
+                        <input type="number" id="uiValue" value="6.63" step="0.0001">
+                    </div>
+                    <div class="field">
+                        <label>Canon (UI/km)</label>
+                        <input type="number" id="canonPerKm" value="0.45" step="0.01">
+                    </div>
+                </div>
+                <div class="field-inline">
+                    <div class="field">
+                        <label>Administracion (UI)</label>
+                        <input type="number" id="companyFee" value="5.5" step="0.1">
+                    </div>
+                    <div class="field">
+                        <label>Comision MP (%)</label>
+                        <input type="number" id="mpPercent" value="7.88" step="0.01">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Parametros Viaje</h3>
+                <div class="field-inline">
+                    <div class="field">
+                        <label>Distancia viaje (km)</label>
+                        <input type="number" id="tripKm" value="5.1" step="0.1">
+                    </div>
+                    <div class="field">
+                        <label>Distancia recogida (km)</label>
+                        <input type="number" id="pickupKm" value="0" step="0.1">
+                    </div>
+                </div>
+                <div class="field-inline">
+                    <div class="field">
+                        <label>Dentro de zona (km)</label>
+                        <input type="number" id="insideKm" value="5.1" step="0.1">
+                    </div>
+                    <div class="field">
+                        <label>Fuera de zona (km)</label>
+                        <input type="number" id="outsideKm" value="0" step="0.1">
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Indice fuera de zona (x)</label>
+                    <input type="number" id="oozIndex" value="1.5" step="0.1">
+                </div>
+                <div class="field-inline">
+                    <div class="field">
+                        <label>Paradas intermedias</label>
+                        <input type="number" id="stops" value="0" min="0">
+                    </div>
+                    <div class="field">
+                        <label>Precio parada ($)</label>
+                        <input type="number" id="stopPrice" value="30" step="0.01">
+                    </div>
+                </div>
+                <div class="field-inline">
+                    <div class="field">
+                        <label>Precio mascota ($)</label>
+                        <input type="number" id="petPrice" value="50" step="0.01">
+                    </div>
+                    <div class="field">
+                        <label>Mascota</label>
+                        <select id="hasPet"><option value="0">No</option><option value="1">Si</option></select>
+                    </div>
+                </div>
+                <div class="field-inline">
+                    <div class="field">
+                        <label>Peajes</label>
+                        <input type="number" id="tolls" value="0" min="0">
+                    </div>
+                    <div class="field">
+                        <label>Precio peaje ($)</label>
+                        <input type="number" id="tollPrice" value="1.5" step="0.01">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-calc" onclick="calcular()">Calcular</button>
+        </div>
+
+        <div>
+            <div class="results">
+                <h3>Desglose Chofer</h3>
+                <div class="result-row"><span class="label">Recogida</span><span class="value" id="rRecogida">$0</span></div>
+                <div class="result-row"><span class="label">Viaje (km)</span><span class="value" id="rViajeKm">$0</span></div>
+                <div class="result-row" id="rFfueraRow" style="display:none"><span class="label">Fuera de zona extra</span><span class="value" id="rFfuera">$0</span></div>
+                <div class="result-row" id="rParadasRow" style="display:none"><span class="label">Paradas</span><span class="value" id="rParadas">$0</span></div>
+                <div class="result-row" id="rMascotaRow" style="display:none"><span class="label">Mascota</span><span class="value" id="rMascota">$0</span></div>
+                <div class="result-row" id="rPeajesRow" style="display:none"><span class="label">Peajes</span><span class="value" id="rPeajes">$0</span></div>
+                <div class="result-row total"><span class="label">Ganancia chofer</span><span class="value" id="rGanancia">$0</span></div>
+            </div>
+
+            <div class="results" style="margin-top:12px; background: linear-gradient(135deg, #2a1a0a, #1a1008); border-color: #f39c12;">
+                <h3 style="color:#f39c12; border-color:#f39c12;">Cargos Fijos</h3>
+                <div class="result-row"><span class="label">Canon (<span id="rCanonKm">0.45</span> UI/km x <span id="rCanonDist">5.1</span> km)</span><span class="value" id="rCanon">$0</span></div>
+                <div class="result-row"><span class="label">Administracion (<span id="rAdminUI">5.5</span> UI)</span><span class="value" id="rAdmin">$0</span></div>
+                <div class="result-row total"><span class="label">Total cargos</span><span class="value" id="rTotalCargos">$0</span></div>
+            </div>
+
+            <div class="results" style="margin-top:12px; background: linear-gradient(135deg, #1a2a3a, #0d1828); border-color: #58a6ff;">
+                <h3 style="color:#58a6ff; border-color:#58a6ff;">PASAJERO PAGA</h3>
+                <div class="result-row"><span class="label">Total cargos</span><span class="value" id="rPtCargos">$0</span></div>
+                <div class="result-row"><span class="label">Comision MP (<span id="rMpPct">7.88</span>%)</span><span class="value" id="rMpFee">$0</span></div>
+                <div class="result-row passenger"><span class="label">TOTAL PASAJERO</span><span class="value" id="rPassengerTotal">$0</span></div>
+            </div>
+
+            <div class="results" style="margin-top:12px; background: linear-gradient(135deg, #2a1a2a, #1a0d1a); border-color: #a78bfa;">
+                <h3 style="color:#a78bfa; border-color:#a78bfa;">Resumen</h3>
+                <div class="result-row"><span class="label">Chofer gana</span><span class="value" id="rResGanancia" style="color:#a78bfa">$0</span></div>
+                <div class="result-row"><span class="label">Canon</span><span class="value" id="rResCanon" style="color:#a78bfa">$0</span></div>
+                <div class="result-row"><span class="label">Empresa</span><span class="value" id="rResAdmin" style="color:#a78bfa">$0</span></div>
+                <div class="result-row"><span class="label">MP</span><span class="value" id="rResMp" style="color:#a78bfa">$0</span></div>
+                <div class="result-row total"><span class="label">Pasajero paga</span><span class="value" id="rResTotal" style="color:#a78bfa">$0</span></div>
+                <div class="result-row" style="border-top:1px solid #3a2a3a; margin-top:5px; padding-top:8px;">
+                    <span class="label">Gastos totales</span><span class="value" id="rResGastos" style="color:#f85149">$0 (0%)</span>
+                </div>
+                <div class="result-row">
+                    <span class="label">Tu porcentaje</span><span class="value" id="rResChoferPct" style="color:#4ade80">$0 (0%)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+
+        async function loadFromDB() {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/config_tarifas?select=*&pais_code=eq.UY`, {
+                    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+                });
+                const data = await res.json();
+                if (data.length > 0) {
+                    const d = data[0];
+                    document.getElementById('pricePerKm').value = d.price_per_km || 40;
+                    document.getElementById('minFare').value = d.min_fare || 100;
+                    document.getElementById('uiValue').value = d.ui_value || 6.63;
+                    document.getElementById('companyFee').value = d.company_fee_ui || 5.5;
+                    document.getElementById('stopPrice').value = d.stop_price || 30;
+                    document.getElementById('petPrice').value = d.pet_price || 30;
+                    document.getElementById('oozIndex').value = d.out_of_zone_index || 1.5;
+                    calcular();
+                }
+            } catch (e) { alert('Error cargando: ' + e.message); }
+        }
+
+        function calcular() {
+            const ppkm = parseFloat(document.getElementById('pricePerKm').value) || 0;
+            const minFare = parseFloat(document.getElementById('minFare').value) || 0;
+            const uiVal = parseFloat(document.getElementById('uiValue').value) || 0;
+            const canonPerKm = parseFloat(document.getElementById('canonPerKm').value) || 0;
+            const compFee = parseFloat(document.getElementById('companyFee').value) || 0;
+            const mpPct = parseFloat(document.getElementById('mpPercent').value) || 0;
+            const mpDivisor = 1 - (mpPct / 100);
+
+            const tripKm = parseFloat(document.getElementById('tripKm').value) || 0;
+            const pickupKm = parseFloat(document.getElementById('pickupKm').value) || 0;
+            const insideKm = parseFloat(document.getElementById('insideKm').value) || 0;
+            const outsideKm = parseFloat(document.getElementById('outsideKm').value) || 0;
+            const oozIndex = parseFloat(document.getElementById('oozIndex').value) || 1;
+            const stops = parseInt(document.getElementById('stops').value) || 0;
+            const stopPrice = parseFloat(document.getElementById('stopPrice').value) || 0;
+            const hasPet = parseInt(document.getElementById('hasPet').value) || 0;
+            const petPrice = parseFloat(document.getElementById('petPrice').value) || 0;
+            const tolls = parseInt(document.getElementById('tolls').value) || 0;
+            const tollPrice = parseFloat(document.getElementById('tollPrice').value) || 0;
+
+            const recogida = pickupKm * ppkm;
+            const viajeKm = insideKm * ppkm + outsideKm * ppkm * oozIndex;
+            const outsideExtra = outsideKm > 0 ? outsideKm * ppkm * (oozIndex - 1) : 0;
+            const paradasTotal = stops * stopPrice;
+            const mascotaTotal = hasPet > 0 ? petPrice : 0;
+            const peajesTotal = tolls * tollPrice;
+            const ganancia = recogida + viajeKm + paradasTotal + mascotaTotal + peajesTotal;
+
+            const canonTotal = tripKm * canonPerKm * uiVal;
+            const adminTotal = compFee * uiVal;
+            const totalCargos = ganancia + canonTotal + adminTotal;
+            const passengerTotal = totalCargos / mpDivisor;
+            const mpFee = passengerTotal - totalCargos;
+
+            document.getElementById('rRecogida').textContent = `$${recogida.toFixed(0)}`;
+            document.getElementById('rViajeKm').textContent = `$${viajeKm.toFixed(0)}`;
+            document.getElementById('rFfuera').textContent = `$${outsideExtra.toFixed(0)}`;
+            document.getElementById('rFfueraRow').style.display = outsideKm > 0 ? 'flex' : 'none';
+            document.getElementById('rParadas').textContent = `$${paradasTotal.toFixed(0)}`;
+            document.getElementById('rParadasRow').style.display = stops > 0 ? 'flex' : 'none';
+            document.getElementById('rMascota').textContent = `$${mascotaTotal.toFixed(0)}`;
+            document.getElementById('rMascotaRow').style.display = hasPet > 0 ? 'flex' : 'none';
+            document.getElementById('rPeajes').textContent = `$${peajesTotal.toFixed(0)}`;
+            document.getElementById('rPeajesRow').style.display = tolls > 0 ? 'flex' : 'none';
+            document.getElementById('rGanancia').textContent = `$${ganancia.toFixed(0)}`;
+
+            document.getElementById('rCanonKm').textContent = canonPerKm.toFixed(2);
+            document.getElementById('rCanonDist').textContent = tripKm.toFixed(1);
+            document.getElementById('rCanon').textContent = `$${canonTotal.toFixed(0)}`;
+            document.getElementById('rAdminUI').textContent = compFee.toFixed(1);
+            document.getElementById('rAdmin').textContent = `$${adminTotal.toFixed(0)}`;
+            document.getElementById('rTotalCargos').textContent = `$${totalCargos.toFixed(0)}`;
+
+            document.getElementById('rPtCargos').textContent = `$${totalCargos.toFixed(0)}`;
+            document.getElementById('rMpPct').textContent = mpPct.toFixed(2);
+            document.getElementById('rMpFee').textContent = `$${mpFee.toFixed(0)}`;
+            document.getElementById('rPassengerTotal').textContent = `$${passengerTotal.toFixed(0)}`;
+
+            document.getElementById('rResGanancia').textContent = `$${ganancia.toFixed(0)}`;
+            document.getElementById('rResCanon').textContent = `$${canonTotal.toFixed(0)}`;
+            document.getElementById('rResAdmin').textContent = `$${adminTotal.toFixed(0)}`;
+            document.getElementById('rResMp').textContent = `$${mpFee.toFixed(0)}`;
+            document.getElementById('rResTotal').textContent = `$${passengerTotal.toFixed(0)}`;
+
+            const gastosTotal = canonTotal + adminTotal + mpFee;
+            const gastosPct = passengerTotal > 0 ? gastosTotal / passengerTotal * 100 : 0;
+            const choferPct = passengerTotal > 0 ? ganancia / passengerTotal * 100 : 0;
+            document.getElementById('rResGastos').textContent = `$${gastosTotal.toFixed(0)} (${gastosPct.toFixed(1)}%)`;
+            document.getElementById('rResChoferPct').textContent = `$${ganancia.toFixed(0)} (${choferPct.toFixed(1)}%)`;
+        }
+
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', calcular);
+        });
+        calcular();
+    </script>
+</body>
+</html>

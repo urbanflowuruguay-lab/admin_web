@@ -1,0 +1,60 @@
+[
+  {
+    "id": "log_001",
+    "timestamp": "2026-09-01T12:00:00Z",
+    "accion": "pedido_creado",
+    "categoria": "pedidos",
+    "subcategoria": "delivery",
+    "usuario_id": "emp_002",
+    "usuario_nombre": "María García",
+    "rol": "Cajero",
+    "detalle": {
+      "pedido_id": "ped_001",
+      "numero": 1001,
+      "cliente": "Juan Pérez",
+      "items": [
+        {"producto": "Paracetamol 500mg (Caja 20)", "cantidad": 2},
+        {"producto": "Protector Solar FPS 50 (200ml)", "cantidad": 1}
+      ],
+      "total": 1223
+    },
+    "ip": "192.168.1.100",
+    "dispositivo": "PC-Caja-01"
+  },
+  {
+    "id": "log_002",
+    "timestamp": "2026-09-01T12:05:00Z",
+    "accion": "producto_editado",
+    "categoria": "productos",
+    "subcategoria": "precio",
+    "usuario_id": "emp_001",
+    "usuario_nombre": "Carlos López",
+    "rol": "Dueño",
+    "detalle": {
+      "producto_id": "prod_001",
+      "producto_nombre": "Paracetamol 500mg",
+      "campo": "precio",
+      "valor_anterior": 160,
+      "valor_nuevo": 180
+    },
+    "ip": "192.168.1.1",
+    "dispositivo": "PC-Administración"
+  },
+  {
+    "id": "log_003",
+    "timestamp": "2026-09-01T12:10:00Z",
+    "accion": "empleado_fichaje_entrada",
+    "categoria": "empleados",
+    "subcategoria": "fichajes",
+    "usuario_id": "emp_003",
+    "usuario_nombre": "Pedro Martínez",
+    "rol": "Farmacéutico",
+    "detalle": {
+      "empleado_id": "emp_003",
+      "hora": "09:00",
+      "ubicacion": "Farmacia"
+    },
+    "ip": "192.168.1.50",
+    "dispositivo": "Tablet-Farmacia"
+  }
+]

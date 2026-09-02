@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <title>Viajes</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,6 +68,23 @@
         .delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .select-all { width: 16px; height: 16px; cursor: pointer; }
         .row-check { width: 16px; height: 16px; cursor: pointer; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 200; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 25px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal h2 { color: #58a6ff; margin-bottom: 15px; font-size: 18px; }
+        .modal-field { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid #21262d; border-radius: 6px; margin-bottom: 6px; background: #0d1117; cursor: grab; }
+        .modal-field:hover { border-color: #58a6ff; }
+        .modal-field.dragging { opacity: 0.5; border-color: #f0c000; }
+        .modal-field label { flex: 1; font-size: 13px; cursor: pointer; }
+        .modal-field input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .modal-field .order-btns { display: flex; flex-direction: column; gap: 2px; }
+        .modal-field .order-btns button { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+        .modal-field .order-btns button:hover { background: #30363d; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end; }
+        .modal-actions button { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
+        .modal-actions .btn-cancel { background: #21262d; color: #c9d1d9; }
+        .modal-actions .btn-save { background: #238636; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -73,6 +92,7 @@
 <div class="header">
     <h1>📋 Historial de Viajes</h1>
     <div style="display:flex; gap:10px; align-items:center;">
+        <button class="refresh-btn" onclick="openExcelConfig()" style="background:#1a3a5c;border-color:#1f6feb;">⚙️ Configurar Excel</button>
         <button class="refresh-btn" onclick="exportarExcel()" style="background:#1a5c2e;border-color:#238636;">📥 Excel</button>
         <button class="delete-btn" id="btnDelete" disabled onclick="borrarSeleccionados()">🗑️ Borrar (<span id="deleteCount">0</span>)</button>
         <button class="refresh-btn" onclick="cargarViajes()">🔄 Actualizar</button>
@@ -105,6 +125,19 @@
         <option value="Mascotas">Mascotas</option>
         <option value="Reservas">Reservas</option>
     </select>
+    <select id="filterVehicleType">
+        <option value="">Todos los vehículos</option>
+        <option value="auto">Autos</option>
+        <option value="taxi">Taxis</option>
+    </select>
+    <select id="filterCategory">
+        <option value="">Todas las categorías</option>
+        <option value="mascota">🐕 Mascotas</option>
+        <option value="envio">📦 Envíos</option>
+        <option value="reserva">📅 Reservas</option>
+        <option value="complemento">🔗 Complementos</option>
+        <option value="geoferta">🏷️ Geofertas</option>
+    </select>
     <input type="date" id="filterDateFrom" title="Desde">
     <input type="date" id="filterDateTo" title="Hasta">
     <input type="text" id="filterSearch" placeholder="Buscar chofer, pasajero...">
@@ -115,7 +148,23 @@
 
 <!-- Detail overlay -->
 <div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
-    <div class="detail-panel" id="detailPanel"></div>
+    <div style="display:flex;flex-direction:column;max-width:600px;width:90%;max-height:85vh">
+        <div class="detail-panel" id="detailPanel"></div>
+        <div id="routeMap" style="display:none;margin-top:10px;width:100%;height:350px;border-radius:8px;border:1px solid #30363d;flex-shrink:0"></div>
+    </div>
+</div>
+
+<!-- Excel Config Modal -->
+<div class="modal-overlay" id="excelConfigOverlay" onclick="if(event.target===this)closeExcelConfig()">
+    <div class="modal">
+        <h2>⚙️ Configurar columnas Excel</h2>
+        <p style="color:#8b949e;font-size:12px;margin-bottom:15px">Seleccioná las columnas y ordenalas como necesites. Arrastrá para reordenar.</p>
+        <div id="excelFieldsList"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeExcelConfig()">Cancelar</button>
+            <button class="btn-save" onclick="saveExcelConfig()">Guardar</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -136,11 +185,18 @@
             const res = await fetch(`${SUPABASE_URL}/rest/v1/viajes?order=created_at.desc&limit=500`, {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
             });
-            allTrips = await res.json();
-            if (!Array.isArray(allTrips)) allTrips = [];
+            const text = await res.text();
+            try {
+                allTrips = JSON.parse(text);
+                if (!Array.isArray(allTrips)) allTrips = [];
+            } catch (e) {
+                console.error('Parse error:', text.substring(0, 200));
+                allTrips = [];
+            }
             updateStats();
             renderTable();
         } catch (e) {
+            console.error('Fetch error:', e);
             document.getElementById('tripList').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
         }
     }
@@ -163,6 +219,8 @@
     function getFiltered() {
         const status = document.getElementById('filterStatus').value;
         const service = document.getElementById('filterService').value;
+        const vehicleType = document.getElementById('filterVehicleType').value;
+        const category = document.getElementById('filterCategory').value;
         const dateFrom = document.getElementById('filterDateFrom').value;
         const dateTo = document.getElementById('filterDateTo').value;
         const search = document.getElementById('filterSearch').value.toLowerCase();
@@ -170,6 +228,14 @@
         return allTrips.filter(t => {
             if (status && t.status !== status) return false;
             if (service && t.service !== service) return false;
+            if (vehicleType && t.vehicle_type !== vehicleType) return false;
+            if (category) {
+                if (category === 'mascota' && !t.has_pet) return false;
+                if (category === 'envio' && t.service !== 'Envios') return false;
+                if (category === 'reserva' && t.service !== 'Reservas') return false;
+                if (category === 'complemento' && !t.complemento_de) return false;
+                if (category === 'geoferta' && !t.is_geoferta) return false;
+            }
             if (dateFrom && t.created_at && t.created_at.slice(0,10) < dateFrom) return false;
             if (dateTo && t.created_at && t.created_at.slice(0,10) > dateTo) return false;
             if (search) {
@@ -241,9 +307,12 @@
 
     function goPage(p) { currentPage = p; renderTable(); }
 
+    let pendingRouteCoords = null;
+
     function showDetail(id) {
         const t = allTrips.find(x => x.id === id);
         if (!t) return;
+        pendingRouteCoords = t.route_coords ? (typeof t.route_coords === 'string' ? JSON.parse(t.route_coords) : t.route_coords) : null;
 
         const created = t.created_at ? new Date(t.created_at).toLocaleString('es-UY') : '-';
         const accepted = t.accepted_at ? new Date(t.accepted_at).toLocaleString('es-UY') : '-';
@@ -265,20 +334,46 @@
             
             <h2 style="margin-top:15px;font-size:15px">🚗 Chofer</h2>
             <div class="detail-row"><span class="key">Nombre</span><span class="val">${t.driver_name||'-'}</span></div>
+            <div class="detail-row"><span class="key">Cédula</span><span class="val">${t.driver_dni||'-'}</span></div>
+            <div class="detail-row"><span class="key">Vehículo</span><span class="val">${[t.vehicle_brand, t.vehicle_model, t.vehicle_color, t.vehicle_year].filter(Boolean).join(' ')||'-'}</span></div>
             <div class="detail-row"><span class="key">Matrícula</span><span class="val">${t.driver_matricula||'-'}</span></div>
-            <div class="detail-row"><span class="key">Aceptado</span><span class="val">${accepted}</span></div>
+            <div class="detail-row"><span class="key">Depto</span><span class="val">${(t.driver_depto||'').toUpperCase()}</span></div>
+            <div class="detail-row"><span class="key">Teléfono</span><span class="val">${t.driver_phone||'-'}</span></div>
             
             <h2 style="margin-top:15px;font-size:15px">📍 Ruta</h2>
             <div class="detail-row"><span class="key">Origen</span><span class="val">${t.origin_address || t.origin_name || '-'}</span></div>
             <div class="detail-row"><span class="key">Destino</span><span class="val">${t.dest_address || t.dest_name || '-'}</span></div>
-            <div class="detail-row"><span class="key">Paradas</span><span class="val">${t.stops_count||0}</span></div>
-            <div class="detail-row"><span class="key">Distancia</span><span class="val">${t.total_km ? t.total_km.toFixed(1)+' km' : '-'}</span></div>
-            <div class="detail-row"><span class="key">Duración</span><span class="val">${t.total_min ? t.total_min.toFixed(0)+' min' : '-'}</span></div>
+            ${t.stops_count > 0 ? `
+            <div class="detail-row"><span class="key">Paradas</span><span class="val">${t.stops_count}</span></div>
+            ${t.stops_data ? `<div class="detail-row"><span class="key">Detalle paradas</span><span class="val" style="font-size:11px">${Array.isArray(t.stops_data) ? t.stops_data.map((s,i) => `${i+1}. ${s.name||'Sin nombre'}`).join(', ') : '-'}</span></div>` : ''}
+            ` : ''}
+            <div class="detail-row"><span class="key">Distancia</span><span class="val">${t.total_km ? t.total_km.toFixed(2)+' km' : '-'}</span></div>
+            <div class="detail-row"><span class="key">KM Zona / Fuera</span><span class="val">${(t.total_km_inside||0).toFixed(2)} / ${(t.total_km_outside||0).toFixed(2)} km</span></div>
             
-            <h2 style="margin-top:15px;font-size:15px">💰 Pago</h2>
-            <div class="detail-row"><span class="key">Precio base</span><span class="val">${t.base_price ? '$'+t.base_price : '-'}</span></div>
-            <div class="detail-row"><span class="key">Precio ajustado</span><span class="val">${t.adjusted_price ? '$'+t.adjusted_price : '-'}</span></div>
-            <div class="detail-row"><span class="key">Precio final</span><span class="val" style="color:#f0c000;font-size:16px">${t.final_price ? '$'+t.final_price : '-'}</span></div>
+            <h2 style="margin-top:15px;font-size:15px">⏱️ Tiempos</h2>
+            <div class="detail-row"><span class="key">Hora Pedido</span><span class="val">${created}</span></div>
+            <div class="detail-row"><span class="key">Hora Aceptación</span><span class="val">${accepted}</span></div>
+            <div class="detail-row"><span class="key">Hora Llegada Puerta</span><span class="val">${pickup}</span></div>
+            <div class="detail-row"><span class="key">Hora Subió Cliente</span><span class="val">${started}</span></div>
+            <div class="detail-row"><span class="key">Hora Llegada Destino</span><span class="val">${completed}</span></div>
+            <div class="detail-row"><span class="key">Tiempo Referencia</span><span class="val">${t.reference_time_min ? t.reference_time_min.toFixed(1)+' min' : '-'}</span></div>
+            <div class="detail-row"><span class="key">Tiempo Real</span><span class="val">${t.actual_time_min ? t.actual_time_min.toFixed(1)+' min' : '-'}</span></div>
+            <div class="detail-row"><span class="key">Tiempo Recogida</span><span class="val">${t.pickup_time_min ? t.pickup_time_min.toFixed(1)+' min' : '-'}</span></div>
+            
+            <h2 style="margin-top:15px;font-size:15px">💰 Cobros</h2>
+            <div class="detail-row"><span class="key">Cobro Tiempo Espera</span><span class="val">${t.wait_charge ? '$'+t.wait_charge : '$0'}</span></div>
+            <div class="detail-row"><span class="key">Cobro Tiempo Extra</span><span class="val">${t.extra_time_charge ? '$'+t.extra_time_charge : '$0'} (${t.extra_time_seconds||0} seg)</span></div>
+            <div class="detail-row"><span class="key">Cobro Paradas</span><span class="val">${t.stops_charge ? '$'+t.stops_charge : '$0'}</span></div>
+            ${t.has_package ? `<div class="detail-row"><span class="key">Cobro Paquete</span><span class="val">${t.package_charge ? '$'+t.package_charge : '$0'}</span></div>` : ''}
+            ${t.has_pet ? `<div class="detail-row"><span class="key">Cobro Mascota</span><span class="val">${t.pet_charge ? '$'+t.pet_charge : '$0'}</span></div>` : ''}
+            ${t.surcharge_pct > 0 ? `<div class="detail-row"><span class="key">Recargo ${t.surcharge_pct}%</span><span class="val">${t.surcharge_amount ? '$'+t.surcharge_amount : '$0'}</span></div>` : ''}
+            
+            <h2 style="margin-top:15px;font-size:15px">💵 Desglose Pago</h2>
+            <div class="detail-row"><span class="key">Gana Chofer</span><span class="val" style="color:#2ecc71;font-size:15px">${t.final_price ? '$'+t.final_price : '-'}</span></div>
+            <div class="detail-row"><span class="key">Canon Imm</span><span class="val">${t.canon_total ? '$'+t.canon_total : '$0'}</span></div>
+            <div class="detail-row"><span class="key">Administración</span><span class="val">${t.company_fee ? '$'+t.company_fee : '$0'}</span></div>
+            <div class="detail-row"><span class="key">MercadoPago (7.88%)</span><span class="val">${t.mercadopago_fee ? '$'+t.mercadopago_fee : '$0'}</span></div>
+            <div class="detail-row"><span class="key">Total Pasajero Paga</span><span class="val" style="color:#f0c000;font-size:16px;font-weight:bold">${t.passenger_total ? '$'+t.passenger_total : '-'}</span></div>
             
             ${t.status === 'cancelado' ? `
             <h2 style="margin-top:15px;font-size:15px">❌ Cancelación</h2>
@@ -288,18 +383,54 @@
             <div class="detail-row"><span class="key">Cancelado</span><span class="val">${cancelled}</span></div>
             ` : ''}
             
-            <h2 style="margin-top:15px;font-size:15px">⏱️ Tiempos</h2>
-            <div class="detail-row"><span class="key">Recogido</span><span class="val">${pickup}</span></div>
-            <div class="detail-row"><span class="key">Iniciado</span><span class="val">${started}</span></div>
-            <div class="detail-row"><span class="key">Completado</span><span class="val">${completed}</span></div>
+            ${t.route_coords ? `
+            <h2 style="margin-top:15px;font-size:15px">🗺️ Mapa del Recorrido</h2>
+            ` : ''}
             
             <button class="detail-close" onclick="closeDetail()">Cerrar</button>
         `;
         document.getElementById('detailOverlay').classList.add('show');
+        if (pendingRouteCoords && pendingRouteCoords.length >= 2) drawRouteMap(pendingRouteCoords);
+        else { document.getElementById('routeMap').style.display = 'none'; }
+    }
+
+    let currentRouteMap = null;
+    function drawRouteMap(coords) {
+        var container = document.getElementById('routeMap');
+        container.style.display = 'block';
+        if (currentRouteMap) { currentRouteMap.remove(); currentRouteMap = null; }
+        var lnglats = coords.map(function(c){ return [c[0], c[1]]; });
+        var map = new maplibregl.Map({
+            container: container,
+            style: {version:8,sources:{'osm':{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'OpenStreetMap'}},layers:[{id:'osm',type:'raster',source:'osm'}]},
+            center: lnglats[Math.floor(lnglats.length/2)],
+            zoom: 14
+        });
+        currentRouteMap = map;
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        map.on('load', function() {
+            map.addSource('route', {
+                type: 'geojson',
+                data: { type: 'Feature', geometry: { type: 'LineString', coordinates: lnglats } }
+            });
+            map.addLayer({
+                id: 'route-line',
+                type: 'line',
+                source: 'route',
+                paint: { 'line-color': '#00C853', 'line-width': 4, 'line-opacity': 0.9 }
+            });
+            var startMarker = new maplibregl.Marker({color: '#4CAF50'}).setLngLat(lnglats[0]).addTo(map);
+            var endMarker = new maplibregl.Marker({color: '#f44336'}).setLngLat(lnglats[lnglats.length-1]).addTo(map);
+            var bounds = new maplibregl.LngLatBounds();
+            lnglats.forEach(function(c){ bounds.extend(c); });
+            map.fitBounds(bounds, { padding: 40 });
+        });
     }
 
     function closeDetail() {
         document.getElementById('detailOverlay').classList.remove('show');
+        document.getElementById('routeMap').style.display = 'none';
+        if (currentRouteMap) { currentRouteMap.remove(); currentRouteMap = null; }
     }
 
     function toggleSelect(id, checked) {
@@ -325,17 +456,36 @@
 
     async function borrarSeleccionados() {
         if (!confirm(`¿Borrar ${selectedIds.size} viaje(s)? Esto no se puede deshacer.`)) return;
-        try {
-            const res = await fetch('/api/viajes-delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids: Array.from(selectedIds) })
-            });
-            if (!res.ok) throw new Error(await res.text());
-            selectedIds.clear();
-            updateDeleteBtn();
-            await cargarViajes();
-        } catch (e) { alert('Error: ' + e.message); }
+        const ids = Array.from(selectedIds);
+        let errores = 0;
+        let errorDetail = '';
+        for (const id of ids) {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/viajes?id=eq.${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    }
+                });
+                if (!res.ok) {
+                    errores++;
+                    const body = await res.text();
+                    errorDetail += `\n${id}: ${res.status} ${body}`;
+                }
+            } catch (e) {
+                errores++;
+                errorDetail += `\n${id}: ${e.message}`;
+            }
+        }
+        if (errores > 0) {
+            alert(`${errores} viaje(s) no se pudieron borrar:${errorDetail}`);
+        }
+        selectedIds.clear();
+        updateDeleteBtn();
+        await cargarViajes();
     }
 
     let uiValue = 6.58;
@@ -401,12 +551,23 @@
 
         // === HOJA DETALLE ===
         const headers = [
-            'Fecha', 'Estado', 'Servicio', 'Pasajero', 'Chofer', 'Matrícula',
-            'Depto Chofer', 'Teléfono', 'Dirección Origen', 'Dirección Destino',
+            'Fecha', 'Estado', 'Servicio', 'Pasajero', 'Chofer', 'Cédula Chofer',
+            'Marca', 'Modelo', 'Color', 'Año', 'Matrícula',
+            'Depto Chofer', 'Teléfono Chofer',
+            'Dirección Origen', 'Dirección Destino',
             'KM Total', 'KM Zona', 'KM Fuera Zona', 'Paradas',
-            'Precio Base', 'Precio Ajustado', 'Precio Final',
-            'Costo Cancelación', 'Hora Pedido', 'Hora Aceptación',
-            'Hora Pickup', 'Hora Inicio', 'Hora Llegada'
+            'Tiempo Referencia (min)', 'Tiempo Real (min)', 'Tiempo Recogida (min)',
+            'Tiempo Espera (seg)', 'Cobro Espera',
+            'Tiempo Extra (seg)', 'Cobro Tiempo Extra',
+            'Recargo Noche/Domingo %', 'Monto Recargo',
+            'Paquete', 'Mascota', 'Peaje',
+            'Cobro Paradas', 'Cobro Paquete', 'Cobro Mascota',
+            'Precio Chofer', 'Canon', 'Admin', 'MercadoPago',
+            'Total Pasajero',
+            'Costo Cancelación',
+            'Hora Pedido', 'Hora Aceptación', 'Hora Llegada Puerta',
+            'Hora Subió Cliente', 'Hora Llegada Destino',
+            'Paradas Intermedias'
         ];
 
         const detailData = [headers];
@@ -418,6 +579,11 @@
                 t.service || '',
                 t.passenger_name || '',
                 t.driver_name || '',
+                t.driver_dni || '',
+                t.vehicle_brand || '',
+                t.vehicle_model || '',
+                t.vehicle_color || '',
+                t.vehicle_year || '',
                 t.driver_matricula || '',
                 (t.driver_depto || '').toUpperCase(),
                 t.driver_phone || '',
@@ -427,26 +593,55 @@
                 t.total_km_inside || 0,
                 t.total_km_outside || 0,
                 t.stops_count || 0,
-                t.base_price || 0,
-                t.adjusted_price || 0,
+                t.reference_time_min ? parseFloat(t.reference_time_min.toFixed(1)) : 0,
+                t.actual_time_min ? parseFloat(t.actual_time_min.toFixed(1)) : 0,
+                t.pickup_time_min ? parseFloat(t.pickup_time_min.toFixed(1)) : 0,
+                t.wait_charge ? Math.round((t.wait_charge / 0.5) * 10) / 10 : 0,
+                t.wait_charge || 0,
+                t.extra_time_seconds || 0,
+                t.extra_time_charge || 0,
+                t.surcharge_pct || 0,
+                t.surcharge_amount || 0,
+                t.has_package ? 'Sí' : 'No',
+                t.has_pet ? 'Sí' : 'No',
+                t.has_toll ? 'Sí' : 'No',
+                t.stops_charge || 0,
+                t.package_charge || 0,
+                t.pet_charge || 0,
                 t.final_price || 0,
+                t.canon_total || 0,
+                t.company_fee || 0,
+                t.mercadopago_fee || 0,
+                t.passenger_total || 0,
                 t.cancellation_fee || 0,
                 t.created_at || '',
                 t.accepted_at || '',
                 t.pickup_at || '',
                 t.started_at || '',
-                t.completed_at || ''
+                t.completed_at || '',
+                t.stops_data ? JSON.stringify(t.stops_data) : ''
             ]);
         });
 
         const wsDetalle = XLSX.utils.aoa_to_sheet(detailData);
         wsDetalle['!cols'] = [
-            { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 12 },
-            { wch: 14 }, { wch: 15 }, { wch: 30 }, { wch: 30 },
+            { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 14 },
+            { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 8 }, { wch: 12 },
+            { wch: 14 }, { wch: 15 },
+            { wch: 30 }, { wch: 30 },
             { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 8 },
-            { wch: 12 }, { wch: 14 }, { wch: 12 },
-            { wch: 16 }, { wch: 22 }, { wch: 22 },
-            { wch: 22 }, { wch: 22 }, { wch: 22 }
+            { wch: 16 }, { wch: 16 }, { wch: 16 },
+            { wch: 14 }, { wch: 12 },
+            { wch: 14 }, { wch: 14 },
+            { wch: 16 }, { wch: 12 },
+            { wch: 10 }, { wch: 10 }, { wch: 10 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 },
+            { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
+            { wch: 14 },
+            { wch: 16 },
+            { wch: 22 }, { wch: 22 }, { wch: 22 },
+            { wch: 22 }, { wch: 22 },
+            { wch: 40 }
         ];
         XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
 
@@ -456,13 +651,339 @@
 
     document.getElementById('filterStatus').onchange = () => { currentPage = 1; renderTable(); };
     document.getElementById('filterService').onchange = () => { currentPage = 1; renderTable(); };
+    document.getElementById('filterVehicleType').onchange = () => { currentPage = 1; renderTable(); };
+    document.getElementById('filterCategory').onchange = () => { currentPage = 1; renderTable(); };
     document.getElementById('filterDateFrom').onchange = () => { currentPage = 1; renderTable(); };
     document.getElementById('filterDateTo').onchange = () => { currentPage = 1; renderTable(); };
     document.getElementById('filterSearch').oninput = () => { currentPage = 1; renderTable(); };
 
     cargarViajes();
     setInterval(cargarViajes, 30000);
+
+    // === EXCEL CONFIG ===
+    const ALL_FIELDS = [
+        { key: 'created_at', label: 'Fecha' },
+        { key: 'status', label: 'Estado' },
+        { key: 'service', label: 'Servicio' },
+        { key: 'vehicle_type', label: 'Tipo Vehículo' },
+        { key: 'passenger_name', label: 'Pasajero' },
+        { key: 'passenger_phone', label: 'Tel Pasajero' },
+        { key: 'driver_name', label: 'Chofer' },
+        { key: 'driver_dni', label: 'Cédula Chofer' },
+        { key: 'vehicle_brand', label: 'Marca' },
+        { key: 'vehicle_model', label: 'Modelo' },
+        { key: 'vehicle_color', label: 'Color' },
+        { key: 'vehicle_year', label: 'Año' },
+        { key: 'driver_matricula', label: 'Matrícula' },
+        { key: 'driver_depto', label: 'Depto Chofer' },
+        { key: 'driver_phone', label: 'Tel Chofer' },
+        { key: 'driver_earnings', label: 'Gana Chofer' },
+        { key: 'origin_address', label: 'Dirección Origen' },
+        { key: 'dest_address', label: 'Dirección Destino' },
+        { key: 'total_km', label: 'KM Total' },
+        { key: 'total_km_inside', label: 'KM Zona' },
+        { key: 'total_km_outside', label: 'KM Fuera Zona' },
+        { key: 'stops_count', label: 'Paradas' },
+        { key: 'stops_charge', label: 'Cobro Paradas' },
+        { key: 'stops_data', label: 'Paradas Intermedias' },
+        { key: 'reference_time_min', label: 'Tiempo Referencia (min)' },
+        { key: 'actual_time_min', label: 'Tiempo Real (min)' },
+        { key: 'pickup_time_min', label: 'Tiempo Recogida (min)' },
+        { key: 'wait_charge', label: 'Cobro Espera' },
+        { key: 'extra_time_seconds', label: 'Tiempo Extra (seg)' },
+        { key: 'extra_time_charge', label: 'Cobro Tiempo Extra' },
+        { key: 'surcharge_pct', label: 'Recargo %' },
+        { key: 'surcharge_amount', label: 'Monto Recargo' },
+        { key: 'has_package', label: 'Paquete' },
+        { key: 'has_pet', label: 'Mascota' },
+        { key: 'has_toll', label: 'Peaje' },
+        { key: 'package_charge', label: 'Cobro Paquete' },
+        { key: 'pet_charge', label: 'Cobro Mascota' },
+        { key: 'toll_count', label: 'Cantidad Peajes' },
+        { key: 'final_price', label: 'Precio Chofer' },
+        { key: 'canon_total', label: 'Canon' },
+        { key: 'company_fee', label: 'Admin' },
+        { key: 'mercadopago_fee', label: 'MercadoPago' },
+        { key: 'passenger_total', label: 'Total Pasajero' },
+        { key: 'cancellation_fee', label: 'Costo Cancelación' },
+        { key: 'cancel_reason', label: 'Motivo Cancelación' },
+        { key: 'cancel_phase', label: 'Fase Cancelación' },
+        { key: 'accepted_at', label: 'Hora Aceptación' },
+        { key: 'pickup_at', label: 'Hora Llegada Puerta' },
+        { key: 'started_at', label: 'Hora Subió Cliente' },
+        { key: 'completed_at', label: 'Hora Llegada Destino' },
+        { key: 'cancelled_at', label: 'Hora Cancelación' },
+        { key: 'is_geoferta', label: 'Geoferta' },
+        { key: 'complemento_de', label: 'Complemento De' },
+        { key: 'passenger_id', label: 'ID Pasajero' },
+        { key: 'driver_id', label: 'ID Chofer' },
+        { key: 'origin_lat', label: 'Lat Origen' },
+        { key: 'origin_lng', label: 'Lng Origen' },
+        { key: 'dest_lat', label: 'Lat Destino' },
+        { key: 'dest_lng', label: 'Lng Destino' },
+        { key: 'route_screenshot', label: 'Screenshot Ruta' },
+        { key: 'route_url', label: 'Link Ruta (Maps)' }
+    ];
+
+    let excelConfig = loadExcelConfig();
+
+    function loadExcelConfig() {
+        const defaults = ALL_FIELDS.map(f => ({ key: f.key, enabled: true }));
+        try {
+            const saved = localStorage.getItem('uf_excel_config_v2');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return ALL_FIELDS.map(f => {
+                        const savedItem = parsed.find(s => s.key === f.key);
+                        return { key: f.key, enabled: savedItem ? savedItem.enabled : true };
+                    });
+                }
+            }
+        } catch(e) { console.warn('Config Excel corrupta, usando defaults', e); }
+        return defaults;
+    }
+
+    function saveExcelConfigToStorage() {
+        try {
+            localStorage.setItem('uf_excel_config_v2', JSON.stringify(excelConfig));
+        } catch(e) { console.error('Error guardando config Excel:', e); }
+    }
+
+    function openExcelConfig() {
+        const list = document.getElementById('excelFieldsList');
+        list.innerHTML = '';
+        excelConfig.forEach((f, i) => {
+            const field = ALL_FIELDS.find(x => x.key === f.key) || { key: f.key, label: f.key };
+            const div = document.createElement('div');
+            div.className = 'modal-field';
+            div.draggable = true;
+            div.dataset.index = i;
+            div.innerHTML = `
+                <input type="checkbox" id="ef_${i}" ${f.enabled ? 'checked' : ''}>
+                <label for="ef_${i}">${field.label}</label>
+                <div class="order-btns">
+                    <button onclick="moveField(${i},-1)" title="Subir">▲</button>
+                    <button onclick="moveField(${i},1)" title="Bajar">▼</button>
+                </div>
+            `;
+            div.querySelector('input').addEventListener('change', function() {
+                excelConfig[i].enabled = this.checked;
+            });
+            div.ondragstart = (e) => { e.dataTransfer.setData('text/plain', i); div.classList.add('dragging'); };
+            div.ondragend = () => div.classList.remove('dragging');
+            div.ondragover = (e) => e.preventDefault();
+            div.ondrop = (e) => {
+                e.preventDefault();
+                const from = parseInt(e.dataTransfer.getData('text/plain'));
+                const to = i;
+                if (from !== to) {
+                    const [moved] = excelConfig.splice(from, 1);
+                    excelConfig.splice(to, 0, moved);
+                    openExcelConfig();
+                }
+            };
+            list.appendChild(div);
+        });
+        document.getElementById('excelConfigOverlay').classList.add('show');
+    }
+
+    function moveField(idx, dir) {
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= excelConfig.length) return;
+        [excelConfig[idx], excelConfig[newIdx]] = [excelConfig[newIdx], excelConfig[idx]];
+        openExcelConfig();
+    }
+
+    function closeExcelConfig() {
+        document.getElementById('excelConfigOverlay').classList.remove('show');
+    }
+
+    function saveExcelConfig() {
+        saveExcelConfigToStorage();
+        closeExcelConfig();
+        alert('Configuración guardada');
+    }
+
+    function getFieldExtractor(key) {
+        const extractors = {
+            created_at: t => t.created_at ? new Date(t.created_at).toLocaleString('es-UY') : '',
+            accepted_at: t => t.accepted_at ? new Date(t.accepted_at).toLocaleString('es-UY') : '',
+            pickup_at: t => t.pickup_at ? new Date(t.pickup_at).toLocaleString('es-UY') : '',
+            started_at: t => t.started_at ? new Date(t.started_at).toLocaleString('es-UY') : '',
+            completed_at: t => t.completed_at ? new Date(t.completed_at).toLocaleString('es-UY') : '',
+            cancelled_at: t => t.cancelled_at ? new Date(t.cancelled_at).toLocaleString('es-UY') : '',
+            status: t => t.status || '',
+            service: t => t.service || '',
+            vehicle_type: t => t.vehicle_type || '',
+            passenger_name: t => t.passenger_name || '',
+            passenger_phone: t => t.passenger_phone || '',
+            passenger_id: t => t.passenger_id || '',
+            driver_name: t => t.driver_name || '',
+            driver_dni: t => t.driver_dni || '',
+            driver_id: t => t.driver_id || '',
+            vehicle_brand: t => t.vehicle_brand || '',
+            vehicle_model: t => t.vehicle_model || '',
+            vehicle_color: t => t.vehicle_color || '',
+            vehicle_year: t => t.vehicle_year || '',
+            driver_matricula: t => t.driver_matricula || '',
+            driver_depto: t => (t.driver_depto || '').toUpperCase(),
+            driver_phone: t => t.driver_phone || '',
+            driver_earnings: t => t.driver_earnings || 0,
+            origin_address: t => t.origin_address || t.origin_name || '',
+            origin_lat: t => t.origin_lat || 0,
+            origin_lng: t => t.origin_lng || 0,
+            dest_address: t => t.dest_address || t.dest_name || '',
+            dest_lat: t => t.dest_lat || 0,
+            dest_lng: t => t.dest_lng || 0,
+            total_km: t => t.total_km ? parseFloat(t.total_km.toFixed(2)) : 0,
+            total_km_inside: t => t.total_km_inside ? parseFloat(t.total_km_inside.toFixed(2)) : 0,
+            total_km_outside: t => t.total_km_outside ? parseFloat(t.total_km_outside.toFixed(2)) : 0,
+            stops_count: t => t.stops_count || 0,
+            stops_charge: t => t.stops_charge || 0,
+            stops_data: t => t.stops_data ? JSON.stringify(t.stops_data) : '',
+            reference_time_min: t => t.reference_time_min ? parseFloat(t.reference_time_min.toFixed(1)) : 0,
+            actual_time_min: t => t.actual_time_min ? parseFloat(t.actual_time_min.toFixed(1)) : 0,
+            pickup_time_min: t => t.pickup_time_min ? parseFloat(t.pickup_time_min.toFixed(1)) : 0,
+            wait_charge: t => t.wait_charge || 0,
+            extra_time_seconds: t => t.extra_time_seconds || 0,
+            extra_time_charge: t => t.extra_time_charge || 0,
+            surcharge_pct: t => t.surcharge_pct || 0,
+            surcharge_amount: t => t.surcharge_amount || 0,
+            has_package: t => t.has_package ? 'Sí' : 'No',
+            has_pet: t => t.has_pet ? 'Sí' : 'No',
+            has_toll: t => t.has_toll ? 'Sí' : 'No',
+            toll_count: t => t.toll_count || 0,
+            package_charge: t => t.package_charge || 0,
+            pet_charge: t => t.pet_charge || 0,
+            final_price: t => t.final_price || 0,
+            canon_total: t => t.canon_total || 0,
+            company_fee: t => t.company_fee || 0,
+            mercadopago_fee: t => t.mercadopago_fee || 0,
+            passenger_total: t => t.passenger_total || 0,
+            cancellation_fee: t => t.cancellation_fee || 0,
+            cancel_reason: t => t.cancel_reason || '',
+            cancel_phase: t => t.cancel_phase || '',
+            is_geoferta: t => t.is_geoferta ? 'Sí' : 'No',
+            complemento_de: t => t.complemento_de || '',
+            route_screenshot: t => t.route_screenshot || '',
+            route_url: t => {
+                try {
+                    let coords = t.route_coords;
+                    if (coords) {
+                        if (typeof coords === 'string') coords = JSON.parse(coords);
+                        if (Array.isArray(coords) && coords.length >= 2) {
+                            const base = window.location.origin;
+                            const data = encodeURIComponent(JSON.stringify(coords));
+                            return `${base}/admin/ruta.html?coords=${data}`;
+                        }
+                    }
+                    if (t.origin_lat && t.origin_lng && t.dest_lat && t.dest_lng) {
+                        const base = window.location.origin;
+                        const data = encodeURIComponent(JSON.stringify([[t.origin_lng, t.origin_lat], [t.dest_lng, t.dest_lat]]));
+                        return `${base}/admin/ruta.html?coords=${data}`;
+                    }
+                    return '';
+                } catch(e) { return ''; }
+            }
+        };
+        return extractors[key] || (t => t[key] || '');
+    }
+
+    async function exportarExcel() {
+        await fetchUI();
+        const filtered = getFiltered();
+        if (!filtered.length) { alert('No hay viajes para exportar'); return; }
+
+        const enabledFields = excelConfig.filter(f => f.enabled);
+        if (!enabledFields.length) {
+            alert('No hay columnas seleccionadas. Configurá el Excel primero con el botón ⚙️');
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // === HOJA RESUMEN ===
+        const kmByDept = {};
+        let totalKmAll = 0;
+        let totalIngresos = 0;
+
+        filtered.forEach(t => {
+            const dept = (t.driver_depto || 'Sin depto').toUpperCase();
+            if (!kmByDept[dept]) kmByDept[dept] = { km: 0, viajes: 0, ingresos: 0 };
+            kmByDept[dept].km += t.total_km || 0;
+            kmByDept[dept].viajes++;
+            const precio = t.status === 'completado' ? (t.final_price || t.adjusted_price || 0) :
+                           t.status === 'cancelado' ? (t.cancellation_fee || 0) : 0;
+            kmByDept[dept].ingresos += precio;
+            totalKmAll += t.total_km || 0;
+            totalIngresos += precio;
+        });
+
+        const resumenData = [
+            ['HISTORIAL DE VIAJES - URBANFLOW'],
+            ['Fecha exportación:', new Date().toLocaleString('es-UY')],
+            ['Viajes filtrados:', filtered.length],
+            ['UI (Unidad Indexada):', '$' + uiValue.toFixed(2)],
+            [],
+            ['RESUMEN POR DEPARTAMENTO'],
+            ['Departamento', 'Viajes', 'KM Total', 'Ingresos ($)', 'Canon UI (KM × UI)'],
+        ];
+
+        for (const [dept, d] of Object.entries(kmByDept)) {
+            resumenData.push([
+                dept, d.viajes,
+                parseFloat(d.km.toFixed(2)),
+                parseFloat(d.ingresos.toFixed(2)),
+                parseFloat((d.km * uiValue).toFixed(2))
+            ]);
+        }
+
+        resumenData.push([]);
+        resumenData.push(['TOTALES', filtered.length, parseFloat(totalKmAll.toFixed(2)),
+            parseFloat(totalIngresos.toFixed(2)), parseFloat((totalKmAll * uiValue).toFixed(2))]);
+
+        const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+        wsResumen['!cols'] = [{ wch: 20 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 18 }];
+        XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+        // === HOJA DETALLE (configurable) ===
+        const headers = enabledFields.map(f => {
+            const field = ALL_FIELDS.find(x => x.key === f.key);
+            return field ? field.label : f.key;
+        });
+
+        const detailRows = [headers];
+        const hyperlinkCells = [];
+        const routeUrlIdx = enabledFields.findIndex(f => f.key === 'route_url');
+
+        filtered.forEach((t, rowIdx) => {
+            const row = enabledFields.map(f => getFieldExtractor(f.key)(t));
+            detailRows.push(row);
+            if (routeUrlIdx >= 0 && row[routeUrlIdx]) {
+                hyperlinkCells.push({ r: rowIdx + 1, c: routeUrlIdx, url: String(row[routeUrlIdx]) });
+            }
+        });
+
+        const wsDetalle = XLSX.utils.aoa_to_sheet(detailRows);
+        wsDetalle['!cols'] = enabledFields.map(() => ({ wch: 16 }));
+
+        hyperlinkCells.forEach(h => {
+            const cellRef = XLSX.utils.encode_cell({ r: h.r, c: h.c });
+            wsDetalle[cellRef] = { t: 's', v: 'Ver ruta', l: { Target: h.url }, s: { font: { color: { rgb: '0563C1' }, underline: true } } };
+        });
+
+        XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
+
+        // Nombre del archivo con depto y fechas
+        const deptos = [...new Set(filtered.map(t => (t.driver_depto || 'SinDepto').toUpperCase()))].slice(0, 3).join('+');
+        const dateFrom = document.getElementById('filterDateFrom').value || 'inicio';
+        const dateTo = document.getElementById('filterDateTo').value || 'hoy';
+        const fechaStr = new Date().toISOString().slice(0,10);
+        const fileName = `UrbanFlow_Viajes_${deptos}_${dateFrom}_${dateTo}_${fechaStr}.xlsx`;
+
+        XLSX.writeFile(wb, fileName);
+    }
 </script>
-<script src="/auth-check.js"></script>
 </body>
 </html>

@@ -5,386 +5,131 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Personaje IA - UrbanFlow</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: linear-gradient(135deg, #0a0e17 0%, #111827 100%);
-  min-height: 100vh; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif;
-  display: flex; flex-direction: column; align-items: center; padding: 20px;
-}
-h1 { font-size: 28px; margin-bottom: 6px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.subtitle { color: #94a3b8; margin-bottom: 24px; font-size: 14px; }
-.card {
-  background: rgba(30,41,59,0.95); border-radius: 16px; padding: 24px;
-  width: 100%; max-width: 700px; border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin-bottom: 16px;
-}
-.card h2 { font-size: 16px; color: #60a5fa; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-.upload-zone {
-  border: 2px dashed rgba(255,255,255,0.15); border-radius: 12px;
-  padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s;
-  position: relative; overflow: hidden;
-}
-.upload-zone:hover { border-color: #3b82f6; background: rgba(59,130,246,0.05); }
-.upload-zone.dragging { border-color: #3b82f6; background: rgba(59,130,246,0.1); }
-.upload-zone.has-file { border-color: #22c55e; border-style: solid; }
-.upload-zone input { display: none; }
-.upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
-.upload-zone .label { color: #94a3b8; font-size: 13px; }
-.upload-zone .filename { color: #22c55e; font-weight: 600; margin-top: 6px; font-size: 14px; }
-.preview-img { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 10px; object-fit: cover; }
-.preview-audio { width: 100%; margin-top: 10px; border-radius: 8px; }
-
-textarea {
-  width: 100%; min-height: 80px; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; padding: 12px; color: #e2e8f0; font-size: 14px; resize: vertical;
-  font-family: inherit;
-}
-textarea:focus { outline: none; border-color: #3b82f6; }
-textarea::placeholder { color: #64748b; }
-
-.btn-generate {
-  width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px;
-  font-weight: 700; cursor: pointer; transition: all 0.3s;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;
-  margin-top: 12px;
-}
-.btn-generate:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
-.btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-.status {
-  margin-top: 12px; padding: 12px; border-radius: 8px; font-size: 13px;
-  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
-  color: #93c5fd; display: none;
-}
-.status.error { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #fca5a5; }
-.status.success { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.2); color: #86efac; }
-
-.result-video {
-  width: 100%; max-width: 480px; border-radius: 12px; margin-top: 16px;
-  display: none; box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-}
-.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.info { font-size: 12px; color: #64748b; margin-top: 8px; line-height: 1.5; }
-.info strong { color: #94a3b8; }
-
-.example-audios { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.example-audios button {
-  padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(15,23,42,0.6); color: #94a3b8; font-size: 12px; cursor: pointer;
-  transition: all 0.2s;
-}
-.example-audios button:hover { border-color: #3b82f6; color: #60a5fa; }
-.example-audios button.active { border-color: #3b82f6; background: rgba(59,130,246,0.15); color: #60a5fa; }
-
-.back-link { color: #64748b; text-decoration: none; font-size: 13px; margin-top: 16px; display: inline-block; }
-.back-link:hover { color: #94a3b8; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(135deg,#0a0e17,#111827);min-height:100vh;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{font-size:28px;margin-bottom:6px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:#94a3b8;margin-bottom:24px;font-size:14px}
+.card{background:rgba(30,41,59,.95);border-radius:16px;padding:24px;width:100%;max-width:700px;border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.4);margin-bottom:16px}
+.card h2{font-size:16px;color:#60a5fa;margin-bottom:14px}
+.step{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start}
+.num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.step-text{font-size:14px;color:#cbd5e1;line-height:1.6}
+.step-text b{color:#60a5fa}
+.btn{display:inline-block;padding:14px 28px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:.3s;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;text-decoration:none;text-align:center}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(59,130,246,.3)}
+.btn-big{width:100%;font-size:18px;padding:18px}
+.info{font-size:12px;color:#64748b;margin-top:10px;line-height:1.5}
+.info b{color:#94a3b8}
+.upload-zone{border:2px dashed rgba(255,255,255,.15);border-radius:12px;padding:24px;text-align:center;margin-bottom:12px}
+.zone{border:2px dashed rgba(255,255,255,.15);border-radius:12px;padding:30px;text-align:center;cursor:pointer;transition:.3s}
+.zone:hover{border-color:#3b82f6;background:rgba(59,130,246,.05)}
+.zone.ok{border-color:#22c55e;border-style:solid}
+.zone input{display:none}
+.zone .fn{color:#22c55e;font-weight:600;margin-top:6px;font-size:14px}
+textarea{width:100%;min-height:80px;background:rgba(15,23,42,.8);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;color:#e2e8f0;font-size:14px;resize:vertical;font-family:inherit}
+textarea:focus{outline:none;border-color:#3b82f6}
+textarea::placeholder{color:#64748b}
+.exemplos{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.exemplos button{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(15,23,42,.6);color:#94a3b8;font-size:12px;cursor:pointer;transition:.2s}
+.exemplos button:hover{border-color:#3b82f6;color:#60a5fa}
+a.bk{color:#64748b;text-decoration:none;font-size:13px;margin-top:16px;display:inline-block}
+a.bk:hover{color:#94a3b8}
+.alert{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#86efac;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px}
 </style>
 </head>
 <body>
-
 <h1>Personaje IA</h1>
-<p class="subtitle">Generá un video de un personaje hablando con IA</p>
+<p class="sub">Genera un video con la boca sincronizada usando IA</p>
 
-<div class="card">
-  <h2>📸 Foto del personaje</h2>
-  <div class="upload-zone" id="photoZone" onclick="document.getElementById('photoInput').click()">
-    <input type="file" id="photoInput" accept="image/*">
-    <div class="icon">🖼️</div>
-    <div class="label">Arrastrá una foto o hacé click para cargar</div>
-    <div class="filename" id="photoName"></div>
-  </div>
-  <img id="photoPreview" class="preview-img" style="display:none">
-  <p class="info"><strong>Tip:</strong> Foto frontal de rostro, buena iluminación, fondo simple.</p>
+<div class="alert">
+  <b>Paso rapido:</b> Hace click en "Abrir SadTalker" y segui los pasos de abajo.
 </div>
 
 <div class="card">
-  <h2>🔊 Audio / Texto</h2>
-  <div class="upload-zone" id="audioZone" onclick="document.getElementById('audioInput').click()">
-    <input type="file" id="audioInput" accept="audio/*">
-    <div class="icon">🎵</div>
-    <div class="label">Arrastrá un audio o hacé click para cargar</div>
-    <div class="filename" id="audioName"></div>
-  </div>
-  <audio id="audioPreview" class="preview-audio" controls style="display:none"></audio>
-
-  <div style="margin-top: 14px;">
-    <label style="font-size: 13px; color: #94a3b8; display: block; margin-bottom: 6px;">O escribí el texto (usa TTS del navegador):</label>
-    <textarea id="textInput" placeholder="Escribí lo que querés que diga el personaje..."></textarea>
-    <div class="example-audios">
-      <button onclick="setExampleText('Hola, soy el asistente de UrbanFlow. ¿En qué puedo ayudarte hoy?')">Saludo</button>
-      <button onclick="setExampleText('Bienvenido a UrbanFlow, la app de transporte inteligente de Montevideo.')">Intro</button>
-      <button onclick="setExampleText('El próximo colectivo llega en 3 minutos. ¿Querés que te avise?')">Alerta</button>
+  <h2>Pasos</h2>
+  
+  <div class="step">
+    <div class="num">1</div>
+    <div class="step-text">
+      <b>Prepara tu foto</b> — Foto frontal de tu cara, buena iluminacion, fondo simple. Guardala en tu PC.
     </div>
   </div>
-  <p class="info"><strong>Formatos:</strong> MP3, WAV, OGG. Si usás texto, se genera audio automáticamente con la voz del navegador.</p>
+  
+  <div class="step">
+    <div class="num">2</div>
+    <div class="step-text">
+      <b>Prepara tu audio</b> — Graba un audio de 5-10 segundos con la app Grabadora de tu celular o PC. Guardalo como MP3 o WAV.
+    </div>
+  </div>
+  
+  <div class="step">
+    <div class="num">3</div>
+    <div class="step-text">
+      <b>Abrir SadTalker</b> — Hace click en el boton de abajo. Se abre el Space de HuggingFace.
+    </div>
+  </div>
+  
+  <div class="step">
+    <div class="num">4</div>
+    <div class="step-text">
+      <b>Subi tu foto</b> — En "Source image", arrastra o selecciona tu foto.
+    </div>
+  </div>
+  
+  <div class="step">
+    <div class="num">5</div>
+    <div class="step-text">
+      <b>Subi tu audio</b> — En "Input audio", arrastra o selecciona tu audio.
+    </div>
+  </div>
+  
+  <div class="step">
+    <div class="num">6</div>
+    <div class="step-text">
+      <b>Genera</b> — Presiona "Generate". Espera 1-5 minutos. El video aparece abajo. Hace click derecho > "Guardar como" para descargarlo.
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px">
+    <a href="https://kevinwang676-sadtalker.hf.space" target="_blank" class="btn btn-big">
+      Abrir SadTalker en HuggingFace
+    </a>
+    <p class="info"><b>Tip:</b> Usa "crop" en preprocess y marca "GFPGAN" para mejor calidad.</p>
+  </div>
 </div>
 
 <div class="card">
-  <h2>⚙️ Configuración</h2>
-  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-    <label style="flex: 1; min-width: 140px;">
-      <span style="font-size: 12px; color: #94a3b8;">Preprocesado</span>
-      <select id="preprocessSelect" style="width:100%; margin-top:4px; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(15,23,42,0.8); color:#e2e8f0; font-size:13px;">
-        <option value="crop" selected>Crop (recomendado)</option>
-        <option value="resize">Resize</option>
-        <option value="full">Full body</option>
-        <option value="extcrop">Ext Crop</option>
-        <option value="extfull">Ext Full</option>
-      </select>
-    </label>
-    <label style="flex: 1; min-width: 140px;">
-      <span style="font-size: 12px; color: #94a3b8;">Resolución cara</span>
-      <select id="resolutionSelect" style="width:100%; margin-top:4px; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(15,23,42,0.8); color:#e2e8f0; font-size:13px;">
-        <option value="256" selected>256 (rápido)</option>
-        <option value="512">512 (calidad)</option>
-      </select>
-    </label>
+  <h2>Generar audio automatico (opcional)</h2>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:12px">Si no tenes audio grabado, genera uno online y descargalo.</p>
+  <textarea id="txtInput" placeholder="Escribi lo que quieras que diga el personaje..."></textarea>
+  <div class="exemplos">
+    <button onclick="setTxt('Hola, soy el asistente de UrbanFlow. En que puedo ayudarte?')">Saludo</button>
+    <button onclick="setTxt('Bienvenido a UrbanFlow, la app de transporte inteligente.')">Intro</button>
+    <button onclick="setTxt('El proximo colectivo llega en 3 minutos.')">Alerta</button>
   </div>
-  <div style="margin-top: 10px; display: flex; gap: 16px;">
-    <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#94a3b8; cursor:pointer;">
-      <input type="checkbox" id="stillMode"> Still Mode (menos movimiento)
-    </label>
-    <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#94a3b8; cursor:pointer;">
-      <input type="checkbox" id="gfpganEnabled" checked> GFPGAN (mejor cara)
-    </label>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn" style="flex:1" onclick="openTTS('ttsfree')">Generar con TTSFree</button>
+    <button class="btn" style="flex:1;background:linear-gradient(135deg,#22c55e,#16a34a)" onclick="openTTS('eleven')">Generar con ElevenLabs</button>
   </div>
+  <p class="info"><b>TTSFree:</b> Gratis, sin registro. <b>ElevenLabs:</b> 10,000 chars gratis, voz mas natural.</p>
 </div>
-
-<div class="card" style="text-align: center;">
-  <button class="btn-generate" id="btnGenerate" onclick="generateVideo()">
-    Generar Video
-  </button>
-  <div class="status" id="status"></div>
-  <video id="resultVideo" class="result-video" controls></video>
-  <a id="downloadLink" class="back-link" style="display:none" download="personaje_urbanflow.mp4">⬇️ Descargar video</a>
-</div>
-
-<a href="index.html" class="back-link">← Volver al inicio</a>
 
 <script>
-let photoFile = null;
-let audioFile = null;
+function setTxt(t){document.getElementById('txtInput').value=t}
 
-// Photo upload
-const photoInput = document.getElementById('photoInput');
-const photoZone = document.getElementById('photoZone');
-const photoPreview = document.getElementById('photoPreview');
-const photoName = document.getElementById('photoName');
-
-photoInput.addEventListener('change', (e) => {
-  if (e.target.files[0]) handlePhoto(e.target.files[0]);
-});
-
-photoZone.addEventListener('dragover', (e) => { e.preventDefault(); photoZone.classList.add('dragging'); });
-photoZone.addEventListener('dragleave', () => photoZone.classList.remove('dragging'));
-photoZone.addEventListener('drop', (e) => {
-  e.preventDefault(); photoZone.classList.remove('dragging');
-  if (e.dataTransfer.files[0]) handlePhoto(e.dataTransfer.files[0]);
-});
-
-function handlePhoto(file) {
-  photoFile = file;
-  photoName.textContent = file.name;
-  photoZone.classList.add('has-file');
-  photoPreview.src = URL.createObjectURL(file);
-  photoPreview.style.display = 'block';
-}
-
-// Audio upload
-const audioInput = document.getElementById('audioInput');
-const audioZone = document.getElementById('audioZone');
-const audioPreview = document.getElementById('audioPreview');
-const audioName = document.getElementById('audioName');
-
-audioInput.addEventListener('change', (e) => {
-  if (e.target.files[0]) handleAudio(e.target.files[0]);
-});
-
-audioZone.addEventListener('dragover', (e) => { e.preventDefault(); audioZone.classList.add('dragging'); });
-audioZone.addEventListener('dragleave', () => audioZone.classList.remove('dragging'));
-audioZone.addEventListener('drop', (e) => {
-  e.preventDefault(); audioZone.classList.remove('dragging');
-  if (e.dataTransfer.files[0]) handleAudio(e.dataTransfer.files[0]);
-});
-
-function handleAudio(file) {
-  audioFile = file;
-  audioName.textContent = file.name;
-  audioZone.classList.add('has-file');
-  audioPreview.src = URL.createObjectURL(file);
-  audioPreview.style.display = 'block';
-  document.getElementById('textInput').value = '';
-}
-
-function setExampleText(text) {
-  document.getElementById('textInput').value = text;
-  audioFile = null;
-  audioName.textContent = '';
-  audioZone.classList.remove('has-file');
-  audioPreview.style.display = 'none';
-  document.querySelectorAll('.example-audios button').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-}
-
-function setStatus(msg, type) {
-  const s = document.getElementById('status');
-  s.textContent = msg;
-  s.className = 'status ' + (type || '');
-  s.style.display = 'block';
-}
-
-async function fileToBase64(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.readAsDataURL(file);
-  });
-}
-
-async function ttsFromText(text) {
-  return new Promise((resolve) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-UY';
-    utterance.rate = 0.95;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const dest = audioContext.createMediaStreamDestination();
-    const source = audioContext.createMediaStreamSource(dest.stream);
-
-    const chunks = [];
-    const mediaRecorder = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' });
-    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      resolve(new File([blob], 'speech.webm', { type: 'audio/webm' }));
-    };
-
-    utterance.onend = () => { setTimeout(() => mediaRecorder.stop(), 300); };
-    mediaRecorder.start();
-    speechSynthesis.speak(utterance);
-  });
-}
-
-async function generateVideo() {
-  const btn = document.getElementById('btnGenerate');
-  const status = document.getElementById('status');
-  const resultVideo = document.getElementById('resultVideo');
-  const downloadLink = document.getElementById('downloadLink');
-
-  if (!photoFile) { setStatus('Cargá una foto del personaje', 'error'); return; }
-
-  let audioData;
-  if (audioFile) {
-    audioData = audioFile;
-  } else if (document.getElementById('textInput').value.trim()) {
-    setStatus('Generando audio del texto...', '');
-    try {
-      audioData = await ttsFromText(document.getElementById('textInput').value.trim());
-    } catch (e) {
-      setStatus('Error generando audio: ' + e.message, 'error');
-      return;
-    }
-  } else {
-    setStatus('Cargá un audio o escribí un texto', 'error');
-    return;
+function openTTS(service){
+  const text=document.getElementById('txtInput').value.trim();
+  if(!text){alert('Escribi un texto primero');return}
+  if(service==='ttsfree'){
+    window.open('https://ttsfree.com/', '_blank');
+    alert('Copia este texto y pegalo en TTSFree:\n\n'+text+'\n\nDespues descarga el MP3 y subilo a SadTalker.');
+  }else{
+    window.open('https://elevenlabs.io/', '_blank');
+    alert('Copia este texto y pegalo en ElevenLabs:\n\n'+text+'\n\nDespues descarga el MP3 y subilo a SadTalker.');
   }
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Subiendo...';
-  setStatus('Convirtiendo archivos...', '');
-
-  try {
-    const photoB64 = await fileToBase64(photoFile);
-    const audioB64 = await fileToBase64(audioData);
-
-    setStatus('Enviando a SadTalker... (esto puede tardar 1-5 min)', '');
-    btn.textContent = '⏳ Generando...';
-
-    const preprocess = document.getElementById('preprocessSelect').value;
-    const resolution = document.getElementById('resolutionSelect').value;
-    const stillMode = document.getElementById('stillMode').checked;
-    const gfpgan = document.getElementById('gfpganEnabled').checked;
-
-    const response = await fetch('https://kevinwang676-sadtalker.hf.space/call/0', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        data: [
-          `data:image/jpeg;base64,${photoB64}`,
-          { name: audioData.name, data: `data:${audioData.type};base64,${audioB64}` },
-          preprocess,
-          stillMode,
-          gfpgan,
-          2,
-          resolution.toString(),
-          0
-        ]
-      })
-    });
-
-    if (!response.ok) throw new Error('Error del servidor: ' + response.status);
-    const { event_id } = await response.json();
-
-    setStatus(`Procesando... (ID: ${event_id})`, '');
-    btn.textContent = '⏳ Esperando resultado...';
-
-    let videoUrl = null;
-    let attempts = 0;
-    const maxAttempts = 120;
-
-    while (!videoUrl && attempts < maxAttempts) {
-      await new Promise(r => setTimeout(r, 3000));
-      attempts++;
-
-      try {
-        const resultResponse = await fetch(`https://kevinwang676-sadtalker.hf.space/call/0/${event_id}`);
-        const text = await resultResponse.text();
-
-        if (text.includes('"output"')) {
-          const match = text.match(/"output":\s*\{\s*"name":\s*"([^"]+)"/);
-          if (match) {
-            videoUrl = `https://kevinwang676-sadtalker.hf.space/file=${match[1]}`;
-          } else {
-            const match2 = text.match(/"url":\s*"([^"]+\.mp4[^"]*)"/);
-            if (match2) videoUrl = match2[1];
-          }
-        }
-
-        if (text.includes('QUEUE_FULL') || text.includes('FILLED')) {
-          setStatus(`En cola... (${attempts * 3}s)`, '');
-        } else if (text.includes('PENDING') || text.includes('PROCESSING')) {
-          setStatus(`Generando video... (${attempts * 3}s)`, '');
-        }
-      } catch (e) {
-        // ignore poll errors
-      }
-    }
-
-    if (videoUrl) {
-      resultVideo.src = videoUrl;
-      resultVideo.style.display = 'block';
-      downloadLink.href = videoUrl;
-      downloadLink.style.display = 'inline-block';
-      setStatus('¡Video generado!', 'success');
-      btn.textContent = '✅ Listo';
-    } else {
-      setStatus('Tiempo de espera agotado. Intentá de nuevo.', 'error');
-      btn.textContent = 'Generar Video';
-    }
-
-  } catch (e) {
-    setStatus('Error: ' + e.message, 'error');
-    btn.textContent = 'Generar Video';
-  }
-
-  btn.disabled = false;
 }
-
-// Auto-refresh token on page load
-fetch('https://kevinwang676-sadtalker.hf.space/').catch(() => {});
 </script>
+
+<a href="index.html" class="bk">&lt; Volver al inicio</a>
 </body>
 </html>

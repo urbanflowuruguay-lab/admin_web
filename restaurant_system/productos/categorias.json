@@ -1,0 +1,58 @@
+[
+  {
+    "id": "cat_001",
+    "nombre": "Entradas",
+    "icono": "🥗",
+    "orden": 1,
+    "subcategorias": ["Ensaladas", "Empanadas", "Para compartir"],
+    "activo": true
+  },
+  {
+    "id": "cat_002",
+    "nombre": "Parrilla",
+    "icono": "🥩",
+    "orden": 2,
+    "subcategorias": ["Cortes de carne", "Pollo", "Cerdo", "Accompañamientos"],
+    "activo": true
+  },
+  {
+    "id": "cat_003",
+    "nombre": "Pizzas",
+    "icono": "🍕",
+    "orden": 3,
+    "subcategorias": ["Clásicas", "Especiales", "Pizzas de molde"],
+    "activo": true
+  },
+  {
+    "id": "cat_004",
+    "nombre": "Pastas",
+    "icono": "🍝",
+    "orden": 4,
+    "subcategorias": ["Tallarines", "Ñoquis", "Canelones"],
+    "activo": true
+  },
+  {
+    "id": "cat_005",
+    "nombre": "Bebidas",
+    "icono": "🍺",
+    "orden": 5,
+    "subcategorias": ["Gaseosas", "Aguas", "Cervezas", "Vinos", "Licores", "Jugos"],
+    "activo": true
+  },
+  {
+    "id": "cat_006",
+    "nombre": "Postres",
+    "icono": "🍰",
+    "orden": 6,
+    "subcategorias": ["Tortas", "Helados", "Flanes"],
+    "activo": true
+  },
+  {
+    "id": "cat_007",
+    "nombre": "Menú del Día",
+    "icono": "🍽️",
+    "orden": 7,
+    "subcategorias": ["Entrante", "Principal", "Postre", "Bebida"],
+    "activo": true
+  }
+]

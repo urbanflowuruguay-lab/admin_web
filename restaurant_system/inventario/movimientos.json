@@ -1,0 +1,64 @@
+[
+  {
+    "id": "mov_001",
+    "producto_id": "prod_001",
+    "tipo": "entrada",
+    "cantidad": 20,
+    "costo_unitario": 180,
+    "costo_total": 3600,
+    "motivo": "Compra a proveedor",
+    "proveedor_id": "prov_001",
+    "factura_numero": "F-001-123",
+    "responsable": "Carlos López (Dueño)",
+    "fecha": "2026-09-01T10:00:00Z"
+  },
+  {
+    "id": "mov_002",
+    "producto_id": "prod_001",
+    "tipo": "salida",
+    "cantidad": 2,
+    "costo_unitario": 180,
+    "costo_total": 360,
+    "motivo": "Pedido #123",
+    "pedido_id": "ped_123",
+    "responsable": "María García (Cajero)",
+    "fecha": "2026-09-01T12:30:00Z"
+  },
+  {
+    "id": "mov_003",
+    "producto_id": "prod_001",
+    "tipo": "ajuste",
+    "cantidad": -3,
+    "costo_unitario": 180,
+    "costo_total": 540,
+    "motivo": "Producto dañado",
+    "responsable": "Pedro Martínez (Cocinero)",
+    "fecha": "2026-09-01T14:00:00Z"
+  },
+  {
+    "id": "mov_004",
+    "producto_id": "prod_002",
+    "tipo": "entrada",
+    "cantidad": 50,
+    "costo_unitario": 80,
+    "costo_total": 4000,
+    "motivo": "Compra a proveedor",
+    "proveedor_id": "prov_002",
+    "factura_numero": "F-002-456",
+    "responsable": "Carlos López (Dueño)",
+    "fecha": "2026-09-01T09:00:00Z"
+  },
+  {
+    "id": "mov_005",
+    "producto_id": "prod_005",
+    "tipo": "entrada",
+    "cantidad": 100,
+    "costo_unitario": 50,
+    "costo_total": 5000,
+    "motivo": "Compra a proveedor",
+    "proveedor_id": "prov_003",
+    "factura_numero": "F-003-789",
+    "responsable": "Carlos López (Dueño)",
+    "fecha": "2026-09-01T08:00:00Z"
+  }
+]

@@ -6,15 +6,12 @@
     <title>UrbanFlow - Alertas y Zonas de Riesgo</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/auth-check.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/auth-check.js"></script>
 
     <!-- Leaflet Geoman para dibujo premium de zonas -->
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
-<script src="/auth-check.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -72,6 +69,7 @@
         .badge-lomada { background: #58a6ff22; color: #58a6ff; }
         .badge-cruce { background: #ff8c0022; color: #ff8c00; }
         .badge-peaje { background: #c678dd22; color: #c678dd; }
+        .badge-semaforo { background: #2ea04322; color: #2ea043; }
         .badge-accidente { background: #ff443622; color: #ff4436; }
         .badge-autodetenido { background: #e06c7522; color: #e06c75; }
         .badge-transitolento { background: #f39c1222; color: #f39c12; }
@@ -161,10 +159,25 @@
                         <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
                             <input type="checkbox" id="import_peaje" checked> Peajes
                         </label>
+                        <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
+                            <input type="checkbox" id="import_semaforo" checked> Semáforos
+                        </label>
                     </div>
                 </div>
 
                 <button class="btn-action btn-blue" onclick="syncFromOSM()">📥 Descargar y Guardar</button>
+            </div>
+
+            <div class="card">
+                <h3>📋 Importar JSON Manual (cuando Overpass falla)</h3>
+                <p style="font-size: 11px; margin: 0 0 10px; color: #8b949e;">Generá la query, abrí Overpass en otra pestañá, pegá la query, copiá el JSON y pegalo acá abajo.</p>
+                <button class="btn-action btn-blue" onclick="generateOverpassQuery()" style="margin-bottom:8px;">🔗 Generar Link Overpass</button>
+                <div id="overpassLinkBox" style="display:none; margin-bottom:10px;">
+                    <a id="overpassLink" href="#" target="_blank" style="color:#58a6ff; font-size:12px; word-break:break-all;"></a>
+                    <button onclick="copyOverpassQuery()" style="margin-left:8px; padding:4px 10px; background:#30363d; color:#c9d1d9; border:1px solid #484f58; border-radius:4px; cursor:pointer; font-size:11px;">📋 Copiar Query</button>
+                </div>
+                <textarea id="manualJsonInput" rows="6" placeholder='Pegá acá el JSON de Overpass (out:json)...' style="width:100%; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; resize:vertical;"></textarea>
+                <button class="btn-action btn-green" onclick="importManualJson()" style="margin-top:8px;">✅ Importar JSON</button>
             </div>
 
             <div class="card">
@@ -222,13 +235,6 @@
             </div>
 
             <div class="card">
-                <h3>🚦 Semáforos (para detección radar + semáforo)</h3>
-                <p style="font-size: 11px; color: #8b949e; margin: 0;">Descarga semáforos de OSM. Se usa para saber si un radar está cerca de un semáforo y decir "radar de velocidad y semáforo".</p>
-                <button class="btn-action btn-blue" onclick="syncTrafficSignals()">🚦 Descargar Semáforos</button>
-                <button class="btn-action btn-danger" onclick="deleteTrafficSignals()" style="margin-top: 8px;">🗑️ Borrar Semáforos del Departamento</button>
-            </div>
-
-            <div class="card">
                 <h3>📍 Agregar Alerta de Tránsito</h3>
                 <div class="form-group">
                     <label>Tipo de Alerta</label>
@@ -239,6 +245,7 @@
                         <option value="radar">📸 Radar de Velocidad</option>
                         <option value="cruce_tren">🚂 Cruce de Tren</option>
                         <option value="peaje">🪙 Peaje / Telepeaje</option>
+                        <option value="semaforo">🚦 Semáforo</option>
                     </select>
                 </div>
                 <button class="btn-manual" id="btnManualAlertMode" onclick="toggleManualAlertMode()">
@@ -350,6 +357,9 @@
             </label>
             <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:#c678dd; cursor:pointer;">
                 <input type="checkbox" class="type-filter" value="peaje" checked onchange="filterMap()"> 🪙 Peajes
+            </label>
+            <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:#2ea043; cursor:pointer;">
+                <input type="checkbox" class="type-filter" value="semaforo" checked onchange="filterMap()"> 🚦 Semáforos
             </label>
             <div style="width:1px; background:#30363d; height:18px;"></div>
             <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:#da3637; font-weight:bold; cursor:pointer;">
@@ -490,6 +500,7 @@
                 case 'lomada': return '#58a6ff';
                 case 'cruce_tren': return '#ff8c00';
                 case 'peaje': return '#c678dd';
+                case 'semaforo': return '#2ea043';
                 default: return '#ffffff';
             }
         }
@@ -523,7 +534,7 @@
             const country = document.getElementById('importCountry').value;
             
             showLoading("Guardando alerta...");
-            const { error } = await sb.from('eventos').insert({
+            const { error } = await sb.from('road_alerts').insert({
                 lat: selectedAlertLatLng.lat,
                 lon: selectedAlertLatLng.lng,
                 type: type,
@@ -751,8 +762,9 @@
             const importCeda = document.getElementById('import_ceda').checked;
             const importCruce = document.getElementById('import_cruce').checked;
             const importPeaje = document.getElementById('import_peaje').checked;
+            const importSemaforo = document.getElementById('import_semaforo').checked;
 
-            if (!importLomada && !importRadar && !importPare && !importCeda && !importCruce && !importPeaje) {
+            if (!importLomada && !importRadar && !importPare && !importCeda && !importCruce && !importPeaje && !importSemaforo) {
                 alert("Seleccioná al menos un tipo.");
                 return;
             }
@@ -766,7 +778,21 @@
                     return;
                 }
                 const bounds = map.getBounds();
-                grids = [{ minLat: bounds.getSouthWest().lat, minLon: bounds.getSouthWest().lng, maxLat: bounds.getNorthEast().lat, maxLon: bounds.getNorthEast().lng }];
+                const sw = bounds.getSouthWest();
+                const ne = bounds.getNorthEast();
+                const MAX_SIZE = 0.05;
+                const latSteps = Math.ceil((ne.lat - sw.lat) / MAX_SIZE);
+                const lonSteps = Math.ceil((ne.lng - sw.lng) / MAX_SIZE);
+                for (let i = 0; i < latSteps; i++) {
+                    for (let j = 0; j < lonSteps; j++) {
+                        grids.push({
+                            minLat: sw.lat + i * MAX_SIZE,
+                            minLon: sw.lng + j * MAX_SIZE,
+                            maxLat: Math.min(sw.lat + (i + 1) * MAX_SIZE, ne.lat),
+                            maxLon: Math.min(sw.lng + (j + 1) * MAX_SIZE, ne.lng)
+                        });
+                    }
+                }
             }
 
             if (!confirm(`¿Importar datos de OSM para "${country}"?\nSe harán ${grids.length} peticiones.`)) return;
@@ -784,14 +810,26 @@
                 if (importLomada) { q += `node["barrier"="speed_bump"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["highway"="speed_bump"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["traffic_calming"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; }
                 if (importCruce) q += `node["railway"="level_crossing"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
                 if (importPeaje) { q += `node["barrier"="toll_booth"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["highway"="toll_booth"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; }
+                if (importSemaforo) { q += `node["highway"="traffic_signals"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; }
 
-                const query = `[out:json][timeout:30];\n(\n${q}\n);\nout body;`;
-                for (let url of endpoints) {
-                    try {
-                        const resp = await fetch(`${url}?data=${encodeURIComponent(query)}`);
-                        if (resp.ok) { const data = await resp.json(); if (data.elements) allElements.push(...data.elements); break; }
-                    } catch (e) {}
+                const query = `[out:json][timeout:90];\n(\n${q}\n);\nout body;`;
+                let success = false;
+                for (let attempt = 0; attempt < 5 && !success; attempt++) {
+                    if (attempt > 0) { showLoading(`[${idx + 1}/${grids.length}] Reintentando (${attempt + 1}/5)...`); await new Promise(r => setTimeout(r, 10000)); }
+                    for (let url of endpoints) {
+                        try {
+                            const resp = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                body: 'data=' + encodeURIComponent(query)
+                            });
+                            if (resp.ok) { const data = await resp.json(); if (data.elements) allElements.push(...data.elements); success = true; break; }
+                            else console.warn(`[${idx+1}] ${url.split('/')[2]}: ${resp.status}`);
+                        } catch (e) { console.warn(`[${idx+1}] ${url.split('/')[2]}: ${e.message}`); }
+                    }
                 }
+                if (!success) console.warn(`Grid ${idx + 1} failed after 5 attempts`);
+                if (idx < grids.length - 1) await new Promise(r => setTimeout(r, 5000));
             }
 
             if (allElements.length === 0) { hideLoading(); alert("No se encontraron datos."); return; }
@@ -809,6 +847,7 @@
                 else if (tags.barrier === "speed_bump" || tags.highway === "speed_bump" || tags.traffic_calming) type = "lomada";
                 else if (tags.railway === "level_crossing") type = "cruce_tren";
                 else if (tags.barrier === "toll_booth" || tags.highway === "toll_booth" || tags.barrier === "toll_gantry") type = "peaje";
+                else if (tags.highway === "traffic_signals") type = "semaforo";
                 if (type && !seen.has(el.id)) { seen.add(el.id); alerts.push({ type, lat: el.lat, lon: el.lon, category: 'fijo', source: 'osm', status: 'active', country }); }
             });
 
@@ -816,8 +855,9 @@
             const chunk = 100;
             let ok = 0;
             for (let i = 0; i < alerts.length; i += chunk) {
-                const { error } = await sb.from('eventos').upsert(alerts.slice(i, i + chunk));
-                if (!error) ok += Math.min(chunk, alerts.length - i);
+                const { data, error } = await sb.from('road_alerts').upsert(alerts.slice(i, i + chunk));
+                if (error) { console.error('Upsert error:', error, 'Chunk sample:', alerts[i]); }
+                else ok += Math.min(chunk, alerts.length - i);
             }
             hideLoading();
             alert(`¡Listo! ${ok} eventos guardados.`);
@@ -1080,93 +1120,6 @@
             switchTab('tab-alertas');
         }
 
-        async function syncTrafficSignals() {
-            const country = document.getElementById('speedLimitCountry').value;
-            const divisionKey = document.getElementById('speedLimitDivision').value;
-            if (!divisionKey) { alert("Seleccioná un departamento."); return; }
-
-            const countryDivs = DIVISIONS[country] || {};
-            let grids = [];
-
-            if (divisionKey === '__ALL__') {
-                for (const [key, div] of Object.entries(countryDivs)) {
-                    grids.push({ minLat: div.lat[0], minLon: div.lon[0], maxLat: div.lat[1], maxLon: div.lon[1], department: key });
-                }
-            } else {
-                const div = countryDivs[divisionKey];
-                if (!div) { alert("Departamento no encontrado."); return; }
-                grids.push({ minLat: div.lat[0], minLon: div.lon[0], maxLat: div.lat[1], maxLon: div.lon[1], department: divisionKey });
-            }
-
-            const label = divisionKey === '__ALL__' ? 'todos los departamentos' : countryDivs[divisionKey]?.name || divisionKey;
-            if (!confirm(`¿Descargar semáforos para "${label}"?\nSe harán ${grids.length} peticiones a OSM.`)) return;
-
-            const statusEl = document.getElementById('speedLimitStatus');
-            statusEl.textContent = 'Conectando con OSM para semáforos...';
-            statusEl.style.color = '#f39c12';
-
-            const endpoints = ["https://overpass-api.de/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
-            const allSignals = [];
-
-            for (let idx = 0; idx < grids.length; idx++) {
-                const g = grids[idx];
-                const deptLabel = countryDivs[g.department]?.name || g.department;
-                statusEl.textContent = `[${idx + 1}/${grids.length}] Descargando semáforos de ${deptLabel}...`;
-
-                const query = `[out:json][timeout:30];(node["highway"="traffic_signals"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon}););out body;`;
-                let downloaded = false;
-                for (let url of endpoints) {
-                    try {
-                        const resp = await fetch(`${url}?data=${encodeURIComponent(query)}`);
-                        if (resp.ok) {
-                            const data = await resp.json();
-                            if (data.elements) {
-                                data.elements.forEach(el => {
-                                    if (el.lat && el.lon) {
-                                        allSignals.push({ lat: el.lat, lon: el.lon, country, department: g.department || divisionKey });
-                                    }
-                                });
-                            }
-                            downloaded = true;
-                            break;
-                        }
-                    } catch (e) {}
-                }
-                if (!downloaded) { statusEl.textContent = `Error en grid ${idx + 1}. Reintentando...`; }
-            }
-
-            if (allSignals.length === 0) { hideLoading(); statusEl.textContent = 'No se encontraron semáforos.'; statusEl.style.color = '#da3637'; return; }
-
-            statusEl.textContent = `Guardando ${allSignals.length} semáforos...`;
-            const chunk = 500;
-            let ok = 0;
-            for (let i = 0; i < allSignals.length; i += chunk) {
-                const { error } = await sb.from('traffic_signals').upsert(allSignals.slice(i, i + chunk), { onConflict: 'lat,lon,country,department' });
-                if (error) { statusEl.textContent = `Error: ${error.message}`; statusEl.style.color = '#da3637'; return; }
-                ok += Math.min(chunk, allSignals.length - i);
-            }
-            statusEl.innerHTML = `✅ <b>${ok} semáforos</b> guardados para ${label} (${country})`;
-            statusEl.style.color = '#2ecc71';
-        }
-
-        async function deleteTrafficSignals() {
-            const country = document.getElementById('speedLimitCountry').value;
-            const divisionKey = document.getElementById('speedLimitDivision').value;
-            if (!divisionKey || divisionKey === '__ALL__') { alert("Seleccioná un departamento específico para borrar."); return; }
-
-            const label = DIVISIONS[country]?.[divisionKey]?.name || divisionKey;
-            if (!confirm(`¿Borrar TODOS los semáforos de "${label}" (${country})?\nEsto no se puede deshacer.`)) return;
-
-            const statusEl = document.getElementById('speedLimitStatus');
-            statusEl.textContent = 'Borrando semáforos...';
-            statusEl.style.color = '#da3637';
-
-            const { error } = await sb.from('traffic_signals').delete().eq('country', country).eq('department', divisionKey);
-            if (error) { statusEl.textContent = `Error: ${error.message}`; return; }
-            statusEl.innerHTML = `✅ Semáforos de "${label}" eliminados.`;
-            statusEl.style.color = '#2ecc71';
-        }
-
         // 4. Cargar datos e inicializar en mapa
         let allAlerts = [];
         let allZonas = [];
@@ -1248,7 +1201,7 @@
             let start = 0;
             const limit = 1000;
             while(true) {
-                const { data: chunk, error } = await sb.from('eventos')
+                const { data: chunk, error } = await sb.from('road_alerts')
                     .select('*')
                     .order('created_at', { ascending: false })
                     .range(start, start + limit - 1);
@@ -1286,7 +1239,7 @@
         function getAlertIconName(type) {
             const map = {
                 pare: 'pare', ceda: 'cedaelpaso', radar: 'radar',
-                lomada: 'lomada', cruce_tren: 'viaferrea', peaje: 'peaje',
+                lomada: 'lomada', cruce_tren: 'viaferrea', peaje: 'peaje', semaforo: 'semaforo',
                 accidente: 'accidente', autodetenido: 'autodetenido',
                 transitolento: 'transitolento', controlpolicial: 'controlpolicial',
                 controlmunicipal: 'controlmunicipal', obrasenlavia: 'obrasenlavia',
@@ -1299,7 +1252,7 @@
         function getAlertIcon(type) {
             const name = getAlertIconName(type);
             return L.icon({
-                iconUrl: name + '.png',
+                iconUrl: '../' + name + '.png',
                 iconSize: [32, 32],
                 iconAnchor: [16, 16],
                 popupAnchor: [0, -16]
@@ -1470,7 +1423,7 @@
             if (!confirm("¿Deseas eliminar esta alerta definitivamente?")) return;
 
             showLoading("Eliminando alerta...");
-            const { error } = await sb.from('eventos').delete().eq('id', id);
+            const { error } = await sb.from('road_alerts').delete().eq('id', id);
             hideLoading();
 
             if (error) {
@@ -1499,7 +1452,95 @@
         // Inicializar datos
         loadData();
         updateSpeedLimitDivisions();
+
+        function generateOverpassQuery() {
+            const country = document.getElementById('importCountry').value;
+            let q = "";
+            if (document.getElementById('import_pare').checked) q += `node["highway"="stop"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
+            if (document.getElementById('import_ceda').checked) q += `node["highway"="give_way"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
+            if (document.getElementById('import_radar').checked) q += `node["highway"="speed_camera"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
+            if (document.getElementById('import_lomada').checked) { q += `node["barrier"="speed_bump"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["highway"="speed_bump"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["traffic_calming"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; }
+            if (document.getElementById('import_cruce').checked) q += `node["railway"="level_crossing"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
+            if (document.getElementById('import_peaje').checked) { q += `node["barrier"="toll_booth"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["highway"="toll_booth"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; }
+            if (document.getElementById('import_semaforo').checked) q += `node["highway"="traffic_signals"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
+
+            const scope = document.getElementById('importScope').value;
+            let bounds;
+            if (scope === 'country') {
+                const grids = getCountryGrid(country);
+                bounds = grids[0];
+                for (let i = 1; i < grids.length; i++) {
+                    bounds = { minLat: Math.min(bounds.minLat, grids[i].minLat), minLon: Math.min(bounds.minLon, grids[i].minLon), maxLat: Math.max(bounds.maxLat, grids[i].maxLat), maxLon: Math.max(bounds.maxLon, grids[i].maxLon) };
+                }
+            } else {
+                const b = map.getBounds();
+                bounds = { minLat: b.getSouthWest().lat, minLon: b.getSouthWest().lng, maxLat: b.getNorthEast().lat, maxLon: b.getNorthEast().lng };
+            }
+
+            q = "";
+            if (document.getElementById('import_pare').checked) q += `node["highway"="stop"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`;
+            if (document.getElementById('import_ceda').checked) q += `node["highway"="give_way"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`;
+            if (document.getElementById('import_radar').checked) q += `node["highway"="speed_camera"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`;
+            if (document.getElementById('import_lomada').checked) { q += `node["barrier"="speed_bump"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`; q += `node["highway"="speed_bump"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`; q += `node["traffic_calming"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`; }
+            if (document.getElementById('import_cruce').checked) q += `node["railway"="level_crossing"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`;
+            if (document.getElementById('import_peaje').checked) { q += `node["barrier"="toll_booth"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`; q += `node["highway"="toll_booth"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`; }
+            if (document.getElementById('import_semaforo').checked) q += `node["highway"="traffic_signals"](${bounds.minLat},${bounds.minLon},${bounds.maxLat},${bounds.maxLon});\n`;
+
+            const query = `[out:json][timeout:90];\n(\n${q}\n);\nout body;`;
+            const encoded = encodeURIComponent(query);
+            const url = `https://overpass-api.de/api/interpreter?data=${encoded}`;
+
+            document.getElementById('overpassLink').href = url;
+            document.getElementById('overpassLink').textContent = url;
+            document.getElementById('overpassLinkBox').style.display = 'block';
+            window._overpassQuery = query;
+        }
+
+        function copyOverpassQuery() {
+            navigator.clipboard.writeText(window._overpassQuery || '').then(() => alert('Query copiada!'));
+        }
+
+        function importManualJson() {
+            const raw = document.getElementById('manualJsonInput').value.trim();
+            if (!raw) { alert("Pegá el JSON primero."); return; }
+            let data;
+            try { data = JSON.parse(raw); } catch(e) { alert("JSON inválido: " + e.message); return; }
+            if (!data.elements || !Array.isArray(data.elements)) { alert("El JSON no tiene 'elements'."); return; }
+
+            const country = document.getElementById('importCountry').value;
+            const seen = new Set();
+            const alerts = [];
+            data.elements.forEach(el => {
+                if (!el.lat || !el.lon) return;
+                const tags = el.tags || {};
+                let type = null;
+                if (tags.highway === "stop") type = "pare";
+                else if (tags.highway === "give_way") type = "ceda";
+                else if (tags.highway === "speed_camera" || tags.enforcement) type = "radar";
+                else if (tags.barrier === "speed_bump" || tags.highway === "speed_bump" || tags.traffic_calming) type = "lomada";
+                else if (tags.railway === "level_crossing") type = "cruce_tren";
+                else if (tags.barrier === "toll_booth" || tags.highway === "toll_booth" || tags.barrier === "toll_gantry") type = "peaje";
+                else if (tags.highway === "traffic_signals") type = "semaforo";
+                if (type && !seen.has(el.id)) { seen.add(el.id); alerts.push({ type, lat: el.lat, lon: el.lon, category: 'fijo', source: 'osm', status: 'active', country }); }
+            });
+
+            if (alerts.length === 0) { alert("No se encontraron eventos válidos en el JSON."); return; }
+            if (!confirm(`Importar ${alerts.length} eventos a road_alerts?`)) return;
+
+            showLoading(`Guardando ${alerts.length} eventos...`);
+            const chunk = 100;
+            let ok = 0;
+            (async () => {
+                for (let i = 0; i < alerts.length; i += chunk) {
+                    const { data, error } = await sb.from('road_alerts').upsert(alerts.slice(i, i + chunk));
+                    if (error) { console.error('Upsert error:', error); } else { ok += Math.min(chunk, alerts.length - i); }
+                }
+                hideLoading();
+                alert(`¡Listo! ${ok} eventos guardados.`);
+                loadData();
+                switchTab('tab-listado');
+            })();
+        }
     </script>
-<script src="/auth-check.js"></script>
 </body>
 </html>

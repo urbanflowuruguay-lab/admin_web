@@ -130,12 +130,29 @@
 
         /* Custom Leaflet toolbar */
         .leaflet-pm-toolbar .leaflet-pm-icon-polygon { background: #58a6ff !important; }
+        
+        .tab-buttons { display: flex; gap: 4px; }
+        .tab-btn {
+            background: #21262d;
+            color: #8b949e;
+            border: 1px solid #30363d;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tab-btn.active { background: #58a6ff22; color: #58a6ff; border-color: #58a6ff; }
+        .tab-btn:hover:not(.active) { background: #30363d; }
+        
+        .sidebar-section { display: none; }
+        .sidebar-section.active { display: block; }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <h1>🗺️ Editor de Fronteras de Departamentos</h1>
+    <h1>🗺️ Editor de Fronteras y Barrios</h1>
     <select id="countrySelect">
         <option value="UY">🇺🇾 Uruguay</option>
         <option value="AR">🇦🇷 Argentina</option>
@@ -143,6 +160,10 @@
         <option value="BR">🇧🇷 Brasil</option>
         <option value="PY">🇵🇾 Paraguay</option>
     </select>
+    <div class="tab-buttons">
+        <button class="tab-btn active" id="tabDepts" onclick="switchTab('depts')">Departamentos</button>
+        <button class="tab-btn" id="tabBarrios" onclick="switchTab('barrios')">Barrios</button>
+    </div>
     <button onclick="toggleSidebar()">📋 Lista</button>
     <button class="save" onclick="saveAll()">💾 Guardar Todo</button>
 </div>
@@ -150,13 +171,20 @@
 <div id="map"></div>
 
 <div class="sidebar-list" id="sidebarList" style="display:none;">
-    <h3>Departamentos guardados</h3>
-    <div id="deptList"></div>
+    <div class="sidebar-section active" id="sidebarDepts">
+        <h3>Departamentos guardados</h3>
+        <div id="deptList"></div>
+    </div>
+    <div class="sidebar-section" id="sidebarBarrios">
+        <h3>Barrios guardados</h3>
+        <div id="barrioList"></div>
+    </div>
 </div>
 
 <div class="status-bar">
     <div>Pais: <span id="statusCountry">UY</span></div>
     <div>Departamentos: <span id="statusCount">0</span></div>
+    <div>Barrios: <span id="statusCountBarrios">0</span></div>
     <div id="statusMsg">Listo para dibujar</div>
 </div>
 
@@ -181,6 +209,21 @@
     </div>
 </div>
 
+<!-- Modal para nombre del barrio -->
+<div class="modal-overlay" id="modalBarrio">
+    <div class="modal">
+        <h2>Nombre del Barrio</h2>
+        <label>Departamento</label>
+        <input type="text" id="modalBarrioDept" placeholder="Ej: Montevideo" />
+        <label>Nombre del barrio</label>
+        <input type="text" id="modalBarrioName" placeholder="Ej: Ciudad Vieja" />
+        <div class="btn-row">
+            <button class="btn-cancel" onclick="closeBarrioModal()">Cancelar</button>
+            <button class="btn-save" onclick="confirmBarrio()">Guardar</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.16.0/dist/leaflet-geoman.min.js"></script>
 <script>
@@ -189,8 +232,11 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const COLORS = ['#58a6ff','#f0883e','#3fb950','#d2a8ff','#f778ba','#79c0ff','#ffa657','#7ee787','#ff7b72','#d29922'];
 let colorIndex = 0;
-let savedPolygons = []; // {id, country, department, geometry, layer}
+let savedPolygons = []; // depts
+let savedBarrios = []; // barrios
 let pendingPolygon = null;
+let pendingBarrio = null;
+let currentTab = 'depts';
 
 // Map
 const map = L.map('map', {
@@ -223,14 +269,22 @@ map.pm.addControls({
 // When a polygon is created
 map.on('pm:create', (e) => {
     const layer = e.layer;
-    pendingPolygon = layer;
-    document.getElementById('modalCountry').value = document.getElementById('countrySelect').value;
-    document.getElementById('modalDeptName').value = '';
-    document.getElementById('modalName').classList.add('active');
-    document.getElementById('modalDeptName').focus();
+    if (currentTab === 'depts') {
+        pendingPolygon = layer;
+        document.getElementById('modalCountry').value = document.getElementById('countrySelect').value;
+        document.getElementById('modalDeptName').value = '';
+        document.getElementById('modalName').classList.add('active');
+        document.getElementById('modalDeptName').focus();
+    } else {
+        pendingBarrio = layer;
+        document.getElementById('modalBarrioDept').value = '';
+        document.getElementById('modalBarrioName').value = '';
+        document.getElementById('modalBarrio').classList.add('active');
+        document.getElementById('modalBarrioDept').focus();
+    }
 });
 
-// Confirm polygon save
+// Confirm department polygon
 function confirmPolygon() {
     const deptName = document.getElementById('modalDeptName').value.trim();
     const country = document.getElementById('modalCountry').value;
@@ -242,14 +296,13 @@ function confirmPolygon() {
     pendingPolygon.setStyle({ color: color, fillColor: color, fillOpacity: 0.2, weight: 2 });
     
     const geojson = pendingPolygon.toGeoJSON();
-    const entry = {
+    savedPolygons.push({
         id: null,
         country: country,
         department: deptName,
         geometry: geojson.geometry,
         layer: pendingPolygon
-    };
-    savedPolygons.push(entry);
+    });
     
     pendingPolygon.bindPopup(`<b>${deptName}</b><br>${country}`);
     pendingPolygon = null;
@@ -264,13 +317,55 @@ function closeModal() {
     pendingPolygon = null;
 }
 
+// Confirm barrio
+function confirmBarrio() {
+    const dept = document.getElementById('modalBarrioDept').value.trim();
+    const name = document.getElementById('modalBarrioName').value.trim();
+    if (!dept) { alert('Ingresá el departamento'); return; }
+    if (!name) { alert('Ingresá el nombre del barrio'); return; }
+    
+    const color = COLORS[colorIndex % COLORS.length];
+    colorIndex++;
+    
+    pendingBarrio.setStyle({ color: color, fillColor: color, fillOpacity: 0.25, weight: 2 });
+    
+    const geojson = pendingBarrio.toGeoJSON();
+    const center = pendingBarrio.getBounds().getCenter();
+    savedBarrios.push({
+        id: null,
+        name: name,
+        department: dept,
+        country: document.getElementById('countrySelect').value,
+        geometry: geojson.geometry,
+        center_lat: center.lat,
+        center_lng: center.lng,
+        layer: pendingBarrio
+    });
+    
+    pendingBarrio.bindPopup(`<b>${name}</b><br>${dept}`);
+    pendingBarrio = null;
+    
+    closeBarrioModal();
+    refreshBarrioList();
+    document.getElementById('statusMsg').textContent = `"${name}" agregado (sin guardar aún)`;
+}
+
+function closeBarrioModal() {
+    document.getElementById('modalBarrio').classList.remove('active');
+    pendingBarrio = null;
+}
+
 // Enter to confirm
 document.getElementById('modalDeptName').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') confirmPolygon();
     if (e.key === 'Escape') closeModal();
 });
+document.getElementById('modalBarrioName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmBarrio();
+    if (e.key === 'Escape') closeBarrioModal();
+});
 
-// Refresh sidebar list
+// Refresh department sidebar list
 function refreshList() {
     const list = document.getElementById('deptList');
     document.getElementById('statusCount').textContent = savedPolygons.length;
@@ -287,11 +382,30 @@ function refreshList() {
     `).join('');
 }
 
+// Refresh barrio sidebar list
+function refreshBarrioList() {
+    const list = document.getElementById('barrioList');
+    document.getElementById('statusCountBarrios').textContent = savedBarrios.length;
+    
+    list.innerHTML = savedBarrios.map((p, i) => `
+        <div class="dept-item" onclick="focusBarrio(${i})">
+            <div>
+                <div class="name" style="color:${COLORS[i % COLORS.length]}">${p.name}</div>
+                <div class="country">${p.department}</div>
+            </div>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteBarrio(${i})">✕</button>
+        </div>
+    `).join('');
+}
+
 function focusPolygon(index) {
     const p = savedPolygons[index];
-    if (p.layer) {
-        map.fitBounds(p.layer.getBounds(), { padding: [50, 50] });
-    }
+    if (p.layer) map.fitBounds(p.layer.getBounds(), { padding: [50, 50] });
+}
+
+function focusBarrio(index) {
+    const p = savedBarrios[index];
+    if (p.layer) map.fitBounds(p.layer.getBounds(), { padding: [50, 50] });
 }
 
 function deletePolygon(index) {
@@ -302,18 +416,41 @@ function deletePolygon(index) {
     document.getElementById('statusMsg').textContent = 'Departamento eliminado';
 }
 
+function deleteBarrio(index) {
+    const p = savedBarrios[index];
+    if (p.layer) map.removeLayer(p.layer);
+    savedBarrios.splice(index, 1);
+    refreshBarrioList();
+    document.getElementById('statusMsg').textContent = 'Barrio eliminado';
+}
+
 function toggleSidebar() {
     const sb = document.getElementById('sidebarList');
     sb.style.display = sb.style.display === 'none' ? 'block' : 'none';
 }
 
+// Tab switching
+function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabDepts').classList.toggle('active', tab === 'depts');
+    document.getElementById('tabBarrios').classList.toggle('active', tab === 'barrios');
+    document.getElementById('sidebarDepts').classList.toggle('active', tab === 'depts');
+    document.getElementById('sidebarBarrios').classList.toggle('active', tab === 'barrios');
+    
+    if (tab === 'barrios' && savedBarrios.length === 0) {
+        refreshBarrioList();
+    }
+}
+
 // Save all to Supabase
 async function saveAll() {
     document.getElementById('statusMsg').textContent = 'Guardando...';
+    const country = document.getElementById('countrySelect').value;
+    let barrioError = '';
     
     try {
-        // Delete all existing
-        await fetch(`${SUPABASE_URL}/rest/v1/department_boundaries?country=eq.${document.getElementById('countrySelect').value}`, {
+        // Save departments
+        await fetch(`${SUPABASE_URL}/rest/v1/department_boundaries?country=eq.${country}`, {
             method: 'DELETE',
             headers: {
                 'apikey': SUPABASE_KEY,
@@ -322,14 +459,13 @@ async function saveAll() {
             }
         });
         
-        // Insert all
-        const rows = savedPolygons.map(p => ({
+        const deptRows = savedPolygons.map(p => ({
             country: p.country,
             department: p.department,
             geometry: p.geometry
         }));
         
-        if (rows.length > 0) {
+        if (deptRows.length > 0) {
             const resp = await fetch(`${SUPABASE_URL}/rest/v1/department_boundaries`, {
                 method: 'POST',
                 headers: {
@@ -338,38 +474,66 @@ async function saveAll() {
                     'Content-Type': 'application/json',
                     'Prefer': 'return=minimal'
                 },
-                body: JSON.stringify(rows)
+                body: JSON.stringify(deptRows)
             });
-            if (!resp.ok) throw new Error(await resp.text());
+            if (!resp.ok) throw new Error('Departments: ' + await resp.text());
         }
         
-        document.getElementById('statusMsg').textContent = `✅ ${rows.length} departamento(s) guardado(s)`;
+        // Save barrios (skip if table doesn't exist)
+        const barrioRows = savedBarrios.map(p => ({
+            name: p.name,
+            department: p.department,
+            country: p.country,
+            geometry: p.geometry,
+            center_lat: p.center_lat,
+            center_lng: p.center_lng
+        }));
+        if (barrioRows.length > 0) {
+            try {
+                const delResp = await fetch(`${SUPABASE_URL}/rest/v1/neighborhoods?country=eq.${country}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!delResp.ok) throw new Error('Delete barrios failed');
+                
+                const resp = await fetch(`${SUPABASE_URL}/rest/v1/neighborhoods`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(barrioRows)
+                });
+                if (!resp.ok) throw new Error('Barrios: ' + await resp.text());
+            } catch (e) {
+                barrioError = '⚠️ Barrios no guardados (creá la tabla neighborhoods en Supabase). ';
+            }
+        }
+        
+        document.getElementById('statusMsg').textContent = `${barrioError}✅ Guardado: ${deptRows.length} depto(s), ${barrioRows.length} barrio(s)`;
     } catch (e) {
         document.getElementById('statusMsg').textContent = `❌ Error: ${e.message}`;
         console.error(e);
     }
 }
 
-// Load existing from Supabase
+// Load existing departments from Supabase
 async function loadExisting() {
     const country = document.getElementById('countrySelect').value;
     document.getElementById('statusMsg').textContent = `Cargando ${country}...`;
-    console.log('loadExisting called, country:', country);
     
     try {
-        const url = `${SUPABASE_URL}/rest/v1/department_boundaries?country=eq.${country}&select=*`;
-        console.log('Fetching:', url);
-        const resp = await fetch(url, {
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
+        const resp = await fetch(`${SUPABASE_URL}/rest/v1/department_boundaries?country=eq.${country}&select=*`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
-        console.log('Response status:', resp.status);
         const data = await resp.json();
-        console.log('Data received:', data.length, 'rows');
         
-        // Clear current
         savedPolygons.forEach(p => { if (p.layer) map.removeLayer(p.layer); });
         savedPolygons = [];
         colorIndex = 0;
@@ -383,11 +547,8 @@ async function loadExisting() {
             layer.bindPopup(`<b>${row.department}</b><br>${row.country}`);
             
             savedPolygons.push({
-                id: row.id,
-                country: row.country,
-                department: row.department,
-                geometry: row.geometry,
-                layer: layer
+                id: row.id, country: row.country, department: row.department,
+                geometry: row.geometry, layer: layer
             });
         });
         
@@ -397,10 +558,58 @@ async function loadExisting() {
         }
         
         refreshList();
-        document.getElementById('statusMsg').textContent = `✅ ${data.length} departamento(s) cargado(s)`;
+        
+        // Also load barrios
+        await loadBarrios(country);
+        
+        document.getElementById('statusMsg').textContent = `✅ ${data.length} depto(s) cargado(s)`;
     } catch (e) {
         document.getElementById('statusMsg').textContent = `❌ Error: ${e.message}`;
         console.error(e);
+    }
+}
+
+// Load barrios from Supabase
+async function loadBarrios(country) {
+    try {
+        const resp = await fetch(`${SUPABASE_URL}/rest/v1/neighborhoods?country=eq.${country}&select=*`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (!resp.ok) {
+            console.warn('neighborhoods table not found (404). Create it in Supabase SQL Editor.');
+            refreshBarrioList();
+            return;
+        }
+        const data = await resp.json();
+        if (!Array.isArray(data)) {
+            console.warn('neighborhoods: unexpected response', data);
+            refreshBarrioList();
+            return;
+        }
+        
+        savedBarrios.forEach(p => { if (p.layer) map.removeLayer(p.layer); });
+        savedBarrios = [];
+        
+        data.forEach(row => {
+            const color = COLORS[colorIndex % COLORS.length];
+            colorIndex++;
+            const layer = L.geoJSON(row.geometry, {
+                style: { color: color, fillColor: color, fillOpacity: 0.25, weight: 2 }
+            }).addTo(map);
+            layer.bindPopup(`<b>${row.name}</b><br>${row.department}`);
+            
+            savedBarrios.push({
+                id: row.id, name: row.name, department: row.department,
+                country: row.country, geometry: row.geometry,
+                center_lat: row.center_lat, center_lng: row.center_lng,
+                layer: layer
+            });
+        });
+        
+        refreshBarrioList();
+    } catch (e) {
+        console.warn('Error loading barrios:', e.message);
+        refreshBarrioList();
     }
 }
 
@@ -410,6 +619,5 @@ document.getElementById('countrySelect').addEventListener('change', loadExisting
 // Load on start
 loadExisting();
 </script>
-<script src="/auth-check.js"></script>
 </body>
 </html>

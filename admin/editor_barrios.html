@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Barrios</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.16.0/dist/leaflet-geoman.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1117; color: #c9d1d9; }
+        #map { width: 100%; height: 100vh; }
+        .toolbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1500;
+            background: #161b22; padding: 10px 16px;
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid #30363d; height: 52px;
+        }
+        .toolbar h1 { font-size: 16px; color: #58a6ff; flex-grow: 1; white-space: nowrap; }
+        .toolbar select, .toolbar button {
+            background: #21262d; color: #c9d1d9;
+            border: 1px solid #30363d; padding: 7px 12px;
+            border-radius: 6px; font-size: 13px; cursor: pointer;
+        }
+        .toolbar select:hover, .toolbar button:hover { background: #30363d; }
+        .toolbar button.green { background: #238636; border-color: #238636; color: #fff; }
+        .toolbar button.green:hover { background: #2ea043; }
+        .sidebar {
+            position: fixed; top: 52px; right: 0; width: 260px;
+            bottom: 0; background: #0d1117; border-left: 1px solid #30363d;
+            overflow-y: auto; z-index: 1400; padding: 10px; display: none;
+        }
+        .sidebar h3 { font-size: 12px; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; }
+        .bar-item {
+            background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+            padding: 8px 10px; margin-bottom: 4px; display: flex;
+            justify-content: space-between; align-items: center; cursor: pointer;
+        }
+        .bar-item:hover { border-color: #58a6ff; }
+        .bar-item .n { font-size: 13px; font-weight: bold; }
+        .bar-item .d { font-size: 11px; color: #8b949e; }
+        .bar-item button { background: none; border: none; color: #f85149; cursor: pointer; font-size: 15px; }
+        .bar-item button:hover { background: #f8514922; border-radius: 4px; }
+        .modal-bg {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); z-index: 3000;
+            justify-content: center; align-items: center;
+        }
+        .modal-bg.open { display: flex; }
+        .modal {
+            background: #161b22; border: 1px solid #30363d;
+            border-radius: 12px; padding: 24px; width: 340px;
+        }
+        .modal h2 { font-size: 16px; color: #58a6ff; margin-bottom: 14px; }
+        .modal input {
+            width: 100%; background: #0d1117; border: 1px solid #30363d;
+            color: #c9d1d9; padding: 8px 12px; border-radius: 6px;
+            font-size: 13px; margin-bottom: 14px;
+        }
+        .modal input:focus { border-color: #58a6ff; outline: none; }
+        .modal .btns { display: flex; gap: 10px; }
+        .modal .btns button { flex: 1; padding: 9px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .modal .btn-cancel { background: #21262d; color: #c9d1d9; }
+        .modal .btn-ok { background: #238636; color: #fff; }
+        .toast {
+            position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+            background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+            padding: 8px 16px; font-size: 12px; color: #8b949e; z-index: 2500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <h1>Barrios</h1>
+    <select id="selCountry">
+        <option value="UY">Uruguay</option>
+        <option value="AR">Argentina</option>
+        <option value="CL">Chile</option>
+        <option value="BR">Brasil</option>
+        <option value="PY">Paraguay</option>
+    </select>
+    <select id="selDept"><option value="">Depto...</option></select>
+    <button onclick="toggleSidebar()">Lista</button>
+    <button class="green" onclick="startDraw()" id="btnDraw">Dibujar Barrio</button>
+    <button class="green" onclick="saveAll()">Guardar</button>
+    <button id="btnDone" style="display:none;background:#d29922;border-color:#d29922;color:#fff;" onclick="">Listo</button>
+</div>
+
+<div id="map"></div>
+
+<div class="sidebar" id="sidebar">
+    <h3>Barrios</h3>
+    <div id="list"></div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+    <div class="modal">
+        <h2>Nombre del Barrio</h2>
+        <input type="text" id="inpName" placeholder="Ej: Ciudad Vieja" />
+        <div class="btns">
+            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+            <button class="btn-ok" onclick="confirmBarrio()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">Dibujá un polígono en el mapa</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.16.0/dist/leaflet-geoman.min.js"></script>
+<script>
+var SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+
+var COLORS = ['#58a6ff','#f0883e','#3fb950','#d2a8ff','#f778ba','#79c0ff','#ffa657','#7ee787','#ff7b72','#d29922'];
+var DEPTS = {
+    UY: ['Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores','Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro','Rivera','Rocha','Salto','Soriano','Tacuarembó','Treinta y Tres'],
+    AR: ['Buenos Aires','Córdoba','Santa Fe','Mendoza','Tucumán'],
+    CL: ['Santiago','Valparaíso','Concepción'],
+    BR: ['São Paulo','Rio de Janeiro','Belo Horizonte'],
+    PY: ['Central','Alto Paraná','Ñeembucú']
+};
+var CENTERS = { UY: [-34.9,-56.2], AR: [-34.6,-58.4], CL: [-33.4,-70.7], BR: [-23.5,-46.6], PY: [-25.3,-57.6] };
+
+var barrios = [];
+var pending = null;
+
+var map = L.map('map').setView(CENTERS.UY, 12);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OSM', maxZoom: 19
+}).addTo(map);
+
+map.pm.addControls({
+    position: 'topleft',
+    drawMarker: false,
+    drawPolyline: false,
+    drawCircle: false,
+    drawCircleMarker: false,
+    drawRectangle: false,
+    drawText: false,
+    editMode: true,
+    dragMode: true,
+    cutPolygon: false,
+    removalMode: true,
+    rotateMode: false
+});
+
+function startDraw() {
+    var dept = document.getElementById('selDept').value;
+    if (!dept) { alert('Seleccioná un departamento primero'); return; }
+    map.pm.enableDraw('Polygon');
+    toast('Hacé click en el mapa para dibujar. Doble click para terminar.');
+}
+
+function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(function(){ t.style.display = 'none'; }, 4000);
+}
+
+map.on('pm:create', function(e) {
+    if (!document.getElementById('selDept').value) {
+        alert('Seleccioná un departamento primero');
+        map.removeLayer(e.layer);
+        return;
+    }
+    pending = e.layer;
+    document.getElementById('inpName').value = '';
+    document.getElementById('modalBg').classList.add('open');
+    document.getElementById('inpName').focus();
+});
+
+function haversine(lat1,lng1,lat2,lng2) {
+    var R = 6371;
+    var dLat = (lat2-lat1)*Math.PI/180;
+    var dLng = (lng2-lng1)*Math.PI/180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function pickColor(lat,lng) {
+    var used = [];
+    barrios.forEach(function(b){
+        if (haversine(lat,lng,b.clat,b.clng) < 2) used.push(b.color);
+    });
+    for (var i=0;i<COLORS.length;i++) {
+        if (used.indexOf(COLORS[i])===-1) return COLORS[i];
+    }
+    return COLORS[barrios.length % COLORS.length];
+}
+
+function confirmBarrio() {
+    var name = document.getElementById('inpName').value.trim();
+    if (!name) { alert('Poné un nombre'); return; }
+    var geo = pending.toGeoJSON();
+    var ctr = pending.getBounds().getCenter();
+    var c = pickColor(ctr.lat, ctr.lng);
+    pending.setStyle({color:c, fillColor:c, fillOpacity:0.25, weight:2});
+    barrios.push({
+        id:null, name:name,
+        dept: document.getElementById('selDept').value,
+        country: document.getElementById('selCountry').value,
+        geo: geo.geometry, clat:ctr.lat, clng:ctr.lng,
+        color:c, layer:pending
+    });
+    pending.bindPopup('<b>'+name+'</b>');
+    pending = null;
+    closeModal();
+    renderList();
+    toast(name + ' agregado');
+}
+
+function closeModal() {
+    document.getElementById('modalBg').classList.remove('open');
+    pending = null;
+}
+
+document.getElementById('inpName').addEventListener('keydown', function(e) {
+    if (e.key==='Enter') confirmBarrio();
+    if (e.key==='Escape') closeModal();
+});
+
+function renderList() {
+    var html = '';
+    barrios.forEach(function(b,i){
+        html += '<div class="bar-item" onclick="focusB('+i+')"><div><div class="n" style="color:'+b.color+'">'+b.name+'</div><div class="d">'+b.dept+'</div></div><div><button title="Mover puntos" onclick="event.stopPropagation();editPts('+i+')">&#9997;</button> <button title="Editar nombre" onclick="event.stopPropagation();editB('+i+')">&#9998;</button> <button title="Eliminar" onclick="event.stopPropagation();delB('+i+')">✕</button></div></div>';
+    });
+    document.getElementById('list').innerHTML = html;
+    document.getElementById('toast').textContent = barrios.length + ' barrio(s)';
+    document.getElementById('toast').style.display = 'block';
+}
+
+function focusB(i) { if(barrios[i].layer) map.fitBounds(barrios[i].layer.getBounds(),{padding:[50,50]}); }
+function editPts(i) {
+    map.pm.disableDraw();
+    barrios.forEach(function(b,idx){
+        if (idx===i) {
+            b.layer.pm.enable({ draggable: true });
+            b._editing = true;
+        } else {
+            b.layer.pm.disable();
+            b._editing = false;
+        }
+    });
+    toast('Arrastrá los puntos. Cuando termines, hacé click en "Listo".');
+    document.getElementById('btnDone').style.display = 'inline-block';
+    document.getElementById('btnDone').setAttribute('onclick', 'finishEdit('+i+')');
+}
+
+function finishEdit(i) {
+    var b = barrios[i];
+    b.layer.pm.disable();
+    b._editing = false;
+    var newGeo = b.layer.toGeoJSON().geometry;
+    var newCtr = b.layer.getBounds().getCenter();
+    b.geo = newGeo;
+    b.clat = newCtr.lat;
+    b.clng = newCtr.lng;
+    b.layer.setPopupContent('<b>'+b.name+'</b>');
+    document.getElementById('btnDone').style.display = 'none';
+    toast(b.name + ' actualizado');
+}
+function editB(i) {
+    var newName = prompt('Nuevo nombre:', barrios[i].name);
+    if (newName && newName.trim()) {
+        barrios[i].name = newName.trim();
+        barrios[i].layer.setPopupContent('<b>'+newName.trim()+'</b>');
+        renderList();
+        toast('Renombrado a "' + newName.trim() + '"');
+    }
+}
+function delB(i) { if(barrios[i].layer) map.removeLayer(barrios[i].layer); barrios.splice(i,1); renderList(); }
+function toggleSidebar() { var s=document.getElementById('sidebar'); s.style.display=s.style.display==='none'?'block':'none'; }
+
+document.getElementById('selCountry').addEventListener('change', function() {
+    var c = this.value;
+    var sel = document.getElementById('selDept');
+    sel.innerHTML = '<option value="">Depto...</option>';
+    (DEPTS[c]||[]).forEach(function(d){ sel.innerHTML+='<option>'+d+'</option>'; });
+    map.setView(CENTERS[c]||CENTERS.UY, 7);
+    clearBarrios();
+});
+
+document.getElementById('selDept').addEventListener('change', function() {
+    clearBarrios();
+    loadBarrios();
+});
+
+function clearBarrios() {
+    barrios.forEach(function(b){ if(b.layer) map.removeLayer(b.layer); });
+    barrios = [];
+    renderList();
+}
+
+async function saveAll() {
+    var dept = document.getElementById('selDept').value;
+    var country = document.getElementById('selCountry').value;
+    if (!dept) { alert('Seleccioná depto'); return; }
+    toast('Guardando...');
+    try {
+        await fetch(SUPABASE_URL+'/rest/v1/neighborhoods?department=eq.'+dept+'&country=eq.'+country, {
+            method:'DELETE', headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'}
+        });
+        var rows = barrios.map(function(b){
+            var cleanGeo = b.layer ? b.layer.toGeoJSON().geometry : b.geo;
+            return {name:b.name,department:b.dept,country:b.country,geometry:cleanGeo,center_lat:b.clat,center_lng:b.clng};
+        });
+        if (rows.length>0) {
+            var r = await fetch(SUPABASE_URL+'/rest/v1/neighborhoods', {
+                method:'POST',
+                headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},
+                body:JSON.stringify(rows)
+            });
+            if (!r.ok) throw new Error(await r.text());
+        }
+        toast(rows.length + ' barrio(s) guardado(s)');
+    } catch(e) {
+        toast('Error: ' + e.message);
+    }
+}
+
+async function loadBarrios() {
+    var dept = document.getElementById('selDept').value;
+    var country = document.getElementById('selCountry').value;
+    if (!dept) return;
+    try {
+        var r = await fetch(SUPABASE_URL+'/rest/v1/neighborhoods?department=eq.'+dept+'&country=eq.'+country+'&select=*', {
+            headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}
+        });
+        if (!r.ok) { toast('Tabla neighborhoods no existe'); return; }
+        var data = await r.json();
+        if (!Array.isArray(data)) return;
+        data.forEach(function(row){
+            var c = pickColor(row.center_lat,row.center_lng);
+            var geo = row.geometry;
+            if (typeof geo === 'string') { try { geo = JSON.parse(geo); } catch(e){} }
+            var layer;
+            if (geo && geo.type === 'Polygon') {
+                layer = L.geoJSON(geo,{style:{color:c,fillColor:c,fillOpacity:0.3,weight:2}}).addTo(map);
+            } else if (geo && geo.type === 'Point') {
+                layer = L.circleMarker([row.center_lat, row.center_lng], {radius:8, color:c, fillColor:c, fillOpacity:0.45, weight:2}).addTo(map);
+            } else {
+                layer = L.circleMarker([row.center_lat, row.center_lng], {radius:8, color:c, fillColor:c, fillOpacity:0.45, weight:2}).addTo(map);
+            }
+            layer.bindPopup('<b>'+row.name+'</b><br><small>'+row.department+'</small>');
+            barrios.push({id:row.id,name:row.name,dept:row.department,country:row.country,geo:geo,clat:row.center_lat,clng:row.center_lng,color:c,layer:layer});
+        });
+        if (barrios.length>0) map.fitBounds(L.featureGroup(barrios.map(function(b){return b.layer})).getBounds(),{padding:[50,50]});
+        renderList();
+        toast(data.length + ' barrio(s) cargado(s)');
+    } catch(e) { toast('Error: '+e.message); }
+}
+
+(function init(){
+    var sel = document.getElementById('selDept');
+    (DEPTS.UY||[]).forEach(function(d){ sel.innerHTML+='<option>'+d+'</option>'; });
+})();
+</script>
+</body>
+</html>

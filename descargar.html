@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow — Descargá la app</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: #0f1729; color: #fff; min-height: 100vh;
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+
+        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        .screen.hidden { display: none; }
+
+        .btn-enter {
+            padding: 20px 60px; border-radius: 14px; font-size: 20px; font-weight: 700;
+            background: #E63946; color: #fff; border: none; cursor: pointer;
+            transition: all 0.3s; font-family: 'DM Sans', sans-serif;
+        }
+        .btn-enter:hover { background: #DC2626; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(230,57,70,0.4); }
+
+        .splash {
+            position: fixed; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 20;
+            background: #0f1729;
+        }
+        .splash.hidden { opacity: 0; pointer-events: none; transition: opacity 0.6s; }
+
+        .splash-logo { max-width: 180px; margin-bottom: 40px; animation: fadeInUp 0.8s ease-out; }
+
+        .flags-ring { position: relative; width: 240px; height: 240px; margin-bottom: 40px; }
+        .flag-item {
+            position: absolute; top: 50%; left: 50%;
+            width: 56px; height: 56px; margin: -28px 0 0 -28px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.08);
+            border: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .flag-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .flag-item:nth-child(1) { animation: orbit1 3s linear infinite; }
+        .flag-item:nth-child(2) { animation: orbit2 3s linear infinite; }
+        .flag-item:nth-child(3) { animation: orbit3 3s linear infinite; }
+        .flag-item:nth-child(4) { animation: orbit4 3s linear infinite; }
+        .flag-item:nth-child(5) { animation: orbit5 3s linear infinite; }
+
+        @keyframes orbit1 { 0% { transform: rotate(0deg) translateY(-100px) rotate(0deg); } 100% { transform: rotate(360deg) translateY(-100px) rotate(-360deg); } }
+        @keyframes orbit2 { 0% { transform: rotate(72deg) translateY(-100px) rotate(-72deg); } 100% { transform: rotate(432deg) translateY(-100px) rotate(-432deg); } }
+        @keyframes orbit3 { 0% { transform: rotate(144deg) translateY(-100px) rotate(-144deg); } 100% { transform: rotate(504deg) translateY(-100px) rotate(-504deg); } }
+        @keyframes orbit4 { 0% { transform: rotate(216deg) translateY(-100px) rotate(-216deg); } 100% { transform: rotate(576deg) translateY(-100px) rotate(-576deg); } }
+        @keyframes orbit5 { 0% { transform: rotate(288deg) translateY(-100px) rotate(-288deg); } 100% { transform: rotate(648deg) translateY(-100px) rotate(-648deg); } }
+
+        .splash-text { font-size: 16px; color: rgba(255,255,255,0.6); animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .result {
+            position: fixed; inset: 0; display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 30;
+            background: #0f1729; text-align: center; padding: 32px;
+        }
+        .result.active { display: flex; }
+
+        .result-city { width: 100%; max-width: 700px; margin-bottom: 32px; animation: fadeInUp 0.6s ease-out; }
+        .result-city img { width: 100%; height: auto; }
+
+        .result-flag {
+            width: 80px; height: 80px; border-radius: 50%; margin-bottom: 16px;
+            animation: bounceIn 0.5s ease-out 0.2s both;
+            overflow: hidden; border: 3px solid rgba(255,255,255,0.2);
+        }
+        .result-flag img { width: 100%; height: 100%; object-fit: cover; }
+
+        .result-text { font-family: 'Playfair Display', serif; font-size: clamp(28px, 4vw, 40px); font-weight: 700; margin-bottom: 8px; color: #fff; }
+        .result-sub { font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 40px; }
+
+        .btn-go {
+            padding: 18px 48px; border-radius: 14px; font-size: 18px; font-weight: 700;
+            background: #E63946; color: #fff; border: none; cursor: pointer;
+            transition: all 0.3s; font-family: 'DM Sans', sans-serif;
+            animation: fadeInUp 0.6s ease-out 0.4s both;
+        }
+        .btn-go:hover { background: #DC2626; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(230,57,70,0.4); }
+
+        @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { transform: scale(1.05); } 70% { transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+
+        .lang-options { display: flex; gap: 12px; margin-bottom: 32px; animation: fadeInUp 0.6s ease-out 0.3s both; }
+        .lang-btn {
+            padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+            background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7);
+            border: 2px solid transparent; cursor: pointer; transition: all 0.2s; font-family: inherit;
+        }
+        .lang-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .lang-btn.active { border-color: #E63946; color: #fff; background: rgba(230,57,70,0.15); }
+
+        .sound-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 50;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; font-size: 18px; cursor: pointer; transition: all 0.2s;
+        }
+        .sound-btn:hover { background: rgba(255,255,255,0.2); }
+
+        .coming-soon {
+            position: fixed; inset: 0; display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 40;
+            background: #0f1729; text-align: center; padding: 32px;
+        }
+        .coming-soon.active { display: flex; }
+
+        .coming-soon-card {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px; padding: 48px 40px; max-width: 440px; width: 100%;
+        }
+        .coming-soon-card .icon { font-size: 48px; margin-bottom: 20px; animation: bounceIn 0.6s ease-out; }
+        .coming-soon-card h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px; font-weight: 700; margin-bottom: 12px; color: #fff;
+        }
+        .coming-soon-card p {
+            font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.6); margin-bottom: 32px;
+        }
+        .coming-soon-card .country-name {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 20px; border-radius: 999px;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+            font-size: 15px; font-weight: 600; margin-bottom: 28px;
+        }
+        .coming-soon-card .country-name img { width: 28px; height: 28px; border-radius: 50%; }
+        .coming-soon-card .whatsapp-form {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; padding: 20px; margin-bottom: 24px;
+        }
+        .coming-soon-card .whatsapp-form h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: rgba(255,255,255,0.8); }
+        .coming-soon-card .whatsapp-form input {
+            width: 100%; padding: 14px 16px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
+            color: #fff; font-size: 16px; margin-bottom: 10px; font-family: inherit;
+        }
+        .coming-soon-card .whatsapp-form input::placeholder { color: rgba(255,255,255,0.3); }
+        .coming-soon-card .whatsapp-form button {
+            width: 100%; padding: 14px; border-radius: 10px;
+            border: none; background: #25D366; color: #fff;
+            font-size: 15px; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .coming-soon-card .whatsapp-form button:hover { background: #20bd5a; }
+        .coming-soon-card .btn-back {
+            display: inline-block; padding: 14px 32px; border-radius: 12px;
+            background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8);
+            font-size: 15px; font-weight: 600; cursor: pointer; border: none;
+            font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+        }
+        .coming-soon-card .btn-back:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .coming-soon-card .success-msg {
+            display: none; padding: 16px; border-radius: 12px;
+            background: rgba(37,211,102,0.15); color: #25D366;
+            font-size: 15px; font-weight: 600; margin-bottom: 16px;
+        }
+        .coming-soon-card .success-msg.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="screen" id="startScreen">
+        <img src="/logouf.png" alt="UrbanFlow" style="max-width:160px; margin-bottom:40px;">
+        <button class="btn-enter" onclick="startSplash()">Entrar</button>
+    </div>
+
+    <div class="splash hidden" id="splash">
+        <img src="/logouf.png" alt="UrbanFlow" class="splash-logo">
+        <div class="flags-ring" id="flagsRing">
+            <div class="flag-item"><img src="/banderauruguay.png" alt="Uruguay"></div>
+            <div class="flag-item"><img src="/banderaargentina.png" alt="Argentina"></div>
+            <div class="flag-item"><img src="/banderabrasil.png" alt="Brasil"></div>
+            <div class="flag-item"><img src="/banderachile.png" alt="Chile"></div>
+            <div class="flag-item"><img src="/banderaparaguay.png" alt="Paraguay"></div>
+        </div>
+        <div class="splash-text">Detectando tu ubicación...</div>
+    </div>
+
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
+
+    <div class="result" id="result">
+        <div class="result-city">
+            <img id="resultCityImg" src="/ciudad.png" alt="Ciudad">
+        </div>
+        <div class="result-flag" id="resultFlag"><img src="/banderauruguay.png" alt="País"></div>
+        <div class="result-text" id="resultText">Estás en Uruguay</div>
+        <div class="result-sub" id="resultSub">Montevideo — Español</div>
+        <div class="lang-options">
+            <button class="lang-btn active" data-lang="es" onclick="setLang('es', this)">Español</button>
+            <button class="lang-btn" data-lang="pt" onclick="setLang('pt', this)">Português</button>
+            <button class="lang-btn" data-lang="en" onclick="setLang('en', this)">English</button>
+        </div>
+        <button class="btn-go" onclick="showComingSoon()">Entrar</button>
+    </div>
+
+    <div class="coming-soon" id="comingSoon">
+        <div class="coming-soon-card">
+            <div class="icon">🚧</div>
+            <h2 id="comingSoonTitle">Estamos preparando todo</h2>
+            <p id="comingSoonDesc">Próximamente estaremos en tu país. Dejanos tu número de WhatsApp y te avisamos cuando esté listo.</p>
+            <div class="country-name" id="comingSoonCountry">
+                <img id="comingSoonFlag" src="/banderauruguay.png" alt="">
+                <span id="comingSoonCountryName">Uruguay</span>
+            </div>
+            <div class="success-msg" id="successMsg">¡Listo! Te avisamos por WhatsApp cuando UrbanFlow esté disponible.</div>
+            <div class="whatsapp-form">
+                <h3>📱 Tu WhatsApp</h3>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                    <span id="phoneCountryCode" style="padding:14px 12px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:16px;font-weight:600;white-space:nowrap">+598</span>
+                    <input type="tel" id="phoneInput" placeholder="099123456" maxlength="9" style="flex:1" oninput="const m=parseInt(this.maxlength);this.value=this.value.replace(/[^0-9]/g,'').slice(0,m)">
+                </div>
+                <p id="phoneHint" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:10px;text-align:left">Ej: 099123456 — 9 dígitos</p>
+                <button onclick="subscribeWhatsApp()">Avísame cuando esté listo</button>
+            </div>
+            <button class="btn-back" onclick="goBack()">← Volver</button>
+        </div>
+    </div>
+
+    <audio id="bgMusic" loop preload="auto" playsinline>
+        <source src="/musicaweb.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let selectedLang = 'es';
+        let detectedCountry = 'UY';
+        let soundEnabled = true;
+        const audio = document.getElementById('bgMusic');
+        const btn = document.getElementById('soundBtn');
+
+        const countries = {
+            'UY': { flag: '/banderauruguay.png', name: 'Uruguay', city: 'Montevideo', img: '/ciudad.png', lang: 'es' },
+            'AR': { flag: '/banderaargentina.png', name: 'Argentina', city: 'Buenos Aires', img: '/ciudadbsas.png', lang: 'es' },
+            'BR': { flag: '/banderabrasil.png', name: 'Brasil', city: 'São Paulo', img: '/rio.png', lang: 'pt' },
+            'CL': { flag: '/banderachile.png', name: 'Chile', city: 'Santiago', img: '/santiago.png', lang: 'es' },
+            'PY': { flag: '/banderaparaguay.png', name: 'Paraguay', city: 'Asunción', img: '/asuncion.png', lang: 'es' }
+        };
+
+        const comingSoonTexts = {
+            es: { title: 'Estamos preparando todo', desc: 'Próximamente estaremos en tu país. Dejanos tu número de WhatsApp y te avisamos cuando esté listo.' },
+            pt: { title: 'Estamos preparando tudo', desc: 'Em breve estaremos no seu país. Deixe seu número do WhatsApp e avisamos quando estiver pronto.' },
+            en: { title: 'We are getting ready', desc: 'We will soon be in your country. Leave your WhatsApp number and we will let you know when it is ready.' }
+        };
+
+        const phoneFormats = {
+            'UY': { code: '+598', placeholder: '099123456', hint: 'Ej: 099123456 — 9 dígitos', digits: 9 },
+            'AR': { code: '+54', placeholder: '1123456789', hint: 'Ej: 1123456789 — 10 dígitos (sin el 0)', digits: 10 },
+            'BR': { code: '+55', placeholder: '11923456789', hint: 'Ej: 11923456789 — 11 dígitos (DDD + 9 dígitos)', digits: 11 },
+            'CL': { code: '+56', placeholder: '912345678', hint: 'Ej: 912345678 — 9 dígitos', digits: 9 },
+            'PY': { code: '+595', placeholder: '981234567', hint: 'Ej: 981234567 — 9 dígitos', digits: 9 }
+        };
+
+        function startSplash() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('splash').classList.remove('hidden');
+
+            audio.volume = 0.5;
+            audio.play().then(() => {
+                soundEnabled = true;
+                btn.textContent = '🔊';
+            }).catch(() => {
+                soundEnabled = false;
+                btn.textContent = '🔇';
+            });
+
+            detectCountry().then(country => { detectedCountry = country; });
+            setTimeout(showResult, 8000);
+        }
+
+        function toggleSound() {
+            if (soundEnabled) {
+                audio.pause();
+                btn.textContent = '🔇';
+            } else {
+                audio.volume = 0.5;
+                audio.play().then(() => {
+                    btn.textContent = '🔊';
+                }).catch(() => {});
+            }
+            soundEnabled = !soundEnabled;
+        }
+
+        function setLang(lang, el) {
+            selectedLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            updateResultText();
+        }
+
+        function updateResultText() {
+            const c = countries[detectedCountry];
+            const langNames = { es: 'Español', pt: 'Português', en: 'English' };
+            document.getElementById('resultSub').textContent = `${c.city} — ${langNames[selectedLang]}`;
+        }
+
+        function showComingSoon() {
+            audio.pause();
+            document.getElementById('result').classList.remove('active');
+            const c = countries[detectedCountry] || countries['UY'];
+            const t = comingSoonTexts[selectedLang] || comingSoonTexts.es;
+            const p = phoneFormats[detectedCountry] || phoneFormats['UY'];
+            document.getElementById('comingSoonTitle').textContent = t.title;
+            document.getElementById('comingSoonDesc').textContent = t.desc;
+            document.getElementById('comingSoonFlag').src = c.flag;
+            document.getElementById('comingSoonCountryName').textContent = c.name;
+            document.getElementById('phoneCountryCode').textContent = p.code;
+            document.getElementById('phoneInput').placeholder = p.placeholder;
+            document.getElementById('phoneInput').maxlength = p.digits;
+            document.getElementById('phoneHint').textContent = p.hint;
+            document.getElementById('phoneInput').value = '';
+            document.getElementById('successMsg').classList.remove('active');
+            document.getElementById('comingSoon').classList.add('active');
+        }
+
+        function goBack() {
+            document.getElementById('comingSoon').classList.remove('active');
+            document.getElementById('result').classList.add('active');
+        }
+
+        function subscribeWhatsApp() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            if (!phone) {
+                alert('Ingresá tu número de WhatsApp');
+                return;
+            }
+            const p = phoneFormats[detectedCountry] || phoneFormats['UY'];
+            if (phone.replace(/\D/g, '').length < p.digits) {
+                alert(`El número debe tener ${p.digits} dígitos`);
+                return;
+            }
+            document.getElementById('successMsg').classList.add('active');
+            document.getElementById('phoneInput').value = '';
+        }
+
+        const COUNTRY_POLYGONS = {
+            'UY': [[-58.5,-35.0],[-53.0,-35.0],[-53.0,-30.0],[-54.9,-31.0],[-58.1,-34.3],[-58.5,-35.0]],
+            'AR': [[-73.5,-55.0],[-63.5,-55.0],[-57.5,-51.5],[-53.0,-51.5],[-53.0,-34.9],[-58.5,-34.3],[-58.5,-35.0],[-65.0,-40.0],[-70.0,-36.5],[-70.0,-30.0],[-67.0,-27.5],[-65.0,-22.0],[-64.0,-22.0],[-63.0,-27.0],[-58.0,-27.5],[-58.0,-22.0],[-63.5,-22.0],[-65.5,-21.8],[-69.5,-21.8],[-69.5,-17.5],[-70.0,-17.5],[-70.0,-22.0],[-70.0,-27.5],[-70.0,-30.0],[-71.5,-30.0],[-71.5,-36.5],[-73.5,-42.0],[-73.5,-55.0]],
+            'BR': [[-74.0,-33.8],[-53.0,-33.8],[-49.5,-29.0],[-48.0,-28.0],[-44.5,-23.0],[-43.0,-22.0],[-40.0,-15.0],[-35.0,-10.0],[-35.0,-5.0],[-44.0,0.0],[-51.0,2.0],[-60.0,5.3],[-69.5,5.3],[-74.0,0.0],[-74.0,-10.0],[-70.0,-18.0],[-58.0,-20.0],[-58.0,-27.5],[-53.0,-34.9],[-74.0,-33.8]],
+            'CL': [[-76.0,-56.0],[-68.0,-56.0],[-68.0,-44.0],[-71.5,-42.0],[-71.5,-36.5],[-70.0,-30.0],[-70.0,-27.5],[-70.0,-22.0],[-69.5,-17.5],[-70.0,-17.5],[-76.0,-17.5],[-76.0,-56.0]],
+            'PY': [[-63.0,-27.6],[-54.2,-27.6],[-54.2,-19.3],[-58.0,-19.3],[-63.0,-19.3],[-63.0,-27.6]]
+        };
+
+        function pointInPolygon(lat, lon, polygon) {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i][0], yi = polygon[i][1];
+                const xj = polygon[j][0], yj = polygon[j][1];
+                if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        function getCountryFromCoords(lat, lon) {
+            for (const [code, polygon] of Object.entries(COUNTRY_POLYGONS)) {
+                if (pointInPolygon(lat, lon, polygon)) return code;
+            }
+            return 'UY';
+        }
+
+        async function detectCountry() {
+            try {
+                const pos = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 5000 });
+                });
+                const code = getCountryFromCoords(pos.coords.latitude, pos.coords.longitude);
+                console.log('Country from GPS:', code, pos.coords.latitude, pos.coords.longitude);
+                return code;
+            } catch (e) {
+                console.log('GPS failed, falling back to IP:', e.message);
+                try {
+                    const res = await fetch('https://ipapi.co/json/');
+                    const data = await res.json();
+                    return data.country_code || 'UY';
+                } catch { return 'UY'; }
+            }
+        }
+
+        function showResult() {
+            const c = countries[detectedCountry] || countries['UY'];
+            document.getElementById('splash').classList.add('hidden');
+            document.getElementById('resultCityImg').src = c.img;
+            document.getElementById('resultFlag').querySelector('img').src = c.flag;
+            document.getElementById('resultText').textContent = `Estás en ${c.name}`;
+            selectedLang = c.lang;
+            document.querySelectorAll('.lang-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.lang === c.lang);
+            });
+            updateResultText();
+            document.getElementById('result').classList.add('active');
+        }
+    </script>
+</body>
+</html>

@@ -6,10 +6,8 @@
     <title>Administrador UrbanFlow - Carriles y Zonas</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/auth-check.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/auth-check.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -236,7 +234,7 @@
             } else {
                 L.circleMarker(e.latlng, { radius: 8, color: '#e74c3c', fillOpacity: 1 }).addTo(previewGroup);
                 document.getElementById('manualHint').innerHTML = "⏳ Calculando ruta...";
-                const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${pointStart[1]},${pointStart[0]};${e.latlng.lng},${e.latlng.lat}?overview=full&geometries=geojson`);
+                const resp = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${pointStart[1]},${pointStart[0]};${e.latlng.lng},${e.latlng.lat}?access_token=YOUR_MAPBOX_TOKEN&overview=full&geometries=geojson`);
                 const data = await resp.json();
                 if (data.code === 'Ok') {
                     const coords = data.routes[0].geometry.coordinates;
@@ -355,6 +353,7 @@
                     <div style="font-size:10px; color:#8b949e;">📍 ${ev.street_name || 'Sin calle'}</div>
                     <div style="font-size:10px; color:#f39c12; margin-top:2px;">🕒 ${scheduleDetail}</div>
                     <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+                        <button class="btn-edit" style="background:#f39c12;" onclick="editScheduleOnly(${ev.id})">🕐 Horarios</button>
                         <button class="btn-edit" onclick="loadEventToForm(${ev.id})">✏️ Editar</button>
                         <button class="btn-delete" onclick="deleteEvent(event, ${ev.id})">🗑️</button>
                     </div>
@@ -376,8 +375,33 @@
             }
         }
 
+        async function editScheduleOnly(id) {
+            const ev = allEvents.find(x => x.id === id);
+            if (!ev) return;
+            const isAlways = !ev.weekday_start;
+            const newAlways = confirm("¿El carril está activo 24hs?\n\nAceptar = 24hs\nCancelar = configurar horarios");
+            
+            let payload;
+            if (newAlways) {
+                payload = { weekday_start: null, weekday_end: null, weekend_start: null, weekend_end: null };
+            } else {
+                const ws = prompt("Hora inicio L-V (ej: 07:00):", ev.weekday_start || "07:00");
+                if (ws === null) return;
+                const we = prompt("Hora fin L-V (ej: 20:00):", ev.weekday_end || "20:00");
+                if (we === null) return;
+                const wss = prompt("Hora inicio S-D (ej: 09:00):", ev.weekend_start || "09:00");
+                if (wss === null) return;
+                const wse = prompt("Hora fin S-D (ej: 14:00):", ev.weekend_end || "14:00");
+                if (wse === null) return;
+                payload = { weekday_start: ws, weekday_end: we, weekend_start: wss, weekend_end: wse };
+            }
+            
+            const result = await sb.from('map_events').update(payload).eq('id', id);
+            if (!result.error) location.reload();
+            else alert("Error: " + result.error.message);
+        }
+
         loadEvents();
     </script>
-<script src="/auth-check.js"></script>
 </body>
 </html>

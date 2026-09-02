@@ -119,14 +119,15 @@
                 </div>
                 <div id="escenariosList"></div>
 
-                <div id="eventosSection" style="display:none; margin-top: 20px;">
+                <div id="eventosSection" style="display:none; margin-top: 12px;">
                     <div class="section-header">
                         <h2 id="eventosTitle">Eventos de: </h2>
-                        <div style="display:flex;gap:8px;align-items:center;">
-                            <span id="selectedEvtCount" style="font-size:12px;color:#888;"></span>
-                            <button class="btn btn-danger" id="btnDeleteSelectedEvt" style="display:none;" onclick="deleteSelectedEvents()">🗑 Borrar seleccionados</button>
-                            <button class="btn btn-ghost" onclick="closeEventos()">← Volver</button>
-                            <button class="btn btn-primary" onclick="openAddEvento()">+ Agregar evento</button>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <input type="text" id="evtSearchInput" placeholder="🔍 Buscar..." oninput="filterEvents()" style="width:180px;font-size:11px;padding:4px 8px;">
+                            <span id="selectedEvtCount" style="font-size:11px;color:#888;"></span>
+                            <button class="btn btn-danger" id="btnDeleteSelectedEvt" style="display:none;font-size:10px;padding:4px 8px;" onclick="deleteSelectedEvents()">🗑 Borrar</button>
+                            <button class="btn btn-ghost" onclick="closeEventos()" style="font-size:11px;padding:5px 10px;">← Volver</button>
+                            <button class="btn btn-primary" onclick="openAddEvento()" style="font-size:11px;padding:5px 10px;">+ Evento</button>
                         </div>
                     </div>
                     <div id="eventosList"></div>
@@ -189,7 +190,7 @@
 
                 <div class="card" style="background:#0d1017;">
                     <div class="form-row">
-                        <div class="form-group"><label>Nombre</label><input type="text" id="addEscNombre"></div>
+                        <div class="form-group"><label>Nombre</label><input type="text" id="addEscNombre" oninput="escenarioAutocomplete(this)" onfocus="escenarioAutocomplete(this)" style="position:relative;"></div>
                         <div class="form-group"><label>Tipo</label>
                             <select id="addEscTipo">
                                 <option value="teatro">Teatro</option>
@@ -233,6 +234,35 @@
                 <h2>Logos de Cines</h2>
                 <p style="color:#888;font-size:13px;margin-bottom:12px;">Subí el logo de cada cine. Se muestra como sello circular sobre el afiche de la película en la app.</p>
                 <div id="cinesLogosList"></div>
+
+                <h2 style="margin-top:20px;">📍 Base de Datos de Venues</h2>
+                <p style="color:#888;font-size:13px;margin-bottom:12px;">Direcciones guardadas para autocomplete. Agregá o eliminá venues de la lista.</p>
+                <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+                    <input type="text" id="newVenueNombre" placeholder="Nombre" style="width:200px;font-size:12px;">
+                    <input type="text" id="newVenueDireccion" placeholder="Dirección" style="width:250px;font-size:12px;">
+                    <input type="text" id="newVenueBarrio" placeholder="Barrio" style="width:150px;font-size:12px;">
+                    <select id="newVenueTipo" style="width:120px;font-size:12px;">
+                        <option value="teatro">Teatro</option>
+                        <option value="cine">Cine</option>
+                        <option value="sala">Sala</option>
+                        <option value="centro_cultural">Centro Cultural</option>
+                        <option value="auditorio">Auditorio</option>
+                        <option value="arena">Arena</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                    <button class="btn btn-success" onclick="addNewVenue()" style="font-size:11px;">+ Agregar</button>
+                </div>
+                <div style="margin-top:8px;display:flex;gap:6px;margin-bottom:8px;">
+                    <input type="text" id="venueSearchInput" placeholder="🔍 Buscar venue..." oninput="renderVenueList()" style="width:250px;font-size:11px;padding:4px 8px;">
+                    <span id="venueCount" style="font-size:11px;color:#888;line-height:28px;"></span>
+                </div>
+                <div id="venueListAdmin" style="max-height:400px;overflow-y:auto;"></div>
+                <div style="margin-top:8px;display:flex;gap:6px;">
+                    <button class="btn btn-ghost" onclick="exportVenues()" style="font-size:11px;">📥 Exportar JSON</button>
+                    <label class="btn btn-ghost" style="font-size:11px;cursor:pointer;">📤 Importar JSON<input type="file" accept=".json" onchange="importVenues(this)" style="display:none;"></label>
+                    <button class="btn btn-warning" onclick="fixAllMissingAddresses()" style="font-size:11px;">🔧 Completar direcciones faltantes</button>
+                    <button class="btn btn-primary" onclick="syncAddressesFromDB()" style="font-size:11px;">🔄 Sincronizar direcciones</button>
+                </div>
             </div>
         </div>
     </div>
@@ -336,6 +366,11 @@
                 <label>Descripcion</label>
                 <textarea id="editEvtDesc" rows="2"></textarea>
             </div>
+            <div id="editEvtCinesSection" style="display:none;margin-bottom:12px;">
+                <label style="font-size:12px;color:#60a5fa;font-weight:bold;">🎭 Salas / Teatros</label>
+                <div id="editEvtCinesList"></div>
+                <button type="button" class="btn btn-ghost" style="margin-top:6px;font-size:11px;" onclick="addEditEvtCine()">+ Agregar sala</button>
+            </div>
             <button class="btn btn-success" onclick="updateEvento()">💾 Guardar cambios</button>
         </div>
     </div>
@@ -361,6 +396,288 @@ const CINES_CONFIG = [
     { nombre: 'Grupocine Ejido', cadena: 'Grupocine' }
 ];
 
+const VENUE_DB = [
+    { nombre: 'Teatro Solís', direccion: 'Buenos Aires 678', barrio: 'Ciudad Vieja' },
+    { nombre: 'Teatro Circular', direccion: 'Av. Gral. Rondeau 1388', barrio: 'Centro' },
+    { nombre: 'Teatro El Galpón', direccion: 'Av. 18 de Julio 1618', barrio: 'Centro' },
+    { nombre: 'Teatro Metro', direccion: 'Colón 1142', barrio: 'Centro' },
+    { nombre: 'Teatro Victoria', direccion: 'Río Negro 1479', barrio: 'Centro' },
+    { nombre: 'Teatro Odeón', direccion: 'Uruguay 830', barrio: 'Centro' },
+    { nombre: 'Teatro Stella d\'Italia', direccion: 'Mercedes 1805', barrio: 'Centro' },
+    { nombre: 'Teatro Del Centro Carlos E. Scheck', direccion: 'Plza. de Cagancha 1162', barrio: 'Centro' },
+    { nombre: 'Teatro Florencio Sánchez', direccion: 'Grecia 3281', barrio: 'Unión' },
+    { nombre: 'Teatro de Verano Ramón Collazo', direccion: 'Rambla Wilson s/n', barrio: 'Pocitos' },
+    { nombre: 'Sala Zitarrosa', direccion: 'Av. 18 de Julio 1008', barrio: 'Centro' },
+    { nombre: 'Sala Verdi', direccion: 'Soriano 914', barrio: 'Centro' },
+    { nombre: 'Sala Jorge Lazaroff', direccion: 'Rambla Sur s/n', barrio: 'Buceo' },
+    { nombre: 'Auditorio Nelly Goitiño (Sodre)', direccion: 'Av. 18 de Julio 930', barrio: 'Centro' },
+    { nombre: 'Cinemateca Uruguaya', direccion: 'Bartolomé Mitre 1236', barrio: 'Centro' },
+    { nombre: 'Cine Universitario', direccion: 'Canelones 1280', barrio: 'Centro' },
+    { nombre: 'Centro Cultural España', direccion: 'Rincón 629', barrio: 'Ciudad Vieja' },
+    { nombre: 'Centro Cultural Florencio Sánchez', direccion: 'Grecia 3281', barrio: 'Unión' },
+    { nombre: 'Centro Cultural Terminal Goes', direccion: 'Gral. Flores y Domingo Aramburú', barrio: 'Cerro' },
+    { nombre: 'Centro Cultural de Parque Rodó', direccion: 'Parque Rodó s/n', barrio: 'Parque Rodó' },
+    { nombre: 'Complejo SACUDE', direccion: 'Los Ángeles 5340', barrio: 'Malvín' },
+    { nombre: 'Espacio de Arte Contemporáneo (EAC)', direccion: 'Ramón de Carrera 1284', barrio: 'Ciudad Vieja' },
+    { nombre: 'Antel Arena', direccion: 'Luis Batlle Berres 4315', barrio: 'Parque de Diversiones' },
+    { nombre: 'Sala Liberti', direccion: 'Libertad 2351', barrio: 'Pocitos' },
+    { nombre: 'Teatro Alianza Francesa', direccion: 'Club Rafael 1028', barrio: 'Pocitos' },
+    { nombre: 'Sala Mayor del Museo Nacional de Artes Visuales', direccion: 'Tomás Giribaldi 2283', barrio: 'Parque Rodó' },
+    { nombre: 'Sala Estrella del Sur', direccion: 'Colón 1076', barrio: 'Centro' },
+    { nombre: 'Teatro Las Mirlas', direccion: 'Mercado Libertad, Av. 18 de Julio 1504', barrio: 'Centro' },
+    { nombre: 'Sala Adela Reta', direccion: 'Miguel Barreiro 511', barrio: 'Parque Rodó' },
+    { nombre: 'Teatro Bar Sur', direccion: 'Colón 1076', barrio: 'Centro' },
+    { nombre: 'Teatro掩 puesta', direccion: 'Rambla Sur 450', barrio: 'Buceo' },
+    { nombre: 'Sala Cerro Largo', direccion: 'Cerrito 1138', barrio: 'Centro' },
+    { nombre: 'Sala Paims', direccion: 'Luis Alberto de Herrera 1264', barrio: 'Centro' },
+    { nombre: 'Teatro Polytheama', direccion: 'Tomás Berreta 312', barrio: 'Centro' },
+    { nombre: 'Sala MIME', direccion: 'Tacuarembó 1442', barrio: 'Centro' },
+    { nombre: 'Teatro Prometeo', direccion: 'Carlos María Ramírez 760', barrio: 'Centro' },
+    { nombre: 'Sala Tango', direccion: 'Sarandí 425', barrio: 'Ciudad Vieja' },
+    { nombre: 'Café Teatro Vichí', direccion: 'Sarandí 685', barrio: 'Ciudad Vieja' },
+    { nombre: 'Teatro del Pueblo', direccion: 'Yaguarón 1460', barrio: 'Centro' },
+    { nombre: 'Teatro Tu Compañía', direccion: 'Yi 1232', barrio: 'Centro' },
+    { nombre: 'Movie Montevideo', direccion: 'Av. Luis A. de Herrera 1290, Montevideo Shopping', barrio: 'Pocitos' },
+    { nombre: 'Movie Portones', direccion: 'Av. Italia 5775, Portones Shopping', barrio: 'Carrasco' },
+    { nombre: 'Movie Punta Carretas', direccion: 'Francisco García Cortinas 2484, Punta Carretas Shopping', barrio: 'Punta Carretas' },
+    { nombre: 'Movie Nuevocentro', direccion: 'Av. Luis A. de Herrera 3969, Nuevocentro Shopping', barrio: 'Unión' },
+    { nombre: 'Grupocine Arocena', direccion: 'Av. Alfredo Arocena 1680, Plaza Arocena Shopping', barrio: 'Buceo' },
+    { nombre: 'Grupocine Ejido', direccion: 'Ejido 1377', barrio: 'Centro' },
+    { nombre: 'Grupocine Punta Carretas', direccion: 'Ellauri 350, Punta Carretas Shopping', barrio: 'Punta Carretas' },
+    { nombre: 'Grupocine Torre de los Profesionales', direccion: 'Colonia 1297', barrio: 'Centro' },
+    { nombre: 'LIFE 21 de Setiembre', direccion: '21 de Setiembre 2838', barrio: 'Cordón' },
+    { nombre: 'LIFE Alfabeta', direccion: 'Miguel Barreiro 3231', barrio: 'Parque Rodó' },
+    { nombre: 'LIFE Punta Carretas', direccion: 'Ellauri 350, Punta Carretas Shopping', barrio: 'Punta Carretas' },
+    { nombre: 'Sala Zavala Muñiz', direccion: 'Gran Bretaña 2521', barrio: 'Pocitos' },
+    { nombre: 'Balcón del Cerro', direccion: 'Av. Challenges s/n', barrio: 'Cerro' },
+    { nombre: 'Espacio Modelo', direccion: 'Parque de Diversiones', barrio: 'Parque de Diversiones' },
+    { nombre: 'MUMI (Museo Municipal de Bellas Artes)', direccion: 'Tomás Giribaldi 2283', barrio: 'Parque Rodó' },
+    { nombre: 'Teatro NOTI', direccion: 'Av. 18 de Julio 1360', barrio: 'Centro' },
+    { nombre: 'Sala María Guerrero', direccion: 'Mercedes 1398', barrio: 'Centro' },
+    { nombre: 'Sala Aliadas', direccion: 'Gran Bretaña 2525', barrio: 'Pocitos' },
+    { nombre: 'Teatro Micro Gramilla', direccion: 'Bartolomé Mitre 1322', barrio: 'Centro' },
+    { nombre: 'Sala Casa de Comedias', direccion: 'Ciudadela 1189', barrio: 'Ciudad Vieja' },
+    { nombre: 'Teatro El Círculo', direccion: 'Canelones 1159', barrio: 'Centro' },
+    { nombre: 'Sala Bárbara Heliodora', direccion: 'Miguel Barreiro 3231', barrio: 'Parque Rodó' },
+    { nombre: 'Auditorio de la Facultad de Arquitectura', direccion: 'Julio Herrera y Obes 725', barrio: 'Centro' },
+    { nombre: 'Sala Rediseño', direccion: 'Rambla Sur 430', barrio: 'Buceo' },
+    { nombre: 'Teatro Laura Pippolo', direccion: 'Bartolomé Mitre 1414', barrio: 'Centro' },
+    { nombre: 'Salón de la Fuerza Aérea', direccion: 'Bulevar Artigas 1497', barrio: 'Parque Rodó' },
+    { nombre: 'Teatro Itinerante del Hospital Británico', direccion: 'Rambla 25 de Agosto de 1825 290', barrio: 'Centro' }
+];
+
+const DEFAULT_VENUES = VENUE_DB.map(v => ({ ...v }));
+
+function getVenues() {
+    try {
+        const stored = localStorage.getItem('venueDB');
+        if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return DEFAULT_VENUES;
+}
+
+function saveVenues(venues) {
+    localStorage.setItem('venueDB', JSON.stringify(venues));
+}
+
+function initVenueDB() {
+    if (!localStorage.getItem('venueDB')) {
+        saveVenues(DEFAULT_VENUES);
+    }
+}
+
+function addVenue(nombre, direccion, barrio, tipo) {
+    const venues = getVenues();
+    venues.push({ nombre, direccion, barrio: barrio || '', tipo: tipo || 'otro' });
+    saveVenues(venues);
+}
+
+function removeVenue(idx) {
+    const venues = getVenues();
+    venues.splice(idx, 1);
+    saveVenues(venues);
+}
+
+function venueAutocomplete(input, evtId, ci, field) {
+    const val = input.value.toLowerCase().trim();
+    if (val.length < 2) { closeVenueDropdown(); return; }
+    const venues = getVenues();
+    const matches = venues.filter(v => v.nombre.toLowerCase().includes(val) || v.direccion.toLowerCase().includes(val)).slice(0, 8);
+    if (matches.length === 0) { closeVenueDropdown(); return; }
+    let dd = document.getElementById('venueDropdown');
+    if (!dd) { dd = document.createElement('div'); dd.id = 'venueDropdown'; dd.style.cssText = 'position:absolute;z-index:9999;background:#0d1017;border:1px solid #3a3d4e;border-radius:6px;max-height:200px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,0.5);'; document.body.appendChild(dd); }
+    const rect = input.getBoundingClientRect();
+    dd.style.left = rect.left + 'px';
+    dd.style.top = (rect.bottom + 2) + 'px';
+    dd.style.width = rect.width + 'px';
+    dd.innerHTML = matches.map((v,i) => `<div class="venue-sug" onmousedown="applyVenue('${escHtml(evtId)}',${ci},'${escHtml(field)}','${escHtml(v.nombre)}','${escHtml(v.direccion)}')" style="padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #1a1d2e;">${highlightMatch(v.nombre,val)} <span style="color:#888;font-size:10px;">— ${highlightMatch(v.direccion,val)}, ${v.barrio||''}</span></div>`).join('');
+    dd.querySelectorAll('.venue-sug').forEach(el => { el.onmouseenter = () => el.style.background = '#1a2744'; el.onmouseleave = () => el.style.background = ''; });
+}
+
+function normalizeStr(s) {
+    return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').trim();
+}
+
+function findVenueMatch(cineName) {
+    if (!cineName) return null;
+    const norm = normalizeStr(cineName);
+    const venues = getVenues();
+    let m = venues.find(v => normalizeStr(v.nombre) === norm);
+    if (m) return m;
+    m = venues.find(v => norm.includes(normalizeStr(v.nombre)) || normalizeStr(v.nombre).includes(norm));
+    if (m) return m;
+    if (norm.length >= 5) {
+        m = venues.find(v => normalizeStr(v.nombre).includes(norm.substring(0, 5)) || norm.includes(normalizeStr(v.nombre).substring(0, 5)));
+        if (m) return m;
+    }
+    return null;
+}
+
+function highlightMatch(text, query) {
+    const idx = text.toLowerCase().indexOf(query);
+    if (idx === -1) return escHtml(text);
+    return escHtml(text.substring(0, idx)) + '<b style="color:#60a5fa;">' + escHtml(text.substring(idx, idx + query.length)) + '</b>' + escHtml(text.substring(idx + query.length));
+}
+
+function renderVenueList() {
+    const allVenues = getVenues();
+    const q = (document.getElementById('venueSearchInput')?.value || '').toLowerCase().trim();
+    const venues = q ? allVenues.filter(v => v.nombre.toLowerCase().includes(q) || v.direccion.toLowerCase().includes(q) || (v.barrio||'').toLowerCase().includes(q)) : allVenues;
+    const el = document.getElementById('venueListAdmin');
+    const cnt = document.getElementById('venueCount');
+    if (cnt) cnt.textContent = venues.length + ' de ' + allVenues.length;
+    if (!el) return;
+    el.innerHTML = venues.map((v, i) => `<div style="display:flex;gap:6px;align-items:center;padding:4px 8px;background:#0d1017;border:1px solid #2a2d3e;border-radius:6px;margin-bottom:4px;font-size:11px;">
+        <span style="flex:1;color:#e0e0e0;font-weight:bold;">${escHtml(v.nombre)}</span>
+        <span style="flex:2;color:#888;">${escHtml(v.direccion)}, ${escHtml(v.barrio||'')}</span>
+        <span style="color:#60a5fa;font-size:10px;">${escHtml(v.tipo||'')}</span>
+        <button onclick="removeVenue(${i});renderVenueList();" style="font-size:9px;padding:2px 6px;background:#dc2626;color:white;border:none;border-radius:3px;cursor:pointer;">X</button>
+    </div>`).join('');
+}
+
+function escenarioAutocomplete(input) {
+    const val = input.value.toLowerCase().trim();
+    if (val.length < 2) { closeVenueDropdown(); return; }
+    const venues = getVenues();
+    const matches = venues.filter(v => v.nombre.toLowerCase().includes(val)).slice(0, 6);
+    if (matches.length === 0) { closeVenueDropdown(); return; }
+    let dd = document.getElementById('venueDropdown');
+    if (!dd) { dd = document.createElement('div'); dd.id = 'venueDropdown'; dd.style.cssText = 'position:absolute;z-index:9999;background:#0d1017;border:1px solid #3a3d4e;border-radius:6px;max-height:200px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,0.5);'; document.body.appendChild(dd); }
+    const rect = input.getBoundingClientRect();
+    dd.style.left = rect.left + 'px';
+    dd.style.top = (rect.bottom + 2) + 'px';
+    dd.style.width = rect.width + 'px';
+    dd.innerHTML = matches.map(v => `<div class="venue-sug" onmousedown="applyEscVenue('${escHtml(v.nombre)}','${escHtml(v.direccion)}','${escHtml(v.barrio||'')}')" style="padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #1a1d2e;">${highlightMatch(v.nombre,val)} <span style="color:#888;font-size:10px;">— ${escHtml(v.direccion)}, ${escHtml(v.barrio||'')}</span></div>`).join('');
+    dd.querySelectorAll('.venue-sug').forEach(el => { el.onmouseenter = () => el.style.background = '#1a2744'; el.onmouseleave = () => el.style.background = ''; });
+}
+
+function applyEscVenue(nombre, direccion, barrio) {
+    const nameInput = document.getElementById('addEscNombre');
+    const dirInput = document.getElementById('addEscDireccion');
+    if (nameInput) nameInput.value = nombre;
+    if (dirInput) dirInput.value = direccion;
+    closeVenueDropdown();
+}
+
+function addNewVenue() {
+    const n = document.getElementById('newVenueNombre').value.trim();
+    const d = document.getElementById('newVenueDireccion').value.trim();
+    const b = document.getElementById('newVenueBarrio').value.trim();
+    const t = document.getElementById('newVenueTipo').value;
+    if (!n || !d) { alert('Nombre y dirección son obligatorios'); return; }
+    addVenue(n, d, b, t);
+    document.getElementById('newVenueNombre').value = '';
+    document.getElementById('newVenueDireccion').value = '';
+    document.getElementById('newVenueBarrio').value = '';
+    renderVenueList();
+}
+
+function exportVenues() {
+    const data = JSON.stringify(getVenues(), null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'venues_db.json';
+    a.click();
+}
+
+function importVenues(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const venues = JSON.parse(e.target.result);
+            if (Array.isArray(venues)) {
+                saveVenues(venues);
+                renderVenueList();
+                alert(`${venues.length} venues importados`);
+            }
+        } catch(err) { alert('Error al importar: ' + err.message); }
+    };
+    reader.readAsText(file);
+}
+
+async function fixAllMissingAddresses() {
+    const venues = getVenues();
+    let fixed = 0;
+    for (const ev of eventos) {
+        if (!ev.cines || ev.cines.length === 0) continue;
+        let changed = false;
+        const newCines = ev.cines.map(c => {
+            if (c.direccion) return c;
+            const match = findVenueMatch(c.nombre);
+            if (match) { changed = true; fixed++; return { ...c, direccion: match.direccion }; }
+            return c;
+        });
+        if (changed) {
+            await fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${ev.id}`, {
+                method: 'PATCH', headers: HK, body: JSON.stringify({ cines: newCines })
+            });
+        }
+    }
+    alert(`${fixed} direcciones completadas desde la base de venues`);
+    loadData();
+}
+
+async function syncAddressesFromDB() {
+    if (!confirm('Esto va a reemplazar TODAS las direcciones de salas/teatros con las que están en la base de venues. ¿Continuar?')) return;
+    let updated = 0;
+    for (const ev of eventos) {
+        if (!ev.cines || ev.cines.length === 0) continue;
+        let changed = false;
+        const newCines = ev.cines.map(c => {
+            const match = findVenueMatch(c.nombre);
+            if (match && match.direccion !== c.direccion) { changed = true; updated++; return { ...c, direccion: match.direccion }; }
+            return c;
+        });
+        if (changed) {
+            await fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${ev.id}`, {
+                method: 'PATCH', headers: HK, body: JSON.stringify({ cines: newCines })
+            });
+        }
+    }
+    alert(`${updated} direcciones actualizadas desde la base de venues`);
+    loadData();
+}
+
+function applyVenue(evtId, ci, field, nombre, direccion) {
+    const ev = eventos.find(e => e.id === evtId);
+    if (!ev || !ev.cines || !ev.cines[ci]) return;
+    ev.cines[ci].nombre = nombre;
+    ev.cines[ci].direccion = direccion;
+    fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${evtId}`, { method: 'PATCH', headers: HK, body: JSON.stringify({ cines: ev.cines }) });
+    closeVenueDropdown();
+    renderEventosFor(ev.escenario_id);
+}
+
+function closeVenueDropdown() {
+    const dd = document.getElementById('venueDropdown');
+    if (dd) dd.remove();
+}
+
+document.addEventListener('click', e => { if (!e.target.closest('.venue-sug')) closeVenueDropdown(); });
+
 async function uploadPhoto(file, folder, oldUrl) {
     if (!file) return null;
     // Delete old photo if it's from our bucket
@@ -384,6 +701,7 @@ async function uploadPhoto(file, folder, oldUrl) {
 }
 
 async function loadData() {
+    initVenueDB();
     const er = await fetch(`${SUPA_URL}/rest/v1/escenarios?select=*&activo=eq.true&order=nombre`, { headers: HK });
     escenarios = await er.json();
     const evr = await fetch(`${SUPA_URL}/rest/v1/eventos?select=*,escenarios(nombre)&activo=eq.true&order=fecha`, { headers: HK });
@@ -409,6 +727,7 @@ async function loadData() {
 }
 
 async function renderCinesLogos() {
+    renderVenueList();
     const el = document.getElementById('cinesLogosList');
     // Group by cadena
     const cadenas = {};
@@ -502,7 +821,7 @@ function showTab(tab, btn) {
     document.getElementById('tabRaspar').style.display = tab === 'raspar' ? 'block' : 'none';
     document.getElementById('tabAgregar').style.display = tab === 'agregar' ? 'block' : 'none';
     document.getElementById('tabCines').style.display = tab === 'cines' ? 'block' : 'none';
-    if (tab === 'cines') renderCinesLogos();
+    if (tab === 'cines') { renderCinesLogos(); renderVenueList(); }
 }
 
 let selectedEvtIds = new Set();
@@ -579,53 +898,85 @@ async function deleteSelectedEvents() {
     loadData();
 }
 
-function selectEscenario(id) {
-    selectedEscId = id;
-    document.getElementById('eventosSection').style.display = 'block';
-    renderEventosFor(id);
-    document.getElementById('eventosSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-function closeEventos() {
-    selectedEscId = null;
-    document.getElementById('eventosSection').style.display = 'none';
-}
-
 function renderEventosFor(escId) {
     const esc = escenarios.find(e => e.id === escId);
     document.getElementById('eventosTitle').textContent = `Eventos de: ${esc?.nombre || ''}`;
-    const evts = eventos.filter(e => e.escenario_id === escId);
+    const searchVal = (document.getElementById('evtSearchInput')?.value || '').toLowerCase().trim();
+    let evts = eventos.filter(e => e.escenario_id === escId);
+    if (searchVal) {
+        evts = evts.filter(e => {
+            const nameMatch = e.nombre.toLowerCase().includes(searchVal);
+            const cineMatch = e.cines && e.cines.some(c => (c.nombre||'').toLowerCase().includes(searchVal) || (c.direccion||'').toLowerCase().includes(searchVal));
+            const artistaMatch = (e.artista||'').toLowerCase().includes(searchVal);
+            const generoMatch = (e.genero||'').toLowerCase().includes(searchVal);
+            return nameMatch || cineMatch || artistaMatch || generoMatch;
+        });
+    }
     const el = document.getElementById('eventosList');
     if (evts.length === 0) {
         el.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>Sin eventos. Agregalos o raspa la web del escenario.</p></div>';
-        updateEvtSelectedCount();
         return;
     }
-    el.innerHTML = `<div style="margin-bottom:8px;"><label style="font-size:12px;color:#888;cursor:pointer;"><input type="checkbox" id="selectAllEvt" onchange="toggleSelectAllEvt(this.checked)"> Marcar todos (${evts.length})</label></div>` +
-    evts.map(e => {
-        const photo = e.foto_url ? `<img src="${e.foto_url}" class="event-photo" onerror="this.outerHTML='<div class=\\'event-photo no-photo\\'>🎵</div>'">` : '<div class="event-photo no-photo">🎵</div>';
-        const dateStr = e.fecha ? (e.fecha_fin ? formatDate(e.fecha) + ' al ' + formatDate(e.fecha_fin) : formatDate(e.fecha)) : 'Sin fecha';
-        const ticketBtn = e.url_entrada ? `<a href="${e.url_entrada}" target="_blank" class="btn btn-warning" style="font-size:11px;">Entradas</a>` : '';
-        const santanderBtn = e.url_santander ? `<a href="${e.url_santander}" target="_blank" class="btn" style="font-size:11px;background:#EC0000;color:white;">Santander</a>` : '';
+    const missingAddr = evts.filter(e => e.cines && e.cines.length > 0 && e.cines.some(c => !c.direccion)).length;
+    const summaryHtml = missingAddr > 0 ? `<div style="margin-bottom:6px;padding:5px 8px;background:#3d2800;border:1px solid #d97706;border-radius:6px;font-size:11px;color:#f59e0b;">⚠ ${missingAddr} evento(s) sin dirección</div>` : '';
+    const allChecked = evts.every(e => selectedEvtIds.has(e.id));
+    el.innerHTML = summaryHtml + `<div style="margin-bottom:6px;display:flex;gap:8px;align-items:center;font-size:11px;">
+        <label style="color:#888;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" ${allChecked?'checked':''} onchange="toggleSelectAllEvt(this.checked)" style="cursor:pointer;"> Todos (${evts.length})</label>
+    </div>` + evts.map(e => {
+        const cines = e.cines || [];
+        const cinesMissing = cines.length > 0 && cines.some(c => !c.direccion);
+        const borderColor = cinesMissing ? '#d97706' : (cines.length > 0 && cines.every(c => c.direccion) ? '#238636' : '#3a3d4e');
         const checked = selectedEvtIds.has(e.id) ? 'checked' : '';
-        return `<div class="event-card">
-            <input type="checkbox" ${checked} onchange="toggleSelectEvt('${e.id}', this.checked)" style="margin-right:8px;cursor:pointer;align-self:center;">
-            ${photo}
-            <div class="event-info">
-                <div class="name">${e.nombre}</div>
-                <div class="detail date">${dateStr} ${e.hora ? '- ' + e.hora : ''}</div>
-                <div class="detail">${e.artista || ''}</div>
-                <div class="detail genre">${e.genero || ''} ${e.precio ? '| ' + e.precio : ''}</div>
+
+        const cinesInline = cines.map((c, ci) => {
+            return `<div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:3px;margin-bottom:2px;position:relative;">
+                <input type="text" value="${escHtml(c.nombre||'')}" placeholder="Nombre" oninput="venueAutocomplete(this,'${e.id}',${ci},'nombre')" onfocus="venueAutocomplete(this,'${e.id}',${ci},'nombre')" style="font-size:10px;padding:2px 4px;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:3px;position:relative;">
+                <input type="text" value="${escHtml(c.direccion||'')}" placeholder="Dirección" oninput="venueAutocomplete(this,'${e.id}',${ci},'direccion')" onfocus="venueAutocomplete(this,'${e.id}',${ci},'direccion')" style="font-size:10px;padding:2px 4px;background:#1a1d2e;border:1px solid ${c.direccion ? '#238636' : '#d97706'};color:#e0e0e0;border-radius:3px;">
+                <input type="text" value="${escHtml(c.horarios||'')}" placeholder="Horarios" onchange="updateEvtCine('${e.id}',${ci},'horarios',this.value)" style="font-size:10px;padding:2px 4px;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:3px;">
+            </div>`;
+        }).join('');
+
+        return `<div style="border:1px solid #2a2d3e;border-left:3px solid ${borderColor};border-radius:6px;padding:6px 8px;margin-bottom:5px;background:#1a1d2e;">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <input type="checkbox" ${checked} onchange="toggleSelectEvt('${e.id}',this.checked)" style="cursor:pointer;width:12px;height:12px;">
+                <span style="font-size:12px;font-weight:bold;color:#e0e0e0;">${e.nombre}</span>
+                <input type="date" value="${e.fecha||''}" onchange="updateEvtField('${e.id}','fecha',this.value)" style="font-size:10px;padding:1px 4px;background:#0d1017;border:1px solid #3a3d4e;color:#f59e0b;border-radius:3px;">
+                <input type="text" value="${escHtml(e.hora||'')}" placeholder="Hora" onchange="updateEvtField('${e.id}','hora',this.value)" style="font-size:10px;padding:1px 4px;background:#0d1017;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:3px;width:50px;">
+                <input type="text" value="${escHtml(e.genero||'')}" placeholder="Género" onchange="updateEvtField('${e.id}','genero',this.value)" style="font-size:10px;padding:1px 4px;background:#0d1017;border:1px solid #3a3d4e;color:#a78bfa;border-radius:3px;width:70px;">
+                <input type="text" value="${escHtml(e.precio||'')}" placeholder="Precio" onchange="updateEvtField('${e.id}','precio',this.value)" style="font-size:10px;padding:1px 4px;background:#0d1017;border:1px solid #3a3d4e;color:#34d399;border-radius:3px;width:70px;">
+                ${e.url_entrada ? `<a href="${e.url_entrada}" target="_blank" style="font-size:9px;color:#f59e0b;">🎫</a>` : ''}
+                <button onclick="deleteEvento('${e.id}')" style="font-size:9px;padding:1px 5px;background:#dc2626;color:white;border:none;border-radius:3px;cursor:pointer;">✕</button>
             </div>
-            <div class="event-actions">
-                ${ticketBtn}
-                ${santanderBtn}
-                <button class="btn btn-ghost" onclick="openEditEvento('${e.id}')">Editar</button>
-                <button class="btn btn-danger" onclick="deleteEvento('${e.id}')" style="padding:8px 10px;">X</button>
-            </div>
+            ${cines.length > 0 ? `<div style="margin-top:4px;padding:4px;background:#0d1017;border-radius:4px;">
+                <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:3px;margin-bottom:2px;">
+                    <span style="font-size:8px;color:#60a5fa;">NOMBRE</span>
+                    <span style="font-size:8px;color:#60a5fa;">DIRECCIÓN</span>
+                    <span style="font-size:8px;color:#60a5fa;">HORARIOS</span>
+                </div>
+                ${cinesInline}
+            </div>` : ''}
         </div>`;
     }).join('');
     updateEvtSelectedCount();
+}
+
+function filterEvents() {
+    if (selectedEscId) renderEventosFor(selectedEscId);
+}
+
+function updateEvtField(id, field, value) {
+    const e = eventos.find(x => x.id === id);
+    if (!e) return;
+    e[field] = value;
+    fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${id}`, { method: 'PATCH', headers: HK, body: JSON.stringify({ [field]: value || null }) });
+}
+
+function updateEvtCine(id, ci, field, value) {
+    const e = eventos.find(x => x.id === id);
+    if (!e || !e.cines || !e.cines[ci]) return;
+    e.cines[ci][field] = value;
+    fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${id}`, { method: 'PATCH', headers: HK, body: JSON.stringify({ cines: e.cines }) });
+    renderEventosFor(e.escenario_id);
 }
 
 function formatDate(f) {
@@ -1142,12 +1493,21 @@ async function doScrape() {
                             doc.querySelectorAll('.salas > li').forEach(li => {
                                 const sala = li.querySelector('.heading.small.bold')?.textContent?.trim() || '';
                                 if (!sala) return;
-                                const addrEl = li.querySelector('.event-data .text') || null;
                                 let addr = '';
+                                const addrEl = li.querySelector('.event-data .text') || null;
                                 if (addrEl) {
                                     const full = addrEl.textContent?.trim() || '';
                                     const m = full.match(/Direcci[oó]n:\s*(.+)/i);
                                     if (m) addr = m[1].trim();
+                                    else {
+                                        const streetMatch = full.match(/((?:Av\.|Avenida|Calle|C\.|Rambla|Bvar\.|Boulevard|Pza\.|Plaza)\s+.+)/i);
+                                        if (streetMatch) addr = streetMatch[1].trim();
+                                    }
+                                }
+                                if (!addr) {
+                                    const allText = li.textContent || '';
+                                    const streetMatch = allText.match(/((?:Av\.|Avenida|Calle|C\.|Rambla|Bvar\.|Boulevard|Pza\.|Plaza)\s+[^,.\n]{3,40})/i);
+                                    if (streetMatch) addr = streetMatch[1].trim();
                                 }
                                 const horarios = [];
                                 li.querySelectorAll('.lista-horarios > li').forEach(hli => {
@@ -1164,21 +1524,33 @@ async function doScrape() {
                         } catch(e) { return null; }
                     }));
                     let enriched = 0;
+                    let noSalasCount = 0;
                     for (const r of results) {
                         if (r.status !== 'fulfilled' || !r.value) continue;
                         const { ev, salas, meta, precio } = r.value;
                         if (salas.length > 0) {
-                            ev.cines = salas.map(s => ({
-                                nombre: s.nombre, direccion: s.direccion || '', lat: 0, lon: 0, depto: 'Montevideo',
-                                horarios: s.horarios.map(h => `${h.fecha} ${h.horas}`).join(' | '),
-                                idiomas: ''
-                            }));
+                            ev.cines = salas.map(s => {
+                                let d = s.direccion || '';
+                                if (!d && meta) {
+                                    const m2 = meta.match(/((?:Av\.|Avenida|Calle|C\.|Rambla|Bvar\.|Boulevard|Pza\.|Plaza)\s+[^,.\n]{3,40})/i);
+                                    if (m2) d = m2[1].trim();
+                                }
+                                return {
+                                    nombre: s.nombre, direccion: d, lat: 0, lon: 0, depto: 'Montevideo',
+                                    horarios: s.horarios.map(h => `${h.fecha} ${h.horas}`).join(' | '),
+                                    idiomas: ''
+                                };
+                            });
                             ev.cines_count = salas.length;
+                        } else {
+                            ev.cines = [{ nombre: '', direccion: '', lat: 0, lon: 0, depto: 'Montevideo', horarios: '', idiomas: '' }];
+                            ev.cines_count = 1;
+                            noSalasCount++;
                         }
                         if (precio) ev.precio = precio;
                         enriched++;
                     }
-                    log.textContent += `  ${Math.min(i + BATCH, events.length)}/${events.length} enriquecidos (${enriched} con salas)\n`;
+                    log.textContent += `  ${Math.min(i + BATCH, events.length)}/${events.length} enriquecidos (${enriched} con salas, ${noSalasCount} sin sala - campos para completar)\n`;
                     await new Promise(r => setTimeout(r, 300));
                 }
             } else {
@@ -1286,44 +1658,56 @@ function showScraped(events) {
     document.getElementById('scrapedArea').style.display = 'block';
     document.getElementById('scrapedCount').textContent = `Eventos encontrados: ${events.length}`;
     const el = document.getElementById('scrapedList');
-    el.innerHTML = events.map((e, i) => {
-        const photo = e.foto_url ? `<img src="${e.foto_url}" class="photo-preview" onerror="this.outerHTML='<div class=\\'photo-preview no-photo\\'>🎬</div>'">` : '<div class="photo-preview no-photo">🎬</div>';
-        const venueNames = (e.cines && e.cines.length > 0) ? e.cines.map(c => c.nombre).join(', ') : '';
-        const displayName = venueNames ? `${e.nombre} <span style="font-size:12px;color:#888;">(${venueNames})</span>` : e.nombre;
-        let cinesHtml = '';
-        if (e.cines && e.cines.length > 0) {
-            cinesHtml = `<div class="full" style="margin-top:6px;">
-                <label>🎭 Salas (${e.cines.length})</label>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
-                    ${e.cines.map((c, ci) => `<button type="button" class="btn btn-ghost" style="font-size:10px;padding:3px 8px;border-radius:12px;" onclick="toggleCineDetail(${i}, ${ci})" id="cineBtn_${i}_${ci}">${c.nombre}</button>`).join('')}
+
+    const needsAddr = events.filter(e => e.cines && e.cines.some(c => !c.direccion)).length;
+    const hasAddr = events.filter(e => e.cines && e.cines.every(c => c.direccion)).length;
+    const summaryHtml = `<div style="display:flex;gap:12px;margin-bottom:12px;font-size:12px;">
+        <span style="color:#f59e0b;">⚠ ${needsAddr} sin dirección</span>
+        <span style="color:#238636;">✓ ${hasAddr} con dirección</span>
+    </div>`;
+
+    el.innerHTML = summaryHtml + events.map((e, i) => {
+        const cines = e.cines || [];
+        const hasAddr = cines.some(c => c.direccion);
+        const borderColor = hasAddr ? '#238636' : '#d97706';
+        const esc = escenarios.find(es => es.id === e.escenario_id);
+        const escAddr = esc?.direccion || '';
+
+        const cinesCompact = cines.map((c, ci) => {
+            const addrStatus = c.direccion ? '✅' : '⚠️';
+            return `<div style="background:#0d1017;border:1px solid #2a2d3e;border-radius:6px;padding:6px 8px;margin-top:4px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                    <input type="text" value="${escHtml(c.nombre||'')}" placeholder="Sala / Teatro" onchange="scrapedEvents[${i}].cines[${ci}].nombre=this.value" style="font-size:11px;padding:4px 6px;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;">
+                    <div style="display:flex;gap:2px;">
+                        <input type="text" value="${escHtml(c.direccion||'')}" placeholder="Dirección (completar)" onchange="scrapedEvents[${i}].cines[${ci}].direccion=this.value" style="font-size:11px;padding:4px 6px;background:#1a1d2e;border:1px solid ${c.direccion ? '#238636' : '#d97706'};color:#e0e0e0;border-radius:4px;flex:1;">
+                        <span style="font-size:10px;line-height:26px;">${addrStatus}</span>
+                    </div>
                 </div>
-                ${e.cines.map((c, ci) => `<div id="cineDetail_${i}_${ci}" style="display:none;background:#0d1017;border:1px solid #2a2d3e;border-radius:8px;padding:10px;margin-top:6px;font-size:11px;">
-                    <div style="color:#60a5fa;font-weight:bold;margin-bottom:4px;">${c.nombre}</div>
-                    <div style="color:#888;">📍 ${c.direccion || 'Sin dirección'}</div>
-                    <div style="color:#60a5fa;margin-top:2px;">🕐 ${c.horarios || 'Sin horarios'}</div>
-                    ${c.idiomas ? `<div style="color:#888;margin-top:2px;">🗣 ${c.idiomas}</div>` : ''}
-                    ${c.lat && c.lon ? `<div style="color:#555;margin-top:2px;">Coord: ${c.lat}, ${c.lon}</div>` : ''}
-                    ${c.direccion ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.direccion)}" target="_blank" style="display:inline-block;margin-top:6px;padding:4px 12px;background:#16a34a;color:#fff;border-radius:6px;text-decoration:none;font-size:11px;">🚗 Pedir coche</a>` : ''}
-                </div>`).join('')}
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:4px;margin-top:4px;">
+                    <input type="text" value="${escHtml(c.horarios||'')}" placeholder="Horarios" onchange="scrapedEvents[${i}].cines[${ci}].horarios=this.value" style="font-size:11px;padding:4px 6px;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;">
+                    <input type="text" value="${escHtml(c.idiomas||'')}" placeholder="Idiomas" onchange="scrapedEvents[${i}].cines[${ci}].idiomas=this.value" style="font-size:11px;padding:4px 6px;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;">
+                </div>
             </div>`;
-        }
-        const hasAnyAddress = e.cines && e.cines.some(c => c.direccion);
-        const rideBtn = hasAnyAddress ? `<div class="full" style="margin-top:6px;"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.cines.find(c => c.direccion)?.direccion || '')}" target="_blank" style="display:inline-block;padding:6px 16px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:bold;">🚗 Pedir coche</a></div>` : '';
-        return `<div class="scraped-card" id="scraped_${i}">
-            <div class="header">
-                ${photo}
-                <div class="fields">
-                    <div class="full"><label>Película / Obra</label><div style="font-size:16px;font-weight:bold;color:#e0e0e0;padding:4px 0;">${displayName}</div><input type="hidden" value="${escHtml(e.nombre)}" onchange="scrapedEvents[${i}].nombre=this.value"></div>
-                    <div><label>Fecha</label><input type="date" value="${e.fecha||''}" onchange="scrapedEvents[${i}].fecha=this.value"></div>
-                    <div><label>Género</label><input type="text" value="${escHtml(e.genero||'')}" onchange="scrapedEvents[${i}].genero=this.value"></div>
-                    ${rideBtn}
-                    ${cinesHtml}
-                    <div class="full"><label>Foto URL</label><input type="text" value="${escHtml(e.foto_url||'')}" onchange="scrapedEvents[${i}].foto_url=this.value"></div>
-                    <div class="full"><label>URL entradas</label><input type="text" value="${escHtml(e.url_entrada||'')}" onchange="scrapedEvents[${i}].url_entrada=this.value"></div>
+        }).join('');
+
+        const rideAddr = hasAddr ? (cines.find(c => c.direccion)?.direccion || '') : escAddr;
+
+        return `<div class="scraped-card" id="scraped_${i}" style="border-left:3px solid ${borderColor};">
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+                ${e.foto_url ? `<img src="${e.foto_url}" style="width:60px;height:80px;border-radius:6px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:14px;font-weight:bold;color:#e0e0e0;">${e.nombre}</div>
+                    <div style="display:flex;gap:8px;margin-top:4px;">
+                        <input type="date" value="${e.fecha||''}" onchange="scrapedEvents[${i}].fecha=this.value" style="font-size:11px;padding:3px 6px;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;">
+                        <input type="text" value="${escHtml(e.genero||'')}" placeholder="Género" onchange="scrapedEvents[${i}].genero=this.value" style="font-size:11px;padding:3px 6px;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;flex:1;">
+                    </div>
+                    ${cinesCompact}
+                    ${rideAddr ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rideAddr)}" target="_blank" style="display:inline-block;margin-top:4px;padding:3px 10px;background:#16a34a;color:#fff;border-radius:4px;text-decoration:none;font-size:10px;">🚗 Pedir coche</a>` : ''}
+                    <div style="display:flex;gap:6px;margin-top:4px;">
+                        <input type="text" value="${escHtml(e.url_entrada||'')}" placeholder="URL entradas" onchange="scrapedEvents[${i}].url_entrada=this.value" style="font-size:10px;padding:3px 6px;background:#1a1d2e;border:1px solid #3a3d4e;color:#888;border-radius:4px;flex:1;">
+                        <button class="btn btn-danger" onclick="removeScraped(${i})" style="font-size:10px;padding:3px 8px;">✕</button>
+                    </div>
                 </div>
-            </div>
-            <div class="scraped-actions">
-                <button class="btn btn-danger" onclick="removeScraped(${i})">Eliminar</button>
             </div>
         </div>`;
     }).join('');
@@ -1402,16 +1786,26 @@ async function saveAllScraped() {
         let existing = eventos.find(e => e.escenario_id === ev.escenario_id && e.nombre.toLowerCase().trim() === ev.nombre.toLowerCase().trim());
         if (existing) { log.textContent += `Ya existe: ${ev.nombre}\n`; continue; }
 
-        const cinesData = (ev.cines && ev.cines.length > 0) ? ev.cines.map(c => ({
-            nombre: c.nombre || '',
-            direccion: c.direccion || '',
-            lat: c.lat || 0,
-            lon: c.lon || 0,
-            horarios: c.horarios || '',
-            idiomas: c.idiomas || '',
-            logo_url: c.logo_url || '',
-            departamento: c.depto || ''
-        })) : null;
+        const esc = escenarios.find(e => e.id === ev.escenario_id);
+        const escDireccion = esc?.direccion || '';
+
+        const cinesData = (ev.cines && ev.cines.length > 0) ? ev.cines.map(c => {
+            let dir = c.direccion || '';
+            if (!dir) {
+                const match = findVenueMatch(c.nombre);
+                if (match) dir = match.direccion;
+            }
+            return {
+                nombre: c.nombre || '',
+                direccion: dir || escDireccion || '',
+                lat: c.lat || esc?.lat || 0,
+                lon: c.lon || esc?.lon || 0,
+                horarios: c.horarios || '',
+                idiomas: c.idiomas || '',
+                logo_url: c.logo_url || '',
+                departamento: c.depto || ''
+            };
+        }) : null;
 
         const body = {
             escenario_id: ev.escenario_id, nombre: ev.nombre, artista: ev.artista || null,
@@ -1584,11 +1978,70 @@ function openEditEvento(id) {
     document.getElementById('editEvtSantander').value = e.url_santander || '';
     document.getElementById('editEvtFoto').value = e.foto_url || '';
     document.getElementById('editEvtDesc').value = e.descripcion || '';
+
+    const cinesSection = document.getElementById('editEvtCinesSection');
+    const cinesList = document.getElementById('editEvtCinesList');
+    if (e.cines && e.cines.length > 0) {
+        cinesSection.style.display = 'block';
+        cinesList.innerHTML = e.cines.map((c, ci) => {
+            const addrIcon = c.direccion ? '✅' : '⚠️';
+            return `<div style="background:#0d1017;border:1px solid #2a2d3e;border-radius:8px;padding:8px;margin-top:6px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <div><label style="font-size:10px;color:#60a5fa;">Sala / Teatro</label><input type="text" value="${escHtml(c.nombre||'')}" id="editCineNombre_${ci}" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;"></div>
+                    <div><label style="font-size:10px;color:#60a5fa;">Dirección ${addrIcon}</label><input type="text" value="${escHtml(c.direccion||'')}" id="editCineDir_${ci}" placeholder="Completar dirección" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid ${c.direccion ? '#238636' : '#d97706'};color:#e0e0e0;border-radius:4px;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:6px;margin-top:4px;">
+                    <div><label style="font-size:10px;color:#888;">Horarios</label><input type="text" value="${escHtml(c.horarios||'')}" id="editCineHorarios_${ci}" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;"></div>
+                    <div><label style="font-size:10px;color:#888;">Idiomas</label><input type="text" value="${escHtml(c.idiomas||'')}" id="editCineIdiomas_${ci}" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;"></div>
+                </div>
+            </div>`;
+        }).join('');
+    } else {
+        cinesSection.style.display = 'none';
+        cinesList.innerHTML = '';
+    }
     document.getElementById('modalEvt').style.display = 'flex';
+}
+
+function addEditEvtCine() {
+    const list = document.getElementById('editEvtCinesList');
+    const ci = list.children.length;
+    const div = document.createElement('div');
+    div.style.cssText = 'background:#0d1017;border:1px solid #2a2d3e;border-radius:8px;padding:8px;margin-top:6px;';
+    div.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div><label style="font-size:10px;color:#60a5fa;">Sala / Teatro</label><input type="text" id="editCineNombre_${ci}" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;"></div>
+        <div><label style="font-size:10px;color:#60a5fa;">Dirección</label><input type="text" id="editCineDir_${ci}" placeholder="Av. 18 de Julio 1234" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid #d97706;color:#e0e0e0;border-radius:4px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:6px;margin-top:4px;">
+        <div><label style="font-size:10px;color:#888;">Horarios</label><input type="text" id="editCineHorarios_${ci}" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;"></div>
+        <div><label style="font-size:10px;color:#888;">Idiomas</label><input type="text" id="editCineIdiomas_${ci}" style="font-size:12px;padding:5px;width:100%;background:#1a1d2e;border:1px solid #3a3d4e;color:#e0e0e0;border-radius:4px;"></div>
+    </div>`;
+    list.appendChild(div);
+    document.getElementById('editEvtCinesSection').style.display = 'block';
 }
 
 async function updateEvento() {
     const id = document.getElementById('editEvtId').value;
+    const e = eventos.find(x => x.id === id);
+
+    const cinesList = document.getElementById('editEvtCinesList');
+    let cinesData = e?.cines || null;
+    if (cinesList.children.length > 0) {
+        cinesData = [];
+        for (let ci = 0; ci < cinesList.children.length; ci++) {
+            const nombre = document.getElementById(`editCineNombre_${ci}`)?.value || '';
+            const direccion = document.getElementById(`editCineDir_${ci}`)?.value || '';
+            const horarios = document.getElementById(`editCineHorarios_${ci}`)?.value || '';
+            const idiomas = document.getElementById(`editCineIdiomas_${ci}`)?.value || '';
+            const old = e?.cines?.[ci] || {};
+            cinesData.push({
+                nombre, direccion, horarios, idiomas,
+                lat: old.lat || 0, lon: old.lon || 0,
+                depto: old.depto || '', logo_url: old.logo_url || ''
+            });
+        }
+    }
+
     const body = {
         nombre: document.getElementById('editEvtNombre').value,
         artista: document.getElementById('editEvtArtista').value || null,
@@ -1600,7 +2053,8 @@ async function updateEvento() {
         url_entrada: document.getElementById('editEvtUrl').value || null,
         url_santander: document.getElementById('editEvtSantander').value || null,
         foto_url: document.getElementById('editEvtFoto').value || null,
-        descripcion: document.getElementById('editEvtDesc').value || null
+        descripcion: document.getElementById('editEvtDesc').value || null,
+        cines: cinesData
     };
     if (id) {
         await fetch(`${SUPA_URL}/rest/v1/eventos?id=eq.${id}`, { method: 'PATCH', headers: HK, body: JSON.stringify(body) });

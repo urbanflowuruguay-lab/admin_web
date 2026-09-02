@@ -1,0 +1,46 @@
+[
+  {
+    "id": "cli_001",
+    "token": "abc123",
+    "nombre": "Juan Pérez",
+    "telefono": "099123456",
+    "email": "juan@email.com",
+    "documento": "12345678",
+    "tipo_documento": "cedula",
+    "direcciones": [
+      {
+        "id": "dir_001",
+        "calle": "Av. 18 de Julio",
+        "numero": 1234,
+        "apto": "5",
+        "referencias": "Frente al polideportivo",
+        "lat": -34.9011,
+        "lon": -56.1645,
+        "es_default": true
+      }
+    ],
+    "metodos_pago": [
+      {
+        "tipo": "tarjeta",
+        "ultimos_4": "1234",
+        "mp_token": "...",
+        "es_default": true
+      }
+    ],
+    "statisticas": {
+      "total_pedidos": 10,
+      "total_gastado": 8500,
+      "ultima_compra": "2026-09-01",
+      "producto_favorito": "Paracetamol 500mg",
+      "ticket_promedio": 850
+    },
+    "fidelidad": {
+      "puntos_actuales": 85,
+      "puntos_total_historico": 850,
+      "nivel": "bronce",
+      "beneficios": ["5% descuento en cumpleaños"]
+    },
+    "notas": "Cliente frecuente",
+    "created_at": "2026-01-15"
+  }
+]

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personaje IA - UrbanFlow</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(135deg,#0a0e17,#111827);min-height:100vh;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{font-size:28px;margin-bottom:6px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:#94a3b8;margin-bottom:24px;font-size:14px}
+.card{background:rgba(30,41,59,.95);border-radius:16px;padding:24px;width:100%;max-width:700px;border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.4);margin-bottom:16px}
+.card h2{font-size:16px;color:#60a5fa;margin-bottom:14px}
+.zone{border:2px dashed rgba(255,255,255,.15);border-radius:12px;padding:30px;text-align:center;cursor:pointer;transition:.3s}
+.zone:hover{border-color:#3b82f6;background:rgba(59,130,246,.05)}
+.zone.ok{border-color:#22c55e;border-style:solid}
+.zone input{display:none}
+.zone .ic{font-size:36px;margin-bottom:8px}
+.zone .lb{color:#94a3b8;font-size:13px}
+.zone .fn{color:#22c55e;font-weight:600;margin-top:6px;font-size:14px}
+.prev{max-width:200px;max-height:200px;border-radius:8px;margin-top:10px;object-fit:cover}
+textarea{width:100%;min-height:80px;background:rgba(15,23,42,.8);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;color:#e2e8f0;font-size:14px;resize:vertical;font-family:inherit}
+textarea:focus{outline:none;border-color:#3b82f6}
+textarea::placeholder{color:#64748b}
+select{width:100%;background:rgba(15,23,42,.8);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;color:#e2e8f0;font-size:13px}
+select:focus{outline:none;border-color:#3b82f6}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:.3s;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;margin-top:12px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(59,130,246,.3)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.st{margin-top:12px;padding:12px;border-radius:8px;font-size:13px;display:none}
+.st.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#86efac}
+.st.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5}
+.st.run{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:#93c5fd}
+.vid{width:100%;max-width:480px;border-radius:12px;margin-top:16px;display:none}
+.info{font-size:12px;color:#64748b;margin-top:8px;line-height:1.5}
+.info b{color:#94a3b8}
+a.bk{color:#64748b;text-decoration:none;font-size:13px;margin-top:16px;display:inline-block}
+a.bk:hover{color:#94a3b8}
+.exemplos{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.exemplos button{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(15,23,42,.6);color:#94a3b8;font-size:12px;cursor:pointer;transition:.2s}
+.exemplos button:hover{border-color:#3b82f6;color:#60a5fa}
+</style>
+</head>
+<body>
+<h1>Personaje IA</h1>
+<p class="sub">Escribi texto, subi una foto, y genera un video con la boca sincronizada</p>
+
+<div class="card">
+  <h2>1. Foto del personaje</h2>
+  <div class="zone" id="pz" onclick="document.getElementById('pi').click()">
+    <input type="file" id="pi" accept="image/*">
+    <div class="ic">Foto</div>
+    <div class="lb">Arrastra una foto o haz click</div>
+    <div class="fn" id="pn"></div>
+  </div>
+  <img id="pp" class="prev" style="display:none">
+  <p class="info"><b>Tip:</b> Foto frontal de rostro, buena iluminacion.</p>
+</div>
+
+<div class="card">
+  <h2>2. Texto a decir</h2>
+  <textarea id="txtInput" placeholder="Escribi lo que quieras que diga el personaje..."></textarea>
+  <div class="exemplos">
+    <button onclick="setTxt('Hola, soy el asistente de UrbanFlow. En que puedo ayudarte?')">Saludo</button>
+    <button onclick="setTxt('Bienvenido a UrbanFlow, la app de transporte inteligente.')">Intro</button>
+    <button onclick="setTxt('El proximo colectivo llega en 3 minutos.')">Alerta</button>
+  </div>
+  <p class="info"><b>Voz:</b> Sebastian (es-UY). El audio se genera automaticamente.</p>
+</div>
+
+<div class="card">
+  <h2>3. Configuracion</h2>
+  <label style="display:block;margin-bottom:10px">
+    <span style="font-size:12px;color:#94a3b8">Preprocesado</span>
+    <select id="sel_pre"><option value="crop" selected>Crop (recomendado)</option><option value="resize">Resize</option><option value="full">Full body</option></select>
+  </label>
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;cursor:pointer">
+    <input type="checkbox" id="chk_gfpgan" checked> GFPGAN (mejor cara)
+  </label>
+</div>
+
+<div class="card" style="text-align:center">
+  <button class="btn" id="btnGen" onclick="gen()">Generar Video</button>
+  <div class="st" id="status"></div>
+  <video id="result" class="vid" controls></video>
+  <a id="dlink" class="bk" style="display:none" download="personaje.mp4">Descargar video</a>
+</div>
+
+<script>
+let photoFile=null;
+
+function setTxt(t){document.getElementById('txtInput').value=t}
+
+const pi=document.getElementById('pi');
+const pz=document.getElementById('pz');
+const pp=document.getElementById('pp');
+const pn=document.getElementById('pn');
+pi.onchange=e=>{if(e.target.files[0])setPhoto(e.target.files[0])};
+pz.ondragover=e=>{e.preventDefault();pz.classList.add('dragging')};
+pz.ondragleave=()=>pz.classList.remove('dragging');
+pz.ondrop=e=>{e.preventDefault();pz.classList.remove('dragging');if(e.dataTransfer.files[0])setPhoto(e.dataTransfer.files[0])};
+function setPhoto(f){photoFile=f;pn.textContent=f.name;pz.classList.add('ok');pp.src=URL.createObjectURL(f);pp.style.display='block'}
+
+function show(msg,type){const s=document.getElementById('status');s.textContent=msg;s.className='st '+type;s.style.display='block'}
+
+function b64(file){return new Promise(r=>{const reader=new FileReader();reader.onload=()=>r(reader.result);reader.readAsDataURL(file)})}
+
+async function gen(){
+  const btn=document.getElementById('btnGen');
+  const text=document.getElementById('txtInput').value.trim();
+  if(!photoFile){show('Subi una foto','err');return}
+  if(!text){show('Escribi un texto','err');return}
+  btn.disabled=true;
+
+  try{
+    show('Generando audio con Edge TTS...','run');
+    const ttsResp=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'text='+encodeURIComponent(text)});
+    if(!ttsResp.ok)throw new Error('TTS error: '+ttsResp.status);
+    const audioBlob=await ttsResp.blob();
+    const audioB64=await b64(audioBlob);
+    const audioBase64='data:audio/mpeg;base64,'+audioB64.split(',')[1];
+
+    show('Convirtiendo foto...','run');
+    const imgB64=await b64(photoFile);
+
+    const prep=document.getElementById('sel_pre').value;
+    const gfpg=document.getElementById('chk_gfpgan').checked;
+
+    show('Enviando a SadTalker... (puede tardar 1-5 min)','run');
+
+    const formData=new FormData();
+    formData.append('image_data',imgB64);
+    formData.append('audio_data',audioBase64);
+    formData.append('preprocess',prep);
+    formData.append('gfpgan',gfpg);
+
+    const genResp=await fetch('/generate',{method:'POST',body:formData});
+    if(!genResp.ok){const err=await genResp.json();throw new Error(err.error||'Server error')}
+
+    const videoBlob=await genResp.blob();
+    const videoUrl=URL.createObjectURL(videoBlob);
+    document.getElementById('result').src=videoUrl;
+    document.getElementById('result').style.display='block';
+    document.getElementById('dlink').href=videoUrl;
+    document.getElementById('dlink').style.display='inline-block';
+    show('Video listo! (formato vertical 9:16)','ok');
+    btn.textContent='Listo!';
+  }catch(e){
+    show('Error: '+e.message,'err');
+    btn.textContent='Generar Video';
+  }
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>

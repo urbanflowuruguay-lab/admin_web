@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Configuración de Tarifas - UrbanFlow</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/auth-check.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; background-color: #0d1117; color: #c9d1d9; margin: 0; }
         h1 { color: #58a6ff; display: flex; align-items: center; gap: 15px; }
@@ -212,9 +211,11 @@
                             pais_code: c.code, ui_value: 0, ui_last_updated: null,
                             price_per_km: 40.0, min_fare: 100.0,
                             per_second_cost: 0.28,
-                            stop_price: 30.0, out_of_zone_index: 1.5, dynamic_multiplier: 1.0,
+                            stop_price: 30.0, out_of_zone_index: 1.5, reservation_index: 1.5, radar_index: 1.3, dynamic_multiplier: 1.0,
                             package_price: 50.0, pet_price: 30.0,
                             company_fee_ui: 5.5,
+                            canon_per_km_ui: 0.45,
+                            pasarela_fee_pct: 7.88,
                             cancel_free_time_sec: 120, cancel_free_show_time: true,
                             cancel_paid_time_sec: 300, cancel_apply_fare_formula: true,
                             cancel_base_fee: 50.0, cancel_per_min: 3.0, cancel_per_km: 15.0,
@@ -357,6 +358,16 @@
                                 <div class="hint">Multiplicador para zonas fuera del área</div>
                             </div>
                             <div class="form-group">
+                                <label>Índice de Reservas</label>
+                                <input type="number" id="reservationIndex_${activeTab}" value="${d.reservation_index || 1.5}" step="0.1" min="1" max="5">
+                                <div class="hint">Multiplicador del precio en reservas (x1.5 = +50%)</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Índice de Radar</label>
+                                <input type="number" id="radarIndex_${activeTab}" value="${d.radar_index || 1.3}" step="0.1" min="1" max="5">
+                                <div class="hint">Multiplicador del precio en radar (x1.3 = +30%)</div>
+                            </div>
+                            <div class="form-group">
                                 <label>Multiplicador Dinámico</label>
                                 <input type="number" id="dynamicMult_${activeTab}" value="${d.dynamic_multiplier || 1.0}" step="0.1" min="0" max="5">
                                 <div class="hint">x1.0 = sin cambio, x1.5 = +50%</div>
@@ -365,6 +376,16 @@
                                 <label>Comisión Empresa (UI)</label>
                                 <input type="number" id="companyFeeUi_${activeTab}" value="${d.company_fee_ui ?? 5.5}" step="0.1" min="0">
                                 <div class="hint">Ganancia de la empresa por viaje en UI</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Canon por Km (UI)</label>
+                                <input type="number" id="canonPerKmUi_${activeTab}" value="${d.canon_per_km_ui ?? 0.45}" step="0.01" min="0">
+                                <div class="hint">Costo de canon por km en UI</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Pasarela (%)</label>
+                                <input type="number" id="pasarelaFeePct_${activeTab}" value="${d.pasarela_fee_pct ?? 7.88}" step="0.01" min="0" max="50">
+                                <div class="hint">Porcentaje de comisión de MercadoPago</div>
                             </div>
                         </div>
                     </div>
@@ -491,63 +512,26 @@
                         <button class="btn-add-feriado" onclick="addFeriado('${activeTab}')">+ Agregar feriado</button>
                     </div>
 
-                    <div class="section-label">🚕 Tarifas Taxi (fijas, el chofer NO puede cambiar)</div>
-                    <div class="card">
-                        <div class="grid-3">
-                            <div class="form-group">
-                                <label>Precio por Km ($)</label>
-                                <input type="number" id="taxiPricePerKm_${activeTab}" value="${d.taxi_price_per_km || 55}" step="1" min="0">
-                                <div class="hint">Tarifa fija por kilómetro para taxis</div>
-                            </div>
-                            <div class="form-group">
-                                <label>Tarifa Mínima ($)</label>
-                                <input type="number" id="taxiMinFare_${activeTab}" value="${d.taxi_min_fare || 120}" step="1" min="0">
-                                <div class="hint">Monto mínimo que cobrará el taxi</div>
-                            </div>
-                            <div class="form-group">
-                                <label>Comisión Empresa (UI)</label>
-                                <input type="number" id="taxiCompanyFeeUi_${activeTab}" value="${d.taxi_company_fee_ui ?? 7.0}" step="0.1" min="0">
-                                <div class="hint">Ganancia de la empresa por viaje en UI</div>
-                            </div>
-                        </div>
-                        <div class="grid-3" style="margin-top:15px;">
-                            <div class="form-group">
-                                <label>Tiempo de Espera ($/seg)</label>
-                                <input type="number" id="taxiPerSecondCost_${activeTab}" value="${d.taxi_per_second_cost || 0.35}" step="0.01" min="0">
-                                <div class="hint">Se cobra después del tiempo libre (2 min)</div>
-                            </div>
-                            <div class="form-group">
-                                <label>Parada Intermedia ($)</label>
-                                <input type="number" id="taxiStopPrice_${activeTab}" value="${d.taxi_stop_price || 35}" step="0.5" min="0">
-                                <div class="hint">Costo fijo por cada parada extra</div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="rules-preview">
-                        <strong>Resumen Auto:</strong>
+                        <strong>Resumen:</strong>
                         Km: <b id="prevKm_${activeTab}">${d.price_per_km || 40}</b>$/km |
                         Mínimo: <b id="prevMin_${activeTab}">${d.min_fare || 100}</b>$ |
                         Espera: <b id="prevWait_${activeTab}">${d.per_second_cost || 0.28}</b>$/seg |
                         Parada: <b id="prevStop_${activeTab}">${d.stop_price || 30}</b>$ |
                         Empresa: <b id="prevCompFee_${activeTab}">${d.company_fee_ui ?? 5.5}</b> UI |
+                        Canon: <b id="prevCanonKm_${activeTab}">${d.canon_per_km_ui ?? 0.45}</b> UI/km |
+                        Pasarela: <b id="prevPasarela_${activeTab}">${d.pasarela_fee_pct ?? 7.88}</b>% |
                         <span id="prevNocturno_${activeTab}" class="${d.night_surcharge_active ? 'surcharge-active' : 'surcharge-inactive'}">Nocturno: ${d.night_surcharge_active ? 'ON' : 'OFF'}</span> |
                         <span id="prevDom_${activeTab}" class="${d.sunday_surcharge_active ? 'surcharge-active' : 'surcharge-inactive'}">Dom: ${d.sunday_surcharge_active ? 'ON' : 'OFF'}</span> |
                         <span id="prevFer_${activeTab}" class="${d.holiday_surcharge_active ? 'surcharge-active' : 'surcharge-inactive'}">Feriados: ${d.holiday_surcharge_active ? 'ON' : 'OFF'}</span>
-                        <br>
-                        <strong>Resumen Taxi:</strong>
-                        Km: <b id="prevTaxiKm_${activeTab}">${d.taxi_price_per_km || 55}</b>$/km |
-                        Mínimo: <b id="prevTaxiMin_${activeTab}">${d.taxi_min_fare || 120}</b>$ |
-                        Espera: <b id="prevTaxiWait_${activeTab}">${d.taxi_per_second_cost || 0.35}</b>$/seg |
-                        Parada: <b id="prevTaxiStop_${activeTab}">${d.taxi_stop_price || 35}</b>$ |
-                        Empresa: <b id="prevTaxiCompFee_${activeTab}">${d.taxi_company_fee_ui ?? 7.0}</b> UI
                     </div>
 
                     <button class="btn-save" id="btnSave_${activeTab}" onclick="saveConfig('${activeTab}')">💾 Guardar — ${c.name}</button>
+                    <button class="btn-save" style="background:#58a6ff; margin-top:8px;" onclick="window.open('calculadora.html','calculadora','width=900,height=700,scrollbars=yes')">🧮 Calculadora de Precios</button>
                 </div>
             `;
 
-            const ids = ['pricePerKm','minFare','perSecondCost','stopPrice','outOfZone','dynamicMult','packagePrice','petPrice','companyFeeUi','cancelFreeTime','cancelPaidTime','cancelBaseFee','cancelPerMin','cancelPerKm','taxiPricePerKm','taxiMinFare','taxiPerSecondCost','taxiStopPrice','taxiCompanyFeeUi'];
+            const ids = ['pricePerKm','minFare','perSecondCost','stopPrice','outOfZone','dynamicMult','packagePrice','petPrice','companyFeeUi','canonPerKmUi','pasarelaFeePct','cancelFreeTime','cancelPaidTime','cancelBaseFee','cancelPerMin','cancelPerKm'];
             ids.forEach(id => {
                 const el = document.getElementById(`${id}_${activeTab}`);
                 if (el) el.addEventListener('input', () => updatePreview(activeTab));
@@ -609,13 +593,9 @@
             set('prevOoz', g('outOfZone'));
             set('prevDyn', g('dynamicMult'));
             set('prevCompFee', g('companyFeeUi'));
+            set('prevCanonKm', g('canonPerKmUi'));
+            set('prevPasarela', g('pasarelaFeePct'));
             set('prevCancelFree', g('cancelFreeTime'));
-
-            set('prevTaxiKm', g('taxiPricePerKm'));
-            set('prevTaxiMin', g('taxiMinFare'));
-            set('prevTaxiWait', g('taxiPerSecondCost'));
-            set('prevTaxiStop', g('taxiStopPrice'));
-            set('prevTaxiCompFee', g('taxiCompanyFeeUi'));
 
             const cancelFormulaEl = document.getElementById(`cancelFormulaToggle_${pais}`);
             const cfOn = cancelFormulaEl && cancelFormulaEl.classList.contains('active');
@@ -665,10 +645,14 @@
                     per_second_cost: v('perSecondCost'),
                     stop_price: v('stopPrice'),
                     out_of_zone_index: v('outOfZone'),
+                    reservation_index: v('reservationIndex'),
+                    radar_index: v('radarIndex'),
                     dynamic_multiplier: v('dynamicMult'),
                     package_price: v('packagePrice'),
                     pet_price: v('petPrice'),
                     company_fee_ui: v('companyFeeUi'),
+                    canon_per_km_ui: v('canonPerKmUi'),
+                    pasarela_fee_pct: v('pasarelaFeePct'),
                     cancel_free_time_sec: v('cancelFreeTime'),
                     cancel_free_show_time: cancelShowTimeEl ? cancelShowTimeEl.classList.contains('active') : true,
                     cancel_paid_time_sec: v('cancelPaidTime'),
@@ -682,12 +666,7 @@
                     night_end_hour: v('nightEnd'),
                     sunday_surcharge_active: sundayEl ? sundayEl.classList.contains('active') : false,
                     holiday_surcharge_active: holidayEl ? holidayEl.classList.contains('active') : false,
-                    feriados: getFeriadosFromUI(pais),
-                    taxi_price_per_km: v('taxiPricePerKm'),
-                    taxi_min_fare: v('taxiMinFare'),
-                    taxi_per_second_cost: v('taxiPerSecondCost'),
-                    taxi_stop_price: v('taxiStopPrice'),
-                    taxi_company_fee_ui: v('taxiCompanyFeeUi')
+                    feriados: getFeriadosFromUI(pais)
                 };
 
                 // Solo guardar campos que realmente existen en la fila de BD
@@ -708,6 +687,5 @@
 
         loadAllConfigs();
     </script>
-<script src="/auth-check.js"></script>
 </body>
 </html>

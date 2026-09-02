@@ -1,0 +1,142 @@
+[
+  {
+    "id": "prod_001",
+    "nombre": "Hamburguesa Clásica",
+    "descripcion": "Pan artesanal, medallón de carne 200g, lechuga, tomate, queso cheddar",
+    "precio": 400,
+    "precio_oferta": 350,
+    "foto_url": null,
+    "foto_local": "fotos/hamburguesa.jpg",
+    "categorias": ["cat_001"],
+    "subcategoria": "Lunch",
+    "variantes": [
+      {"id": "var_001", "nombre": "Simple", "precio": 400},
+      {"id": "var_002", "nombre": "Doble", "precio": 550}
+    ],
+    "ingredientes": ["Pan", "Carne", "Lechuga", "Tomate", "Queso"],
+    "alergenos": ["Gluten", "Lácteos"],
+    "tiempo_preparacion": 15,
+    "stock": 50,
+    "stock_minimo": 10,
+    "activo": true,
+    "destacado": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prod_002",
+    "nombre": "Pilsen 1870",
+    "descripcion": "Cerveza lager 473ml",
+    "precio": 180,
+    "precio_oferta": null,
+    "foto_url": null,
+    "foto_local": "fotos/pilsen.jpg",
+    "categorias": ["cat_005"],
+    "subcategoria": "Cervezas",
+    "variantes": [
+      {"id": "var_003", "nombre": "Lata 473ml", "precio": 180},
+      {"id": "var_004", "nombre": "Botella 330ml", "precio": 150}
+    ],
+    "ingredientes": ["Cerveza"],
+    "alergenos": ["Gluten"],
+    "tiempo_preparacion": 0,
+    "stock": 100,
+    "stock_minimo": 20,
+    "activo": true,
+    "destacado": false,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prod_003",
+    "nombre": "Pizza Muzzarella",
+    "descripcion": "Salsa de tomate, muzzarella, orégano",
+    "precio": 380,
+    "precio_oferta": null,
+    "foto_url": null,
+    "foto_local": "fotos/pizza_muzzarella.jpg",
+    "categorias": ["cat_003"],
+    "subcategoria": "Clásicas",
+    "variantes": [
+      {"id": "var_005", "nombre": "Individual", "precio": 380},
+      {"id": "var_006", "nombre": "Mediana (4 porciones)", "precio": 700},
+      {"id": "var_007", "nombre": "Grande (6 porciones)", "precio": 950}
+    ],
+    "ingredientes": ["Masa", "Salsa de tomate", "Muzzarella", "Orégano"],
+    "alergenos": ["Gluten", "Lácteos"],
+    "tiempo_preparacion": 20,
+    "stock": 30,
+    "stock_minimo": 10,
+    "activo": true,
+    "destacado": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prod_004",
+    "nombre": "Milanesa con Fritas",
+    "descripcion": "Milanesa de carne empanizada, papas fritas, ensalada",
+    "precio": 420,
+    "precio_oferta": null,
+    "foto_url": null,
+    "foto_local": "fotos/milanesa.jpg",
+    "categorias": ["cat_002"],
+    "subcategoria": "Cortes de carne",
+    "variantes": [
+      {"id": "var_008", "nombre": "Simple", "precio": 420},
+      {"id": "var_009", "nombre": "Napolitana", "precio": 520}
+    ],
+    "ingredientes": ["Carne", "Pan rallado", "Huevo", "Papas", "Lechuga", "Tomate"],
+    "alergenos": ["Gluten", "Huevo"],
+    "tiempo_preparacion": 25,
+    "stock": 40,
+    "stock_minimo": 10,
+    "activo": true,
+    "destacado": false,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prod_005",
+    "nombre": "Coca-Cola",
+    "descripcion": "Gaseosa 500ml",
+    "precio": 120,
+    "precio_oferta": null,
+    "foto_url": null,
+    "foto_local": "fotos/cocacola.jpg",
+    "categorias": ["cat_005"],
+    "subcategoria": "Gaseosas",
+    "variantes": [
+      {"id": "var_010", "nombre": "Lata 350ml", "precio": 100},
+      {"id": "var_011", "nombre": "Botella 500ml", "precio": 120},
+      {"id": "var_012", "nombre": "Botella 1.5L", "precio": 200}
+    ],
+    "ingredientes": ["Gaseosa"],
+    "alergenos": [],
+    "tiempo_preparacion": 0,
+    "stock": 150,
+    "stock_minimo": 30,
+    "activo": true,
+    "destacado": false,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prod_006",
+    "nombre": "Ensalada Caesar",
+    "descripcion": "Lechuga romana, crutones, queso parmesano, aderezo Caesar",
+    "precio": 320,
+    "precio_oferta": 280,
+    "foto_url": null,
+    "foto_local": "fotos/ensalada_caesar.jpg",
+    "categorias": ["cat_001"],
+    "subcategoria": "Ensaladas",
+    "variantes": [
+      {"id": "var_013", "nombre": "Sin pollo", "precio": 320},
+      {"id": "var_014", "nombre": "Con pollo", "precio": 420}
+    ],
+    "ingredientes": ["Lechuga", "Crutones", "Queso parmesano", "Aderezo"],
+    "alergenos": ["Gluten", "Lácteos"],
+    "tiempo_preparacion": 10,
+    "stock": 25,
+    "stock_minimo": 5,
+    "activo": true,
+    "destacado": false,
+    "created_at": "2026-09-01"
+  }
+]

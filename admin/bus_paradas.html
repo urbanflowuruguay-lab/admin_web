@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paradas Bus - Gestión</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0f1a;color:#e0e0e0}
+        .header{background:#111827;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1f2937}
+        .header h1{font-size:18px;color:#fff}
+        .header h1 span{color:#f59e0b}
+        .container{display:flex;height:calc(100vh - 56px)}
+        .sidebar{width:380px;background:#111827;border-right:1px solid #1f2937;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+        .sidebar h2{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px}
+        .controls input,.controls textarea{width:100%;padding:8px 10px;background:#1f2937;border:1px solid #374151;border-radius:6px;color:#fff;font-size:13px;margin-bottom:6px}
+        .controls button{padding:8px 12px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+        .btn-add{background:#059669;color:#fff;width:100%}
+        .btn-import{background:#3b82f6;color:#fff;width:100%;margin-top:6px}
+        .btn-import-all{background:#f59e0b;color:#000;width:100%;margin-top:6px}
+        .stat{font-size:11px;color:#6b7280}
+        .stop-list{margin-top:8px;flex:1;overflow-y:auto}
+        .stop-item{background:#1f2937;border-radius:6px;padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;cursor:pointer}
+        .stop-item:hover{background:#374151}
+        .stop-num{width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+        .stop-info{flex:1;min-width:0}
+        .stop-name{font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .stop-lines{font-size:11px;color:#9ca3af}
+        .stop-del{color:#ef4444;cursor:pointer;font-size:14px;padding:4px}
+        .stop-del:hover{color:#fff}
+        #map{flex:1}
+        .hint{font-size:11px;color:#6b7280;background:#1f2937;padding:8px;border-radius:6px}
+        @media(max-width:768px){.container{flex-direction:column}.sidebar{width:100%;max-height:42vh}#map{height:58vh}}
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>🚏 Paradas <span>Gestión</span></h1>
+    <div style="display:flex;gap:8px;align-items:center">
+        <span class="stat" id="countStat">0 paradas</span>
+        <span style="font-size:11px;color:#6b7280">Click en mapa = agregar | Click en fila = centrar | ✕ = borrar</span>
+    </div>
+</div>
+<div class="container">
+    <div class="sidebar">
+        <h2>Agregar / Importar</h2>
+        <div class="controls">
+            <input id="inpName" placeholder="Nombre parada (ej: 18 de Julio y Ejido)"/>
+            <input id="inpLines" placeholder="Líneas (ej: 102, 103, 21) coma separadas"/>
+            <input id="inpLat" placeholder="Lat (-34.90)"/>
+            <input id="inpLon" placeholder="Lon (-56.18)"/>
+            <button class="btn-add" onclick="addStopManual()">+ AGREGAR PARADA</button>
+            <button class="btn-import" onclick="importOverpass()">⬇ IMPORTAR VISTA ACTUAL</button>
+            <button class="btn-import-all" onclick="importAllMontevideo()">⬇ IMPORTAR TODO MONTEVIDEO (~4500)</button>
+            <div class="hint">Tip: Haz click en el mapa para auto-rellenar lat/lon. Luego pon nombre y líneas y agrega. "Todo Montevideo" tarda ~30s.</div>
+        </div>
+        <h2>Paradas en BD</h2>
+        <input id="filterInput" placeholder="Filtrar por nombre o línea..." oninput="renderList()" style="width:100%;padding:8px;background:#1f2937;border:1px solid #374151;border-radius:6px;color:#fff;font-size:12px"/>
+        <div class="stop-list" id="stopList"></div>
+    </div>
+    <div id="map"></div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPA_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let map, markers=new Map(), stops=[];
+
+function initMap(){
+    map = L.map('map').setView([-34.903,-56.188],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap',maxZoom:19}).addTo(map);
+    map.on('click', e=>{
+        document.getElementById('inpLat').value = e.latlng.lat.toFixed(6);
+        document.getElementById('inpLon').value = e.latlng.lng.toFixed(6);
+        L.popup().setLatLng(e.latlng).setContent(`Lat: ${e.latlng.lat.toFixed(5)}<br>Lon: ${e.latlng.lng.toFixed(5)}`).openOn(map);
+    });
+}
+function stopIcon(num){
+    return L.divIcon({html:`<div style="width:26px;height:26px;border-radius:50%;background:#f59e0b;color:#000;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px #0008">${num}</div>`,iconSize:[26,26],iconAnchor:[13,13],className:''});
+}
+async function loadStops(){
+    let all=[]; let from=0; const step=1000;
+    while(true){
+        const {data,error} = await supa.from('bus_stops').select('*').eq('active',true).order('id',{ascending:true}).range(from, from+step-1);
+        if(error){ console.error(error); alert(error.message); return; }
+        if(!data || data.length===0) break;
+        all = all.concat(data);
+        if(data.length < step) break;
+        from += step;
+        if(all.length >= 6000) break;
+    }
+    stops = all;
+    updateMap(); renderList();
+    document.getElementById('countStat').textContent = stops.length+' paradas';
+}
+function updateMap(){
+    markers.forEach(m=>map.removeLayer(m)); markers.clear();
+    stops.forEach((s,i)=>{
+        const m = L.marker([s.lat,s.lon],{icon:stopIcon(i+1)}).addTo(map)
+            .bindPopup(`<b>${s.name}</b><br>Líneas: ${(s.lines||[]).join(', ')||'-'}<br><small>${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}</small><br><a href="#" onclick="window.delStop(${s.id});return false;" style="color:#ef4444">Borrar</a>`);
+        markers.set(s.id,m);
+    });
+}
+window.renderList = function(){
+    const q = document.getElementById('filterInput').value.toLowerCase();
+    const list = document.getElementById('stopList');
+    list.innerHTML='';
+    stops.filter(s=> !q || s.name.toLowerCase().includes(q) || (s.lines||[]).join(',').toLowerCase().includes(q))
+    .forEach((s,i)=>{
+        const div=document.createElement('div'); div.className='stop-item';
+        div.innerHTML=`<div class="stop-num">${i+1}</div><div class="stop-info"><div class="stop-name">${s.name}</div><div class="stop-lines">${(s.lines||[]).join(', ')||'sin líneas'} • ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</div></div><div class="stop-del" onclick="event.stopPropagation(); delStop(${s.id})">✕</div>`;
+        div.onclick=()=> map.setView([s.lat,s.lon],16) && markers.get(s.id)?.openPopup();
+        list.appendChild(div);
+    });
+}
+function addStopManual(){
+    const name=document.getElementById('inpName').value.trim();
+    const lines=document.getElementById('inpLines').value.split(',').map(x=>x.trim()).filter(Boolean);
+    const lat=parseFloat(document.getElementById('inpLat').value);
+    const lon=parseFloat(document.getElementById('inpLon').value);
+    if(!name || isNaN(lat) || isNaN(lon)) return alert('Completa nombre, lat y lon');
+    supa.from('bus_stops').insert({name, lines, lat, lon, source:'manual'}).then(({error})=>{
+        if(error) return alert(error.message);
+        document.getElementById('inpName').value=''; document.getElementById('inpLines').value='';
+        loadStops();
+    });
+}
+function delStop(id){
+    if(!confirm('¿Borrar parada #'+id+'?')) return;
+    supa.from('bus_stops').update({active:false}).eq('id',id).then(({error})=>{
+        if(error) return alert(error.message);
+        loadStops();
+    });
+}
+function importOverpass(){
+    const c = map.getCenter();
+    const r=0.02;
+    const bbox=[c.lat-r,c.lng-r,c.lat+r,c.lng+r].join(',');
+    const q=`[out:json][timeout:15][bbox:${bbox}];(nwr["highway"="bus_stop"];nwr["public_transport"="platform"]["bus"="yes"];nwr["public_transport"="stop_position"]["bus"="yes"];)->.stops;rel(bn.stops)["route"="bus"]->.routes;.stops out body center 80;.routes out tags;`;
+    fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q), headers:{'Content-Type':'application/x-www-form-urlencoded'}})
+    .then(r=>r.json()).then(j=>{
+        const els=j.elements||[];
+        const nodeLines={};
+        els.filter(e=>e.type==='relation').forEach(rel=>{
+            const ref=(rel.tags&& (rel.tags.ref||rel.tags.route_ref))||null;
+            if(!ref) return;
+            (rel.members||[]).forEach(m=>{ if(m.type==='node'&&m.ref){ if(!nodeLines[m.ref]) nodeLines[m.ref]=new Set(); nodeLines[m.ref].add(ref); }});
+        });
+        const stopsEls=els.filter(e=> (e.type==='node'||e.type==='way') && (e.lat||e.center));
+        if(!stopsEls.length) return alert('No se encontraron paradas en esta zona. Mueve el mapa.');
+        let added=0; let promises=[];
+        for(const e of stopsEls.slice(0,40)){
+            const lat=e.lat||e.center?.lat, lon=e.lon||e.center?.lon;
+            const name=e.tags?.name||e.tags?.ref||'Parada';
+            const relLines = e.id && nodeLines[e.id] ? Array.from(nodeLines[e.id]) : [];
+            const tagLines=(e.tags?.route_ref||e.tags?.ref||'').split(';').map(s=>s.trim()).filter(Boolean);
+            const lines=[...new Set([...relLines,...tagLines])];
+            const exists = stops.some(s=> Math.abs(s.lat-lat)<0.0003 && Math.abs(s.lon-lon)<0.0003);
+            if(exists) continue;
+            promises.push(supa.from('bus_stops').insert({name, lines, lat, lon, source:'overpass'}).then(({error})=>{ if(!error) added++; }));
+        }
+        Promise.all(promises).then(()=>{ alert(`Importadas ${added} paradas desde Overpass`); loadStops(); });
+    }).catch(e=> alert('Error Overpass: '+e.message));
+}
+function importAllMontevideo(){
+    if(!confirm('¿Importar TODAS las paradas de Montevideo? Tarda 30-40s y puede agregar ~4000 registros. ¿Continuar?')) return;
+    const bbox='-34.98,-56.35,-34.75,-56.05';
+    const [minLat,minLon,maxLat,maxLon]=bbox.split(',').map(Number);
+    const q=`[out:json][timeout:30][bbox:${minLat},${minLon},${maxLat},${maxLon}];(nwr["highway"="bus_stop"];nwr["public_transport"="platform"]["bus"="yes"];nwr["public_transport"="stop_position"]["bus"="yes"];)->.stops;rel(bn.stops)["route"="bus"]->.routes;.stops out body center 5000;.routes out tags;`;
+    const btn=document.querySelector('.btn-import-all'); const old=btn.textContent; btn.textContent='⏳ IMPORTANDO...'; btn.disabled=true;
+    fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q), headers:{'Content-Type':'application/x-www-form-urlencoded'}})
+    .then(r=>r.json()).then(j=>{
+        const els=j.elements||[];
+        const nodeLines={};
+        els.filter(e=>e.type==='relation').forEach(rel=>{
+            const ref=(rel.tags&&(rel.tags.ref||rel.tags.route_ref))||null;
+            if(!ref) return;
+            (rel.members||[]).forEach(m=>{ if(m.type==='node'&&m.ref){ if(!nodeLines[m.ref]) nodeLines[m.ref]=new Set(); nodeLines[m.ref].add(ref); }});
+        });
+        const stopsEls=els.filter(e=> (e.type==='node'||e.type==='way') && (e.lat||e.center));
+        if(!stopsEls.length) { btn.textContent=old; btn.disabled=false; return alert('No se encontraron paradas'); }
+        let added=0; let i=0;
+        function batch(){
+            const chunk=stopsEls.slice(i,i+100);
+            if(!chunk.length){ btn.textContent=old; btn.disabled=false; alert(`Importadas ${added} paradas de ${stopsEls.length} encontradas`); loadStops(); return; }
+            const promises=[];
+            for(const e of chunk){
+                const lat=e.lat||e.center?.lat, lon=e.lon||e.center?.lon;
+                const name=e.tags?.name||e.tags?.ref||'Parada';
+                const relLines = e.id && nodeLines[e.id] ? Array.from(nodeLines[e.id]) : [];
+                const tagLines=(e.tags?.route_ref||e.tags?.ref||'').split(';').map(s=>s.trim()).filter(Boolean);
+                const lines=[...new Set([...relLines,...tagLines])];
+                const exists = stops.some(s=> Math.abs(s.lat-lat)<0.0003 && Math.abs(s.lon-lon)<0.0003);
+                if(exists) continue;
+                promises.push(supa.from('bus_stops').insert({name, lines, lat, lon, source:'overpass'}).then(({error})=>{ if(!error) added++; }));
+            }
+            Promise.all(promises).then(()=>{ i+=100; btn.textContent=`⏳ ${added}/${stopsEls.length}...`; setTimeout(batch,500); });
+        }
+        batch();
+    }).catch(e=>{ btn.textContent=old; btn.disabled=false; alert('Error Overpass: '+e.message)});
+}
+initMap(); loadStops();
+window.loadStops=loadStops;
+</script>
+</body>
+</html>

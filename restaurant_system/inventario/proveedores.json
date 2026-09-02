@@ -1,0 +1,38 @@
+[
+  {
+    "id": "prov_001",
+    "nombre": "Distribuidora del Norte",
+    "contacto": "Juan Pérez",
+    "telefono": "099123456",
+    "email": "ventas@delenorte.com.uy",
+    "direccion": "Ruta 8 km 42",
+    "productos_suministrados": ["prod_001", "prod_003", "prod_004", "prod_006"],
+    "condiciones_pago": "30 días",
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prov_002",
+    "nombre": "Cervecería Pilsen",
+    "contacto": "Comercial Pilsen",
+    "telefono": "0800PILSEN",
+    "email": "ventas@pilsen.com.uy",
+    "direccion": "Av. de las Instrucciones 2015",
+    "productos_suministrados": ["prod_002"],
+    "condiciones_pago": "Contado",
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "prov_003",
+    "nombre": "Distribuidora de Bebidas",
+    "contacto": "María Santos",
+    "telefono": "099789012",
+    "email": "ventas@distribuidora.com.uy",
+    "direccion": "Camino Maldonado km 15",
+    "productos_suministrados": ["prod_005"],
+    "condiciones_pago": "15 días",
+    "activo": true,
+    "created_at": "2026-09-01"
+  }
+]

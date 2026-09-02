@@ -1,0 +1,118 @@
+[
+  {
+    "id": "rol_dueno",
+    "nombre": "Dueño",
+    "descripcion": "Control total del negocio",
+    "icono": "👑",
+    "color": "#FFD700",
+    "permisos": [
+      "ver_todos_los_datos",
+      "crear_empleados",
+      "editar_empleados",
+      "eliminar_empleados",
+      "ver_facturacion",
+      "ver_auditoria",
+      "crear_zonas",
+      "editar_zonas",
+      "eliminar_zonas",
+      "crear_productos",
+      "editar_productos",
+      "eliminar_productos",
+      "ver_inventario",
+      "editar_inventario",
+      "gestionar_pedidos",
+      "gestionar_delivery",
+      "configurar_negocio",
+      "ver_clientes",
+      "editar_clientes",
+      "crear_descuentos",
+      "ver_reportes",
+      "exportar_datos",
+      "configurar_publicidad",
+      "ver_ganancias_publicidad",
+      "aprobar_recetas"
+    ],
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "rol_encargado",
+    "nombre": "Encargado",
+    "descripcion": "Supervisión general",
+    "icono": "⭐",
+    "color": "#4CAF50",
+    "permisos": [
+      "ver_facturacion",
+      "crear_empleados",
+      "editar_empleados",
+      "gestionar_pedidos",
+      "gestionar_delivery",
+      "ver_inventario",
+      "editar_inventario",
+      "crear_productos",
+      "editar_productos",
+      "ver_clientes",
+      "editar_clientes",
+      "ver_reportes"
+    ],
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "rol_cajero",
+    "nombre": "Cajero",
+    "descripcion": "Manejo de cobros y pedidos",
+    "icono": "💰",
+    "color": "#2196F3",
+    "permisos": [
+      "gestionar_pedidos",
+      "ver_clientes",
+      "crear_clientes",
+      "cobrar",
+      "ver_productos"
+    ],
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "rol_farmaceutico",
+    "nombre": "Farmacéutico",
+    "descripcion": "Preparación y dispensación de medicamentos",
+    "icono": "💊",
+    "color": "#FF5722",
+    "permisos": [
+      "ver_pedidos_farmacia",
+      "actualizar_estado_pedido",
+      "ver_inventario_farmacia",
+      "aprobar_recetas",
+      "ver_medicamentos_controlados"
+    ],
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "rol_delivery",
+    "nombre": "Delivery",
+    "descripcion": "Entrega de pedidos",
+    "icono": "🛵",
+    "color": "#9C27B0",
+    "permisos": [
+      "ver_pedidos_delivery",
+      "actualizar_estado_delivery",
+      "ver_zonas_asignadas",
+      "actualizar_ubicacion"
+    ],
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "rol_vendedor",
+    "nombre": "Vendedor",
+    "descripcion": "Atención al cliente en local",
+    "icono": "🧑‍💼",
+    "color": "#607D8B",
+    "permisos": [
+      "ver_pedidos",
+      "crear_pedidos",
+      "ver_clientes",
+      "crear_clientes",
+      "ver_productos"
+    ],
+    "created_at": "2026-09-01"
+  }
+]

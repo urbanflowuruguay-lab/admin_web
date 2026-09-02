@@ -1,0 +1,13 @@
+{
+  "modo": "local",
+  "carpeta_local": "C:\\UrbanFlow\\LaParrilla",
+  "cloud_activo": false,
+  "cloud_plan": null,
+  "cloud_costo_mensual": 0,
+  "cloud_costo_anual": 0,
+  "cloud_ultima_sync": null,
+  "cloud_espacio_usado_mb": 0,
+  "cloud_espacio_maximo_mb": 50,
+  "mensaje": "Tus datos se guardan en C:\\UrbanFlow\\LaParrilla. Si deseás un respaldo en la nube, activá el plan Premium.",
+  "created_at": "2026-09-01"
+}

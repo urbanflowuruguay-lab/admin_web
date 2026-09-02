@@ -1,0 +1,53 @@
+[
+  {
+    "id": "zona_001",
+    "nombre": "Centro",
+    "descripcion": "Zona centro de Montevideo",
+    "color": "#FF5733",
+    "poligono": [
+      {"lat": -34.9000, "lon": -56.1700},
+      {"lat": -34.9050, "lon": -56.1600},
+      {"lat": -34.9000, "lon": -56.1500}
+    ],
+    "costo_envio": 50,
+    "tiempo_estimado_min": 30,
+    "pedido_minimo": 300,
+    "delivery_disponible": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "zona_002",
+    "nombre": "Pocitos",
+    "descripcion": "Zona Pocitos y alrededores",
+    "color": "#33FF57",
+    "poligono": [
+      {"lat": -34.9100, "lon": -56.1600},
+      {"lat": -34.9150, "lon": -56.1500},
+      {"lat": -34.9100, "lon": -56.1400}
+    ],
+    "costo_envio": 70,
+    "tiempo_estimado_min": 40,
+    "pedido_minimo": 400,
+    "delivery_disponible": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  },
+  {
+    "id": "zona_003",
+    "nombre": "Carrasco",
+    "descripcion": "Zona Carrasco y Buceo",
+    "color": "#3357FF",
+    "poligono": [
+      {"lat": -34.8800, "lon": -56.0800},
+      {"lat": -34.8850, "lon": -56.0700},
+      {"lat": -34.8800, "lon": -56.0600}
+    ],
+    "costo_envio": 100,
+    "tiempo_estimado_min": 50,
+    "pedido_minimo": 500,
+    "delivery_disponible": true,
+    "activo": true,
+    "created_at": "2026-09-01"
+  }
+]

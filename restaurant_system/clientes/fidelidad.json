@@ -1,0 +1,39 @@
+{
+  "configuracion": {
+    "puntos_por_peso": 1,
+    "valor_punto": 0.1,
+    "niveles": [
+      {
+        "nombre": "bronce",
+        "puntos_minimos": 0,
+        "beneficios": ["5% descuento en cumpleaños"]
+      },
+      {
+        "nombre": "plata",
+        "puntos_minimos": 500,
+        "beneficios": ["10% descuento en cumpleaños", "Envío gratis 1 vez al mes"]
+      },
+      {
+        "nombre": "oro",
+        "puntos_minimos": 1500,
+        "beneficios": ["15% descuento en cumpleaños", "Envío gratis siempre", "Postre de cortesía"]
+      }
+    ]
+  },
+  "historial_puntos": [
+    {
+      "cliente_id": "cli_001",
+      "tipo": "acumulacion",
+      "puntos": 12,
+      "pedido_id": "ped_123",
+      "fecha": "2026-09-01"
+    },
+    {
+      "cliente_id": "cli_002",
+      "tipo": "acumulacion",
+      "puntos": 9,
+      "pedido_id": "ped_124",
+      "fecha": "2026-09-01"
+    }
+  ]
+}

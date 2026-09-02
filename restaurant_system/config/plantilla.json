@@ -1,0 +1,33 @@
+{
+  "template": "dark_elegance",
+  "colores": {
+    "fondo": "#0a0a0a",
+    "texto": "#ffffff",
+    "acento": "#d4af37",
+    "boton": "#d4af37",
+    "boton_texto": "#0a0a0a",
+    "card_bg": "#1a1a1a",
+    "card_border": "#333333"
+  },
+  "tipografia": {
+    "principal": "'Playfair Display', serif",
+    "secundaria": "'Inter', sans-serif"
+  },
+  "logo": {
+    "url": null,
+    "forma": "redondo",
+    "tamanio": 100
+  },
+  "portada": {
+    "url": null,
+    "overlay_opacity": 0.4
+  },
+  "carta": {
+    "fondo_url": null,
+    "mostrar_fotos": true,
+    "tamanio_fotos": "mediano",
+    "mostrar_precios": true,
+    "mostrar_descripciones": true,
+    "columnas": 2
+  }
+}

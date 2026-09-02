@@ -1,0 +1,54 @@
+[
+  {
+    "id": "cob_001",
+    "pedido_id": "ped_001",
+    "numero_pedido": 123,
+    "cliente_nombre": "Juan Pérez",
+    "fecha": "2026-09-01",
+    "productos": [
+      {"nombre": "Hamburguesa Clásica (Doble)", "cantidad": 2, "subtotal": 1100},
+      {"nombre": "Pilsen 1870 (Lata 473ml)", "cantidad": 3, "subtotal": 540}
+    ],
+    "subtotal": 1640,
+    "descuento": 0,
+    "uf_fee_ui": 2,
+    "uf_fee_valor_ui": 6.50,
+    "uf_fee_monto": 13,
+    "mp_fee_porcentaje": 7.88,
+    "mp_fee_monto": 130.15,
+    "total_cliente": 1653,
+    "total_recibido": 1510.85,
+    "metodo_pago": "mercado_pago",
+    "mp_preference_id": "...",
+    "mp_payment_id": "...",
+    "mp_status": "aprobado",
+    "estado": "completado",
+    "created_at": "2026-09-01T12:00:00Z"
+  },
+  {
+    "id": "cob_002",
+    "pedido_id": "ped_002",
+    "numero_pedido": 124,
+    "cliente_nombre": "María López",
+    "fecha": "2026-09-01",
+    "productos": [
+      {"nombre": "Pizza Muzzarella (Mediana)", "cantidad": 1, "subtotal": 700},
+      {"nombre": "Coca-Cola (Botella 1.5L)", "cantidad": 1, "subtotal": 200}
+    ],
+    "subtotal": 900,
+    "descuento": 0,
+    "uf_fee_ui": 2,
+    "uf_fee_valor_ui": 6.50,
+    "uf_fee_monto": 13,
+    "mp_fee_porcentaje": 7.88,
+    "mp_fee_monto": 71.73,
+    "total_cliente": 913,
+    "total_recibido": 828.27,
+    "metodo_pago": "mercado_pago",
+    "mp_preference_id": "...",
+    "mp_payment_id": "...",
+    "mp_status": "aprobado",
+    "estado": "completado",
+    "created_at": "2026-09-01T12:15:00Z"
+  }
+]

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "cat_001",
+    "nombre": "Medicamentos",
+    "icono": "💊",
+    "orden": 1,
+    "subcategorias": ["Analgésicos", "Antibióticos", "Vitaminas", "Cuidado personal"],
+    "requiere_receta": true,
+    "controlado": false,
+    "activo": true
+  },
+  {
+    "id": "cat_002",
+    "nombre": "Dermocosmética",
+    "icono": "🧴",
+    "orden": 2,
+    "subcategorias": ["Cuidado facial", "Cuidado corporal", "Solar", "Maquillaje"],
+    "requiere_receta": false,
+    "controlado": false,
+    "activo": true
+  },
+  {
+    "id": "cat_003",
+    "nombre": "Higiene",
+    "icono": "🧼",
+    "orden": 3,
+    "subcategorias": ["Higiene personal", "Higiene del hogar", "Limpieza"],
+    "requiere_receta": false,
+    "controlado": false,
+    "activo": true
+  },
+  {
+    "id": "cat_004",
+    "nombre": "Bebidas",
+    "icono": "🥤",
+    "orden": 4,
+    "subcategorias": ["Agua", "Gaseosas", "Jugos", "Energizantes"],
+    "requiere_receta": false,
+    "controlado": false,
+    "activo": true
+  },
+  {
+    "id": "cat_005",
+    "nombre": "Alimentos",
+    "icono": "🍎",
+    "orden": 5,
+    "subcategorias": ["Snacks", "Cereales", "Lácteos", "Conservas"],
+    "requiere_receta": false,
+    "controlado": false,
+    "activo": true
+  },
+  {
+    "id": "cat_006",
+    "nombre": "Electrónica",
+    "icono": "📱",
+    "orden": 6,
+    "subcategorias": ["Celulares", "Accesorios", "Cables", "Cargadores"],
+    "requiere_receta": false,
+    "controlado": false,
+    "activo": true
+  },
+  {
+    "id": "cat_007",
+    "nombre": "Ropa",
+    "icono": "👕",
+    "orden": 7,
+    "subcategorias": ["Hombre", "Mujer", "Niños", "Accesorios"],
+    "requiere_receta": false,
+    "controlado": false,
+    "activo": true
+  },
+  {
+    "id": "cat_008",
+    "nombre": "Hogar",
+    "icono": "🏠",
+    "orden": 8,
+    "subcategorias": ["Decoración", "Cocina", "Baño", "Jardín"],
+    "requiere_receta": false,
+    "controlado": false,
+    "activo": true
+  }
+]

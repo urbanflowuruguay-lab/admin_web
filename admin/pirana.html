@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piraña - Gestión de Licencias</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a0e14; margin: 0; padding: 20px; color: #c9d1d9; }
+        h1 { color: #f0883e; margin: 0 0 20px 0; font-size: 24px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 15px; text-align: center; }
+        .stat-card h3 { color: #8b949e; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #f0883e; }
+        .search-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; width: 100%; box-sizing: border-box; color: #c9d1d9; font-size: 14px; margin-bottom: 20px; }
+        .search-box::placeholder { color: #8b949e; }
+        table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 10px; overflow: hidden; }
+        th { background: #21262d; color: #8b949e; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #30363d; }
+        td { padding: 12px; border-bottom: 1px solid #21262d; font-size: 13px; }
+        tr:hover td { background: #1c2129; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; }
+        .badge-active { background: #238636; color: #fff; }
+        .badge-trial { background: #f0883e; color: #fff; }
+        .badge-expired { background: #da3633; color: #fff; }
+        .btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; transition: 0.2s; }
+        .btn-activate { background: #238636; color: white; }
+        .btn-activate:hover { background: #2ea043; }
+        .btn-deactivate { background: #da3633; color: white; }
+        .btn-deactivate:hover { background: #f85149; }
+        .btn-edit { background: #1f6feb; color: white; }
+        .btn-edit:hover { background: #388bfd; }
+        .loading { color: #8b949e; text-align: center; padding: 40px; }
+        .empty { color: #8b949e; text-align: center; padding: 40px; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 12px; }
+        .filter-btn.active { background: #f0883e; color: white; border-color: #f0883e; }
+        .code { font-family: monospace; color: #58a6ff; font-weight: bold; }
+        .device-id { font-family: monospace; color: #8b949e; font-size: 12px; }
+        .date { color: #8b949e; font-size: 12px; }
+        .phone { color: #f0883e; font-weight: bold; }
+        .badge-paused { background: #8b949e; color: #fff; }
+        .btn-pause { background: #d29922; color: white; }
+        .btn-pause:hover { background: #e3b341; }
+        .btn-unpause { background: #238636; color: white; }
+        .btn-unpause:hover { background: #2ea043; }
+        .no-phone { color: #da3633; font-weight: bold; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; width: 400px; max-width: 90%; }
+        .modal h2 { color: #f0883e; margin: 0 0 20px 0; }
+        .modal input { width: 100%; padding: 10px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; font-size: 14px; margin-bottom: 12px; box-sizing: border-box; }
+        .modal label { color: #8b949e; font-size: 12px; display: block; margin-bottom: 4px; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-buttons button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-save { background: #238636; color: white; }
+        .btn-cancel { background: #21262d; color: #c9d1d9; }
+    </style>
+</head>
+<body>
+    <h1>Piraña - Gestión de Licencias</h1>
+
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total</h3>
+            <div class="value" id="totalCount">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Activas</h3>
+            <div class="value" id="activeCount">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>En Prueba</h3>
+            <div class="value" id="trialCount">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Expiradas</h3>
+            <div class="value" id="expiredCount">0</div>
+        </div>
+    </div>
+
+    <input type="text" class="search-box" id="searchInput" placeholder="Buscar por código, device_id o teléfono...">
+
+    <div class="filters">
+        <button class="filter-btn active" onclick="setFilter('all')">Todos</button>
+        <button class="filter-btn" onclick="setFilter('active')">Activos</button>
+        <button class="filter-btn" onclick="setFilter('trial')">En Prueba</button>
+        <button class="filter-btn" onclick="setFilter('expired')">Expirados</button>
+        <button class="filter-btn" onclick="setFilter('paused')">Sin Teléfono</button>
+    </div>
+
+    <div id="loading" class="loading">Cargando licencias...</div>
+    <div id="empty" class="empty" style="display:none;">No se encontraron licencias</div>
+    <table id="licensesTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Device ID</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Días</th>
+                <th>Instalado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="licensesBody"></tbody>
+    </table>
+
+    <!-- Modal Editar -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h2>Editar Licencia</h2>
+            <input type="hidden" id="editDeviceId">
+            <label>Teléfono</label>
+            <input type="text" id="editPhone" placeholder="099123456">
+            <label>Código</label>
+            <input type="text" id="editCode" placeholder="PIRA-XXXXXXXX" readonly style="opacity: 0.6;">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="btn-save" onclick="saveEdit()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let allLicenses = [];
+        let currentFilter = 'all';
+
+        async function loadLicenses() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('licensesTable').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
+
+            const { data, error } = await sb.from('pirana_licenses').select('*').order('installed_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                document.getElementById('loading').innerHTML = 'Error cargando datos';
+                return;
+            }
+
+            allLicenses = data || [];
+            updateStats();
+            renderTable();
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function updateStats() {
+            const total = allLicenses.length;
+            const active = allLicenses.filter(l => l.activated).length;
+            const trial = allLicenses.filter(l => !l.activated && !isExpired(l)).length;
+            const expired = allLicenses.filter(l => !l.activated && isExpired(l)).length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('activeCount').textContent = active;
+            document.getElementById('trialCount').textContent = trial;
+            document.getElementById('expiredCount').textContent = expired;
+        }
+
+        function isExpired(license) {
+            if (!license.installed_at) return false;
+            const installed = new Date(license.installed_at);
+            const now = new Date();
+            const days = (now - installed) / (1000 * 60 * 60 * 24);
+            return days >= 30;
+        }
+
+        function getDaysLeft(license) {
+            if (license.activated) return '∞';
+            if (!license.installed_at) return 0;
+            const installed = new Date(license.installed_at);
+            const now = new Date();
+            const days = (now - installed) / (1000 * 60 * 60 * 24);
+            return Math.max(0, 30 - Math.floor(days));
+        }
+
+        function getStatus(license) {
+            if (license.activated) return '<span class="badge badge-active">ACTIVO</span>';
+            if (isExpired(license)) return '<span class="badge badge-expired">EXPIRADO</span>';
+            return '<span class="badge badge-trial">PRUEBA</span>';
+        }
+
+        function renderTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allLicenses;
+
+            if (search) {
+                filtered = filtered.filter(l =>
+                    (l.code && l.code.toLowerCase().includes(search)) ||
+                    (l.device_id && l.device_id.toLowerCase().includes(search)) ||
+                    (l.phone && l.phone.toLowerCase().includes(search))
+                );
+            }
+
+            if (currentFilter === 'active') filtered = filtered.filter(l => l.activated);
+            if (currentFilter === 'trial') filtered = filtered.filter(l => !l.activated && !isExpired(l));
+            if (currentFilter === 'expired') filtered = filtered.filter(l => !l.activated && isExpired(l));
+            if (currentFilter === 'paused') filtered = filtered.filter(l => !l.phone || l.phone === '' || l.phone === null);
+
+            const tbody = document.getElementById('licensesBody');
+            if (filtered.length === 0) {
+                document.getElementById('licensesTable').style.display = 'none';
+                document.getElementById('empty').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('licensesTable').style.display = 'table';
+            document.getElementById('empty').style.display = 'none';
+
+            tbody.innerHTML = filtered.map(l => {
+                const noPhone = !l.phone || l.phone === '';
+                const isPaused = l.paused === true;
+                const phoneDisplay = noPhone ? '<span class="no-phone">SIN TELÉFONO</span>' : `<span class="phone">${l.phone}</span>`;
+                const statusBadge = isPaused ? `<span class="badge badge-paused">PAUSADO</span>` : getStatus(l);
+                let actionButtons = `<button class="btn btn-edit" onclick="openEdit('${l.device_id}', '${l.phone || ''}', '${l.code || ''}')">📞</button>`;
+                if (noPhone && !isPaused) {
+                    actionButtons += ` <button class="btn btn-pause" onclick="pauseUser('${l.device_id}')">PAUSAR</button>`;
+                } else if (isPaused) {
+                    actionButtons += ` <button class="btn btn-unpause" onclick="unpauseUser('${l.device_id}')">REACTIVAR</button>`;
+                }
+                if (l.activated) {
+                    actionButtons += ` <button class="btn btn-deactivate" onclick="deactivate('${l.device_id}')">Desactivar</button>`;
+                } else {
+                    actionButtons += ` <button class="btn btn-activate" onclick="activate('${l.device_id}')">Activar</button>`;
+                }
+                return `
+                <tr>
+                    <td class="code">${l.code || 'N/A'}</td>
+                    <td class="device-id">${l.device_id || 'N/A'}</td>
+                    <td>${phoneDisplay}</td>
+                    <td>${statusBadge}</td>
+                    <td>${getDaysLeft(l)}</td>
+                    <td class="date">${l.installed_at ? new Date(l.installed_at).toLocaleDateString() : 'N/A'}</td>
+                    <td>${actionButtons}</td>
+                </tr>
+            `}).join('');
+        }
+
+        function openEdit(deviceId, phone, code) {
+            document.getElementById('editDeviceId').value = deviceId;
+            document.getElementById('editPhone').value = phone;
+            document.getElementById('editCode').value = code;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function saveEdit() {
+            const deviceId = document.getElementById('editDeviceId').value;
+            const phone = document.getElementById('editPhone').value;
+
+            const { error } = await sb.from('pirana_licenses').update({ phone }).eq('device_id', deviceId);
+            if (error) {
+                alert('Error: ' + error.message);
+            } else {
+                closeModal();
+                loadLicenses();
+            }
+        }
+
+        async function activate(deviceId) {
+            const { error } = await sb.from('pirana_licenses').update({
+                activated: true,
+                activated_at: new Date().toISOString()
+            }).eq('device_id', deviceId);
+
+            if (error) {
+                alert('Error: ' + error.message);
+            } else {
+                loadLicenses();
+            }
+        }
+
+        async function deactivate(deviceId) {
+            const { error } = await sb.from('pirana_licenses').update({
+                activated: false,
+                activated_at: null
+            }).eq('device_id', deviceId);
+
+            if (error) {
+                alert('Error: ' + error.message);
+            } else {
+                loadLicenses();
+            }
+        }
+
+        async function pauseUser(deviceId) {
+            const { error } = await sb.from('pirana_licenses').update({ paused: true }).eq('device_id', deviceId);
+            if (error) {
+                alert('Error: ' + error.message);
+            } else {
+                loadLicenses();
+            }
+        }
+
+        async function unpauseUser(deviceId) {
+            const { error } = await sb.from('pirana_licenses').update({ paused: false }).eq('device_id', deviceId);
+            if (error) {
+                alert('Error: ' + error.message);
+            } else {
+                loadLicenses();
+            }
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderTable();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+
+        loadLicenses();
+    </script>
+</body>
+</html>

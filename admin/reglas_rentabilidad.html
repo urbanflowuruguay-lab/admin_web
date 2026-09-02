@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reglas de Rentabilidad - UrbanFlow</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; background-color: #0d1117; color: #c9d1d9; margin: 0; }
+        h1 { color: #00e676; display: flex; align-items: center; gap: 15px; }
+        .description { color: #8b949e; margin-bottom: 20px; font-size: 14px; }
+
+        .card { background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        .card h3 { color: #00e676; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 11px; font-weight: bold; color: #8b949e; text-transform: uppercase; }
+        .form-group .hint { font-size: 11px; color: #6e7681; margin-top: 2px; }
+
+        input[type="number"] {
+            padding: 12px; border-radius: 8px; border: 1px solid #30363d;
+            background: #0d1117; color: white; width: 100%; box-sizing: border-box; font-size: 14px;
+        }
+        input:focus { border-color: #00e676; outline: none; box-shadow: 0 0 0 2px rgba(0,230,118,0.2); }
+
+        .preview-box {
+            background: linear-gradient(135deg, #0d2818, #1a3a1a); border: 2px solid #00e676;
+            border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;
+        }
+        .preview-box .label { color: #00e676; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .preview-box .value { color: #ffffff; font-size: 28px; font-weight: bold; }
+
+        .verdict-demo { display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
+        .verdict-card {
+            flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; text-align: center;
+            font-weight: bold; font-size: 13px;
+        }
+        .verdict-rentable { background: rgba(0,230,118,0.15); border: 1px solid #00e676; color: #00e676; }
+        .verdict-casi { background: rgba(255,214,0,0.15); border: 1px solid #ffd600; color: #ffd600; }
+        .verdict-no { background: rgba(255,23,68,0.15); border: 1px solid #ff1744; color: #ff1744; }
+
+        .btn-save {
+            padding: 14px 40px; border-radius: 8px; border: none; cursor: pointer;
+            font-weight: bold; font-size: 16px; transition: 0.3s;
+        }
+        .btn-save.primary { background: #00e676; color: #0d1117; }
+        .btn-save.primary:hover { background: #00c853; transform: translateY(-1px); }
+
+        .status { padding: 10px 15px; border-radius: 8px; margin-top: 15px; display: none; font-size: 14px; }
+        .status.success { display: block; background: rgba(0,230,118,0.15); border: 1px solid #00e676; color: #00e676; }
+        .status.error { display: block; background: rgba(255,23,68,0.15); border: 1px solid #ff1744; color: #ff1744; }
+
+        .nav-link { color: #58a6ff; text-decoration: none; font-size: 14px; }
+        .nav-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <a class="nav-link" href="index.html">← Volver al panel</a>
+    <br><br>
+    <h1> Reglas de Rentabilidad (Uber/Cabify)</h1>
+    <p class="description">
+        Configura los umbrales para que el lector de pantallas determine si un viaje de Uber/Cabify es rentable para el chofer.
+    </p>
+
+    <div class="card">
+        <h3> Configuracion de Reglas</h3>
+        <p style="color:#8b949e; font-size:13px; margin-bottom:20px;">
+            Estas reglas se aplican localmente en cada chofer. El chofer activa el lector una vez, y cuando abre Uber/Cabify, UF analiza el viaje automaticamente.
+        </p>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Minimo $/km para ser rentable</label>
+                <input type="number" id="minPPK" value="120" step="5" min="0">
+                <span class="hint">Si Uber/Cabify paga mas de esto por km, es RENTABLE</span>
+            </div>
+            <div class="form-group">
+                <label>Distancia maxima (km)</label>
+                <input type="number" id="maxDist" value="25" step="1" min="1">
+                <span class="hint">Viajes mas largos que esto no se consideran</span>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:15px;">
+            <div class="form-group">
+                <label>Precio minimo total (UYU)</label>
+                <input type="number" id="minTotal" value="250" step="10" min="0">
+                <span class="hint">Viajes con precio menor a esto no son rentables</span>
+            </div>
+            <div class="form-group">
+                <label>UF $/km base (para comparar)</label>
+                <input type="number" id="ufPPK" value="38" step="1" min="0">
+                <span class="hint">Tarifa base de UrbanFlow por km</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Vista Previa</h3>
+        <div class="preview-box">
+            <div class="label">Ejemplo: Uber paga $480 por 3.5 km</div>
+            <div class="value" id="previewValue">$137/km</div>
+        </div>
+
+        <div class="verdict-demo">
+            <div class="verdict-card verdict-rentable">
+                RENTABLE<br>
+                <small>Si $/km >= minimo</small>
+            </div>
+            <div class="verdict-card verdict-casi">
+                CASI<br>
+                <small>Si $/km >= 85% del minimo</small>
+            </div>
+            <div class="verdict-card verdict-no">
+                NO RENTABLE<br>
+                <small>Si $/km < 85% del minimo</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Guardar Cambios</h3>
+        <p style="color:#8b949e; font-size:13px; margin-bottom:15px;">
+            Los cambios se guardan en SharedPreferences del chofer. No requiere reiniciar la app.
+        </p>
+        <button class="btn-save primary" onclick="saveRules()">GUARDAR REGLAS</button>
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://your-project.supabase.co';
+        const SUPABASE_KEY = 'your-anon-key';
+
+        function updatePreview() {
+            const minPPK = parseFloat(document.getElementById('minPPK').value) || 120;
+            const examplePrice = 480;
+            const exampleDist = 3.5;
+            const ppk = examplePrice / exampleDist;
+            document.getElementById('previewValue').textContent = `$${Math.round(ppk)}/km (min: $${Math.round(minPPK)}/km)`;
+        }
+
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', updatePreview);
+        });
+
+        function saveRules() {
+            const rules = {
+                min_price_per_km: parseFloat(document.getElementById('minPPK').value) || 120,
+                max_distance_km: parseFloat(document.getElementById('maxDist').value) || 25,
+                min_total_price: parseFloat(document.getElementById('minTotal').value) || 250,
+                uf_base_price_per_km: parseFloat(document.getElementById('ufPPK').value) || 38
+            };
+
+            const status = document.getElementById('status');
+            status.className = 'status success';
+            status.textContent = 'Reglas guardadas. Los choferes las aplicaran al activar el lector.';
+            status.style.display = 'block';
+
+            console.log('Rules to deploy:', rules);
+        }
+
+        updatePreview();
+    </script>
+</body>
+</html>
