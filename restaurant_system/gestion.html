@@ -351,6 +351,7 @@
                 <div class="section active" id="section-dashboard">
                     <div class="section-header">
                         <h2 class="section-title">Dashboard</h2>
+                        <button class="btn-primary" onclick="borrarDemo()" style="background:var(--danger);font-size:12px;padding:6px 12px"><i class="fas fa-trash"></i> Borrar pedidos demo</button>
                     </div>
                     <div class="stats-grid">
                         <div class="stat-card">
@@ -1952,6 +1953,21 @@
             }
         }
 
+        async function borrarDemo() {
+            if (!confirm('¿Borrar TODOS los pedidos demo, facturación y propinas de esta empresa?')) return;
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return alert('Sin empresa');
+            try {
+                await sb.from('pedidos').delete().eq('empresa_id', empresaId);
+                await sb.from('pagos_urbanflow').delete().eq('empresa_id', empresaId);
+                await sb.from('propinas').delete().eq('empresa_id', empresaId);
+                await sb.from('calificaciones').delete().eq('empresa_id', empresaId);
+                localStorage.removeItem('urbanflow_pedidos_'+empresaId);
+                localData.pedidos = []; localData.cobros = [];
+                loadDashboard(); loadPedidos(); loadFacturacion();
+                alert('Datos demo borrados');
+            } catch(e) { alert('Error: '+e.message); }
+        }
         // =============================================
         // AUDIT LOG
         // =============================================
