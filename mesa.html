@@ -297,7 +297,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const params = new URLSearchParams(window.location.search);
 const mesaToken = params.get("mesa") || "";
-const empresaId = params.get("empresa") || "";
+let empresaId = params.get("empresa") || "";
 
 let empresaData = null;
 let mesaData = null;
