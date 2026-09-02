@@ -288,7 +288,7 @@
     <!-- APP -->
     <div class="app-container" id="appContainer">
         <header class="header">
-            <h1><i class="fas fa-utensils"></i> La Parrilla</h1>
+            <h1><i class="fas fa-utensils"></i> <span id="headerRestaurantName">Mi Restaurante</span></h1>
             <div class="header-right">
                 <div class="header-user">
                     <div class="name" id="userName">Carlos López</div>
@@ -309,6 +309,12 @@
                 </div>
                 <div class="sidebar-item" onclick="showSection('pedidos')">
                     <i class="fas fa-shopping-bag"></i><span>Pedidos</span>
+                </div>
+                <div class="sidebar-item" onclick="showSection('mesas')">
+                    <i class="fas fa-table"></i><span>Mesas</span>
+                </div>
+                <div class="sidebar-item" onclick="openPOS()">
+                    <i class="fas fa-cash-register"></i><span>Cajero</span>
                 </div>
                 <div class="sidebar-item" onclick="showSection('inventario')">
                     <i class="fas fa-boxes"></i><span>Inventario</span>
@@ -430,6 +436,17 @@
                             </table>
                         </div>
                     </div>
+                </div>
+
+                <!-- MESAS -->
+                <div class="section" id="section-mesas">
+                    <div class="section-header">
+                        <h2 class="section-title">Mesas</h2>
+                        <button class="btn-primary" onclick="openPOS()">
+                            <i class="fas fa-cash-register"></i> Abrir Cajero
+                        </button>
+                    </div>
+                    <div id="mesasGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;"></div>
                 </div>
 
                 <!-- INVENTARIO -->
@@ -617,23 +634,19 @@
                         <h3 class="card-title" style="margin-bottom: 20px;">Datos del Restaurante</h3>
                         <div class="form-group">
                             <label>Nombre</label>
-                            <input type="text" id="configNombre" value="La Parrilla">
-                        </div>
-                        <div class="form-group">
-                            <label>Descripción</label>
-                            <textarea id="configDescripcion">Parrilla uruguaya desde 1990</textarea>
+                            <input type="text" id="configNombre" value="">
                         </div>
                         <div class="form-group">
                             <label>Teléfono</label>
-                            <input type="text" id="configTelefono" value="21234567">
+                            <input type="text" id="configTelefono" value="">
                         </div>
                         <div class="form-group">
                             <label>Email</label>
-                            <input type="email" id="configEmail" value="info@laparrilla.com.uy">
+                            <input type="email" id="configEmail" value="">
                         </div>
                         <div class="form-group">
                             <label>Dirección</label>
-                            <input type="text" id="configDireccion" value="Av. 18 de Julio 1234">
+                            <input type="text" id="configDireccion" value="">
                         </div>
                         <button class="btn-primary" onclick="saveConfig()">
                             <i class="fas fa-save"></i> Guardar Cambios
@@ -1036,6 +1049,7 @@
             
             if (section === 'productos') loadProductos();
             if (section === 'pedidos') loadPedidos();
+            if (section === 'mesas') loadMesas();
             if (section === 'inventario') loadInventario();
             if (section === 'clientes') loadClientes();
             if (section === 'empleados') loadEmpleados();
@@ -1043,6 +1057,66 @@
             if (section === 'facturacion') loadFacturacion();
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
+        }
+
+        function openPOS() {
+            const empresaId = localStorage.getItem('urbanflow_empresa_id');
+            if (empresaId) {
+                window.open(`pos.html?empresa=${empresaId}`, '_blank');
+            } else {
+                window.open('pos.html', '_blank');
+            }
+        }
+
+        async function loadMesas() {
+            const empresaId = localData.currentUser?.empresa_id;
+            const container = document.getElementById('mesasGrid');
+            if (!container) return;
+
+            try {
+                const { data, error } = await sb.from('mesas')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .order('numero');
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)"><i class="fas fa-table" style="font-size:48px;display:block;margin-bottom:12px;color:var(--border)"></i>No hay mesas configuradas</div>';
+                    return;
+                }
+
+                container.innerHTML = data.map(m => {
+                    const estado = m.estado || 'libre';
+                    const color = estado === 'libre' ? 'var(--green)' : estado === 'ocupada' ? 'var(--orange)' : 'var(--blue)';
+                    const label = estado === 'libre' ? 'Libre' : estado === 'ocupada' ? 'Ocupada' : 'Reservada';
+                    return `
+                        <div style="background:var(--bg2);border:2px solid ${color};border-radius:12px;padding:20px;text-align:center;cursor:pointer" onclick="toggleMesa('${m.id}', '${estado}')">
+                            <div style="font-size:32px;margin-bottom:8px">🪑</div>
+                            <div style="font-weight:700;font-size:18px">Mesa ${m.numero}</div>
+                            <div style="font-size:12px;color:${color};margin-top:4px;font-weight:600">${label}</div>
+                            ${m.capacidad ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${m.capacidad} personas</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading mesas:', err);
+                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">Error al cargar mesas</div>';
+            }
+        }
+
+        async function toggleMesa(id, estadoActual) {
+            const nuevoEstado = estadoActual === 'libre' ? 'ocupada' : 'libre';
+            try {
+                const { error } = await sb.from('mesas')
+                    .update({ estado: nuevoEstado })
+                    .eq('id', id);
+
+                if (error) throw error;
+                loadMesas();
+            } catch (err) {
+                console.error('Error updating mesa:', err);
+            }
         }
 
         function openTerminal() {
@@ -1058,6 +1132,8 @@
         // LOAD DATA
         // =============================================
         function loadDashboard() {
+            loadRestaurantConfig();
+            
             const today = new Date().toISOString().split('T')[0];
             const pedidosHoy = localData.pedidos.filter(p => p.created_at && p.created_at.startsWith(today));
             const cobrosHoy = localData.cobros.filter(c => c.fecha === today);
@@ -1079,6 +1155,28 @@
                         <span class="badge badge-${getEstadoColor(p.estado)}">${p.estado}</span>
                     </div>
                 `).join('');
+            }
+        }
+
+        async function loadRestaurantConfig() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+
+            try {
+                const { data, error } = await sb.from('empresas')
+                    .select('*')
+                    .eq('id', empresaId)
+                    .limit(1);
+
+                if (error || !data || data.length === 0) return;
+
+                const emp = data[0];
+                document.getElementById('configNombre').value = emp.nombre || '';
+                document.getElementById('configTelefono').value = emp.telefono || '';
+                document.getElementById('configEmail').value = emp.email || '';
+                document.getElementById('configDireccion').value = emp.direccion || '';
+            } catch (err) {
+                console.error('Error loading config:', err);
             }
         }
 
@@ -1697,6 +1795,7 @@
                     document.getElementById('userName').textContent = emp.nombre;
                     document.getElementById('userRole').textContent = 'DUEÑO';
                     document.getElementById('userAvatar').textContent = emp.nombre.substring(0, 2).toUpperCase();
+                    document.getElementById('headerRestaurantName').textContent = emp.nombre;
 
                     loadDashboard();
                 }
