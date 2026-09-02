@@ -105,7 +105,7 @@
                 <button type="submit" class="btn" id="btnSubmit">Entrar</button>
             </form>
 
-            <div class="toggle-text">
+            <div class="toggle-text" style="display:none">
                 <span id="toggleText">¿No tenés cuenta?</span>
                 <a id="toggleLink" onclick="toggleMode()">Registrate</a>
             </div>
@@ -217,9 +217,19 @@
             }
 
             if (profile && (profile.type === "servicios" || profile.type === "empresa")) {
-                const { data: empresa } = await sb.from("empresas").select("status").eq("usuario_id", userId).single();
+                // Check if it's a restaurant
+                const { data: empresa } = await sb.from("empresas").select("status, rubro").eq("usuario_id", userId).single();
                 const empresaStatus = empresa ? empresa.status : profile.status;
-                if (empresaStatus === "aprobado") { window.location.href = "/empresa/"; return; }
+                
+                if (empresaStatus === "aprobado") {
+                    // If restaurant, go to restaurant management
+                    if (empresa && (empresa.rubro === "restaurante" || empresa.rubro === "gastronomia" || empresa.rubro === "comida")) {
+                        window.location.href = "/restaurant_system/gestion.html";
+                        return;
+                    }
+                    window.location.href = "/empresa/";
+                    return;
+                }
                 showError("Tu cuenta está " + empresaStatus + ".");
                 await sb.auth.signOut();
                 return;
