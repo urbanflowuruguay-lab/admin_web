@@ -660,6 +660,13 @@
                     </div>
 
                     <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 12px;">Diseño de la Carta</h3>
+                        <p style="color:var(--text2);font-size:13px;margin-bottom:12px">Elegí cómo se ve tu carta cuando el cliente escanea el QR</p>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px" id="templateGrid"></div>
+                        <button class="btn-primary" onclick="saveCartaTemplate()" style="margin-top:12px"><i class="fas fa-palette"></i> Guardar Diseño</button>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
                         <h3 class="card-title" style="margin-bottom: 20px;">Almacenamiento</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                             <div style="padding: 20px; background: var(--bg3); border-radius: 8px;">
@@ -1221,6 +1228,34 @@
             }
         }
 
+        const cartaTemplates = [
+            { id: 'dark_elegance', nombre: 'Elegante Oscuro', bg: '#0a0a0a', color: '#d4af37' },
+            { id: 'editorial', nombre: 'Editorial Claro', bg: '#faf6ee', color: '#6b1d1d' },
+            { id: 'minimalista', nombre: 'Minimalista', bg: '#ffffff', color: '#171717' },
+            { id: 'bold_colorido', nombre: 'Colorido', bg: '#1a1a2e', color: '#e63946' },
+            { id: 'glassmorphism', nombre: 'Glass', bg: 'linear-gradient(135deg,#667eea,#764ba2)', color: '#a78bfa' },
+            { id: 'rustico', nombre: 'Rústico', bg: '#f5f0e8', color: '#8b4513' }
+        ];
+        let selectedTemplate = 'dark_elegance';
+        function renderTemplateGrid(current) {
+            selectedTemplate = current || selectedTemplate;
+            const grid = document.getElementById('templateGrid');
+            if (!grid) return;
+            grid.innerHTML = cartaTemplates.map(t => `
+                <div onclick="selectedTemplate='${t.id}';renderTemplateGrid('${t.id}')" style="cursor:pointer;border:2px solid ${selectedTemplate===t.id?'var(--accent)':'var(--border)'};border-radius:10px;overflow:hidden;text-align:center">
+                    <div style="height:70px;background:${t.bg};display:flex;align-items:center;justify-content:center;color:${t.color};font-weight:700">${t.nombre}</div>
+                    <div style="padding:6px;font-size:11px;color:var(--text2)">${t.id}</div>
+                </div>
+            `).join('');
+        }
+        async function saveCartaTemplate() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const { error } = await sb.from('empresas').update({ carta_template: selectedTemplate }).eq('id', empresaId);
+            if (error) alert('Error: '+error.message);
+            else alert('Diseño guardado: '+selectedTemplate);
+        }
+
         async function loadRestaurantConfig() {
             const empresaId = localData.currentUser?.empresa_id;
             if (!empresaId) return;
@@ -1238,6 +1273,8 @@
                 document.getElementById('configTelefono').value = emp.telefono || '';
                 document.getElementById('configEmail').value = emp.email || '';
                 document.getElementById('configDireccion').value = emp.direccion || '';
+                selectedTemplate = emp.carta_template || 'dark_elegance';
+                renderTemplateGrid(selectedTemplate);
             } catch (err) {
                 console.error('Error loading config:', err);
             }
