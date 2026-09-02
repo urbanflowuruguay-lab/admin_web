@@ -1632,28 +1632,7 @@
                     const lx = x + (logoAreaSize - lw) / 2;
                     const ly = y + (logoAreaSize - lh) / 2;
                     
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = lw;
-                    tempCanvas.height = lh;
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCtx.drawImage(logo, 0, 0, lw, lh);
-                    
-                    const imgData = tempCtx.getImageData(0, 0, lw, lh);
-                    for (let i = 0; i < imgData.data.length; i += 4) {
-                        const r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2], a = imgData.data[i+3];
-                        if (a === 0) { continue; }
-                        if (r > 180 && g > 180 && b > 180) {
-                            imgData.data[i+3] = 0;
-                        } else {
-                            imgData.data[i] = 255;
-                            imgData.data[i+1] = 255;
-                            imgData.data[i+2] = 255;
-                            imgData.data[i+3] = 255;
-                        }
-                    }
-                    tempCtx.putImageData(imgData, 0, 0);
-                    
-                    ctx.drawImage(tempCanvas, lx, ly, lw, lh);
+                    ctx.drawImage(logo, lx, ly, lw, lh);
                     
                     container.innerHTML = '';
                     container.appendChild(finalCanvas);
