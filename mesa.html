@@ -19,10 +19,28 @@
         html, body { font-family: var(--font); color: var(--text); height: 100%; overflow: hidden; }
         body { background: var(--bg); }
         .app-layout { display: flex; flex-direction: column; height: 100vh; }
+
+        /* HEADER NEGOCIO */
+        .negocio-header {
+            padding: 16px; display: flex; align-items: center; gap: 14px;
+            border-bottom: 1px solid var(--border); background: var(--bg); flex-shrink: 0;
+        }
+        .negocio-logo {
+            width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--border); background: var(--bg3); flex-shrink: 0;
+        }
+        .negocio-info { flex: 1; min-width: 0; }
+        .negocio-nombre { font-weight: 700; font-size: 17px; color: var(--text); }
+        .negocio-desc { font-size: 12px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .negocio-mesa { font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 3px; }
+
+        /* CATEGORIAS */
         .categorias { position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; overflow-x: auto; padding: 12px 12px 8px; -webkit-overflow-scrolling: touch; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .cat-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; background: transparent; color: var(--text2); cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0; font-family: var(--font); }
         .cat-btn.active { background: var(--accent2); color: white; border-color: var(--accent2); }
-        .productos-scroll { flex: 1; overflow-y: auto; padding: 12px 12px 80px; -webkit-overflow-scrolling: touch; }
+
+        /* PRODUCTOS */
+        .productos-scroll { flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch; padding-bottom: 80px; }
         .producto-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; box-shadow: var(--card-shadow); }
         .producto-img { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; background: var(--bg3); flex-shrink: 0; }
         .producto-info { flex: 1; min-width: 0; }
@@ -36,21 +54,35 @@
         .add-btn { background: var(--accent2); color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: var(--font); }
         .add-btn:active { opacity: 0.8; }
 
+        /* CARRITO BAR */
         .carrito-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 20; }
         .carrito-bar .items-count { color: var(--text2); font-size: 14px; }
         .carrito-bar .total { font-weight: bold; color: var(--price); font-size: 18px; }
         .carrito-btn { background: var(--success); color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: var(--font); }
         .carrito-btn:disabled { background: var(--bg3); color: var(--muted); cursor: not-allowed; }
-        .carrito-btn:active:not(:disabled) { opacity: 0.8; }
 
-        .carrito-panel { display: none; position: fixed; bottom: 60px; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border); padding: 16px; max-height: 50vh; overflow-y: auto; z-index: 19; }
+        /* CARRITO PANEL */
+        .carrito-panel {
+            display: none; position: fixed; bottom: 60px; left: 0; right: 0;
+            background: var(--bg2); border-top: 1px solid var(--border);
+            max-height: 50vh; overflow-y: auto; z-index: 19;
+            border-radius: 16px 16px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+        }
         .carrito-panel.show { display: block; }
-        .carrito-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--bg3); }
+        .carrito-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg2); }
+        .carrito-header h3 { font-size: 15px; font-weight: 700; }
+        .carrito-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+        .carrito-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
         .carrito-item:last-child { border-bottom: none; }
-        .carrito-item .nombre { font-size: 14px; }
-        .carrito-item .precio { color: var(--price); font-weight: 600; }
-        .carrito-item .remove { color: var(--danger); cursor: pointer; font-size: 18px; padding: 0 4px; }
+        .carrito-item-info { flex: 1; }
+        .carrito-item .nombre { font-size: 14px; font-weight: 500; }
+        .carrito-item .precio { color: var(--price); font-weight: 600; font-size: 14px; margin-top: 2px; }
+        .carrito-item-qty { display: flex; align-items: center; gap: 8px; }
+        .carrito-item .qty-btn { width: 26px; height: 26px; font-size: 14px; }
+        .carrito-item .qty-num { font-size: 14px; min-width: 16px; }
+        .carrito-item .remove-btn { background: none; border: none; color: var(--danger); font-size: 16px; cursor: pointer; padding: 4px 8px; margin-left: 4px; }
 
+        /* NOMBRE INPUT */
         .nombre-input { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; }
         .nombre-input.show { display: flex; }
         .nombre-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 90%; max-width: 350px; }
@@ -59,6 +91,7 @@
         .nombre-box .btn-row { display: flex; gap: 8px; }
         .nombre-box .btn-row button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--font); }
 
+        /* ESTADO PEDIDO */
         .estado-pedido { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 300; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 24px; }
         .estado-pedido.show { display: flex; }
         .estado-pedido .icon { font-size: 64px; margin-bottom: 16px; }
@@ -98,6 +131,14 @@
 </div>
 
 <div class="app-layout">
+    <div class="negocio-header" id="negocioHeader" style="display:none">
+        <img id="headerLogo" class="negocio-logo" src="" style="display:none">
+        <div class="negocio-info">
+            <div class="negocio-nombre" id="headerNombre"></div>
+            <div class="negocio-desc" id="headerDesc"></div>
+            <div class="negocio-mesa" id="headerMesa"></div>
+        </div>
+    </div>
     <div class="categorias" id="categoriasBar"></div>
     <div class="productos-scroll" id="mainContent">
         <div class="empty" style="padding-top:80px">
@@ -107,14 +148,20 @@
 </div>
 
 <div class="carrito-bar" id="carritoBar" style="display:none">
-    <div>
+    <div onclick="toggleCarritoPanel()" style="cursor:pointer">
         <div class="items-count" id="carritoCount">0 items</div>
         <div class="total" id="carritoTotal">$0</div>
     </div>
     <button class="carrito-btn" id="btnPedir" disabled onclick="showNombreInput()">Pedir</button>
 </div>
 
-<div class="carrito-panel" id="carritoPanel"></div>
+<div class="carrito-panel" id="carritoPanel">
+    <div class="carrito-header">
+        <h3>Mi Pedido</h3>
+        <button class="carrito-close" onclick="toggleCarritoPanel()">&times;</button>
+    </div>
+    <div id="carritoItems"></div>
+</div>
 
 <div class="nombre-input" id="nombreInput">
     <div class="nombre-box">
@@ -151,6 +198,7 @@ let productos = [];
 let carrito = [];
 let clienteToken = localStorage.getItem("cliente_token_" + mesaToken) || crypto.randomUUID();
 localStorage.setItem("cliente_token_" + mesaToken, clienteToken);
+let carritoPanelOpen = false;
 
 const themes = {
     dark_elegance: { bg: "#0a0a0a", bg2: "#141414", bg3: "#1e1e1e", border: "#2a2a2a", text: "#e8e8e8", text2: "#999", accent: "#d4af37", accent2: "#b8960c", price: "#d4af37", success: "#2d8a4e", danger: "#c0392b", muted: "#555", font: "'Inter', sans-serif", fontHeading: "'Playfair Display', serif", cardRadius: "12px", cardShadow: "0 4px 20px rgba(0,0,0,0.4)" },
@@ -203,7 +251,7 @@ async function init() {
     }
     try {
         const [empRes, mesaRes, prodRes] = await Promise.all([
-            sb.from("empresas").select("id,nombre,carta_template,logo_url,foto_url,portada_url").eq("id", empresaId).single(),
+            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaId).single(),
             sb.from("mesas").select("*").eq("mesa_token", mesaToken).single(),
             sb.from("productos_empresa").select("*").eq("empresa_id", empresaId).eq("activo", true).order("categoria")
         ]);
@@ -215,6 +263,8 @@ async function init() {
             return;
         }
         applyTheme(empresaData.carta_template || "dark_elegance");
+
+        // Portada
         document.getElementById("portadaNombre").textContent = empresaData.nombre;
         document.getElementById("portadaMesa").textContent = `Mesa #${mesaData.numero}`;
         if (empresaData.logo_url) {
@@ -226,6 +276,19 @@ async function init() {
             document.getElementById("portadaBg").style.backgroundImage = `url(${empresaData.portada_url})`;
         }
         applyPortadaTheme(empresaData.carta_template || "dark_elegance");
+
+        // Header dentro de la carta
+        const header = document.getElementById("negocioHeader");
+        header.style.display = "flex";
+        if (empresaData.logo_url) {
+            const hLogo = document.getElementById("headerLogo");
+            hLogo.src = empresaData.logo_url;
+            hLogo.style.display = "block";
+        }
+        document.getElementById("headerNombre").textContent = empresaData.nombre;
+        document.getElementById("headerDesc").textContent = empresaData.descripcion || "";
+        document.getElementById("headerMesa").textContent = `Mesa #${mesaData.numero}`;
+
         sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
         renderProductos();
     } catch (e) {
@@ -276,7 +339,7 @@ function addToCart(prodId) {
     const existing = carrito.find(c => c.id === prodId);
     if (existing) { existing.qty++; }
     else { carrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio_oferta || prod.precio, qty: 1 }); }
-    renderProductos(document.querySelector(".cat-btn.active")?.textContent === "Todos" ? null : document.querySelector(".cat-btn.active")?.textContent);
+    renderProductos(getCurrentFilter());
 }
 
 function changeQty(prodId, delta) {
@@ -284,7 +347,48 @@ function changeQty(prodId, delta) {
     if (!item) return;
     item.qty += delta;
     if (item.qty <= 0) carrito = carrito.filter(c => c.id !== prodId);
-    renderProductos(document.querySelector(".cat-btn.active")?.textContent === "Todos" ? null : document.querySelector(".cat-btn.active")?.textContent);
+    renderProductos(getCurrentFilter());
+    renderCarritoItems();
+}
+
+function removeFromCart(prodId) {
+    carrito = carrito.filter(c => c.id !== prodId);
+    renderProductos(getCurrentFilter());
+    renderCarritoItems();
+    updateCarritoBar();
+}
+
+function getCurrentFilter() {
+    const active = document.querySelector(".cat-btn.active");
+    return active && active.textContent !== "Todos" ? active.textContent : null;
+}
+
+function toggleCarritoPanel() {
+    carritoPanelOpen = !carritoPanelOpen;
+    document.getElementById("carritoPanel").classList.toggle("show", carritoPanelOpen);
+    if (carritoPanelOpen) renderCarritoItems();
+}
+
+function renderCarritoItems() {
+    const container = document.getElementById("carritoItems");
+    if (carrito.length === 0) {
+        container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Tu carrito esta vacio</div>';
+        return;
+    }
+    container.innerHTML = carrito.map(item => `
+        <div class="carrito-item">
+            <div class="carrito-item-info">
+                <div class="nombre">${item.nombre}</div>
+                <div class="precio">$${(item.precio * item.qty).toFixed(0)}</div>
+            </div>
+            <div class="carrito-item-qty">
+                <button class="qty-btn" onclick="changeQty('${item.id}',-1)">-</button>
+                <span class="qty-num">${item.qty}</span>
+                <button class="qty-btn" onclick="changeQty('${item.id}',1)">+</button>
+                <button class="remove-btn" onclick="removeFromCart('${item.id}')">🗑</button>
+            </div>
+        </div>
+    `).join("");
 }
 
 function updateCarritoBar() {
@@ -294,6 +398,7 @@ function updateCarritoBar() {
     document.getElementById("carritoTotal").textContent = "$" + totalPrecio.toFixed(0);
     document.getElementById("btnPedir").disabled = totalItems === 0;
     document.getElementById("carritoBar").style.display = totalItems > 0 ? "" : "none";
+    renderCarritoItems();
 }
 
 function showNombreInput() {
@@ -323,6 +428,8 @@ async function confirmarPedido() {
         });
         carrito = [];
         updateCarritoBar();
+        carritoPanelOpen = false;
+        document.getElementById("carritoPanel").classList.remove("show");
         document.getElementById("pedidoIdDisplay").textContent = `Pedido de ${nombre}`;
         document.getElementById("estadoPedido").classList.add("show");
     } catch (e) {
@@ -332,7 +439,7 @@ async function confirmarPedido() {
 
 function volverCarta() {
     document.getElementById("estadoPedido").classList.remove("show");
-    renderProductos(document.querySelector(".cat-btn.active")?.textContent === "Todos" ? null : document.querySelector(".cat-btn.active")?.textContent);
+    renderProductos(getCurrentFilter());
 }
 
 init();
