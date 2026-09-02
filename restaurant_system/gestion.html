@@ -1381,11 +1381,36 @@
             } else alert('Error portada: '+error.message);
         });
 
-        function loadProductos() {
+        async function loadProductos() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (empresaId) {
+                try {
+                    const { data, error } = await sb.from('productos_empresa').select('*').eq('empresa_id', empresaId).order('created_at', {ascending:false});
+                    if (!error && data) {
+                        localData.productos = data.map(r => ({
+                            id: r.id,
+                            nombre: r.nombre,
+                            descripcion: r.descripcion,
+                            precio: parseFloat(r.precio),
+                            categorias: [r.categoria || 'general'],
+                            categoriaNombre: r.categoria,
+                            stock: r.stock,
+                            activo: r.activo,
+                            foto_url: r.foto_url,
+                            disponible: r.disponible || 'ambas',
+                            created_at: r.created_at
+                        }));
+                    }
+                } catch(e) { console.error('loadProductos SB', e); }
+            }
+            if (localData.categorias.length === 0) {
+                const cats = [...new Set(localData.productos.map(p => p.categoriaNombre || (p.categorias&&p.categorias[0]) ).filter(Boolean))];
+                cats.forEach(c => { if (!localData.categorias.find(x=>x.nombre===c)) localData.categorias.push({id:'cat_'+c, nombre:c}); });
+            }
             document.getElementById('productosTable').innerHTML = localData.productos.map(p => `
                 <tr>
                     <td><strong>${p.nombre}</strong></td>
-                    <td>${localData.categorias.find(c => c.id === p.categorias[0])?.nombre || ''}</td>
+                    <td>${p.categoriaNombre || localData.categorias.find(c => c.id === p.categorias[0])?.nombre || p.categorias[0] || ''}</td>
                     <td>$${p.precio}</td>
                     <td>${p.stock}</td>
                     <td><span class="badge ${p.activo ? 'badge-success' : 'badge-danger'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
@@ -1839,19 +1864,36 @@
             document.getElementById('prodFoto').value = '';
             document.getElementById('prodFotoPreview').style.display='none';
             document.getElementById('prodFotoPlaceholder').style.display='block';
+            document.getElementById('prodCategoria').value = 'cat_001';
+            document.getElementById('catNuevaWrap').style.display='none';
+            document.getElementById('catNueva').value = '';
+            document.getElementById('prodDisponible').value = 'ambas';
             document.getElementById('modal-producto').classList.add('active');
         }
         async function saveProducto() {
-            let cat = document.getElementById('prodCategoria').value;
-            if (cat === 'nueva') {
+            let catVal = document.getElementById('prodCategoria').value;
+            let catNombre = document.getElementById('prodCategoria').selectedOptions[0]?.textContent || catVal;
+            if (catVal === 'nueva') {
                 const nombreCat = document.getElementById('catNueva').value.trim();
                 if (!nombreCat) { alert('Ingresá nombre de categoría'); return; }
-                cat = 'cat_' + Date.now();
-                localData.categorias.push({ id: cat, nombre: nombreCat });
-                const opt = document.createElement('option'); opt.value = cat; opt.textContent = nombreCat;
-                document.getElementById('prodCategoria').appendChild(opt);
+                catNombre = nombreCat;
+                catVal = nombreCat;
+                if (!localData.categorias.find(c=>c.nombre===nombreCat)) {
+                    localData.categorias.push({ id: 'cat_'+Date.now(), nombre: nombreCat });
+                    const opt = document.createElement('option'); opt.value = nombreCat; opt.textContent = nombreCat;
+                    document.getElementById('prodCategoria').appendChild(opt);
+                }
+                document.getElementById('prodCategoria').value = nombreCat;
                 document.getElementById('catNueva').value = '';
                 document.getElementById('catNuevaWrap').style.display='none';
+            } else {
+                // mapear id viejo a nombre
+                const found = localData.categorias.find(c=>c.id===catVal);
+                if (found) catNombre = found.nombre;
+                else {
+                    const map = {cat_001:'Entradas',cat_002:'Parrilla',cat_003:'Pizzas',cat_004:'Pastas',cat_005:'Bebidas',cat_006:'Postres'};
+                    catNombre = map[catVal] || catVal;
+                }
             }
             const disponible = document.getElementById('prodDisponible').value;
             let fotoUrl = null;
@@ -1865,31 +1907,54 @@
                     fotoUrl = data.publicUrl;
                 }
             }
+            const empresaId = localData.currentUser?.empresa_id;
             if (editingProductoId) {
                 const idx = localData.productos.findIndex(x => x.id === editingProductoId);
                 if (idx !== -1) {
                     const old = localData.productos[idx];
-                    localData.productos[idx] = {
-                        ...old,
+                    const upd = {
                         nombre: document.getElementById('prodNombre').value,
                         descripcion: document.getElementById('prodDescripcion').value,
                         precio: parseFloat(document.getElementById('prodPrecio').value),
-                        categorias: [cat],
+                        categoria: catNombre,
                         stock: parseInt(document.getElementById('prodStock').value),
-                        foto_url: fotoUrl || old.foto_url,
-                        disponible: disponible
+                        foto_url: fotoUrl || old.foto_url
                     };
+                    // Supabase
+                    if (empresaId && !String(editingProductoId).startsWith('prod_')) {
+                        await sb.from('productos_empresa').update(upd).eq('id', editingProductoId);
+                    } else if (empresaId) {
+                        const { data } = await sb.from('productos_empresa').insert({ empresa_id: empresaId, ...upd, activo: true }).select();
+                        if (data && data[0]) upd.id = data[0].id;
+                    }
+                    localData.productos[idx] = { ...old, ...upd, categorias: [catNombre], disponible };
                     logAccion('producto_editado', 'productos', { id: editingProductoId });
                 }
                 editingProductoId = null;
             } else {
-                const prod = {
-                    id: 'prod_' + Date.now(),
+                const prodDB = {
+                    empresa_id: empresaId,
                     nombre: document.getElementById('prodNombre').value,
                     descripcion: document.getElementById('prodDescripcion').value,
                     precio: parseFloat(document.getElementById('prodPrecio').value),
-                    categorias: [cat],
+                    categoria: catNombre,
                     stock: parseInt(document.getElementById('prodStock').value),
+                    foto_url: fotoUrl,
+                    activo: true
+                };
+                let newId = 'prod_' + Date.now();
+                if (empresaId) {
+                    const { data, error } = await sb.from('productos_empresa').insert(prodDB).select();
+                    if (!error && data && data[0]) newId = data[0].id;
+                }
+                const prod = {
+                    id: newId,
+                    nombre: prodDB.nombre,
+                    descripcion: prodDB.descripcion,
+                    precio: prodDB.precio,
+                    categorias: [catNombre],
+                    categoriaNombre: catNombre,
+                    stock: prodDB.stock,
                     stock_minimo: 10,
                     activo: true,
                     foto_url: fotoUrl,
@@ -1903,7 +1968,6 @@
             document.getElementById('prodFoto').value=''; document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block';
             closeModal('producto');
             loadProductos();
-            logAccion('producto_creado', 'productos', { nombre: prod.nombre });
         }
 
         async function saveEmpleado() {
