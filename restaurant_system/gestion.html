@@ -392,7 +392,7 @@
                 <div class="section" id="section-productos">
                     <div class="section-header">
                         <h2 class="section-title">Productos</h2>
-                        <button class="btn-primary" onclick="showModal('producto')">
+                        <button class="btn-primary" onclick="nuevoProducto()">
                             <i class="fas fa-plus"></i> Nuevo Producto
                         </button>
                     </div>
@@ -823,7 +823,7 @@
     <div class="modal" id="modal-producto">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Nuevo Producto</h3>
+                <h3 id="productoModalTitle">Nuevo Producto</h3>
                 <button class="modal-close" onclick="closeModal('producto')">&times;</button>
             </div>
             <div class="form-group">
@@ -1813,6 +1813,34 @@
             document.getElementById('prodFotoPreview').style.display='block';
             document.getElementById('prodFotoPlaceholder').style.display='none';
         });
+        let editingProductoId = null;
+        function editProducto(id) {
+            const p = localData.productos.find(x => x.id === id);
+            if (!p) return;
+            editingProductoId = id;
+            document.getElementById('productoModalTitle').textContent = 'Editar Producto';
+            document.getElementById('prodNombre').value = p.nombre || '';
+            document.getElementById('prodDescripcion').value = p.descripcion || '';
+            document.getElementById('prodPrecio').value = p.precio || '';
+            document.getElementById('prodStock').value = p.stock || '';
+            document.getElementById('prodDisponible').value = p.disponible || 'ambas';
+            if (p.categorias && p.categorias[0]) document.getElementById('prodCategoria').value = p.categorias[0];
+            if (p.foto_url) { document.getElementById('prodFotoPreview').src = p.foto_url; document.getElementById('prodFotoPreview').style.display='block'; document.getElementById('prodFotoPlaceholder').style.display='none'; }
+            else { document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block'; }
+            document.getElementById('modal-producto').classList.add('active');
+        }
+        function nuevoProducto() {
+            editingProductoId = null;
+            document.getElementById('productoModalTitle').textContent = 'Nuevo Producto';
+            document.getElementById('prodNombre').value = '';
+            document.getElementById('prodDescripcion').value = '';
+            document.getElementById('prodPrecio').value = '';
+            document.getElementById('prodStock').value = '';
+            document.getElementById('prodFoto').value = '';
+            document.getElementById('prodFotoPreview').style.display='none';
+            document.getElementById('prodFotoPlaceholder').style.display='block';
+            document.getElementById('modal-producto').classList.add('active');
+        }
         async function saveProducto() {
             let cat = document.getElementById('prodCategoria').value;
             if (cat === 'nueva') {
@@ -1837,20 +1865,40 @@
                     fotoUrl = data.publicUrl;
                 }
             }
-            const prod = {
-                id: 'prod_' + Date.now(),
-                nombre: document.getElementById('prodNombre').value,
-                descripcion: document.getElementById('prodDescripcion').value,
-                precio: parseFloat(document.getElementById('prodPrecio').value),
-                categorias: [cat],
-                stock: parseInt(document.getElementById('prodStock').value),
-                stock_minimo: 10,
-                activo: true,
-                foto_url: fotoUrl,
-                disponible: disponible,
-                created_at: new Date().toISOString()
-            };
-            localData.productos.push(prod);
+            if (editingProductoId) {
+                const idx = localData.productos.findIndex(x => x.id === editingProductoId);
+                if (idx !== -1) {
+                    const old = localData.productos[idx];
+                    localData.productos[idx] = {
+                        ...old,
+                        nombre: document.getElementById('prodNombre').value,
+                        descripcion: document.getElementById('prodDescripcion').value,
+                        precio: parseFloat(document.getElementById('prodPrecio').value),
+                        categorias: [cat],
+                        stock: parseInt(document.getElementById('prodStock').value),
+                        foto_url: fotoUrl || old.foto_url,
+                        disponible: disponible
+                    };
+                    logAccion('producto_editado', 'productos', { id: editingProductoId });
+                }
+                editingProductoId = null;
+            } else {
+                const prod = {
+                    id: 'prod_' + Date.now(),
+                    nombre: document.getElementById('prodNombre').value,
+                    descripcion: document.getElementById('prodDescripcion').value,
+                    precio: parseFloat(document.getElementById('prodPrecio').value),
+                    categorias: [cat],
+                    stock: parseInt(document.getElementById('prodStock').value),
+                    stock_minimo: 10,
+                    activo: true,
+                    foto_url: fotoUrl,
+                    disponible: disponible,
+                    created_at: new Date().toISOString()
+                };
+                localData.productos.push(prod);
+                logAccion('producto_creado', 'productos', { nombre: prod.nombre });
+            }
             // reset foto
             document.getElementById('prodFoto').value=''; document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block';
             closeModal('producto');
