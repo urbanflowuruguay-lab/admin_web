@@ -1,18 +1,1 @@
-[
-  {
-    "fecha": "2026-09-01",
-    "pedidos_totales": 25,
-    "pedidos_delivery": 15,
-    "pedidos_local": 8,
-    "pedidos_retiro": 2,
-    "monto_total_cobrado": 41000,
-    "uf_fee_total_ui": 50,
-    "uf_fee_total_monto": 325,
-    "mp_fee_total_monto": 3230.80,
-    "total_recibido": 37444.20,
-    "ticket_promedio": 1640,
-    "horas_pico": ["12:00-14:00", "20:00-22:00"],
-    "producto_mas_vendido": "Hamburguesa Clásica",
-    "created_at": "2026-09-02T00:00:00Z"
-  }
-]
+[]
