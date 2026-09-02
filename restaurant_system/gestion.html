@@ -654,7 +654,25 @@
                             <label>Dirección</label>
                             <input type="text" id="configDireccion" value="">
                         </div>
-                        <button class="btn-primary" onclick="saveConfig()">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+                            <div>
+                                <label style="font-size:12px;color:var(--text2)">Logo del local</label>
+                                <div onclick="document.getElementById('logoFile').click()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
+                                    <img id="logoPreview" src="" style="display:none;width:100%;height:100%;object-fit:contain">
+                                    <span id="logoPlaceholder" style="color:var(--text2);font-size:12px">Click para subir logo</span>
+                                </div>
+                                <input type="file" id="logoFile" accept="image/*" style="display:none">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text2)">Foto de portada (se ve al entrar)</label>
+                                <div onclick="document.getElementById('portadaFile').click()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
+                                    <img id="portadaPreview" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+                                    <span id="portadaPlaceholder" style="color:var(--text2);font-size:12px">Click para subir portada</span>
+                                </div>
+                                <input type="file" id="portadaFile" accept="image/*" style="display:none">
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="saveConfig()" style="margin-top:16px">
                             <i class="fas fa-save"></i> Guardar Cambios
                         </button>
                     </div>
@@ -1275,10 +1293,38 @@
                 document.getElementById('configDireccion').value = emp.direccion || '';
                 selectedTemplate = emp.carta_template || 'dark_elegance';
                 renderTemplateGrid(selectedTemplate);
+                if (emp.logo_url) { document.getElementById('logoPreview').src = emp.logo_url; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; }
+                if (emp.portada_url) { document.getElementById('portadaPreview').src = emp.portada_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
+                if (emp.foto_url) { document.getElementById('portadaPreview').src = emp.foto_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
             } catch (err) {
                 console.error('Error loading config:', err);
             }
         }
+        // Logo y portada upload
+        document.getElementById('logoFile')?.addEventListener('change', async function() {
+            const file = this.files[0]; if (!file) return;
+            const empresaId = localData.currentUser?.empresa_id; if (!empresaId) return;
+            document.getElementById('logoPreview').src = URL.createObjectURL(file);
+            document.getElementById('logoPreview').style.display='block'; document.getElementById('logoPlaceholder').style.display='none';
+            const path = `empresa_${empresaId}/logo_${Date.now()}.jpg`;
+            const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+            if (!error) {
+                const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                await sb.from('empresas').update({ logo_url: data.publicUrl }).eq('id', empresaId);
+            } else alert('Error logo: '+error.message);
+        });
+        document.getElementById('portadaFile')?.addEventListener('change', async function() {
+            const file = this.files[0]; if (!file) return;
+            const empresaId = localData.currentUser?.empresa_id; if (!empresaId) return;
+            document.getElementById('portadaPreview').src = URL.createObjectURL(file);
+            document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none';
+            const path = `empresa_${empresaId}/portada_${Date.now()}.jpg`;
+            const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+            if (!error) {
+                const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                await sb.from('empresas').update({ portada_url: data.publicUrl, foto_url: data.publicUrl }).eq('id', empresaId);
+            } else alert('Error portada: '+error.message);
+        });
 
         function loadProductos() {
             document.getElementById('productosTable').innerHTML = localData.productos.map(p => `
