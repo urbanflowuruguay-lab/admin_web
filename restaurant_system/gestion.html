@@ -1143,7 +1143,7 @@
                                 <button class="btn-primary" style="padding:5px 10px;font-size:11px" onclick="toggleMesa('${m.id}', '${estado}')">
                                     ${estado === 'libre' ? 'Ocupar' : 'Liberar'}
                                 </button>
-                                <button class="btn-primary" style="padding:5px 10px;font-size:11px;background:var(--accent2)" onclick="showQR('${m.id}', ${m.numero})">
+                                <button class="btn-primary" style="padding:5px 10px;font-size:11px;background:var(--accent2)" onclick="showQR('${m.mesa_token}', ${m.numero})">
                                     <i class="fas fa-qrcode"></i> QR
                                 </button>
                                 <button style="padding:5px 10px;font-size:11px;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer" onclick="deleteMesa('${m.id}')">
@@ -1568,9 +1568,9 @@
             }
         }
 
-        function showQR(mesaId, mesaNumero) {
+        function showQR(mesaToken, mesaNumero) {
             const empresaId = localStorage.getItem('urbanflow_empresa_id');
-            const url = `${window.location.origin}/mesa.html?mesa=${mesaId}&empresa=${empresaId}`;
+            const url = `${window.location.origin}/mesa.html?mesa=${mesaToken}&empresa=${empresaId}`;
             
             document.getElementById('qrMesaTitle').textContent = `QR Mesa #${mesaNumero}`;
             document.getElementById('qrUrl').textContent = url;
