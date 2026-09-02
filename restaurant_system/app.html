@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UrbanFlow - Mi Turno</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg: #0a0a0a; --bg2: #111; --bg3: #1a1a1a; --accent: #d4af37; --green: #4caf50; --red: #f44336; --blue: #2196f3; --orange: #ff9800; --text: #fff; --text2: #888; --border: #333; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+
+        /* HEADER */
+        .app-header {
+            background: var(--bg2);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .app-header h1 { font-size: 18px; color: var(--accent); margin-bottom: 4px; }
+        .app-header p { color: var(--text2); font-size: 12px; }
+        .user-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--accent); display: flex; align-items: center;
+            justify-content: center; font-size: 18px;
+        }
+        .user-details { text-align: left; }
+        .user-name { font-weight: 600; font-size: 14px; }
+        .user-role { color: var(--text2); font-size: 11px; }
+
+        /* CLOCK IN/OUT */
+        .clock-section {
+            padding: 20px;
+            text-align: center;
+        }
+        .clock-time {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 5px;
+            font-variant-numeric: tabular-nums;
+        }
+        .clock-date { color: var(--text2); font-size: 13px; margin-bottom: 20px; }
+        .clock-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .clock-btn.entry { background: var(--green); color: white; }
+        .clock-btn.exit { background: var(--red); color: white; }
+        .clock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .clock-status {
+            margin-top: 15px;
+            padding: 10px;
+            background: var(--bg2);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .clock-status.active { color: var(--green); }
+        .clock-status.inactive { color: var(--text2); }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 100px;
+            z-index: 9;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text2);
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        /* CONTENT */
+        .content { padding: 15px; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* ORDERS */
+        .order-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .order-number { font-weight: 700; font-size: 16px; }
+        .order-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-nuevo { background: rgba(33,150,243,0.2); color: var(--blue); }
+        .badge-preparando { background: rgba(255,152,0,0.2); color: var(--orange); }
+        .badge-listo { background: rgba(76,175,80,0.2); color: var(--green); }
+        .order-items { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+        .order-item-row { padding: 4px 0; display: flex; justify-content: space-between; }
+        .order-time { font-size: 11px; color: var(--text2); }
+        .order-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .order-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-primary { background: var(--accent); color: var(--bg); }
+        .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+
+        /* DELIVERY */
+        .delivery-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        .delivery-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .status-step {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: var(--text2);
+        }
+        .status-step.active { color: var(--green); }
+        .status-step.current { color: var(--accent); font-weight: 700; }
+        .delivery-address {
+            background: var(--bg3);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .delivery-map {
+            width: 100%;
+            height: 150px;
+            background: var(--bg3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text2);
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        /* STATS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .stat-box {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+        /* EMPTY STATE */
+        .empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text2);
+        }
+        .empty i { font-size: 40px; margin-bottom: 10px; display: block; color: var(--border); }
+
+        /* PENDING SCREEN (no employee selected) */
+        .pending-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            padding: 40px;
+        }
+        .pending-screen i { font-size: 60px; color: var(--accent); margin-bottom: 20px; }
+        .pending-screen h2 { margin-bottom: 10px; }
+        .pending-screen p { color: var(--text2); font-size: 14px; }
+    </style>
+</head>
+<body>
+    <!-- PENDING SCREEN -->
+    <div class="pending-screen" id="pendingScreen">
+        <i class="fas fa-qrcode"></i>
+        <h2>Esperando escaneo QR</h2>
+        <p>Escaneá el código QR desde la terminal para iniciar tu turno</p>
+    </div>
+
+    <!-- APP -->
+    <div id="app" style="display: none;">
+        <header class="app-header">
+            <h1><i class="fas fa-utensils"></i> <span id="restaurantName">La Parrilla</span></h1>
+            <p>Mi Turno</p>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">👨‍🍳</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">Pedro</div>
+                    <div class="user-role" id="userRole">Cocinero</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- CLOCK -->
+        <div class="clock-section">
+            <div class="clock-time" id="clockTime">12:00</div>
+            <div class="clock-date" id="clockDate">Lunes 1 de Septiembre</div>
+            <button class="clock-btn entry" id="clockBtn" onclick="toggleClock()">
+                <i class="fas fa-sign-in-alt"></i> MARCAR ENTRADA
+            </button>
+            <div class="clock-status inactive" id="clockStatus">
+                <i class="fas fa-clock"></i> Fuera de turno
+            </div>
+        </div>
+
+        <!-- TABS (dinámico según rol) -->
+        <div class="tabs" id="tabsContainer"></div>
+
+        <!-- CONTENT -->
+        <div class="content" id="contentContainer"></div>
+    </div>
+
+    <script>
+        // =============================================
+        // SUPABASE CONFIG
+        // =============================================
+        const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNzQzNzIsImV4cCI6MjA0MDk1MDM3Mn0 placeholder';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // =============================================
+        // STATE
+        // =============================================
+        let currentUser = null;
+        let isClocked = false;
+        let clockInTime = null;
+        let employees = {};
+        let pedidos = [];
+        let deliveries = [];
+
+        // =============================================
+        // LOAD ORDERS FROM SUPABASE
+        // =============================================
+        async function loadPedidosFromDB() {
+            if (!currentUser || !currentUser.empresa_id) return;
+
+            try {
+                const { data, error } = await sb.from('pedidos')
+                    .select('*')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .in('estado', ['recibido', 'preparando', 'listo'])
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                pedidos = (data || []).map(p => {
+                    let items = [];
+                    try { items = JSON.parse(p.items || '[]'); } catch(e) {}
+                    return {
+                        id: p.id,
+                        numero: p.numero || parseInt(p.id?.substring(0, 8), 16) || 0,
+                        mesa: p.mesa_numero || null,
+                        items: items,
+                        estado: p.estado,
+                        time: new Date(p.created_at).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' }),
+                        cliente_nombre: p.cliente_nombre,
+                        metodo_pago: p.metodo_pago,
+                        notas: p.notas
+                    };
+                });
+
+                // Separate delivery orders
+                deliveries = pedidos.filter(p => p.notas?.includes('Delivery') || p.notas?.includes('delivery'));
+                pedidos = pedidos.filter(p => !p.notas?.includes('Delivery') && !p.notas?.includes('delivery'));
+
+                // Rebuild UI
+                renderSection('pedidos');
+                renderSection('cocina');
+                renderSection('delivery');
+                renderSection('mesas');
+
+            } catch (err) {
+                console.error('Error loading pedidos:', err);
+            }
+        }
+
+        // =============================================
+        // ROLE CONFIGS - What each role sees
+        // =============================================
+        const ROLE_CONFIGS = {
+            'Dueño':        { sections: ['dashboard','pedidos','delivery','inventario','empleados','misdatos'], icon: 'fa-crown', color: '#d4af37' },
+            'Encargado':    { sections: ['pedidos','delivery','inventario','empleados','misdatos'], icon: 'fa-user-tie', color: '#2196f3' },
+            'Cajero':       { sections: ['pedidos','misdatos'], icon: 'fa-cash-register', color: '#4caf50' },
+            'Camarero':     { sections: ['pedidos','mesas','misdatos'], icon: 'fa-concierge-bell', color: '#ff9800' },
+            'Cocinero':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
+            'Cocinera':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
+            'Delivery':     { sections: ['delivery','misdatos'], icon: 'fa-motorcycle', color: '#9c27b0' },
+            'Vendedor':     { sections: ['pedidos','misdatos'], icon: 'fa-store', color: '#00bcd4' },
+            // Lowercase versions for matching
+            'dueño':        { sections: ['dashboard','pedidos','delivery','inventario','empleados','misdatos'], icon: 'fa-crown', color: '#d4af37' },
+            'encargado':    { sections: ['pedidos','delivery','inventario','empleados','misdatos'], icon: 'fa-user-tie', color: '#2196f3' },
+            'cajero':       { sections: ['pedidos','misdatos'], icon: 'fa-cash-register', color: '#4caf50' },
+            'camarero':     { sections: ['pedidos','mesas','misdatos'], icon: 'fa-concierge-bell', color: '#ff9800' },
+            'cocinero':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
+            'cocinera':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
+            'delivery':     { sections: ['delivery','misdatos'], icon: 'fa-motorcycle', color: '#9c27b0' },
+            'vendedor':     { sections: ['pedidos','misdatos'], icon: 'fa-store', color: '#00bcd4' }
+        };
+
+        // =============================================
+        // BUILD UI FROM ROLE
+        // =============================================
+        function buildUI() {
+            const config = ROLE_CONFIGS[currentUser.rol] || ROLE_CONFIGS['cajero'];
+            const tabsContainer = document.getElementById('tabsContainer');
+            const contentContainer = document.getElementById('contentContainer');
+            
+            const sectionLabels = {
+                dashboard: { icon: 'fa-chart-line', label: 'Dashboard' },
+                pedidos:   { icon: 'fa-receipt', label: 'Pedidos' },
+                delivery:  { icon: 'fa-motorcycle', label: 'Delivery' },
+                inventario:{ icon: 'fa-boxes-stacked', label: 'Inventario' },
+                empleados: { icon: 'fa-users', label: 'Equipo' },
+                mesas:     { icon: 'fa-table', label: 'Mesas' },
+                cocina:    { icon: 'fa-fire-burner', label: 'Cocina' },
+                misdatos:  { icon: 'fa-user', label: 'Yo' }
+            };
+
+            // Build tabs
+            tabsContainer.innerHTML = config.sections.map((s, i) => `
+                <div class="tab ${i === 0 ? 'active' : ''}" onclick="showTab('${s}')">
+                    <i class="fas ${sectionLabels[s].icon}"></i> ${sectionLabels[s].label}
+                </div>
+            `).join('');
+
+            // Build sections
+            contentContainer.innerHTML = config.sections.map((s, i) => `
+                <div class="section ${i === 0 ? 'active' : ''}" id="section-${s}">
+                    <div id="content-${s}"></div>
+                </div>
+            `).join('');
+
+            // Render content per section
+            config.sections.forEach(s => renderSection(s));
+        }
+
+        function renderSection(section) {
+            switch(section) {
+                case 'pedidos':   renderPedidos(); break;
+                case 'delivery':  renderDelivery(); break;
+                case 'cocina':    renderCocina(); break;
+                case 'mesas':     renderMesas(); break;
+                case 'inventario':renderInventario(); break;
+                case 'empleados': renderEmpleados(); break;
+                case 'dashboard': renderDashboard(); break;
+                case 'misdatos':  renderMisDatos(); break;
+            }
+        }
+
+        // =============================================
+        // INIT FROM QR TOKEN
+        // =============================================
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            
+            if (token) {
+                try {
+                    const data = JSON.parse(atob(token));
+                    
+                    // Try to load employee from Supabase
+                    const { data: empData, error } = await sb.from('empleados')
+                        .select('*')
+                        .eq('id', data.empId)
+                        .eq('pin', data.pin)
+                        .eq('activo', true)
+                        .limit(1);
+
+                    if (!error && empData && empData.length > 0) {
+                        const emp = empData[0];
+                        currentUser = {
+                            id: emp.id,
+                            nombre: emp.nombre,
+                            pin: emp.pin,
+                            rol: emp.rol,
+                            emoji: emp.emoji || '👤',
+                            empresa_id: emp.empresa_id
+                        };
+                        
+                        document.getElementById('pendingScreen').style.display = 'none';
+                        document.getElementById('app').style.display = 'block';
+                        initApp();
+                        return;
+                    }
+
+                    // Fallback to local employees
+                    const empLocal = employees[data.empId];
+                    if (empLocal && empLocal.pin === data.pin) {
+                        currentUser = empLocal;
+                        document.getElementById('pendingScreen').style.display = 'none';
+                        document.getElementById('app').style.display = 'block';
+                        initApp();
+                        return;
+                    }
+                } catch(e) {
+                    console.error('Token parse error:', e);
+                }
+            }
+            
+            document.getElementById('pendingScreen').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+        }
+
+        async function initApp() {
+            document.getElementById('userName').textContent = currentUser.nombre;
+            document.getElementById('userRole').textContent = currentUser.rol;
+            document.getElementById('userAvatar').textContent = currentUser.emoji;
+            
+            // Load restaurant name from Supabase
+            if (currentUser.empresa_id) {
+                try {
+                    const { data, error } = await sb.from('empresas')
+                        .select('nombre')
+                        .eq('id', currentUser.empresa_id)
+                        .limit(1);
+                    
+                    if (!error && data && data.length > 0) {
+                        document.getElementById('restaurantName').textContent = data[0].nombre;
+                    }
+                } catch (err) {
+                    console.log('Error loading restaurant name:', err);
+                }
+            }
+            
+            buildUI();
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Load real orders from Supabase
+            await loadPedidosFromDB();
+            
+            // Auto-refresh orders every 15 seconds
+            setInterval(loadPedidosFromDB, 15000);
+        }
+
+        // =============================================
+        // CLOCK
+        // =============================================
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clockTime').textContent = now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('clockDate').textContent = now.toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long' });
+            
+            if (isClocked && clockInTime) {
+                const elapsed = Math.floor((now - clockInTime) / 1000 / 60);
+                const hours = Math.floor(elapsed / 60);
+                const mins = elapsed % 60;
+                document.getElementById('statHoras').textContent = `${hours}h ${mins}m`;
+            }
+        }
+
+        function toggleClock() {
+            const btn = document.getElementById('clockBtn');
+            const status = document.getElementById('clockStatus');
+            
+            if (!isClocked) {
+                isClocked = true;
+                clockInTime = new Date();
+                btn.className = 'clock-btn exit';
+                btn.innerHTML = '<i class="fas fa-sign-out-alt"></i> MARCAR SALIDA';
+                status.className = 'clock-status active';
+                status.innerHTML = '<i class="fas fa-check-circle"></i> En turno desde ' + clockInTime.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+            } else {
+                isClocked = false;
+                btn.className = 'clock-btn entry';
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> MARCAR ENTRADA';
+                status.className = 'clock-status inactive';
+                status.innerHTML = '<i class="fas fa-clock"></i> Fuera de turno';
+                clockInTime = null;
+            }
+        }
+
+        // =============================================
+        // TABS
+        // =============================================
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById('section-' + tab).classList.add('active');
+        }
+
+        // =============================================
+        // RENDER PEDIDOS (Cajero / Camarero / Vendedor)
+        // =============================================
+        function renderPedidos() {
+            const container = document.getElementById('content-pedidos');
+            if (!container) return;
+
+            container.innerHTML = pedidos.map(p => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <span class="order-number">#${p.numero} ${p.mesa ? '• Mesa ' + p.mesa : '📱 Delivery'}</span>
+                        <span class="order-badge badge-${p.estado === 'nuevo' ? 'nuevo' : p.estado === 'preparando' ? 'preparando' : 'listo'}">
+                            ${p.estado.toUpperCase()}
+                        </span>
+                    </div>
+                    <div class="order-items">
+                        ${p.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
+                    </div>
+                    <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
+                </div>
+            `).join('');
+        }
+
+        // =============================================
+        // RENDER COCINA (Cocinero/Cocinera - only their view)
+        // =============================================
+        function renderCocina() {
+            const container = document.getElementById('content-cocina');
+            if (!container) return;
+
+            const pedidosCocina = pedidos.filter(p => p.estado === 'nuevo' || p.estado === 'preparando');
+            
+            if (pedidosCocina.length === 0) {
+                container.innerHTML = '<div class="empty"><i class="fas fa-check-circle"></i><p>Sin pedidos por ahora</p></div>';
+                return;
+            }
+
+            container.innerHTML = pedidosCocina.map(p => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <span class="order-number">#${p.numero}</span>
+                        <span class="order-badge badge-${p.estado === 'nuevo' ? 'nuevo' : 'preparando'}">
+                            ${p.estado === 'nuevo' ? 'NUEVO' : 'PREPARANDO'}
+                        </span>
+                    </div>
+                    <div class="order-items">
+                        ${p.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
+                    </div>
+                    <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
+                    <div class="order-actions">
+                        ${p.estado === 'nuevo' ? `<button class="order-btn btn-primary" onclick="updateEstado('${p.id}', 'preparando')">EN PREPARACIÓN</button>` : ''}
+                        ${p.estado === 'preparando' ? `<button class="order-btn btn-primary" onclick="updateEstado('${p.id}', 'listo')">LISTO ✓</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateEstado(pedidoId, nuevoEstado) {
+            try {
+                const { error } = await sb.from('pedidos')
+                    .update({ estado: nuevoEstado })
+                    .eq('id', pedidoId);
+
+                if (error) throw error;
+
+                // Update local state
+                const pedido = pedidos.find(p => p.id === pedidoId);
+                if (pedido) {
+                    pedido.estado = nuevoEstado;
+                }
+
+                renderCocina();
+                renderPedidos();
+            } catch (err) {
+                console.error('Error updating estado:', err);
+                alert('Error al actualizar');
+            }
+        }
+
+        // =============================================
+        // RENDER MESAS (Camarero)
+        // =============================================
+        function renderMesas() {
+            const container = document.getElementById('content-mesas');
+            if (!container) return;
+
+            const mesas = [
+                { id: 1, estado: 'libre', cliente: null,Pedido: null },
+                { id: 2, estado: 'ocupada', cliente: 'Familia López',Pedido: 125 },
+                { id: 3, estado: 'libre', cliente: null,Pedido: null },
+                { id: 4, estado: 'ocupada', cliente: 'Juan Carlos',Pedido: 122 },
+                { id: 5, estado: 'ocupada', cliente: 'Pedidos Ya',Pedido: 123 },
+                { id: 6, estado: 'reservada', cliente: '20:00 - Martínez',Pedido: null },
+                { id: 7, estado: 'libre', cliente: null,Pedido: null },
+                { id: 8, estado: 'ocupada', cliente: 'Amigos',Pedido: 124 }
+            ];
+
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                    ${mesas.map(m => `
+                        <div style="background: var(--bg2); border: 2px solid ${m.estado === 'libre' ? 'var(--green)' : m.estado === 'ocupada' ? 'var(--orange)' : 'var(--blue)'}; border-radius: 12px; padding: 15px; text-align: center;">
+                            <div style="font-size: 32px; margin-bottom: 5px;">🪑</div>
+                            <div style="font-weight: 700; font-size: 16px;">Mesa ${m.id}</div>
+                            <div style="font-size: 11px; color: ${m.estado === 'libre' ? 'var(--green)' : m.estado === 'ocupada' ? 'var(--orange)' : 'var(--blue)'}; margin-top: 4px; text-transform: uppercase; font-weight: 600;">
+                                ${m.estado === 'libre' ? 'Libre' : m.estado === 'ocupada' ? 'Ocupada' : 'Reservada'}
+                            </div>
+                            ${m.cliente ? `<div style="font-size: 11px; color: var(--text2); margin-top: 4px;">${m.cliente}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // =============================================
+        // RENDER DELIVERY (Solo delivery)
+        // =============================================
+        function renderDelivery() {
+            const container = document.getElementById('content-delivery');
+            if (!container) return;
+
+            if (currentUser.rol !== 'Delivery') {
+                container.innerHTML = '<div class="empty"><i class="fas fa-motorcycle"></i><p>Solo para delivery</p></div>';
+                return;
+            }
+
+            container.innerHTML = deliveries.map(d => `
+                <div class="delivery-card">
+                    <div class="order-header">
+                        <span class="order-number">Pedido #${d.pedido}</span>
+                        <span class="order-badge badge-${d.estado === 'listo' ? 'listo' : 'preparando'}">
+                            ${d.estado === 'listo' ? 'LISTO PARA RECOGER' : 'EN CAMINO'}
+                        </span>
+                    </div>
+                    <div class="delivery-address">
+                        <i class="fas fa-map-marker-alt"></i> ${d.direccion}
+                    </div>
+                    <div class="order-items">
+                        ${d.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty}</span></div>`).join('')}
+                    </div>
+                    <div class="delivery-map">
+                        <i class="fas fa-map"></i> Ver mapa
+                    </div>
+                    <div class="order-actions">
+                        ${d.estado === 'listo' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
+                        ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'entregado')">ENTREGADO ✓</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateDelivery(deliveryId, nuevoEstado) {
+            try {
+                const { error } = await sb.from('pedidos')
+                    .update({ estado: nuevoEstado })
+                    .eq('id', deliveryId);
+
+                if (error) throw error;
+
+                const delivery = deliveries.find(d => d.id === deliveryId);
+                if (delivery) {
+                    delivery.estado = nuevoEstado;
+                }
+                renderDelivery();
+            } catch (err) {
+                console.error('Error updating delivery:', err);
+                alert('Error al actualizar');
+            }
+        }
+
+        // =============================================
+        // RENDER INVENTARIO (Dueño/Encargado)
+        // =============================================
+        function renderInventario() {
+            const container = document.getElementById('content-inventario');
+            if (!container) return;
+
+            const items = [
+                { nombre: 'Carne vacuna', stock: 45, unidad: 'kg', min: 20, estado: 'ok' },
+                { nombre: 'Pollo', stock: 30, unidad: 'kg', min: 15, estado: 'ok' },
+                { nombre: 'Papas fritas', stock: 8, unidad: 'kg', min: 10, estado: 'bajo' },
+                { nombre: 'Pilsen', stock: 120, unidad: 'un', min: 50, estado: 'ok' },
+                { nombre: 'Coca-Cola 1.5L', stock: 4, unidad: 'un', min: 20, estado: 'critico' },
+                { nombre: 'Pan hamburguesa', stock: 25, unidad: 'un', min: 30, estado: 'bajo' }
+            ];
+
+            container.innerHTML = items.map(i => `
+                <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">${i.nombre}</div>
+                        <div style="font-size: 12px; color: var(--text2);">Mín: ${i.min} ${i.unidad}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 18px; font-weight: 700; color: ${i.estado === 'critico' ? 'var(--red)' : i.estado === 'bajo' ? 'var(--orange)' : 'var(--green)'};">${i.stock} ${i.unidad}</div>
+                        <div style="font-size: 10px; color: ${i.estado === 'critico' ? 'var(--red)' : i.estado === 'bajo' ? 'var(--orange)' : 'var(--green)'}; text-transform: uppercase; font-weight: 600;">
+                            ${i.estado === 'critico' ? 'CRÍTICO' : i.estado === 'bajo' ? 'BAJO' : 'OK'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // =============================================
+        // RENDER EMPLEADOS (Dueño/Encargado)
+        // =============================================
+        function renderEmpleados() {
+            const container = document.getElementById('content-empleados');
+            if (!container) return;
+
+            const allEmp = [
+                { nombre: 'Carlos Pérez', rol: 'Dueño', estado: 'activo', turno: null },
+                { nombre: 'María García', rol: 'Cajero', estado: 'activo', turno: '10:00 - 18:00' },
+                { nombre: 'Pedro Martínez', rol: 'Cocinero', estado: 'activo', turno: '09:00 - 17:00' },
+                { nombre: 'Ana Rodríguez', rol: 'Cocinera', estado: 'inactivo', turno: null },
+                { nombre: 'Roberto García', rol: 'Delivery', estado: 'activo', turno: '12:00 - 22:00' }
+            ];
+
+            container.innerHTML = allEmp.map(e => `
+                <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">${e.nombre}</div>
+                        <div style="font-size: 12px; color: var(--accent);">${e.rol}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 11px; color: ${e.estado === 'activo' ? 'var(--green)' : 'var(--text2)'};">
+                            ${e.estado === 'activo' ? '● ' + (e.turno || 'Activo') : '○ Inactivo'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // =============================================
+        // RENDER DASHBOARD (Dueño)
+        // =============================================
+        function renderDashboard() {
+            const container = document.getElementById('content-dashboard');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-value">8</div><div class="stat-label">Pedidos Hoy</div></div>
+                    <div class="stat-box"><div class="stat-value" style="color: var(--green);">$4,250</div><div class="stat-label">Facturación</div></div>
+                    <div class="stat-box"><div class="stat-value">5</div><div class="stat-label">Empleados Activos</div></div>
+                    <div class="stat-box"><div class="stat-value" style="color: var(--orange);">3</div><div class="stat-label">Pedidos Pendientes</div></div>
+                </div>
+                <div style="margin-top: 15px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px;">
+                    <div style="font-weight: 600; margin-bottom: 10px;">Últimos Pedidos</div>
+                    <div style="font-size: 13px; color: var(--text2);">
+                        #125 - Mesa 2 - $850 - hace 5 min<br>
+                        #124 - Delivery - $1,200 - hace 12 min<br>
+                        #123 - Mesa 5 - $650 - hace 18 min
+                    </div>
+                </div>
+            `;
+        }
+
+        // =============================================
+        // RENDER MIS DATOS
+        // =============================================
+        function renderMisDatos() {
+            const container = document.getElementById('content-misdatos');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="statPedidos">0</div>
+                        <div class="stat-label">Pedidos Hoy</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statHoras">0h</div>
+                        <div class="stat-label">Horas Trabajo</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statEntregados">0</div>
+                        <div class="stat-label">Entregados</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statCalificacion">5.0</div>
+                        <div class="stat-label">Calificación</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button class="clock-btn exit" onclick="logout()" style="font-size: 14px; padding: 12px;">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
+            `;
+        }
+
+        function logout() {
+            if (confirm('¿Cerrar sesión?')) {
+                window.location.href = window.location.pathname;
+            }
+        }
+
+        // =============================================
+        // INIT
+        // =============================================
+        init();
+    </script>
+</body>
+</html>

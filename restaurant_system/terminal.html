@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow Terminal - Marcación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg: #0a0a0a; --bg2: #111; --bg3: #1a1a1a; --accent: #d4af37; --green: #4caf50; --red: #f44336; --text: #fff; --text2: #888; --border: #333; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px; }
+        
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 { font-size: 28px; color: var(--accent); margin-bottom: 8px; }
+        .header p { color: var(--text2); font-size: 14px; }
+        .header .clock { font-size: 48px; font-weight: 800; color: var(--accent); margin: 20px 0; font-variant-numeric: tabular-nums; }
+
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .employee-card {
+            background: var(--bg2);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .employee-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+        .employee-card.selected { border-color: var(--accent); background: rgba(212,175,55,0.1); }
+
+        .emp-avatar {
+            width: 70px; height: 70px; border-radius: 50%;
+            background: var(--bg3); display: flex; align-items: center;
+            justify-content: center; font-size: 28px; margin: 0 auto 12px;
+            border: 2px solid var(--border);
+        }
+        .emp-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+        .emp-role { color: var(--text2); font-size: 12px; margin-bottom: 15px; }
+        
+        .qr-container {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+        .qr-container canvas { display: block; }
+
+        .emp-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .status-offline { background: rgba(244,67,54,0.2); color: var(--red); }
+        .status-online { background: rgba(76,175,80,0.2); color: var(--green); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-offline .status-dot { background: var(--red); }
+        .status-online .status-dot { background: var(--green); }
+
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .recent-activity {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+        .recent-activity h3 { margin-bottom: 15px; font-size: 16px; }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+        }
+        .activity-icon.entry { background: rgba(76,175,80,0.2); color: var(--green); }
+        .activity-icon.exit { background: rgba(244,67,54,0.2); color: var(--red); }
+        .activity-info { flex: 1; }
+        .activity-name { font-size: 13px; font-weight: 600; }
+        .activity-time { font-size: 11px; color: var(--text2); }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-big-qr {
+            text-align: center;
+        }
+        .modal-big-qr h2 { margin-bottom: 20px; font-size: 24px; }
+        .modal-big-qr .qr-big {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .modal-big-qr p { color: var(--text2); font-size: 14px; margin-bottom: 10px; }
+        .modal-big-qr .instruction { 
+            background: var(--bg2); 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+        .modal-big-qr .close-modal {
+            margin-top: 20px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .employees-grid { grid-template-columns: 1fr; }
+            .header .clock { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-store"></i> La Parrilla - Terminal de Empleados</h1>
+            <p>Escaneá el QR con tu celular para marcar entrada y abrir tu app</p>
+            <div class="clock" id="clock"></div>
+        </div>
+
+        <div class="employees-grid" id="employeesGrid"></div>
+
+        <div class="recent-activity">
+            <h3><i class="fas fa-history"></i> Actividad Reciente</h3>
+            <div id="activityList"></div>
+        </div>
+    </div>
+
+    <!-- MODAL QR GRANDE -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal-big-qr">
+            <h2 id="modalEmpName">Empleado</h2>
+            <div class="qr-big" id="modalQR"></div>
+            <p>Escaneá este código con la cámara de tu celular</p>
+            <div class="instruction">
+                <p><strong>¿Cómo usar?</strong></p>
+                <p>1. Abrí la cámara de tu celular</p>
+                <p>2. Apuntá al código QR</p>
+                <p>3. Tocá el link que aparece</p>
+                <p>4. ¡Listo! Tu app se abre con tus pedidos</p>
+            </div>
+            <button class="close-modal" onclick="closeModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        // =============================================
+        // SUPABASE CONFIG
+        // =============================================
+        const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNzQzNzIsImV4cCI6MjA0MDk1MDM3Mn0 placeholder';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // =============================================
+        // DATA
+        // =============================================
+        const baseUrl = 'https://urbanflow.website/restaurant_system/app.html';
+        let employees = [];
+        let activityLog = [];
+        let empresaId = null;
+
+        // Get empresa_id from URL or localStorage
+        function getEmpresaId() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('empresa');
+            if (id) return id;
+            return localStorage.getItem('urbanflow_empresa_id');
+        }
+
+        // =============================================
+        // LOAD EMPLOYEES FROM SUPABASE
+        // =============================================
+        async function loadEmployees() {
+            empresaId = getEmpresaId();
+            if (!empresaId) {
+                console.log('No empresa_id found, using demo data');
+                employees = [
+                    { id: 'emp_demo_1', nombre: 'Empleado de Demo', pin: '0000', rol: 'Cajero', emoji: '👤', online: false, lastSeen: null }
+                ];
+                renderEmployees();
+                return;
+            }
+
+            try {
+                const { data, error } = await sb.from('empleados')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .eq('activo', true);
+
+                if (error) throw error;
+
+                employees = data.map(e => ({
+                    id: e.id,
+                    nombre: e.nombre,
+                    pin: e.pin,
+                    rol: e.rol,
+                    emoji: e.emoji || '👤',
+                    online: false,
+                    lastSeen: null
+                }));
+
+                renderEmployees();
+            } catch (err) {
+                console.error('Error loading employees:', err);
+                // Fallback demo data
+                employees = [
+                    { id: 'emp_demo_1', nombre: 'Empleado de Demo', pin: '0000', rol: 'Cajero', emoji: '👤', online: false, lastSeen: null }
+                ];
+                renderEmployees();
+            }
+        }
+
+        // =============================================
+        // CLOCK
+        // =============================================
+        function updateClock() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const date = now.toLocaleDateString('es-UY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('clock').innerHTML = `${time}<br><span style="font-size: 16px; color: var(--text2);">${date}</span>`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // =============================================
+        // RENDER EMPLOYEES WITH QR
+        // =============================================
+        function renderEmployees() {
+            const grid = document.getElementById('employeesGrid');
+            grid.innerHTML = '';
+
+            employees.forEach(emp => {
+                const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin, ts: Date.now() }));
+                const url = `${baseUrl}?token=${token}`;
+                
+                const card = document.createElement('div');
+                card.className = 'employee-card';
+                card.onclick = () => showBigQR(emp, url);
+
+                card.innerHTML = `
+                    <div class="emp-avatar">${emp.emoji}</div>
+                    <div class="emp-name">${emp.nombre}</div>
+                    <div class="emp-role">${emp.rol}</div>
+                    <div class="qr-container">
+                        <canvas id="qr-${emp.id}"></canvas>
+                    </div>
+                    <div class="emp-status ${emp.online ? 'status-online' : 'status-offline'}">
+                        <span class="status-dot"></span>
+                        ${emp.online ? 'En línea' : 'Fuera'}
+                        ${emp.online ? ' • ' + emp.lastSeen : ''}
+                    </div>
+                `;
+                grid.appendChild(card);
+
+                // Generate QR
+                setTimeout(() => {
+                    const canvas = document.getElementById('qr-' + emp.id);
+                    if (canvas) {
+                        QRCode.toCanvas(canvas, url, {
+                            width: 120,
+                            margin: 1,
+                            color: { dark: '#000000', light: '#ffffff' }
+                        });
+                    }
+                }, 100);
+            });
+        }
+
+        // =============================================
+        // BIG QR MODAL
+        // =============================================
+        function showBigQR(emp, url) {
+            document.getElementById('modalEmpName').innerHTML = `${emp.emoji} ${emp.nombre}`;
+            document.getElementById('qrModal').classList.add('active');
+            
+            setTimeout(() => {
+                const container = document.getElementById('modalQR');
+                container.innerHTML = '';
+                const canvas = document.createElement('canvas');
+                container.appendChild(canvas);
+                QRCode.toCanvas(canvas, url, {
+                    width: 250,
+                    margin: 2,
+                    color: { dark: '#000000', light: '#ffffff' }
+                });
+            }, 100);
+        }
+
+        function closeModal() {
+            document.getElementById('qrModal').classList.remove('active');
+        }
+
+        // =============================================
+        // ACTIVITY LOG
+        // =============================================
+        function renderActivity() {
+            document.getElementById('activityList').innerHTML = activityLog.slice(-5).reverse().map(a => `
+                <div class="activity-item">
+                    <div class="activity-icon ${a.type}">
+                        <i class="fas fa-${a.type === 'entry' ? 'sign-in-alt' : 'check'}"></i>
+                    </div>
+                    <div class="activity-info">
+                        <div class="activity-name">${a.employee} - ${a.action}</div>
+                        <div class="activity-time">${a.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // =============================================
+        // SIMULATE ONLINE STATUS
+        // =============================================
+        function simulateOnline() {
+            employees.forEach(emp => {
+                emp.online = Math.random() > 0.3;
+                if (emp.online) {
+                    const now = new Date();
+                    emp.lastSeen = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+                }
+            });
+            renderEmployees();
+        }
+        setInterval(simulateOnline, 30000);
+
+        // =============================================
+        // INIT
+        // =============================================
+        loadEmployees();
+        renderActivity();
+    </script>
+</body>
+</html>

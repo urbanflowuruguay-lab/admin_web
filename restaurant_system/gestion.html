@@ -331,6 +331,12 @@
                 <div class="sidebar-item" onclick="showSection('config')">
                     <i class="fas fa-cog"></i><span>Config</span>
                 </div>
+                <div class="sidebar-item" onclick="showSection('propinas')">
+                    <i class="fas fa-hand-holding-dollar"></i><span>Propinas</span>
+                </div>
+                <div class="sidebar-item" onclick="openTerminal()">
+                    <i class="fas fa-qrcode"></i><span>Terminal QR</span>
+                </div>
             </nav>
 
             <main class="content">
@@ -660,6 +666,107 @@
                         <div id="configZonas"></div>
                     </div>
                 </div>
+
+                <!-- PROPINAS -->
+                <div class="section" id="section-propinas">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="fas fa-hand-holding-dollar"></i> Propinas</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="stat-value" id="propinasHoy">$0</div>
+                            <div class="stat-label">Propinas Hoy</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-value" id="propinasCantidad">0</div>
+                            <div class="stat-label">Propinas Recibidas</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="stat-value" id="propinasPromedio">$0</div>
+                            <div class="stat-label">Promedio</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+                            <div class="stat-value" id="propinasMes">$0</div>
+                            <div class="stat-label">Propinas del Mes</div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 20px;">Configuración de Propinas</h3>
+                        <div class="form-group">
+                            <label>Modo de reparto</label>
+                            <select id="configModoReparto" onchange="saveConfigPropinas()">
+                                <option value="individual">Individual — Cada camarero se lleva su propina</option>
+                                <option value="reparto">Reparto — Se reparte entre todos los empleados</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Habilitar propina en la app</label>
+                            <select id="configPropinaHabilitada" onchange="saveConfigPropinas()">
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="saveConfigPropinas()">
+                            <i class="fas fa-save"></i> Guardar Configuración
+                        </button>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 20px;">Propinas por Empleado (Hoy)</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Empleado</th>
+                                    <th>Rol</th>
+                                    <th>Propinas</th>
+                                    <th>Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody id="propinasEmpleadoTable"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 20px;">Últimas Propinas</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Mesa</th>
+                                    <th>Cliente</th>
+                                    <th>Monto</th>
+                                    <th>Método</th>
+                                    <th>Reparto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="propinasTable"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 20px;">Calificaciones Recientes</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Mesa</th>
+                                    <th>Cliente</th>
+                                    <th>Estrellas</th>
+                                    <th>Servicio</th>
+                                    <th>Comida</th>
+                                    <th>Rapidez</th>
+                                    <th>Comentario</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calificacionesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -801,24 +908,112 @@
                 return;
             }
 
-            // Search employee by email and pin
-            const emp = localData.empleados.find(e => 
-                e.email === email && e.pin === pin && e.activo
-            );
+            try {
+                // First try to find empresa by email
+                const { data: empresas, error: empError } = await sb.from('empresas')
+                    .select('*')
+                    .eq('email', email)
+                    .limit(1);
 
-            if (!emp) {
+                if (empError) throw empError;
+
+                if (empresas && empresas.length > 0) {
+                    // Found empresa - this is the owner login
+                    const empresa = empresas[0];
+                    
+                    // For now, accept any PIN for the owner (in production, verify against stored hash)
+                    localData.currentUser = {
+                        id: empresa.id,
+                        empresa_id: empresa.id,
+                        nombre: empresa.nombre,
+                        roles: ['rol_dueno'],
+                        activo: true
+                    };
+                    
+                    // Store empresa_id for terminal.html
+                    localStorage.setItem('urbanflow_empresa_id', empresa.id);
+                    
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('appContainer').classList.add('active');
+                    document.getElementById('userName').textContent = empresa.nombre;
+                    document.getElementById('userRole').textContent = 'DUEÑO';
+                    document.getElementById('userAvatar').textContent = empresa.nombre.substring(0, 2).toUpperCase();
+                    
+                    loadDashboard();
+                    return;
+                }
+
+                // Try to find employee by email in Supabase
+                const { data: empleados, error: empEmpError } = await sb.from('empleados')
+                    .select('*')
+                    .eq('email', email)
+                    .eq('pin', pin)
+                    .eq('activo', true)
+                    .limit(1);
+
+                if (empEmpError) throw empEmpError;
+
+                if (empleados && empleados.length > 0) {
+                    const emp = empleados[0];
+                    localData.currentUser = {
+                        id: emp.id,
+                        empresa_id: emp.empresa_id,
+                        nombre: emp.nombre,
+                        roles: ['rol_' + emp.rol],
+                        activo: true
+                    };
+                    
+                    // Store empresa_id for terminal.html
+                    localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
+                    
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('appContainer').classList.add('active');
+                    document.getElementById('userName').textContent = emp.nombre;
+                    document.getElementById('userRole').textContent = emp.rol.toUpperCase();
+                    document.getElementById('userAvatar').textContent = emp.nombre.split(' ').map(n => n[0]).join('');
+                    
+                    loadDashboard();
+                    return;
+                }
+
+                // Fallback to local data
+                const empLocal = localData.empleados.find(e => 
+                    e.email === email && e.pin === pin && e.activo
+                );
+
+                if (empLocal) {
+                    localData.currentUser = empLocal;
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('appContainer').classList.add('active');
+                    document.getElementById('userName').textContent = empLocal.nombre;
+                    document.getElementById('userRole').textContent = empLocal.roles[0].replace('rol_', '').toUpperCase();
+                    document.getElementById('userAvatar').textContent = empLocal.nombre.split(' ').map(n => n[0]).join('');
+                    
+                    loadDashboard();
+                    return;
+                }
+
                 document.getElementById('loginError').textContent = 'Credenciales incorrectas';
-                return;
-            }
+            } catch (err) {
+                console.error('Login error:', err);
+                // Fallback to local data
+                const empLocal = localData.empleados.find(e => 
+                    e.email === email && e.pin === pin && e.activo
+                );
 
-            localData.currentUser = emp;
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('appContainer').classList.add('active');
-            document.getElementById('userName').textContent = emp.nombre;
-            document.getElementById('userRole').textContent = emp.roles[0].replace('rol_', '').toUpperCase();
-            document.getElementById('userAvatar').textContent = emp.nombre.split(' ').map(n => n[0]).join('');
-            
-            loadDashboard();
+                if (empLocal) {
+                    localData.currentUser = empLocal;
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('appContainer').classList.add('active');
+                    document.getElementById('userName').textContent = empLocal.nombre;
+                    document.getElementById('userRole').textContent = empLocal.roles[0].replace('rol_', '').toUpperCase();
+                    document.getElementById('userAvatar').textContent = empLocal.nombre.split(' ').map(n => n[0]).join('');
+                    
+                    loadDashboard();
+                } else {
+                    document.getElementById('loginError').textContent = 'Credenciales incorrectas';
+                }
+            }
         }
 
         function logout() {
@@ -845,6 +1040,16 @@
             if (section === 'zonas') loadZonas();
             if (section === 'facturacion') loadFacturacion();
             if (section === 'auditoria') loadAuditoria();
+            if (section === 'propinas') loadPropinas();
+        }
+
+        function openTerminal() {
+            const empresaId = localStorage.getItem('urbanflow_empresa_id');
+            if (empresaId) {
+                window.open(`terminal.html?empresa=${empresaId}`, '_blank');
+            } else {
+                window.open('terminal.html', '_blank');
+            }
         }
 
         // =============================================
@@ -892,22 +1097,45 @@
             `).join('');
         }
 
-        function loadPedidos() {
-            document.getElementById('pedidosTable').innerHTML = localData.pedidos.map(p => `
+        async function loadPedidos() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+
+            try {
+                const { data, error } = await sb.from('pedidos')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+
+                localData.pedidos = data || [];
+            } catch (err) {
+                console.error('Error loading pedidos:', err);
+            }
+
+            document.getElementById('pedidosTable').innerHTML = localData.pedidos.map(p => {
+                let items = [];
+                try { items = JSON.parse(p.items || '[]'); } catch(e) {}
+                const mesaInfo = p.mesa_numero ? `Mesa #${p.mesa_numero}` : (p.tipo_entrega || 'Local');
+                const metodo = p.metodo_pago ? p.metodo_pago.replace('_', ' ').toUpperCase() : '-';
+                return `
                 <tr>
-                    <td><strong>#${p.numero}</strong></td>
-                    <td>${p.cliente_nombre}</td>
-                    <td>${p.tipo}</td>
-                    <td>${p.items.length} items</td>
-                    <td>$${p.total_cliente}</td>
+                    <td><strong>#${p.numero || p.id?.substring(0,8)}</strong></td>
+                    <td>${p.cliente_nombre || '-'}</td>
+                    <td>${mesaInfo}</td>
+                    <td>${items.length} items</td>
+                    <td>$${(p.total || 0).toLocaleString()}</td>
+                    <td>${metodo}</td>
                     <td><span class="badge badge-${getEstadoColor(p.estado)}">${p.estado}</span></td>
                     <td>
-                        <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="updatePedidoEstado('${p.id}')">
+                        <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="updatePedidoEstado('${p.id}', '${p.estado}')">
                             <i class="fas fa-arrow-right"></i>
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         function loadInventario() {
@@ -937,20 +1165,65 @@
             `).join('');
         }
 
-        function loadEmpleados() {
-            document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => `
-                <tr>
-                    <td><strong>${e.nombre}</strong></td>
-                    <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
-                    <td>${e.pin}</td>
-                    <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
-                    <td>
-                        <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+        async function loadEmpleados() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+
+            try {
+                // Load from Supabase
+                const { data, error } = await sb.from('empleados')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Update local data
+                localData.empleados = data.map(e => ({
+                    id: e.id,
+                    nombre: e.nombre,
+                    pin: e.pin,
+                    roles: ['rol_' + e.rol],
+                    activo: e.activo,
+                    email: e.email,
+                    emoji: e.emoji,
+                    created_at: e.created_at
+                }));
+
+                // Render table
+                document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => `
+                    <tr>
+                        <td><strong>${e.nombre}</strong></td>
+                        <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
+                        <td>${e.pin}</td>
+                        <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
+                        <td>
+                            <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-danger" style="padding: 5px 10px; font-size: 11px;" onclick="deleteEmpleado('${e.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading employees:', err);
+                // Fallback to local data
+                document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => `
+                    <tr>
+                        <td><strong>${e.nombre}</strong></td>
+                        <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
+                        <td>${e.pin}</td>
+                        <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
+                        <td>
+                            <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
         }
 
         function loadZonas() {
@@ -1004,6 +1277,135 @@
         }
 
         // =============================================
+        // PROPINAS
+        // =============================================
+        async function loadPropinas() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+
+            try {
+                // Load propinas
+                const { data: propinas, error: err1 } = await sb.from('propinas')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (err1) throw err1;
+
+                // Load calificaciones
+                const { data: califs, error: err2 } = await sb.from('calificaciones')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (err2) throw err2;
+
+                // Load config
+                const { data: config, error: err3 } = await sb.from('config_propinas')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .limit(1);
+
+                if (err3) throw err3;
+
+                // Stats hoy
+                const today = new Date().toISOString().split('T')[0];
+                const propinasHoy = (propinas || []).filter(p => p.created_at && p.created_at.startsWith(today));
+                const totalHoy = propinasHoy.reduce((a, p) => a + parseFloat(p.monto || 0), 0);
+                const promedio = propinasHoy.length > 0 ? totalHoy / propinasHoy.length : 0;
+
+                // Stats mes
+                const mesActual = today.substring(0, 7);
+                const propinasMes = (propinas || []).filter(p => p.created_at && p.created_at.startsWith(mesActual));
+                const totalMes = propinasMes.reduce((a, p) => a + parseFloat(p.monto || 0), 0);
+
+                document.getElementById('propinasHoy').textContent = '$' + totalHoy.toLocaleString();
+                document.getElementById('propinasCantidad').textContent = propinasHoy.length;
+                document.getElementById('propinasPromedio').textContent = '$' + Math.round(promedio).toLocaleString();
+                document.getElementById('propinasMes').textContent = '$' + totalMes.toLocaleString();
+
+                // Config
+                if (config && config.length > 0) {
+                    document.getElementById('configModoReparto').value = config[0].modo_reparto || 'individual';
+                    document.getElementById('configPropinaHabilitada').value = (config[0].habilitar_propina !== false).toString();
+                }
+
+                // Group by empleado
+                const byEmp = {};
+                propinasHoy.forEach(p => {
+                    const key = p.camarero_nombre || 'Sin asignar';
+                    if (!byEmp[key]) byEmp[key] = { nombre: key, total: 0, count: 0 };
+                    byEmp[key].total += parseFloat(p.monto || 0);
+                    byEmp[key].count++;
+                });
+
+                document.getElementById('propinasEmpleadoTable').innerHTML = Object.values(byEmp).map(e => `
+                    <tr>
+                        <td><strong>${e.nombre}</strong></td>
+                        <td>-</td>
+                        <td><strong>$${e.total.toLocaleString()}</strong></td>
+                        <td>${e.count}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2)">Sin propinas hoy</td></tr>';
+
+                // Last propinas
+                document.getElementById('propinasTable').innerHTML = (propinas || []).slice(0, 15).map(p => `
+                    <tr>
+                        <td>${new Date(p.created_at).toLocaleString()}</td>
+                        <td>${p.mesa_numero ? '#' + p.mesa_numero : '-'}</td>
+                        <td>${p.cliente_nombre || '-'}</td>
+                        <td><strong>$${parseFloat(p.monto).toLocaleString()}</strong></td>
+                        <td>${(p.metodo_pago || '-').replace('_', ' ')}</td>
+                        <td>${p.reparto}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2)">Sin propinas registradas</td></tr>';
+
+                // Calificaciones
+                document.getElementById('calificacionesTable').innerHTML = (califs || []).map(c => `
+                    <tr>
+                        <td>${new Date(c.created_at).toLocaleString()}</td>
+                        <td>${c.mesa_numero ? '#' + c.mesa_numero : '-'}</td>
+                        <td>${c.cliente_nombre || '-'}</td>
+                        <td>${'★'.repeat(c.estrellas)}${'☆'.repeat(5 - c.estrellas)}</td>
+                        <td>${c.servicio ? '★'.repeat(c.servicio) : '-'}</td>
+                        <td>${c.comida ? '★'.repeat(c.comida) : '-'}</td>
+                        <td>${c.rapidez ? '★'.repeat(c.rapidez) : '-'}</td>
+                        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${c.comentario || '-'}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text2)">Sin calificaciones</td></tr>';
+
+            } catch (err) {
+                console.error('Error loading propinas:', err);
+            }
+        }
+
+        async function saveConfigPropinas() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+
+            const modo = document.getElementById('configModoReparto').value;
+            const habilitada = document.getElementById('configPropinaHabilitada').value === 'true';
+
+            try {
+                const { data, error } = await sb.from('config_propinas')
+                    .upsert({
+                        empresa_id: empresaId,
+                        modo_reparto: modo,
+                        habilitar_propina: habilitada,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'empresa_id' });
+
+                if (error) throw error;
+                alert('Configuración de propinas guardada');
+            } catch (err) {
+                console.error('Error saving config propinas:', err);
+                alert('Error al guardar');
+            }
+        }
+
+        // =============================================
         // MODALS
         // =============================================
         function showModal(type) {
@@ -1035,19 +1437,102 @@
             logAccion('producto_creado', 'productos', { nombre: prod.nombre });
         }
 
-        function saveEmpleado() {
-            const emp = {
-                id: 'emp_' + Date.now(),
-                nombre: document.getElementById('empNombre').value,
-                pin: document.getElementById('empPin').value,
-                roles: [document.getElementById('empRol').value],
-                activo: true,
-                created_at: new Date().toISOString()
-            };
-            localData.empleados.push(emp);
-            closeModal('empleado');
-            loadEmpleados();
-            logAccion('empleado_creado', 'empleados', { nombre: emp.nombre });
+        async function saveEmpleado() {
+            const nombre = document.getElementById('empNombre').value;
+            const pin = document.getElementById('empPin').value;
+            const rol = document.getElementById('empRol').value;
+            
+            if (!nombre || !pin || !rol) {
+                alert('Completá todos los campos');
+                return;
+            }
+
+            // Get empresa_id from current user
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) {
+                alert('Error: no se encontró la empresa');
+                return;
+            }
+
+            try {
+                // Save to Supabase
+                const { data, error } = await sb.from('empleados').insert({
+                    empresa_id: empresaId,
+                    nombre: nombre,
+                    pin: pin,
+                    rol: rol.replace('rol_', ''),
+                    activo: true,
+                    emoji: '👤'
+                }).select();
+
+                if (error) throw error;
+
+                // Also save to local data
+                const emp = {
+                    id: data[0].id,
+                    nombre: nombre,
+                    pin: pin,
+                    roles: [rol],
+                    activo: true,
+                    created_at: new Date().toISOString()
+                };
+                localData.empleados.push(emp);
+                
+                closeModal('empleado');
+                loadEmpleados();
+                logAccion('empleado_creado', 'empleados', { nombre: nombre });
+                
+                alert('Empleado creado exitosamente');
+            } catch (err) {
+                console.error('Error saving employee:', err);
+                alert('Error al guardar: ' + err.message);
+            }
+        }
+
+        async function deleteEmpleado(id) {
+            if (!confirm('¿Eliminar este empleado?')) return;
+
+            try {
+                const { error } = await sb.from('empleados').delete().eq('id', id);
+                if (error) throw error;
+
+                localData.empleados = localData.empleados.filter(e => e.id !== id);
+                loadEmpleados();
+                logAccion('empleado_eliminado', 'empleados', { id: id });
+                alert('Empleado eliminado');
+            } catch (err) {
+                console.error('Error deleting employee:', err);
+                alert('Error al eliminar: ' + err.message);
+            }
+        }
+
+        async function editEmpleado(id) {
+            const emp = localData.empleados.find(e => e.id === id);
+            if (!emp) return;
+
+            const newPin = prompt('Nuevo PIN (4 dígitos):', emp.pin);
+            if (newPin === null) return;
+
+            const newRol = prompt('Nuevo rol (Cajero/Cocinero/Delivery/Vendedor/Encargado):', emp.roles[0].replace('rol_', ''));
+            if (newRol === null) return;
+
+            try {
+                const { error } = await sb.from('empleados').update({
+                    pin: newPin,
+                    rol: newRol
+                }).eq('id', id);
+
+                if (error) throw error;
+
+                emp.pin = newPin;
+                emp.roles = ['rol_' + newRol];
+                loadEmpleados();
+                logAccion('empleado_editado', 'empleados', { id: id, pin: newPin, rol: newRol });
+                alert('Empleado actualizado');
+            } catch (err) {
+                console.error('Error updating employee:', err);
+                alert('Error al actualizar: ' + err.message);
+            }
         }
 
         function saveZona() {
@@ -1076,17 +1561,27 @@
             logAccion('config_modificada', 'configuracion', { campo: 'datos_generales' });
         }
 
-        function updatePedidoEstado(id) {
-            const pedido = localData.pedidos.find(p => p.id === id);
-            if (!pedido) return;
-            
+        async function updatePedidoEstado(id, currentEstado) {
             const estados = ['recibido', 'preparando', 'listo', 'en_camino', 'entregado'];
-            const idx = estados.indexOf(pedido.estado);
+            const idx = estados.indexOf(currentEstado);
             if (idx < estados.length - 1) {
-                pedido.estado = estados[idx + 1];
+                const nuevoEstado = estados[idx + 1];
+                
+                try {
+                    const { error } = await sb.from('pedidos')
+                        .update({ estado: nuevoEstado })
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                } catch (err) {
+                    console.error('Error updating pedido:', err);
+                    alert('Error al actualizar estado');
+                    return;
+                }
+                
                 loadPedidos();
                 loadDashboard();
-                logAccion('pedido_estado', 'pedidos', { numero: pedido.numero, estado: pedido.estado });
+                logAccion('pedido_estado', 'pedidos', { id: id, estado: nuevoEstado });
             }
         }
 

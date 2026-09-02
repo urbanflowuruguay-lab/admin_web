@@ -104,6 +104,29 @@
         .estado-pedido p { color: var(--text2); font-size: 14px; line-height: 1.6; }
         .estado-pedido .volver { margin-top: 24px; background: var(--bg3); color: var(--text); border: none; border-radius: 8px; padding: 10px 24px; cursor: pointer; font-size: 14px; font-family: var(--font); }
 
+        /* PAGO OPTIONS */
+        .pago-option {
+            display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+            background: var(--bg); border: 2px solid var(--border); border-radius: 10px;
+            cursor: pointer; transition: all 0.2s; text-align: left; color: var(--text);
+            font-family: var(--font); width: 100%;
+        }
+        .pago-option:hover { border-color: var(--accent); }
+        .pago-option.selected { border-color: var(--accent); background: rgba(212,175,55,0.1); }
+
+        /* PROPINA BUTTONS */
+        .propina-btn {
+            padding: 10px 16px; background: var(--bg); border: 2px solid var(--border);
+            border-radius: 8px; color: var(--text); font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; font-family: var(--font);
+        }
+        .propina-btn:hover { border-color: var(--accent); }
+        .propina-btn.selected { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+
+        /* STAR RATING */
+        #starRating span { cursor: pointer; transition: transform 0.1s; }
+        #starRating span:hover { transform: scale(1.2); }
+
         .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
         .precio-original { text-decoration: line-through; color: var(--muted); font-size: 12px; margin-right: 4px; }
 
@@ -174,17 +197,96 @@
         <input type="text" id="clienteNombre" placeholder="Como te llamas?">
         <div class="btn-row">
             <button style="background:var(--bg3);color:var(--text)" onclick="hideNombreInput()">Volver</button>
-            <button style="background:var(--success);color:white" onclick="confirmarPedido()">Confirmar y Pagar</button>
+            <button style="background:var(--success);color:white" onclick="showPago()">Continuar</button>
+        </div>
+    </div>
+</div>
+
+<div class="nombre-input" id="pagoInput">
+    <div class="nombre-box" style="max-width:400px">
+        <h3>¿Cómo pagás?</h3>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:16px;text-align:center">Elegí tu método de pago</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+            <button class="pago-option" onclick="selectPago('efectivo')" id="pagoEfectivo">
+                <span style="font-size:24px">💵</span>
+                <div>
+                    <div style="font-weight:600">Efectivo</div>
+                    <div style="font-size:11px;color:var(--text2)">Pagás en mesa</div>
+                </div>
+            </button>
+            <button class="pago-option" onclick="selectPago('pos')" id="pagoPOS">
+                <span style="font-size:24px">💳</span>
+                <div>
+                    <div style="font-weight:600">POS / Débito</div>
+                    <div style="font-size:11px;color:var(--text2)">Te llevamos el terminal</div>
+                </div>
+            </button>
+            <button class="pago-option" onclick="selectPago('tarjeta_app')" id="pagoTarjeta">
+                <span style="font-size:24px">📱</span>
+                <div>
+                    <div style="font-weight:600">Tarjeta en la app</div>
+                    <div style="font-size:11px;color:var(--text2)">MercadoPago / Link de pago</div>
+                </div>
+            </button>
+        </div>
+        <div class="btn-row">
+            <button style="background:var(--bg3);color:var(--text)" onclick="hidePago()">Volver</button>
+            <button style="background:var(--success);color:white" id="btnConfirmarPago" disabled onclick="confirmarPedido()">Confirmar Pedido</button>
         </div>
     </div>
 </div>
 
 <div class="estado-pedido" id="estadoPedido">
     <div class="icon">🍳</div>
-    <h2>Tu pedido esta en proceso</h2>
+    <h2>Tu pedido está en proceso</h2>
     <p>Ya lo llevaremos a tu mesa.<br>Mientras tanto, podes seguir pidiendo o relajarte.</p>
     <p id="pedidoIdDisplay" style="color:var(--accent);margin-top:12px;font-size:12px"></p>
     <button class="volver" onclick="volverCarta()">Volver a la carta</button>
+</div>
+
+<div class="nombre-input" id="ratingScreen">
+    <div class="nombre-box" style="max-width:400px">
+        <h3>⭐ ¿Cómo fue tu experiencia?</h3>
+        <p id="ratingPedidoInfo" style="color:var(--text2);font-size:12px;margin-bottom:16px;text-align:center"></p>
+        
+        <div style="text-align:center;margin-bottom:16px">
+            <div style="font-size:32px;letter-spacing:4px;cursor:pointer" id="starRating">
+                <span onclick="setRating(1)">☆</span>
+                <span onclick="setRating(2)">☆</span>
+                <span onclick="setRating(3)">☆</span>
+                <span onclick="setRating(4)">☆</span>
+                <span onclick="setRating(5)">☆</span>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-top:4px" id="ratingLabel">Tocá las estrellas</div>
+        </div>
+
+        <div style="margin-bottom:16px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">¿Querés dejar propina?</div>
+            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+                <button class="propina-btn" onclick="setPropina(0)" id="propina0">$0</button>
+                <button class="propina-btn" onclick="setPropina(50)" id="propina50">$50</button>
+                <button class="propina-btn" onclick="setPropina(100)" id="propina100">$100</button>
+                <button class="propina-btn" onclick="setPropina(200)" id="propina200">$200</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;justify-content:center">
+                <input type="number" id="propinaCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaCustom()">
+            </div>
+            <div id="propinaInfo" style="font-size:11px;color:var(--text2);text-align:center;margin-top:6px"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('servicio', 5)"> Servicio ⭐</button>
+            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('comida', 5)"> Comida ⭐</button>
+            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('rapidez', 5)"> Rapidez ⭐</button>
+        </div>
+
+        <textarea id="ratingComentario" placeholder="Comentario opcional..." style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin-bottom:12px;resize:none;height:60px;font-family:var(--font)"></textarea>
+
+        <div class="btn-row">
+            <button style="background:var(--bg3);color:var(--text)" onclick="skipRating()">Omitir</button>
+            <button style="background:var(--accent);color:var(--bg)" onclick="enviarRating()">Enviar</button>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -406,6 +508,12 @@ function updateCarritoBar() {
     renderCarritoItems();
 }
 
+let selectedPago = null;
+let currentPedidoId = null;
+let currentRating = 0;
+let currentPropina = 0;
+let subRatings = { servicio: 0, comida: 0, rapidez: 0 };
+
 function showNombreInput() {
     document.getElementById("nombreInput").classList.add("show");
     document.getElementById("clienteNombre").focus();
@@ -415,12 +523,33 @@ function hideNombreInput() {
     document.getElementById("nombreInput").classList.remove("show");
 }
 
+function showPago() {
+    const nombre = document.getElementById("clienteNombre").value.trim();
+    if (!nombre) {
+        document.getElementById("clienteNombre").style.borderColor = "var(--danger)";
+        return;
+    }
+    document.getElementById("nombreInput").classList.remove("show");
+    document.getElementById("pagoInput").classList.add("show");
+}
+
+function hidePago() {
+    document.getElementById("pagoInput").classList.remove("show");
+}
+
+function selectPago(metodo) {
+    selectedPago = metodo;
+    document.querySelectorAll(".pago-option").forEach(b => b.classList.remove("selected"));
+    document.getElementById("pago" + metodo.charAt(0).toUpperCase() + metodo.slice(1).replace("_app", "App")).classList.add("selected");
+    document.getElementById("btnConfirmarPago").disabled = false;
+}
+
 async function confirmarPedido() {
     const nombre = document.getElementById("clienteNombre").value.trim() || "Cliente";
-    hideNombreInput();
+    hidePago();
     const total = carrito.reduce((s, c) => s + c.precio * c.qty, 0);
     try {
-        await sb.from("pedidos").insert({
+        const { data, error } = await sb.from("pedidos").insert({
             empresa_id: empresaId,
             mesa_token: mesaToken,
             cliente_nombre: nombre,
@@ -429,21 +558,149 @@ async function confirmarPedido() {
             total: total,
             estado: "recibido",
             tipo_entrega: "Mesa",
-            notas: `Mesa #${mesaData.numero} - ${nombre}`
-        });
+            metodo_pago: selectedPago || "efectivo",
+            metodo_pago_estado: selectedPago === "tarjeta_app" ? "pendiente" : "pendiente",
+            mesa_numero: mesaData ? mesaData.numero : 0,
+            notas: `Mesa #${mesaData ? mesaData.numero : '?'} - ${nombre}`
+        }).select();
+
+        if (error) throw error;
+
+        currentPedidoId = data && data[0] ? data[0].id : null;
         carrito = [];
         updateCarritoBar();
         carritoPanelOpen = false;
         document.getElementById("carritoPanel").classList.remove("show");
         document.getElementById("pedidoIdDisplay").textContent = `Pedido de ${nombre}`;
         document.getElementById("estadoPedido").classList.add("show");
+
+        // After 3 seconds, show rating screen
+        setTimeout(() => {
+            document.getElementById("estadoPedido").classList.remove("show");
+            showRatingScreen();
+        }, 3000);
     } catch (e) {
         alert("Error: " + e.message);
     }
 }
 
+function showRatingScreen() {
+    currentRating = 0;
+    currentPropina = 0;
+    subRatings = { servicio: 0, comida: 0, rapidez: 0 };
+    document.getElementById("ratingPedidoInfo").textContent = `Mesa #${mesaData ? mesaData.numero : '?'} — Gracias por tu visita`;
+    updateStars();
+    updatePropinaButtons();
+    document.getElementById("ratingScreen").classList.add("show");
+}
+
+function setRating(n) {
+    currentRating = n;
+    updateStars();
+    const labels = ["", "Malo", "Regular", "Bien", "Muy bien", "Excelente"];
+    document.getElementById("ratingLabel").textContent = labels[n];
+}
+
+function updateStars() {
+    const stars = document.querySelectorAll("#starRating span");
+    stars.forEach((s, i) => {
+        s.textContent = i < currentRating ? "★" : "☆";
+        s.style.color = i < currentRating ? "var(--accent)" : "var(--text2)";
+    });
+}
+
+function setPropina(monto) {
+    currentPropina = monto;
+    document.getElementById("propinaCustom").value = "";
+    updatePropinaButtons();
+}
+
+function setPropinaCustom() {
+    const val = parseInt(document.getElementById("propinaCustom").value) || 0;
+    currentPropina = val;
+    updatePropinaButtons();
+}
+
+function updatePropinaButtons() {
+    [0, 50, 100, 200].forEach(v => {
+        const btn = document.getElementById("propina" + v);
+        if (btn) {
+            btn.classList.toggle("selected", currentPropina === v && v > 0);
+        }
+    });
+    const info = document.getElementById("propinaInfo");
+    if (currentPropina > 0) {
+        info.textContent = `Propina: $${currentPropina} — ¡Gracias!`;
+    } else {
+        info.textContent = "";
+    }
+}
+
+function setSubRating(campo, val) {
+    subRatings[campo] = subRatings[campo] === val ? 0 : val;
+}
+
+async function enviarRating() {
+    try {
+        // Save calificación
+        if (currentRating > 0) {
+            await sb.from("calificaciones").insert({
+                empresa_id: empresaId,
+                pedido_id: currentPedidoId,
+                mesa_token: mesaToken,
+                mesa_numero: mesaData ? mesaData.numero : 0,
+                cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
+                cliente_token: clienteToken,
+                estrellas: currentRating,
+                servicio: subRatings.servicio || null,
+                comida: subRatings.comida || null,
+                rapidez: subRatings.rapidez || null,
+                comentario: document.getElementById("ratingComentario").value.trim() || null
+            });
+        }
+
+        // Save propina
+        if (currentPropina > 0) {
+            await sb.from("propinas").insert({
+                empresa_id: empresaId,
+                pedido_id: currentPedidoId,
+                mesa_token: mesaToken,
+                mesa_numero: mesaData ? mesaData.numero : 0,
+                cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
+                cliente_token: clienteToken,
+                monto: currentPropina,
+                metodo_pago: selectedPago || "efectivo",
+                reparto: "individual"
+            });
+        }
+
+        document.getElementById("ratingScreen").classList.remove("show");
+        showGraciasFinal();
+    } catch (e) {
+        console.error("Error guardando rating:", e);
+        document.getElementById("ratingScreen").classList.remove("show");
+        showGraciasFinal();
+    }
+}
+
+function skipRating() {
+    document.getElementById("ratingScreen").classList.remove("show");
+    showGraciasFinal();
+}
+
+function showGraciasFinal() {
+    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Gracias!";
+    document.getElementById("estadoPedido").querySelector(".icon").textContent = "🙏";
+    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que la hayas pasado bien.<br>¡Volvé pronto!";
+    document.getElementById("pedidoIdDisplay").textContent = "";
+    document.getElementById("estadoPedido").classList.add("show");
+}
+
 function volverCarta() {
     document.getElementById("estadoPedido").classList.remove("show");
+    document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido está en proceso";
+    document.getElementById("estadoPedido").querySelector(".icon").textContent = "🍳";
+    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Ya lo llevaremos a tu mesa.<br>Mientras tanto, podes seguir pidiendo o relajarte.";
     renderProductos(getCurrentFilter());
 }
 
