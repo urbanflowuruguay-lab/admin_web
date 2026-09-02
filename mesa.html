@@ -357,9 +357,10 @@ async function init() {
         return;
     }
     try {
-        let mesaRes = await sb.from("mesas").select("*").eq("mesa_token", mesaToken).single();
+        let mesaRes = await sb.from("mesas").select("*").eq("mesa_token", mesaToken).maybeSingle();
         if (!mesaRes.data) {
-            mesaRes = await sb.from("mesas").select("*").eq("id", mesaToken).single();
+            const alt = await sb.from("mesas").select("*").eq("id", mesaToken).maybeSingle();
+            if (alt.data) mesaRes = alt;
         }
         // Si no viene empresaId en URL, sacarla de la mesa
         let empresaIdFinal = empresaId;
@@ -367,15 +368,16 @@ async function init() {
             empresaIdFinal = mesaRes.data.empresa_id;
         }
         if (!empresaIdFinal) {
-            document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Mesa no encontrada</p></div>';
+            document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Mesa no encontrada</p><p style="font-size:11px;margin-top:8px;opacity:0.6">token:'+mesaToken+'</p></div>';
             return;
         }
         const [empRes, prodRes] = await Promise.all([
-            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaIdFinal).single(),
+            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaIdFinal).maybeSingle(),
             sb.from("productos_empresa").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("categoria")
         ]);
         if (!mesaRes.data) {
-            mesaRes = await sb.from("mesas").select("*").eq("empresa_id", empresaIdFinal).single();
+            const alt2 = await sb.from("mesas").select("*").eq("empresa_id", empresaIdFinal).limit(1).maybeSingle();
+            if (alt2.data) mesaRes = alt2;
         }
 
         empresaData = empRes.data;
@@ -417,7 +419,8 @@ async function init() {
         sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
         renderProductos();
     } catch (e) {
-        document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Error cargando carta</p></div>';
+        console.error("init error", e);
+        document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Error cargando carta</p><p style="font-size:11px;margin-top:8px;opacity:0.6">'+(e.message||e)+'</p></div>';
     }
 }
 
