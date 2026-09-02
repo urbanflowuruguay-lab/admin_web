@@ -213,11 +213,7 @@
         async function loadEmployees() {
             empresaId = getEmpresaId();
             if (!empresaId) {
-                console.log('No empresa_id found, using demo data');
-                employees = [
-                    { id: 'emp_demo_1', nombre: 'Empleado de Demo', pin: '0000', rol: 'Cajero', emoji: '👤', online: false, lastSeen: null }
-                ];
-                renderEmployees();
+                document.getElementById('employeesGrid').innerHTML = '<div class="empty"><i class="fas fa-qrcode" style="font-size:48px;margin-bottom:16px;display:block;color:#30363d"></i><p style="color:#8b949e">Abrí esta terminal desde la gestión del restaurante</p></div>';
                 return;
             }
 
@@ -228,6 +224,11 @@
                     .eq('activo', true);
 
                 if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    document.getElementById('employeesGrid').innerHTML = '<div class="empty"><i class="fas fa-user-plus" style="font-size:48px;margin-bottom:16px;display:block;color:#30363d"></i><p style="color:#8b949e">No hay empleados creados</p><p style="color:#484f58;font-size:13px">Crealos desde la gestión del restaurante</p></div>';
+                    return;
+                }
 
                 employees = data.map(e => ({
                     id: e.id,
@@ -242,11 +243,7 @@
                 renderEmployees();
             } catch (err) {
                 console.error('Error loading employees:', err);
-                // Fallback demo data
-                employees = [
-                    { id: 'emp_demo_1', nombre: 'Empleado de Demo', pin: '0000', rol: 'Cajero', emoji: '👤', online: false, lastSeen: null }
-                ];
-                renderEmployees();
+                document.getElementById('employeesGrid').innerHTML = '<div class="empty"><p style="color:#f85149">Error al cargar empleados</p></div>';
             }
         }
 

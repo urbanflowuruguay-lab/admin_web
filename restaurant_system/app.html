@@ -740,31 +740,40 @@
         // =============================================
         // RENDER EMPLEADOS (Dueño/Encargado)
         // =============================================
-        function renderEmpleados() {
+        async function renderEmpleados() {
             const container = document.getElementById('content-empleados');
-            if (!container) return;
+            if (!container || !currentUser || !currentUser.empresa_id) return;
 
-            const allEmp = [
-                { nombre: 'Carlos Pérez', rol: 'Dueño', estado: 'activo', turno: null },
-                { nombre: 'María García', rol: 'Cajero', estado: 'activo', turno: '10:00 - 18:00' },
-                { nombre: 'Pedro Martínez', rol: 'Cocinero', estado: 'activo', turno: '09:00 - 17:00' },
-                { nombre: 'Ana Rodríguez', rol: 'Cocinera', estado: 'inactivo', turno: null },
-                { nombre: 'Roberto García', rol: 'Delivery', estado: 'activo', turno: '12:00 - 22:00' }
-            ];
+            try {
+                const { data, error } = await sb.from('empleados')
+                    .select('*')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .order('created_at', { ascending: false });
 
-            container.innerHTML = allEmp.map(e => `
-                <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">${e.nombre}</div>
-                        <div style="font-size: 12px; color: var(--accent);">${e.rol}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 11px; color: ${e.estado === 'activo' ? 'var(--green)' : 'var(--text2)'};">
-                            ${e.estado === 'activo' ? '● ' + (e.turno || 'Activo') : '○ Inactivo'}
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="empty"><i class="fas fa-user-plus"></i><p>No hay empleados creados</p></div>';
+                    return;
+                }
+
+                container.innerHTML = data.map(e => `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;">${e.emoji || '👤'} ${e.nombre}</div>
+                            <div style="font-size: 12px; color: var(--accent);">${e.rol}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 11px; color: ${e.activo ? 'var(--green)' : 'var(--text2)'};">
+                                ${e.activo ? '● Activo' : '○ Inactivo'}
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } catch (err) {
+                console.error('Error loading empleados:', err);
+                container.innerHTML = '<div class="empty"><p>Error al cargar empleados</p></div>';
+            }
         }
 
         // =============================================

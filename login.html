@@ -202,6 +202,7 @@
         }
 
         async function redirectByRole(userId) {
+            // First check perfiles table
             const { data: profile } = await sb.from("perfiles").select("type, status, role").eq("id", userId).single();
 
             if (profile && profile.role === "admin") {
@@ -217,12 +218,10 @@
             }
 
             if (profile && (profile.type === "servicios" || profile.type === "empresa")) {
-                // Check if it's a restaurant
                 const { data: empresa } = await sb.from("empresas").select("status, rubro").eq("usuario_id", userId).single();
                 const empresaStatus = empresa ? empresa.status : profile.status;
                 
                 if (empresaStatus === "aprobado") {
-                    // If restaurant, go to restaurant management
                     if (empresa && (empresa.rubro === "restaurante" || empresa.rubro === "gastronomia" || empresa.rubro === "comida")) {
                         window.location.href = "/restaurant_system/gestion.html";
                         return;
@@ -235,13 +234,24 @@
                 return;
             }
 
-            if (profile && profile.type === "usuario") {
-                showError("Tu cuenta está activa. Próximamente tendrás acceso desde la web.");
+            // Fallback: check empresas directly (app may not create perfiles)
+            const { data: empresaDirect } = await sb.from("empresas").select("status, rubro").eq("usuario_id", userId).single();
+            
+            if (empresaDirect) {
+                if (empresaDirect.status === "aprobado") {
+                    if (empresaDirect.rubro === "restaurante" || empresaDirect.rubro === "gastronomia" || empresaDirect.rubro === "comida") {
+                        window.location.href = "/restaurant_system/gestion.html";
+                        return;
+                    }
+                    window.location.href = "/empresa/";
+                    return;
+                }
+                showError("Tu cuenta está " + empresaDirect.status + ". Esperá la aprobación.");
                 await sb.auth.signOut();
                 return;
             }
 
-            showError("Tu cuenta está pendiente. Pronto podrás acceder.");
+            showError("Tu cuenta no está registrada. Descargá la app para registrarte.");
             await sb.auth.signOut();
         }
 
