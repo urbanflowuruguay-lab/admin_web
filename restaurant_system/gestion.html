@@ -1593,63 +1593,14 @@
             
             showModal('qr');
             
-            const size = 300;
-            const wrapper = document.createElement('div');
-            wrapper.style.cssText = 'position:relative;width:'+size+'px;height:'+size+'px;margin:0 auto';
-            
-            const qrDiv = document.createElement('div');
-            wrapper.appendChild(qrDiv);
-            container.appendChild(wrapper);
-            
-            new QRCode(qrDiv, {
+            new QRCode(container, {
                 text: url,
-                width: size,
-                height: size,
+                width: 250,
+                height: 250,
                 colorDark: '#000000',
                 colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
+                correctLevel: QRCode.CorrectLevel.L
             });
-            
-            setTimeout(() => {
-                const qrCanvas = qrDiv.querySelector('canvas');
-                if (!qrCanvas) return;
-                
-                const finalCanvas = document.createElement('canvas');
-                finalCanvas.width = size;
-                finalCanvas.height = size;
-                const ctx = finalCanvas.getContext('2d');
-                
-                ctx.drawImage(qrCanvas, 0, 0, size, size);
-                
-                const logo = new Image();
-                logo.crossOrigin = 'anonymous';
-                logo.onload = function() {
-                    const logoAreaSize = size * 0.35;
-                    const x = (size - logoAreaSize) / 2;
-                    const y = (size - logoAreaSize) / 2;
-                    
-                    ctx.fillStyle = '#000000';
-                    ctx.beginPath();
-                    ctx.roundRect(x, y, logoAreaSize, logoAreaSize, 8);
-                    ctx.fill();
-                    
-                    const ratio = Math.min(logoAreaSize / logo.naturalWidth, logoAreaSize / logo.naturalHeight);
-                    const lw = logo.naturalWidth * ratio;
-                    const lh = logo.naturalHeight * ratio;
-                    const lx = x + (logoAreaSize - lw) / 2;
-                    const ly = y + (logoAreaSize - lh) / 2;
-                    
-                    ctx.drawImage(logo, lx, ly, lw, lh);
-                    
-                    container.innerHTML = '';
-                    container.appendChild(finalCanvas);
-                };
-                logo.onerror = function() {
-                    container.innerHTML = '';
-                    container.appendChild(qrCanvas);
-                };
-                logo.src = '../logouf.png';
-            }, 300);
         }
 
         function downloadQR() {
@@ -1659,17 +1610,6 @@
             link.download = 'QR Mesa.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
-        }
-
-        function printQR() {
-            const canvas = document.querySelector('#qrContainer canvas');
-            if (!canvas) return;
-            const title = document.getElementById('qrMesaTitle').textContent;
-            const dataUrl = canvas.toDataURL('image/png');
-            const win = window.open('', '', 'width=400,height=500');
-            win.document.write(`<html><head><title>${title}</title><style>body{display:flex;flex-direction:column;align-items:center;font-family:sans-serif;padding:20px}img{max-width:250px}h2{margin-bottom:16px}</style></head><body><h2>${title}</h2><img src="${dataUrl}"/></body></html>`);
-            win.document.close();
-            win.print();
         }
 
         async function deleteMesa(id) {
