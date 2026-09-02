@@ -1016,8 +1016,10 @@
             }
         }
 
-        function logout() {
+        async function logout() {
             localData.currentUser = null;
+            localStorage.removeItem('urbanflow_empresa_id');
+            await sb.auth.signOut();
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('appContainer').classList.remove('active');
         }
@@ -1668,6 +1670,38 @@
         }
 
         init();
+
+        // Auto-login from Supabase Auth session (from login.html)
+        (async () => {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session && session.user) {
+                // Find empresa by usuario_id
+                const { data: empresa, error } = await sb.from('empresas')
+                    .select('*')
+                    .eq('usuario_id', session.user.id)
+                    .limit(1);
+
+                if (!error && empresa && empresa.length > 0) {
+                    const emp = empresa[0];
+                    localData.currentUser = {
+                        id: emp.id,
+                        empresa_id: emp.id,
+                        nombre: emp.nombre,
+                        roles: ['rol_dueno'],
+                        activo: true
+                    };
+                    localStorage.setItem('urbanflow_empresa_id', emp.id);
+
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('appContainer').classList.add('active');
+                    document.getElementById('userName').textContent = emp.nombre;
+                    document.getElementById('userRole').textContent = 'DUEÑO';
+                    document.getElementById('userAvatar').textContent = emp.nombre.substring(0, 2).toUpperCase();
+
+                    loadDashboard();
+                }
+            }
+        })();
     </script>
 </body>
 </html>
