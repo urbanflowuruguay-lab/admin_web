@@ -1549,7 +1549,7 @@
                     <tr>
                         <td><strong>${e.nombre}</strong></td>
                         <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
-                        <td>${e.pin}</td>
+                        <td>••••</td>
                         <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
                         <td style="display:flex;gap:4px">
                             <button class="btn-primary" style="padding: 5px 8px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
@@ -1566,12 +1566,11 @@
                 `).join('');
             } catch (err) {
                 console.error('Error loading employees:', err);
-                // Fallback to local data
                 document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => `
                     <tr>
                         <td><strong>${e.nombre}</strong></td>
                         <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
-                        <td>${e.pin}</td>
+                        <td>••••</td>
                         <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
                         <td>
                             <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
@@ -2074,24 +2073,19 @@
             const emp = localData.empleados.find(e => e.id === id);
             if (!emp) return;
 
-            const newPin = prompt('Nuevo PIN (4 dígitos):', emp.pin);
-            if (newPin === null) return;
-
             const newRol = prompt('Nuevo rol (Cajero/Cocinero/Delivery/Vendedor/Encargado):', emp.roles[0].replace('rol_', ''));
             if (newRol === null) return;
 
             try {
                 const { error } = await sb.from('empleados').update({
-                    pin: newPin,
                     rol: newRol
                 }).eq('id', id);
 
                 if (error) throw error;
 
-                emp.pin = newPin;
                 emp.roles = ['rol_' + newRol];
                 loadEmpleados();
-                logAccion('empleado_editado', 'empleados', { id: id, pin: newPin, rol: newRol });
+                logAccion('empleado_editado', 'empleados', { id: id, rol: newRol });
                 alert('Empleado actualizado');
             } catch (err) {
                 console.error('Error updating employee:', err);

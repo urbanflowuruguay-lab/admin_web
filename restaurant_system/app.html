@@ -951,7 +951,10 @@
                     </div>
                 </div>
                 <div style="margin-top: 20px;">
-                    <button class="clock-btn exit" onclick="logout()" style="font-size: 14px; padding: 12px;">
+                    <button class="clock-btn" onclick="cambiarMiPin()" style="font-size: 14px; padding: 12px; margin-bottom: 10px; width: 100%;">
+                        <i class="fas fa-key"></i> Cambiar mi contraseña
+                    </button>
+                    <button class="clock-btn exit" onclick="logout()" style="font-size: 14px; padding: 12px; width: 100%;">
                         <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
                     </button>
                 </div>
@@ -975,6 +978,33 @@
                 alert('En Chrome: menú ⋮ -> Agregar a pantalla principal');
             }
         });
+
+        async function cambiarMiPin() {
+            const actual = prompt('Ingresá tu PIN actual:');
+            if (actual === null) return;
+            if (!currentUser || currentUser.pin !== actual) {
+                alert('PIN actual incorrecto');
+                return;
+            }
+            const nuevo = prompt('Nuevo PIN (4 dígitos):');
+            if (nuevo === null || nuevo.trim().length < 4) {
+                alert('El PIN debe tener al menos 4 caracteres');
+                return;
+            }
+            const confirmar = prompt('Confirmá tu nuevo PIN:');
+            if (confirmar !== nuevo) {
+                alert('Los PINs no coinciden');
+                return;
+            }
+            try {
+                const { error } = await sb.from('empleados').update({ pin: nuevo.trim() }).eq('id', currentUser.id);
+                if (error) throw error;
+                currentUser.pin = nuevo.trim();
+                alert('PIN actualizado correctamente');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
 
         function logout() {
             if (confirm('¿Cerrar sesión?')) {
