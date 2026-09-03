@@ -159,6 +159,7 @@
 </div>
 
 <div class="app-layout">
+    <div id="mantenimientoBanner" style="display:none;background:#f59e0b;color:#1a1a1a;text-align:center;padding:10px 12px;font-size:13px;font-weight:600">🧹 Atención - Mesa en mantenimiento, ya viene personal a activarla. Mientras tanto podés ir eligiendo tu preferencia.</div>
     <div class="negocio-header" id="negocioHeader" style="display:none">
         <div class="negocio-logo-wrap"><img id="headerLogo" class="negocio-logo" src="" style="display:none"></div>
         <div class="negocio-info">
@@ -426,8 +427,13 @@ async function init() {
         document.getElementById("headerNombre").textContent = empresaData.nombre;
         document.getElementById("headerDesc").textContent = empresaData.descripcion || "";
         document.getElementById("headerMesa").textContent = `Mesa #${mesaData.numero}`;
-
-        sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
+        if (mesaData.estado === 'mantenimiento') {
+            document.getElementById('mantenimientoBanner').style.display = 'block';
+            window.isMantenimiento = true;
+        } else {
+            window.isMantenimiento = false;
+            sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
+        }
         renderProductos();
     } catch (e) {
         console.error("init error", e);
@@ -460,10 +466,10 @@ function renderProductos(filtro) {
                     <span class="producto-precio" style="color:${css.getPropertyValue('--price').trim()}">$${(p.precio_oferta || p.precio).toFixed(0)}</span>
                 </div>
                 <div class="producto-add">
-                    ${qty > 0 ? `<button class="qty-btn" onclick="changeQty('${p.id}',-1)">-</button>
+                    ${window.isMantenimiento ? `<button class="add-btn" disabled style="opacity:0.5;background:var(--muted)">En mantenimiento</button>` : (qty > 0 ? `<button class="qty-btn" onclick="changeQty('${p.id}',-1)">-</button>
                     <span class="qty-num">${qty}</span>
                     <button class="qty-btn" onclick="changeQty('${p.id}',1)">+</button>` :
-                    `<button class="add-btn" onclick="addToCart('${p.id}')">+ Agregar</button>`}
+                    `<button class="add-btn" onclick="addToCart('${p.id}')">+ Agregar</button>`)}
                 </div>
             </div>
         </div>`;
