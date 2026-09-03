@@ -162,7 +162,9 @@
     <script>
         const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
         const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const sbService = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
 
         let currentUser = null;
         let userEmpresa = null;
@@ -217,7 +219,7 @@
             }
 
             // 3. ¿Es EMPRESA (dueño de restaurante)?
-            const { data: empresas } = await sb.from('empresas')
+            const { data: empresas } = await sbService.from('empresas')
                 .select('*')
                 .eq('usuario_id', userId)
                 .limit(1);
@@ -320,7 +322,7 @@
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             const codigo = Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
 
-            const { error: empError } = await sb.from('empresas').insert({
+            const { error: empError } = await sbService.from('empresas').insert({
                 usuario_id: userId, email, nombre: '', rubro: 'restaurante',
                 pin_dueno: pinDueno, codigo_interno: codigo, status: 'pendiente', activo: true
             });
@@ -333,7 +335,7 @@
             }
 
             // Entrar directo a gestión
-            const { data: emp } = await sb.from('empresas').select('*').eq('usuario_id', userId).limit(1);
+            const { data: emp } = await sbService.from('empresas').select('*').eq('usuario_id', userId).limit(1);
             if (emp && emp[0]) {
                 localStorage.setItem('urbanflow_empresa_id', emp[0].id);
                 window.location.href = '/restaurant_system/gestion.html';
