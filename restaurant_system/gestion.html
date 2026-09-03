@@ -2418,45 +2418,52 @@
             }
         }).subscribe();
 
-        // Auto-login from Supabase Auth session (from login.html)
+        // Auto-login: primero intenta sesión de Supabase Auth, si no hay usa empresa_id de localStorage
         (async () => {
+            let empId = null;
+
+            // 1. Intentar con sesión de Supabase Auth
             const { data: { session } } = await sb.auth.getSession();
             if (session && session.user) {
-                // Find empresa by usuario_id
-                const { data: empresa, error } = await sb.from('empresas')
+                const { data: empresa } = await sb.from('empresas')
                     .select('*')
                     .eq('usuario_id', session.user.id)
                     .limit(1);
+                if (empresa && empresa.length > 0) empId = empresa[0].id;
+            }
 
-                if (!error && empresa && empresa.length > 0) {
-                    const emp = empresa[0];
+            // 2. Si no hubo sesión, usar empresa_id del localStorage (viene de login.html)
+            if (!empId) empId = localStorage.getItem('urbanflow_empresa_id');
+
+            // 3. Cargar empresa
+            if (empId) {
+                const { data: emp, error } = await sb.from('empresas').select('*').eq('id', empId).limit(1);
+                if (!error && emp && emp.length > 0) {
+                    const e = emp[0];
                     localData.currentUser = {
-                        id: emp.id,
-                        empresa_id: emp.id,
-                        nombre: emp.nombre,
+                        id: e.id,
+                        empresa_id: e.id,
+                        nombre: e.nombre,
                         roles: ['rol_dueno'],
                         activo: true
                     };
-                    localStorage.setItem('urbanflow_empresa_id', emp.id);
+                    localStorage.setItem('urbanflow_empresa_id', e.id);
 
                     document.getElementById('loginContainer').style.display = 'none';
                     document.getElementById('appContainer').classList.add('active');
-                    document.getElementById('userName').textContent = emp.nombre;
+                    document.getElementById('userName').textContent = e.nombre;
                     document.getElementById('userRole').textContent = 'DUEÑO';
-                    document.getElementById('userAvatar').textContent = emp.nombre.substring(0, 2).toUpperCase();
-                    document.getElementById('headerRestaurantName').textContent = emp.nombre;
+                    document.getElementById('userAvatar').textContent = e.nombre.substring(0, 2).toUpperCase();
+                    document.getElementById('headerRestaurantName').textContent = e.nombre;
 
                     loadDashboard();
                     filterSidebar();
-                } else {
-                    document.getElementById('loginContainer').style.display = 'block';
-                    document.getElementById('loginError').textContent = 'Tu cuenta no tiene restaurante asociado. Creá uno desde la app.';
+                    return;
                 }
-            } else {
-                // Sin sesión: mostrar login deshabilitado con mensaje
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginError').textContent = 'Entrá desde login.html con tu cuenta de dueño';
             }
+
+            // Sin datos: redirigir a login
+            window.location.href = '/login.html';
         })();
     </script>
 </body>
