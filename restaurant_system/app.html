@@ -512,9 +512,10 @@
             const pin = document.getElementById('pinInput').value.trim();
             if (!pin) { document.getElementById('pinError').textContent='Ingresá PIN'; document.getElementById('pinError').style.display='block'; return; }
             const params = new URLSearchParams(window.location.search);
-            const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || (typeof empresa_id!=='undefined' ? empresa_id : null);
-            if (!empresaId) { document.getElementById('pinError').textContent='Falta empresa en QR'; document.getElementById('pinError').style.display='block'; return; }
-            const { data, error } = await sb.from('empleados').select('*').eq('empresa_id', empresaId).eq('pin', pin).eq('activo', true).limit(1);
+            const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || null;
+            let query = sb.from('empleados').select('*').eq('pin', pin).eq('activo', true);
+            if (empresaId) query = query.eq('empresa_id', empresaId);
+            const { data, error } = await query.limit(5);
             if (error || !data || data.length===0) {
                 document.getElementById('pinError').textContent='PIN incorrecto';
                 document.getElementById('pinError').style.display='block';

@@ -342,15 +342,15 @@
         setInterval(simulateOnline, 30000);
 
         function renderSingleQR() {
-            const eid = empresaId || getEmpresaId() || '';
-            const singleUrl = eid ? `${baseUrl}?empresa=${eid}` : baseUrl;
+            // QR ultra simple: solo la app, sin empresa en URL (se resuelve por PIN)
+            const singleUrl = baseUrl;
             const container = document.getElementById('singleQR');
             const urlEl = document.getElementById('singleQRUrl');
             if (!container) return;
             container.innerHTML = '';
             if (urlEl) urlEl.textContent = singleUrl;
             try {
-                new QRCode(container, { text: singleUrl, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+                new QRCode(container, { text: singleUrl, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
             } catch(e) { console.error(e); container.innerHTML = '<p style="color:#f85149">Error: '+e.message+'</p>'; }
         }
         // =============================================
