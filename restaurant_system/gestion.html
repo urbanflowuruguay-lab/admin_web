@@ -284,6 +284,12 @@
     </style>
 </head>
 <body>
+    <!-- LOADING -->
+    <div id="loadingScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0a0a0a;color:#fff;font-family:sans-serif">
+        <div style="font-size:20px;margin-bottom:12px">🍽️ UrbanFlow</div>
+        <div style="color:#999;font-size:14px" id="loadingMsg">Cargando...</div>
+    </div>
+
     <!-- APP -->
     <div class="app-container" id="appContainer">
         <header class="header">
@@ -2412,21 +2418,20 @@
         (async () => {
             const empId = localStorage.getItem('urbanflow_empresa_id');
             if (!empId) {
-                console.log('No empresa_id found, redirecting to login');
-                window.location.href = '/login.html';
+                document.getElementById('loadingMsg').textContent = 'Sin sesión. Redirigiendo...';
+                setTimeout(() => window.location.href = '/login.html', 500);
                 return;
             }
 
-            console.log('Found empresa_id:', empId);
+            document.getElementById('loadingMsg').textContent = 'Cargando empresa...';
 
             try {
                 const { data: emp, error } = await sbService.from('empresas').select('*').eq('id', empId).limit(1);
-                console.log('Query result:', emp, 'Error:', error);
 
                 if (error || !emp || emp.length === 0) {
-                    console.log('Empresa not found, clearing and redirecting');
+                    document.getElementById('loadingMsg').textContent = 'Empresa no encontrada. Redirigiendo...';
                     localStorage.removeItem('urbanflow_empresa_id');
-                    window.location.href = '/login.html';
+                    setTimeout(() => window.location.href = '/login.html', 500);
                     return;
                 }
 
@@ -2439,7 +2444,7 @@
                     activo: true
                 };
 
-                console.log('Loading empresa:', e.nombre);
+                document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('appContainer').classList.add('active');
                 document.getElementById('userName').textContent = e.nombre;
                 document.getElementById('userRole').textContent = 'DUEÑO';
@@ -2450,7 +2455,8 @@
                 filterSidebar();
             } catch(err) {
                 console.error('Auto-login error:', err);
-                window.location.href = '/login.html';
+                document.getElementById('loadingMsg').textContent = 'Error. Redirigiendo...';
+                setTimeout(() => window.location.href = '/login.html', 500);
             }
         })();
     </script>
