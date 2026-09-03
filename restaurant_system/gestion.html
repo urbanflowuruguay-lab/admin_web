@@ -1553,7 +1553,7 @@
                     const now = new Date();
                     const diffSec = lastSeen ? Math.floor((now - lastSeen) / 1000) : 9999;
                     const diffMin = Math.floor(diffSec / 60);
-                    const online = diffSec < 90;
+                    const online = diffSec < 20;
                     let statusHtml = '';
                     if (online) {
                         statusHtml = '<span style="color:#22c55e;font-weight:600">● En línea</span>';

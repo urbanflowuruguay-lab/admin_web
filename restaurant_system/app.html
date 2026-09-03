@@ -594,7 +594,7 @@
         let presenceInterval = null;
         function startPresenceHeartbeat(){
             updatePresence(true);
-            presenceInterval = setInterval(()=> updatePresence(true), 10000);
+            presenceInterval = setInterval(()=> updatePresence(true), 5000);
         }
         async function updatePresence(online){
             try{ await sb.from('empleados').update({ is_online: online, last_seen: new Date().toISOString() }).eq('id', currentUser.id); }catch(e){}
