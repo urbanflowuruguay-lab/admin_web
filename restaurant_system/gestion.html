@@ -284,18 +284,6 @@
     </style>
 </head>
 <body>
-    <!-- LOGIN -->
-    <div class="login-container" id="loginContainer">
-        <h1><i class="fas fa-utensils"></i> UrbanFlow Restaurant</h1>
-        <input type="text" id="loginEmail" placeholder="Email" value="" disabled>
-        <input type="password" id="loginPin" placeholder="PIN (ej: 0000)" value="" disabled>
-        <button disabled>Este panel es solo para el dueño</button>
-        <div class="error" id="loginError"></div>
-        <p style="margin-top:12px;font-size:12px;color:var(--text2);text-align:center">
-            ¿Sos empleado? Entrá desde <a href="/login.html" style="color:var(--accent)">login con PIN</a> o escaneá el QR
-        </p>
-    </div>
-
     <!-- APP -->
     <div class="app-container" id="appContainer">
         <header class="header">
@@ -2423,11 +2411,20 @@
         // Auto-login: empresa_id desde login.html
         (async () => {
             const empId = localStorage.getItem('urbanflow_empresa_id');
-            if (!empId) { window.location.href = '/login.html'; return; }
+            if (!empId) {
+                console.log('No empresa_id found, redirecting to login');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            console.log('Found empresa_id:', empId);
 
             try {
                 const { data: emp, error } = await sbService.from('empresas').select('*').eq('id', empId).limit(1);
+                console.log('Query result:', emp, 'Error:', error);
+
                 if (error || !emp || emp.length === 0) {
+                    console.log('Empresa not found, clearing and redirecting');
                     localStorage.removeItem('urbanflow_empresa_id');
                     window.location.href = '/login.html';
                     return;
@@ -2442,7 +2439,7 @@
                     activo: true
                 };
 
-                document.getElementById('loginContainer').style.display = 'none';
+                console.log('Loading empresa:', e.nombre);
                 document.getElementById('appContainer').classList.add('active');
                 document.getElementById('userName').textContent = e.nombre;
                 document.getElementById('userRole').textContent = 'DUEÑO';
