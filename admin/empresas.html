@@ -246,6 +246,10 @@
     async function eliminar(id, nombre) {
         if (!confirm(`¿Eliminar "${nombre}" y TODOS sus datos permanentemente?\n\nEsto borrara:\n- Empresa\n- Todos sus productos\n- Fotos del almacen\n- Datos de perfil`)) return;
 
+        const safeDelete = async (table, col, val) => {
+            try { await sb.from(table).delete().eq(col, val); } catch(e) {}
+        };
+
         try {
             // 1. Borrar fotos de productos del Storage
             const { data: prods } = await sb.from('productos_empresa').select('foto_url').eq('empresa_id', id);
@@ -254,25 +258,44 @@
                     if (p.foto_url && p.foto_url.includes('ecommerce_fotos')) {
                         const path = p.foto_url.split('ecommerce_fotos/')[1];
                         if (path) {
-                            await sb.storage.from('ecommerce_fotos').remove([path]);
+                            try { await sb.storage.from('ecommerce_fotos').remove([path]); } catch(e) {}
                         }
                     }
                 }
             }
 
-            // 2. Borrar productos
-            await sb.from('productos_empresa').delete().eq('empresa_id', id);
-
-            // 3. Borrar pedidos y detalles
+            // 2. Borrar pedidos y detalles
             const { data: pedidos } = await sb.from('pedidos').select('id').eq('empresa_id', id);
             if (pedidos) {
                 for (const p of pedidos) {
-                    await sb.from('pedido_detalle').delete().eq('pedido_id', p.id);
+                    await safeDelete('pedido_detalle', 'pedido_id', p.id);
                 }
-                await sb.from('pedidos').delete().eq('empresa_id', id);
+                await safeDelete('pedidos', 'empresa_id', id);
             }
 
-            // 4. Borrar empresa
+            // 3. Borrar ordenes y detalles
+            try {
+                const { data: ordenes } = await sb.from('ordenes').select('id').eq('empresa_id', id);
+                if (ordenes) {
+                    for (const o of ordenes) {
+                        await safeDelete('ordenes_detalle', 'orden_id', o.id);
+                    }
+                    await safeDelete('ordenes', 'empresa_id', id);
+                }
+            } catch(e) {}
+
+            // 4. Borrar tablas relacionadas
+            await safeDelete('productos_empresa', 'empresa_id', id);
+            await safeDelete('categorias_menu', 'empresa_id', id);
+            await safeDelete('mesas', 'empresa_id', id);
+            await safeDelete('empleados', 'empresa_id', id);
+            await safeDelete('fichajes', 'empresa_id', id);
+            await safeDelete('permisos_roles', 'empresa_id', id);
+            await safeDelete('configuracion_empresa', 'empresa_id', id);
+            await safeDelete('log_cambios', 'empresa_id', id);
+            await safeDelete('log_acciones', 'empresa_id', id);
+
+            // 5. Borrar empresa
             await sb.from('empresas').delete().eq('id', id);
 
             alert(`"${nombre}" eliminada permanentemente.`);

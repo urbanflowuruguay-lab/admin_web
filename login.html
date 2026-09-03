@@ -161,10 +161,9 @@
         (async () => {
             const { data: { session } } = await sb.auth.getSession();
             if (session && session.user) {
-                await redirigir(session.user);
-            } else {
-                showStep('step-login');
+                await sb.auth.signOut();
             }
+            showStep('step-login');
             document.getElementById('authLoader').style.display = 'none';
             document.getElementById('loginCard').classList.remove('hidden');
         })();
