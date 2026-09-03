@@ -361,7 +361,10 @@
                 <div class="section active" id="section-dashboard">
                     <div class="section-header">
                         <h2 class="section-title">Dashboard</h2>
-                        <button class="btn-primary" onclick="borrarDemo()" style="background:var(--danger);font-size:12px;padding:6px 12px"><i class="fas fa-trash"></i> Borrar pedidos demo</button>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn-primary" onclick="borrarDemo()" style="background:var(--danger);font-size:12px;padding:6px 12px"><i class="fas fa-trash"></i> Borrar pedidos demo</button>
+                            <button class="btn-primary" onclick="borrarTodo()" style="background:#991b1b;font-size:12px;padding:6px 12px;border:1px solid #ff3b30"><i class="fas fa-bomb"></i> Borrar TODO (dueño)</button>
+                        </div>
                     </div>
                     <div class="stats-grid">
                         <div class="stat-card">
@@ -2255,6 +2258,26 @@
                 localData.pedidos = []; localData.cobros = [];
                 loadDashboard(); loadPedidos(); loadFacturacion();
                 alert('Datos demo borrados');
+            } catch(e) { alert('Error: '+e.message); }
+        }
+        async function borrarTodo() {
+            if (!confirm('⚠️ BORRAR TODO: pedidos, productos, mesas, empleados, facturación? Esta acción no se puede deshacer. ¿Confirmás?')) return;
+            if (!confirm('Segunda confirmación: ¿Seguro que querés borrar TODO y empezar de cero?')) return;
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return alert('Sin empresa');
+            try {
+                await sb.from('pedidos').delete().eq('empresa_id', empresaId);
+                await sb.from('productos_empresa').delete().eq('empresa_id', empresaId);
+                await sb.from('mesas').delete().eq('empresa_id', empresaId);
+                await sb.from('empleados').delete().eq('empresa_id', empresaId);
+                await sb.from('pagos_urbanflow').delete().eq('empresa_id', empresaId);
+                await sb.from('propinas').delete().eq('empresa_id', empresaId);
+                await sb.from('calificaciones').delete().eq('empresa_id', empresaId);
+                localStorage.clear();
+                localData.pedidos=[]; localData.productos=[]; localData.categorias=[]; localData.cobros=[]; localData.empleados=[];
+                loadDashboard(); loadProductos(); loadMesas(); loadEmpleados(); loadFacturacion();
+                alert('TODO borrado. Recargá la página.');
+                location.reload();
             } catch(e) { alert('Error: '+e.message); }
         }
         // =============================================
