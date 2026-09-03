@@ -159,7 +159,6 @@
 </div>
 
 <div class="app-layout">
-    <div id="mantenimientoBanner" style="display:none;background:#f59e0b;color:#1a1a1a;text-align:center;padding:10px 12px;font-size:13px;font-weight:600">🧹 Atención - Mesa en mantenimiento, ya viene personal a activarla. Mientras tanto podés ir eligiendo tu preferencia.</div>
     <div class="negocio-header" id="negocioHeader" style="display:none">
         <div class="negocio-logo-wrap"><img id="headerLogo" class="negocio-logo" src="" style="display:none"></div>
         <div class="negocio-info">
@@ -167,11 +166,14 @@
             <div class="negocio-desc" id="headerDesc"></div>
             <div class="negocio-mesa" id="headerMesa"></div>
         </div>
-        <div id="liveClock" style="width:42px;height:42px;border:2px solid var(--accent);border-radius:50%;position:relative;flex-shrink:0;background:var(--bg2)">
-            <div id="clockHour" style="position:absolute;left:50%;bottom:50%;width:2px;height:12px;background:var(--text);transform-origin:50% 100%;border-radius:2px;margin-left:-1px"></div>
-            <div id="clockMin" style="position:absolute;left:50%;bottom:50%;width:2px;height:16px;background:var(--accent);transform-origin:50% 100%;border-radius:2px;margin-left:-1px"></div>
-            <div id="clockSec" style="position:absolute;left:50%;bottom:50%;width:1px;height:18px;background:var(--danger);transform-origin:50% 100%;margin-left:-0.5px"></div>
-            <div style="position:absolute;left:50%;top:50%;width:6px;height:6px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%)"></div>
+    </div>
+    <div id="mantenimientoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:340px;width:90%;text-align:center">
+            <div style="font-size:48px;margin-bottom:12px">🧹 ⏰</div>
+            <h3 style="color:var(--text);margin-bottom:8px">Mesa en mantenimiento</h3>
+            <p style="color:var(--text2);font-size:13px;line-height:1.5">Prepará tu pedido mientras la habilitamos nuestro personal.</p>
+            <div style="height:4px;background:var(--border);border-radius:2px;margin:16px 0;overflow:hidden"><div id="mantenimientoProgress" style="height:100%;width:100%;background:var(--accent);transition:width 0.3s"></div></div>
+            <button onclick="cerrarMantenimiento()" style="padding:10px 24px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-weight:600;cursor:pointer">Aceptar</button>
         </div>
     </div>
     <div class="categorias" id="categoriasBar"></div>
@@ -368,19 +370,9 @@ function applyPortadaTheme(templateId) {
         case "rustico": if (!hasImage) portadaBg.style.background = "linear-gradient(180deg, #3e2723 0%, #5d4037 50%, #2c1a12 100%)"; overlay.style.background = "rgba(0,0,0,0.3)"; nombre.style.color = "#f5f0e8"; mesa.style.color = "rgba(245,240,238,0.6)"; btn.style.borderColor = "rgba(245,240,238,0.4)"; btn.style.color = "#f5f0e8"; break;
     }
 }
-function updateLiveClock(){
-    const now=new Date();
-    const sec=now.getSeconds()*6;
-    const min=now.getMinutes()*6 + now.getSeconds()*0.1;
-    const hour=(now.getHours()%12)*30 + now.getMinutes()*0.5;
-    const s=document.getElementById('clockSec'), m=document.getElementById('clockMin'), h=document.getElementById('clockHour');
-    if(s) s.style.transform=`rotate(${sec}deg)`;
-    if(m) m.style.transform=`rotate(${min}deg)`;
-    if(h) h.style.transform=`rotate(${hour}deg)`;
+function cerrarMantenimiento(){
+    document.getElementById('mantenimientoModal').style.display='none';
 }
-setInterval(updateLiveClock, 1000);
-setTimeout(updateLiveClock, 300);
-
 async function init() {
     if (!mesaToken) {
         document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>QR invalido. Pedile a un camarero.</p></div>';
@@ -446,8 +438,13 @@ async function init() {
         document.getElementById("headerDesc").textContent = empresaData.descripcion || "";
         document.getElementById("headerMesa").textContent = `Mesa #${mesaData.numero}`;
         if (mesaData.estado === 'mantenimiento') {
-            document.getElementById('mantenimientoBanner').style.display = 'block';
             window.isMantenimiento = true;
+            const modal = document.getElementById('mantenimientoModal');
+            modal.style.display = 'flex';
+            const prog = document.getElementById('mantenimientoProgress');
+            prog.style.transition = 'none'; prog.style.width = '100%';
+            setTimeout(()=>{ prog.style.transition = 'width 10s linear'; prog.style.width = '0%'; }, 50);
+            setTimeout(()=>{ modal.style.display='none'; }, 10000);
         } else {
             window.isMantenimiento = false;
             sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
@@ -484,10 +481,10 @@ function renderProductos(filtro) {
                     <span class="producto-precio" style="color:${css.getPropertyValue('--price').trim()}">$${(p.precio_oferta || p.precio).toFixed(0)}</span>
                 </div>
                 <div class="producto-add">
-                    ${window.isMantenimiento ? `<button class="add-btn" disabled style="opacity:0.5;background:var(--muted)">En mantenimiento</button>` : (qty > 0 ? `<button class="qty-btn" onclick="changeQty('${p.id}',-1)">-</button>
+                    ${qty > 0 ? `<button class="qty-btn" onclick="changeQty('${p.id}',-1)">-</button>
                     <span class="qty-num">${qty}</span>
                     <button class="qty-btn" onclick="changeQty('${p.id}',1)">+</button>` :
-                    `<button class="add-btn" onclick="addToCart('${p.id}')">+ Agregar</button>`)}
+                    `<button class="add-btn" onclick="addToCart('${p.id}')">+ Agregar</button>`}
                 </div>
             </div>
         </div>`;
@@ -559,7 +556,10 @@ function updateCarritoBar() {
     const totalPrecio = carrito.reduce((s, c) => s + c.precio * c.qty, 0);
     document.getElementById("carritoCount").textContent = totalItems + " items";
     document.getElementById("carritoTotal").textContent = "$" + totalPrecio.toFixed(0);
-    document.getElementById("btnPedir").disabled = totalItems === 0;
+    const btn = document.getElementById("btnPedir");
+    btn.disabled = totalItems === 0 || window.isMantenimiento;
+    if (window.isMantenimiento && totalItems>0) { btn.textContent = 'Mesa en mantenimiento'; btn.style.opacity='0.6'; }
+    else { btn.textContent = 'Pedir'; btn.style.opacity='1'; }
     document.getElementById("carritoBar").style.display = totalItems > 0 ? "" : "none";
     renderCarritoItems();
 }
