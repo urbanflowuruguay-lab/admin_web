@@ -642,7 +642,7 @@
             const container = document.getElementById('content-cocina');
             if (!container) return;
 
-            const pedidosCocina = pedidos.filter(p => p.estado === 'nuevo' || p.estado === 'preparando');
+            const pedidosCocina = pedidos.filter(p => p.estado === 'recibido' || p.estado === 'preparando');
             
             if (pedidosCocina.length === 0) {
                 container.innerHTML = '<div class="empty"><i class="fas fa-check-circle"></i><p>Sin pedidos por ahora</p></div>';
@@ -653,8 +653,8 @@
                 <div class="order-card">
                     <div class="order-header">
                         <span class="order-number">#${p.numero}</span>
-                        <span class="order-badge badge-${p.estado === 'nuevo' ? 'nuevo' : 'preparando'}">
-                            ${p.estado === 'nuevo' ? 'NUEVO' : 'PREPARANDO'}
+                        <span class="order-badge badge-${p.estado === 'recibido' ? 'nuevo' : 'preparando'}">
+                            ${p.estado === 'recibido' ? 'NUEVO' : 'PREPARANDO'}
                         </span>
                     </div>
                     <div class="order-items">
