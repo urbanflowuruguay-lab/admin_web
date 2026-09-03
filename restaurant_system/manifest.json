@@ -1,0 +1,20 @@
+{
+  "name": "UrbanFlow Empleados",
+  "short_name": "UF Empleados",
+  "start_url": "./app.html",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#d4af37",
+  "icons": [
+    {
+      "src": "../logouf.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../logouf.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
