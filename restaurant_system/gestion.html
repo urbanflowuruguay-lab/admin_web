@@ -1044,7 +1044,9 @@
         // =============================================
         const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
         const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const sbService = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
 
         // =============================================
         // LOCAL DATA (simulating PC folder)
@@ -2425,7 +2427,7 @@
             // 1. Intentar con sesión de Supabase Auth
             const { data: { session } } = await sb.auth.getSession();
             if (session && session.user) {
-                const { data: empresa } = await sb.from('empresas')
+                const { data: empresa } = await sbService.from('empresas')
                     .select('*')
                     .eq('usuario_id', session.user.id)
                     .limit(1);
@@ -2437,7 +2439,7 @@
 
             // 3. Cargar empresa
             if (empId) {
-                const { data: emp, error } = await sb.from('empresas').select('*').eq('id', empId).limit(1);
+                const { data: emp, error } = await sbService.from('empresas').select('*').eq('id', empId).limit(1);
                 if (!error && emp && emp.length > 0) {
                     const e = emp[0];
                     localData.currentUser = {
