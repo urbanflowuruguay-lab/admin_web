@@ -1547,7 +1547,14 @@
                     last_seen: e.last_seen
                 }));
 
-                // Render table
+                renderEmpleadosTable();
+            } catch (err) {
+                console.error('Error loading employees:', err);
+                renderEmpleadosTable();
+            }
+        }
+
+        function renderEmpleadosTable() {
                 document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => {
                     const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
                     const now = new Date();
@@ -1582,22 +1589,7 @@
                         </td>
                     </tr>`;
                 }).join('');
-            } catch (err) {
-                console.error('Error loading employees:', err);
-                document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => `
-                    <tr>
-                        <td><strong>${e.nombre}</strong></td>
-                        <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
-                        <td>••••</td>
-                        <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
-                        <td>
-                            <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
+        }
         }
 
         function loadZonas() {
@@ -2413,6 +2405,18 @@
                 if (section === 'empleados') loadEmpleados();
             }
         }, 5000);
+
+        // Realtime: detectar cambios en empleados (online/offline)
+        sb.channel('empleados-changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'empleados' }, (payload) => {
+            const updated = payload.new;
+            const emp = localData.empleados.find(e => e.id === updated.id);
+            if (emp) {
+                emp.is_online = updated.is_online;
+                emp.last_seen = updated.last_seen;
+                const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+                if (section === 'empleados') renderEmpleadosTable();
+            }
+        }).subscribe();
 
         // Auto-login from Supabase Auth session (from login.html)
         (async () => {
