@@ -1487,10 +1487,22 @@
                     <td>$${(p.total || 0).toLocaleString()}</td>
                     <td>${metodo}</td>
                     <td><span class="badge badge-${getEstadoColor(p.estado)}">${p.estado}</span></td>
-                    <td>
-                        <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="updatePedidoEstado('${p.id}', '${p.estado}')">
+                    <td style="display:flex;gap:4px">
+                        <button class="btn-primary" style="padding: 5px 8px; font-size: 11px;" onclick="updatePedidoEstado('${p.id}', '${p.estado}')" title="Avanzar estado">
                             <i class="fas fa-arrow-right"></i>
                         </button>
+                        <button style="padding:5px 8px;font-size:11px;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer" onclick="borrarPedido('${p.id}')" title="Borrar pedido">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <select onchange="cambiarEstadoPedido('${p.id}', this.value)" style="font-size:11px;padding:4px;border-radius:4px;background:var(--bg3);color:var(--text);border:1px solid var(--border)">
+                            <option value="">Cambiar...</option>
+                            <option value="recibido">Recibido</option>
+                            <option value="preparando">Preparando</option>
+                            <option value="listo">Listo</option>
+                            <option value="en_camino">En camino</option>
+                            <option value="entregado">Entregado</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
                     </td>
                 </tr>
             `}).join('');
@@ -2150,6 +2162,22 @@
             }
         }
 
+        async function borrarPedido(id) {
+            if (!confirm('¿Borrar este pedido?')) return;
+            try {
+                const { error } = await sb.from('pedidos').delete().eq('id', id);
+                if (error) throw error;
+                loadPedidos(); loadDashboard();
+            } catch(e) { alert('Error: '+e.message); }
+        }
+        async function cambiarEstadoPedido(id, nuevoEstado) {
+            if (!nuevoEstado) return;
+            try {
+                const { error } = await sb.from('pedidos').update({ estado: nuevoEstado }).eq('id', id);
+                if (error) throw error;
+                loadPedidos(); loadDashboard();
+            } catch(e) { alert('Error: '+e.message); }
+        }
         async function borrarDemo() {
             if (!confirm('¿Borrar TODOS los pedidos demo, facturación y propinas de esta empresa?')) return;
             const empresaId = localData.currentUser?.empresa_id;
