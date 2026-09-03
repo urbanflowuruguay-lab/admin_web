@@ -333,20 +333,26 @@
             `).join('');
         }
 
-        // =============================================
-        // SIMULATE ONLINE STATUS
-        // =============================================
-        function simulateOnline() {
-            employees.forEach(emp => {
-                emp.online = Math.random() > 0.3;
-                if (emp.online) {
-                    const now = new Date();
-                    emp.lastSeen = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        // ONLINE REAL desde Supabase (last_seen)
+        async function refreshOnlineStatus() {
+            try {
+                const { data } = await sb.from('empleados').select('id,is_online,last_seen').eq('empresa_id', empresaId);
+                if (data) {
+                    data.forEach(row => {
+                        const emp = employees.find(e=>e.id===row.id);
+                        if (emp) {
+                            const last = row.last_seen ? new Date(row.last_seen) : null;
+                            const diff = last ? (Date.now() - last.getTime())/1000 : 9999;
+                            emp.online = row.is_online && diff < 90;
+                            emp.lastSeen = last ? last.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'}) : '';
+                        }
+                    });
+                    renderEmployees();
                 }
-            });
-            renderEmployees();
+            } catch(e) {}
         }
-        setInterval(simulateOnline, 30000);
+        setInterval(refreshOnlineStatus, 15000);
+        setInterval(loadEmployees, 30000);
 
         function renderSingleQR() {
             // QR ultra simple: solo la app, sin empresa en URL (se resuelve por PIN)
