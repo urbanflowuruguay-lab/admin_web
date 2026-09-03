@@ -350,7 +350,7 @@
             container.innerHTML = '';
             if (urlEl) urlEl.textContent = singleUrl;
             try {
-                new QRCode(container, { text: singleUrl, width: 300, height: 300, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
+                new QRCode(container, { text: singleUrl, width: 180, height: 180, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
             } catch(e) { console.error(e); container.innerHTML = '<p style="color:#f85149">Error: '+e.message+'</p>'; }
         }
         // =============================================
