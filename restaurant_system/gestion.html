@@ -1549,10 +1549,11 @@
 
                 // Render table
                 document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => {
-                    const online = e.is_online;
                     const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
                     const now = new Date();
-                    const diffMin = lastSeen ? Math.floor((now - lastSeen) / 60000) : 999;
+                    const diffSec = lastSeen ? Math.floor((now - lastSeen) / 1000) : 9999;
+                    const diffMin = Math.floor(diffSec / 60);
+                    const online = diffSec < 90;
                     let statusHtml = '';
                     if (online) {
                         statusHtml = '<span style="color:#22c55e;font-weight:600">● En línea</span>';
@@ -2401,7 +2402,17 @@
 
         init();
         if (Notification && Notification.permission === 'default') Notification.requestPermission();
-        setInterval(() => { if (localData.currentUser?.empresa_id) { loadPedidos(); loadDashboard(); loadEmpleados(); } }, 15000);
+        setInterval(() => {
+            if (localData.currentUser?.empresa_id) {
+                loadPedidos(); loadDashboard();
+            }
+        }, 10000);
+        setInterval(() => {
+            if (localData.currentUser?.empresa_id) {
+                const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+                if (section === 'empleados') loadEmpleados();
+            }
+        }, 5000);
 
         // Auto-login from Supabase Auth session (from login.html)
         (async () => {

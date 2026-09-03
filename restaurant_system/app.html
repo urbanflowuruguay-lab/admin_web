@@ -582,7 +582,11 @@
             // Presencia: heartbeat cada 30s, offline al cerrar
             startPresenceHeartbeat();
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') updatePresence(true);
+                if (document.visibilityState === 'visible') {
+                    updatePresence(true);
+                } else {
+                    updatePresence(false);
+                }
             });
             window.addEventListener('beforeunload', () => { try{ sb.from('empleados').update({is_online:false, last_seen:new Date().toISOString()}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
             window.addEventListener('pagehide', () => { try{ sb.from('empleados').update({is_online:false}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
@@ -590,7 +594,7 @@
         let presenceInterval = null;
         function startPresenceHeartbeat(){
             updatePresence(true);
-            presenceInterval = setInterval(()=> updatePresence(true), 30000);
+            presenceInterval = setInterval(()=> updatePresence(true), 10000);
         }
         async function updatePresence(online){
             try{ await sb.from('empleados').update({ is_online: online, last_seen: new Date().toISOString() }).eq('id', currentUser.id); }catch(e){}
