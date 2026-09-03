@@ -6,7 +6,7 @@
     <title>UrbanFlow - Iniciar Sesión</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --border:#333; --text:#fff; --text2:#999; --accent:#d4af37; --accent2:#b8962e; --red:#f44336; --green:#4caf50; }
+        :root { --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --border:#333; --text:#fff; --text2:#999; --accent:#d4af37; --accent2:#b8962e; --red:#f44336; }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
         .container { max-width:420px; width:100%; }
@@ -31,13 +31,14 @@
         .spinner { width:20px; height:20px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; display:inline-block; vertical-align:middle; margin-right:8px; }
         @keyframes spin { to { transform:rotate(360deg); } }
         #authLoader { text-align:center; padding:60px; }
+
+        /* Selector de rol - solo aparece si es necesario */
         .role-selector { display:grid; gap:10px; margin-top:16px; }
         .role-btn { padding:16px; background:var(--bg3); border:2px solid var(--border); border-radius:12px; color:var(--text); font-size:15px; font-weight:600; cursor:pointer; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s; }
         .role-btn:hover { border-color:var(--accent); background:var(--bg); }
         .role-btn .icon { font-size:24px; }
         .role-btn .info { flex:1; }
         .role-btn .desc { font-size:11px; color:var(--text2); font-weight:400; margin-top:2px; }
-        .role-btn.selected { border-color:var(--accent); background:rgba(212,175,55,0.1); }
     </style>
 </head>
 <body>
@@ -45,7 +46,7 @@
         <div id="authLoader"><div class="spinner"></div><p style="color:var(--text2);margin-top:12px">Verificando sesión...</p></div>
 
         <div class="card hidden" id="loginCard">
-            <!-- PASO 1: Login normal (email + contraseña) -->
+            <!-- PASO 1: Login normal -->
             <div id="step-login">
                 <h2>Iniciar Sesión</h2>
                 <p class="subtitle">Ingresa tus datos para continuar</p>
@@ -62,14 +63,14 @@
                     <button type="submit" class="btn" id="btnLogin">Entrar</button>
                 </form>
                 <div class="links">
-                    <a onclick="showRegister()">Registrate</a>
+                    <a onclick="showRegister()">Registrate como empresa</a>
                 </div>
             </div>
 
-            <!-- PASO 1b: Registro (dueño crea cuenta) -->
+            <!-- Registro de empresa -->
             <div id="step-register" class="hidden">
-                <h2>Crear Cuenta</h2>
-                <p class="subtitle">Registrate para empezar a usar UrbanFlow</p>
+                <h2>Registrar Empresa</h2>
+                <p class="subtitle">Creá tu cuenta de restaurante</p>
                 <div class="error-msg" id="regErrorMsg"></div>
                 <form onsubmit="handleRegister(event)">
                     <div class="form-group">
@@ -81,9 +82,8 @@
                         <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" required>
                     </div>
                     <div class="form-group">
-                        <label>Contraseña Interna (tu clave de dueño)</label>
-                        <input type="password" id="regPinDueno" placeholder="Ej: 1234" maxlength="8">
-                        <small style="color:var(--text2);font-size:11px">La usás para entrar como Dueño en la web</small>
+                        <label>Tu contraseña de Dueño</label>
+                        <input type="password" id="regPinDueno" placeholder="La usás para entrar como Dueño" maxlength="8">
                     </div>
                     <button type="submit" class="btn" id="btnRegister">Crear cuenta</button>
                 </form>
@@ -92,52 +92,20 @@
                 </div>
             </div>
 
-            <!-- PASO 2: Selector de rol -->
-            <div id="step-role" class="hidden">
-                <h2>¿Quién sos?</h2>
-                <p class="subtitle">Elegí tu rol para continuar</p>
-                <div class="role-selector">
-                    <div class="role-btn" onclick="selectRole('dueno')">
-                        <div class="icon">👑</div>
-                        <div class="info">
-                            <div>Dueño</div>
-                            <div class="desc">Acceso completo al panel</div>
-                        </div>
-                    </div>
-                    <div class="role-btn" onclick="selectRole('encargado')">
-                        <div class="icon">👔</div>
-                        <div class="info">
-                            <div>Encargado</div>
-                            <div class="desc">Gestión parcial del negocio</div>
-                        </div>
-                    </div>
-                    <div class="role-btn" onclick="selectRole('personal')">
-                        <div class="icon">🧑‍🍳</div>
-                        <div class="info">
-                            <div>Personal</div>
-                            <div class="desc">Cajero, cocinero, camarero, etc.</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="links" style="margin-top:20px">
-                    <a onclick="backToLogin()">← Volver al login</a>
-                </div>
-            </div>
-
-            <!-- PASO 3: Contraseña interna (dueño) o PIN (personal) -->
-            <div id="step-pin" class="hidden">
-                <h2 id="pinTitle">Contraseña de Dueño</h2>
-                <p class="subtitle" id="pinSubtitle">Ingresá tu contraseña interna</p>
-                <div class="error-msg" id="pinErrorMsg"></div>
-                <form onsubmit="handlePin(event)">
+            <!-- PIN del dueño (solo si el login detecta que es dueño de empresa) -->
+            <div id="step-pin-dueno" class="hidden">
+                <h2>🔑 Contraseña de Dueño</h2>
+                <p class="subtitle" id="empresaName">Tu restaurante te espera</p>
+                <div class="error-msg" id="pinDuenoError"></div>
+                <form onsubmit="handlePinDueno(event)">
                     <div class="form-group">
-                        <label id="pinLabel">Contraseña Interna</label>
-                        <input type="password" id="pinInput" placeholder="Tu contraseña de dueño" required>
+                        <label>Contraseña Interna</label>
+                        <input type="password" id="pinDuenoInput" placeholder="Tu contraseña de dueño" required>
                     </div>
-                    <button type="submit" class="btn" id="btnPin">Entrar</button>
+                    <button type="submit" class="btn" id="btnPinDueno">Entrar al panel</button>
                 </form>
                 <div class="links">
-                    <a onclick="backToRole()">← Volver</a>
+                    <a onclick="backToLogin()">← Volver</a>
                 </div>
             </div>
         </div>
@@ -155,15 +123,15 @@
 
         let currentUser = null;
         let userEmpresa = null;
-        let selectedRole = null;
 
-        // Inicializar
+        // =============================================
+        // INIT: si ya hay sesión, buscar quién es y redirigir
+        // =============================================
         (async () => {
             const { data: { session } } = await sb.auth.getSession();
             if (session && session.user) {
                 currentUser = session.user;
-                await loadEmpresa();
-                showStep('step-role');
+                await redirigirPorTipo(session.user);
             } else {
                 showStep('step-login');
             }
@@ -182,7 +150,81 @@
             else { el.textContent = ''; el.classList.remove('show'); }
         }
 
-        // === LOGIN ===
+        // =============================================
+        // BUSCAR QUIÉN ES EL USUARIO Y REDIRIGIR
+        // =============================================
+        async function redirigirPorTipo(user) {
+            const userId = user.id;
+            const email = user.email;
+
+            // 1. Buscar si es ADMIN de la plataforma
+            const { data: profile } = await sb.from('perfiles').select('*').eq('id', userId).single();
+            if (profile && profile.role === 'admin') {
+                window.location.href = '/admin/';
+                return;
+            }
+
+            // 2. Buscar si es CHOFER
+            if (profile && profile.type === 'chofer') {
+                if (profile.status === 'aprobado') {
+                    window.location.href = '/chofer/';
+                    return;
+                }
+                showError('errorMsg', 'Tu cuenta de chofer está ' + profile.status + '. Esperá la aprobación.');
+                await sb.auth.signOut();
+                return;
+            }
+
+            // 3. Buscar si es EMPRESA (dueño de restaurante/negocio)
+            const { data: empresa } = await sb.from('empresas')
+                .select('*')
+                .eq('usuario_id', userId)
+                .limit(1);
+
+            if (empresa && empresa.length > 0) {
+                userEmpresa = empresa[0];
+
+                // Si la empresa tiene pin_dueno, pedirlo
+                if (userEmpresa.pin_dueno) {
+                    document.getElementById('empresaName').textContent = userEmpresa.nombre || 'Tu restaurante te espera';
+                    showStep('step-pin-dueno');
+                    return;
+                }
+
+                // Si no tiene pin_dueno, entrar directo a gestión
+                localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
+                window.location.href = '/restaurant_system/gestion.html';
+                return;
+            }
+
+            // 4. Buscar si es EMPLEADO de alguna empresa
+            const { data: empleado } = await sb.from('empleados')
+                .select('*')
+                .eq('email', email)
+                .eq('activo', true)
+                .limit(1);
+
+            if (empleado && empleado.length > 0) {
+                const emp = empleado[0];
+                const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
+                const rol = (emp.rol || '').toLowerCase();
+
+                if (rol.includes('cajero')) {
+                    window.location.href = '/restaurant_system/pos.html?empresa=' + emp.empresa_id;
+                } else {
+                    window.location.href = '/restaurant_system/app.html?token=' + encodeURIComponent(token);
+                }
+                return;
+            }
+
+            // 5. No se encontró en ningún lado
+            showError('errorMsg', 'Tu cuenta no está registrada en ningún sistema. Registrate como empresa o pedí al dueño que te cree como empleado.');
+            await sb.auth.signOut();
+        }
+
+        // =============================================
+        // LOGIN
+        // =============================================
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
@@ -202,14 +244,17 @@
                 return;
             }
 
+            // Login OK → buscar quién es y redirigir
             currentUser = data.user;
-            await loadEmpresa();
-            showStep('step-role');
+            await redirigirPorTipo(data.user);
+
             document.getElementById('btnLogin').disabled = false;
             document.getElementById('btnLogin').textContent = 'Entrar';
         }
 
-        // === REGISTRO ===
+        // =============================================
+        // REGISTRO DE EMPRESA
+        // =============================================
         async function handleRegister(e) {
             e.preventDefault();
             const email = document.getElementById('regEmail').value.trim();
@@ -218,13 +263,12 @@
 
             if (!email || !pass) { showError('regErrorMsg', 'Completa email y contraseña'); return; }
             if (pass.length < 6) { showError('regErrorMsg', 'La contraseña debe tener al menos 6 caracteres'); return; }
-            if (!pinDueno) { showError('regErrorMsg', 'Poné tu contraseña interna de dueño'); return; }
+            if (!pinDueno) { showError('regErrorMsg', 'Poné tu contraseña de Dueño'); return; }
 
             document.getElementById('btnRegister').disabled = true;
             document.getElementById('btnRegister').textContent = 'Creando...';
             showError('regErrorMsg', '');
 
-            // 1. Crear usuario en Supabase Auth
             const { data, error } = await sb.auth.signUp({ email, password: pass });
 
             if (error) {
@@ -234,7 +278,6 @@
                 return;
             }
 
-            // 2. Crear empresa vinculada al usuario
             const userId = data.user?.id;
             if (!userId) {
                 showError('regErrorMsg', 'Error al crear usuario');
@@ -243,7 +286,6 @@
                 return;
             }
 
-            // Generar código interno
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             const codigoInterno = Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
 
@@ -259,128 +301,51 @@
             });
 
             if (empError) {
-                console.error('Error creating empresa:', empError);
-                showError('regErrorMsg', 'Error al crear empresa: ' + empError.message);
+                showError('regErrorMsg', 'Error: ' + empError.message);
                 document.getElementById('btnRegister').disabled = false;
                 document.getElementById('btnRegister').textContent = 'Crear cuenta';
                 return;
             }
 
-            await loadEmpresa();
-            showStep('step-role');
-            document.getElementById('btnRegister').disabled = false;
-            document.getElementById('btnRegister').textContent = 'Crear cuenta';
-        }
-
-        // === CARGAR EMPRESA ===
-        async function loadEmpresa() {
-            if (!currentUser) return;
-            const { data } = await sb.from('empresas').select('*').eq('usuario_id', currentUser.id).limit(1);
-            userEmpresa = data && data[0] ? data[0] : null;
-        }
-
-        // === SELECTOR DE ROL ===
-        function selectRole(role) {
-            selectedRole = role;
-
-            if (role === 'dueno') {
-                document.getElementById('pinTitle').textContent = 'Contraseña de Dueño';
-                document.getElementById('pinSubtitle').textContent = 'Ingresá tu contraseña interna';
-                document.getElementById('pinLabel').textContent = 'Contraseña Interna';
-                document.getElementById('pinInput').placeholder = 'Tu contraseña de dueño';
-                document.getElementById('pinInput').type = 'password';
-            } else if (role === 'encargado') {
-                document.getElementById('pinTitle').textContent = 'PIN de Encargado';
-                document.getElementById('pinSubtitle').textContent = 'Ingresá tu PIN de 4 dígitos';
-                document.getElementById('pinLabel').textContent = 'PIN';
-                document.getElementById('pinInput').placeholder = 'PIN de 4 dígitos';
-                document.getElementById('pinInput').type = 'password';
-                document.getElementById('pinInput').maxLength = 4;
-            } else {
-                document.getElementById('pinTitle').textContent = 'PIN de Personal';
-                document.getElementById('pinSubtitle').textContent = 'Ingresá tu PIN de 4 dígitos';
-                document.getElementById('pinLabel').textContent = 'PIN';
-                document.getElementById('pinInput').placeholder = 'PIN de 4 dígitos';
-                document.getElementById('pinInput').type = 'password';
-                document.getElementById('pinInput').maxLength = 4;
-            }
-
-            document.getElementById('pinInput').value = '';
-            showError('pinErrorMsg', '');
-            showStep('step-pin');
-        }
-
-        // === VERIFICAR PIN/CONTRASEÑA ===
-        async function handlePin(e) {
-            e.preventDefault();
-            const pin = document.getElementById('pinInput').value.trim();
-            if (!pin) { showError('pinErrorMsg', 'Ingresá tu contraseña/PIN'); return; }
-
-            document.getElementById('btnPin').disabled = true;
-            document.getElementById('btnPin').textContent = 'Verificando...';
-            showError('pinErrorMsg', '');
-
-            if (selectedRole === 'dueno') {
-                // Verificar contra pin_dueno de la empresa
-                if (!userEmpresa) {
-                    showError('pinErrorMsg', 'No se encontró tu empresa. Registrate primero.');
-                    document.getElementById('btnPin').disabled = false;
-                    document.getElementById('btnPin').textContent = 'Entrar';
-                    return;
-                }
-                if (userEmpresa.pin_dueno !== pin) {
-                    showError('pinErrorMsg', 'Contraseña interna incorrecta');
-                    document.getElementById('btnPin').disabled = false;
-                    document.getElementById('btnPin').textContent = 'Entrar';
-                    return;
-                }
-                // ✅ Dueño verificado → ir a gestión
+            userEmpresa = (await sb.from('empresas').select('*').eq('usuario_id', userId).limit(1)).data?.[0];
+            if (userEmpresa) {
                 localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
                 window.location.href = '/restaurant_system/gestion.html';
-
             } else {
-                // Encargado o Personal → buscar en empleados
-                if (!userEmpresa) {
-                    showError('pinErrorMsg', 'No se encontró tu empresa');
-                    document.getElementById('btnPin').disabled = false;
-                    document.getElementById('btnPin').textContent = 'Entrar';
-                    return;
-                }
-
-                const { data: empleados } = await sb.from('empleados')
-                    .select('*')
-                    .eq('empresa_id', userEmpresa.id)
-                    .eq('pin', pin)
-                    .eq('activo', true)
-                    .limit(1);
-
-                if (!empleados || empleados.length === 0) {
-                    showError('pinErrorMsg', 'PIN incorrecto o personal inactivo');
-                    document.getElementById('btnPin').disabled = false;
-                    document.getElementById('btnPin').textContent = 'Entrar';
-                    return;
-                }
-
-                const emp = empleados[0];
-                const empRol = (emp.rol || '').toLowerCase();
-
-                // Verificar que el rol coincida
-                if (selectedRole === 'encargado' && empRol !== 'encargado') {
-                    showError('pinErrorMsg', 'Tu rol no es encargado');
-                    document.getElementById('btnPin').disabled = false;
-                    document.getElementById('btnPin').textContent = 'Entrar';
-                    return;
-                }
-
-                const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
-                localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
-
-                if (empRol.includes('cajero')) {
-                    window.location.href = '/restaurant_system/pos.html?empresa=' + userEmpresa.id;
-                } else {
-                    window.location.href = '/restaurant_system/app.html?token=' + encodeURIComponent(token);
-                }
+                showError('regErrorMsg', 'Cuenta creada. Entrá con tu email y contraseña.');
+                document.getElementById('btnRegister').disabled = false;
+                document.getElementById('btnRegister').textContent = 'Crear cuenta';
             }
+        }
+
+        // =============================================
+        // PIN DEL DUEÑO
+        // =============================================
+        async function handlePinDueno(e) {
+            e.preventDefault();
+            const pin = document.getElementById('pinDuenoInput').value.trim();
+            if (!pin) { showError('pinDuenoError', 'Ingresá tu contraseña'); return; }
+
+            document.getElementById('btnPinDueno').disabled = true;
+            document.getElementById('btnPinDueno').textContent = 'Verificando...';
+            showError('pinDuenoError', '');
+
+            if (!userEmpresa || userEmpresa.pin_dueno !== pin) {
+                showError('pinDuenoError', 'Contraseña incorrecta');
+                document.getElementById('btnPinDueno').disabled = false;
+                document.getElementById('btnPinDueno').textContent = 'Entrar al panel';
+                return;
+            }
+
+            localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
+            window.location.href = '/restaurant_system/gestion.html';
+        }
+
+        function backToLogin() {
+            sb.auth.signOut();
+            currentUser = null;
+            userEmpresa = null;
+            showStep('step-login');
         }
 
         function showLogin() {
@@ -391,20 +356,6 @@
         function showRegister() {
             showError('errorMsg', '');
             showStep('step-register');
-        }
-
-        function backToLogin() {
-            sb.auth.signOut();
-            currentUser = null;
-            userEmpresa = null;
-            selectedRole = null;
-            showError('errorMsg', '');
-            showStep('step-login');
-        }
-
-        function backToRole() {
-            selectedRole = null;
-            showStep('step-role');
         }
     </script>
 </body>
