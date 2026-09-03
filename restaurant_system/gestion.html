@@ -420,6 +420,11 @@
                 <div class="section" id="section-pedidos">
                     <div class="section-header">
                         <h2 class="section-title">Pedidos</h2>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn-primary" style="padding:4px 10px;font-size:11px" onclick="filtrarPedidos('todos')" id="fPedTodos">Todos</button>
+                            <button style="padding:4px 10px;font-size:11px;background:var(--green);color:white;border:none;border-radius:4px;cursor:pointer" onclick="filtrarPedidos('mesa')" id="fPedMesa">Mesas</button>
+                            <button style="padding:4px 10px;font-size:11px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer" onclick="filtrarPedidos('online')" id="fPedOnline">Online</button>
+                        </div>
                     </div>
                     <div class="card">
                         <div class="table-container">
@@ -1495,10 +1500,16 @@
                 console.error('Error loading pedidos:', err);
             }
 
-            document.getElementById('pedidosTable').innerHTML = localData.pedidos.map(p => {
+            let lista = localData.pedidos;
+            if (typeof filtroPedidosActual !== 'undefined') {
+                if (filtroPedidosActual === 'mesa') lista = lista.filter(p => p.mesa_numero && p.tipo_entrega !== 'delivery');
+                else if (filtroPedidosActual === 'online') lista = lista.filter(p => p.tipo_entrega === 'delivery' || p.tipo === 'delivery' || (!p.mesa_numero && p.tipo_entrega !== 'Mesa'));
+            }
+            document.getElementById('pedidosTable').innerHTML = lista.map(p => {
                 let items = [];
                 try { items = JSON.parse(p.items || '[]'); } catch(e) {}
-                const mesaInfo = p.mesa_numero ? `Mesa #${p.mesa_numero}` : (p.tipo_entrega || 'Local');
+                const isOnline = p.tipo_entrega === 'delivery' || p.tipo === 'delivery';
+                const mesaInfo = isOnline ? `<span style="background:#3b82f6;color:white;padding:2px 6px;border-radius:4px;font-size:11px">ONLINE</span> ${p.direccion_entrega ? p.direccion_entrega.substring(0,20) : 'Delivery'}` : (p.mesa_numero ? `<span style="background:var(--green);color:white;padding:2px 6px;border-radius:4px;font-size:11px">MESA #${p.mesa_numero}</span>` : (p.tipo_entrega || 'Local'));
                 const metodo = p.metodo_pago ? p.metodo_pago.replace('_', ' ').toUpperCase() : '-';
                 return `
                 <tr>
@@ -1515,6 +1526,8 @@
                 </tr>
             `}).join('');
         }
+        let filtroPedidosActual = 'todos';
+        function filtrarPedidos(tipo){ filtroPedidosActual = tipo; loadPedidos(); }
 
         function loadInventario() {
             document.getElementById('inventarioTable').innerHTML = localData.inventario.map(i => `
