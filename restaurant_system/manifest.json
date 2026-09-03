@@ -1,6 +1,6 @@
 {
-  "name": "UrbanFlow Empleados",
-  "short_name": "UF Empleados",
+  "name": "Servicio - UrbanFlow",
+  "short_name": "Servicio",
   "start_url": "./app.html",
   "display": "standalone",
   "background_color": "#0a0a0a",
