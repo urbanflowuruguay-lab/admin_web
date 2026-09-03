@@ -162,7 +162,7 @@
         <div style="text-align:center;margin-bottom:30px;background:var(--bg2);border:2px solid var(--accent);border-radius:16px;padding:30px">
             <h3 style="color:var(--accent);margin-bottom:8px"><i class="fas fa-qrcode"></i> QR Único - Todos los empleados escanean el mismo</h3>
             <p style="color:var(--text2);font-size:13px">Escaneá y luego ingresá tu PIN para abrir tu app</p>
-            <div id="singleQR" style="background:white;padding:15px;border-radius:12px;display:inline-block;margin:16px 0"></div>
+            <div id="singleQR" style="background:white;padding:20px;border-radius:12px;display:inline-block;margin:16px 0"></div>
             <p id="singleQRUrl" style="font-size:11px;color:var(--text2);word-break:break-all"></p>
         </div>
         <div class="employees-grid" id="employeesGrid"></div>
@@ -350,7 +350,7 @@
             container.innerHTML = '';
             if (urlEl) urlEl.textContent = singleUrl;
             try {
-                new QRCode(container, { text: singleUrl, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
+                new QRCode(container, { text: singleUrl, width: 300, height: 300, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
             } catch(e) { console.error(e); container.innerHTML = '<p style="color:#f85149">Error: '+e.message+'</p>'; }
         }
         // =============================================
