@@ -231,6 +231,11 @@
         <h2>Esperando escaneo QR</h2>
         <p>Escaneá el código QR desde la terminal para iniciar tu turno</p>
     </div>
+    <div class="pending-screen" id="roleSelector" style="display:none">
+        <h2>¿En qué función trabajás hoy?</h2>
+        <p id="roleSelectorName" style="margin-bottom:16px"></p>
+        <div id="roleButtons" style="display:flex;flex-direction:column;gap:10px;width:260px"></div>
+    </div>
 
     <!-- APP -->
     <div id="app" style="display: none;">
@@ -423,11 +428,18 @@
 
                     if (!error && empData && empData.length > 0) {
                         const emp = empData[0];
+                        // Si tiene varios roles (ej: cajero + encargado), pedir elegir
+                        const roles = emp.roles || (emp.rol ? [emp.rol] : []);
+                        if (roles.length > 1) {
+                            mostrarSelectorRol(emp);
+                            return;
+                        }
                         currentUser = {
                             id: emp.id,
                             nombre: emp.nombre,
                             pin: emp.pin,
-                            rol: emp.rol,
+                            rol: roles[0] || emp.rol,
+                            roles: roles,
                             emoji: emp.emoji || '👤',
                             empresa_id: emp.empresa_id
                         };
@@ -435,16 +447,21 @@
                         document.getElementById('pendingScreen').style.display = 'none';
                         document.getElementById('app').style.display = 'block';
                         initApp();
+                        // registrar fichaje pendiente
+                        registrarFichaje(currentUser, 'entrada');
                         return;
                     }
 
                     // Fallback to local employees
                     const empLocal = employees[data.empId];
                     if (empLocal && empLocal.pin === data.pin) {
+                        const rls = empLocal.roles || [];
+                        if (rls.length > 1) { mostrarSelectorRol(empLocal); return; }
                         currentUser = empLocal;
                         document.getElementById('pendingScreen').style.display = 'none';
                         document.getElementById('app').style.display = 'block';
                         initApp();
+                        registrarFichaje(currentUser,'entrada');
                         return;
                     }
                 } catch(e) {
@@ -454,6 +471,38 @@
             
             document.getElementById('pendingScreen').style.display = 'flex';
             document.getElementById('app').style.display = 'none';
+        }
+        function mostrarSelectorRol(emp) {
+            document.getElementById('pendingScreen').style.display='none';
+            const sel = document.getElementById('roleSelector');
+            sel.style.display='flex';
+            document.getElementById('roleSelectorName').textContent = emp.nombre;
+            const roles = emp.roles || [emp.rol];
+            const cont = document.getElementById('roleButtons');
+            cont.innerHTML='';
+            roles.forEach(r=>{
+                const btn=document.createElement('button');
+                btn.className='clock-btn entry';
+                btn.textContent = r.replace('rol_','').toUpperCase();
+                btn.onclick=()=>{
+                    currentUser={...emp, rol:r, roles:roles};
+                    sel.style.display='none';
+                    document.getElementById('app').style.display='block';
+                    initApp();
+                    registrarFichaje(currentUser,'entrada');
+                };
+                cont.appendChild(btn);
+            });
+        }
+        async function registrarFichaje(user, tipo){
+            try{
+                await sb.from('fichajes').insert({ empleado_id:user.id, empresa_id:user.empresa_id, tipo:tipo, rol:user.rol, estado:'pendiente' });
+                // también local
+                const key='fichajes_'+user.empresa_id;
+                const arr=JSON.parse(localStorage.getItem(key)||'[]');
+                arr.push({empleado_id:user.id, nombre:user.nombre, rol:user.rol, tipo, fecha:new Date().toISOString(), estado:'pendiente'});
+                localStorage.setItem(key, JSON.stringify(arr));
+            }catch(e){ console.log('fichaje',e); }
         }
 
         async function initApp() {
