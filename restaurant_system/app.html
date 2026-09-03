@@ -700,37 +700,44 @@
         }
 
         // =============================================
-        // RENDER MESAS (Camarero)
-        // =============================================
-        function renderMesas() {
+        // RENDER MESAS (Camarero) - mesas reales de Supabase
+        async function renderMesas() {
             const container = document.getElementById('content-mesas');
             if (!container) return;
-
-            const mesas = [
-                { id: 1, estado: 'libre', cliente: null,Pedido: null },
-                { id: 2, estado: 'ocupada', cliente: 'Familia López',Pedido: 125 },
-                { id: 3, estado: 'libre', cliente: null,Pedido: null },
-                { id: 4, estado: 'ocupada', cliente: 'Juan Carlos',Pedido: 122 },
-                { id: 5, estado: 'ocupada', cliente: 'Pedidos Ya',Pedido: 123 },
-                { id: 6, estado: 'reservada', cliente: '20:00 - Martínez',Pedido: null },
-                { id: 7, estado: 'libre', cliente: null,Pedido: null },
-                { id: 8, estado: 'ocupada', cliente: 'Amigos',Pedido: 124 }
-            ];
-
-            container.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                    ${mesas.map(m => `
-                        <div style="background: var(--bg2); border: 2px solid ${m.estado === 'libre' ? 'var(--green)' : m.estado === 'ocupada' ? 'var(--orange)' : 'var(--blue)'}; border-radius: 12px; padding: 15px; text-align: center;">
-                            <div style="font-size: 32px; margin-bottom: 5px;">🪑</div>
-                            <div style="font-weight: 700; font-size: 16px;">Mesa ${m.id}</div>
-                            <div style="font-size: 11px; color: ${m.estado === 'libre' ? 'var(--green)' : m.estado === 'ocupada' ? 'var(--orange)' : 'var(--blue)'}; margin-top: 4px; text-transform: uppercase; font-weight: 600;">
-                                ${m.estado === 'libre' ? 'Libre' : m.estado === 'ocupada' ? 'Ocupada' : 'Reservada'}
+            if (!currentUser?.empresa_id) {
+                container.innerHTML = '<div class="empty"><p>Sin empresa</p></div>';
+                return;
+            }
+            container.innerHTML = '<div class="empty"><p>Cargando mesas...</p></div>';
+            try {
+                const { data, error } = await sb.from('mesas').select('*').eq('empresa_id', currentUser.empresa_id).order('numero');
+                if (error) throw error;
+                const mesas = data || [];
+                if (mesas.length === 0) {
+                    container.innerHTML = '<div class="empty"><i class="fas fa-table"></i><p>Sin mesas creadas</p><p style="font-size:12px;color:var(--text2)">Creadas en gestión -> Mesas</p></div>';
+                    return;
+                }
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                        ${mesas.map(m => {
+                            const estado = m.estado || 'libre';
+                            const color = estado==='libre'?'var(--green)': estado==='ocupada'?'var(--orange)': estado==='mantenimiento'?'var(--text2)':'var(--blue)';
+                            const label = estado==='libre'?'Libre': estado==='ocupada'?'Ocupada': estado==='mantenimiento'?'Mantenimiento':'Reservada';
+                            return `
+                            <div style="background: var(--bg2); border: 2px solid ${color}; border-radius: 12px; padding: 15px; text-align: center;">
+                                <div style="font-size: 32px; margin-bottom: 5px;">🪑</div>
+                                <div style="font-weight: 700; font-size: 16px;">Mesa ${m.numero}</div>
+                                <div style="font-size: 11px; color: ${color}; margin-top: 4px; text-transform: uppercase; font-weight: 600;">
+                                    ${label}
+                                </div>
+                                ${m.capacidad ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${m.capacidad} personas</div>` : ''}
                             </div>
-                            ${m.cliente ? `<div style="font-size: 11px; color: var(--text2); margin-top: 4px;">${m.cliente}</div>` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+                        `}).join('')}
+                    </div>
+                `;
+            } catch(e) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar mesas</p></div>';
+            }
         }
 
         // =============================================
