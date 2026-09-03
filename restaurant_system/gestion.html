@@ -544,6 +544,7 @@
                                         <th>Roles</th>
                                         <th>PIN</th>
                                         <th>Estado</th>
+                                        <th>Conectado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -1541,16 +1542,32 @@
                     activo: e.activo,
                     email: e.email,
                     emoji: e.emoji,
-                    created_at: e.created_at
+                    created_at: e.created_at,
+                    is_online: e.is_online,
+                    last_seen: e.last_seen
                 }));
 
                 // Render table
-                document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => `
+                document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => {
+                    const online = e.is_online;
+                    const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
+                    const now = new Date();
+                    const diffMin = lastSeen ? Math.floor((now - lastSeen) / 60000) : 999;
+                    let statusHtml = '';
+                    if (online) {
+                        statusHtml = '<span style="color:#22c55e;font-weight:600">● En línea</span>';
+                    } else if (diffMin < 60) {
+                        statusHtml = '<span style="color:#eab308;font-size:12px">● Hace ' + diffMin + 'min</span>';
+                    } else {
+                        statusHtml = '<span style="color:#6b7280;font-size:12px">● Desconectado</span>';
+                    }
+                    return `
                     <tr>
                         <td><strong>${e.nombre}</strong></td>
                         <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
                         <td>••••</td>
                         <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
+                        <td>${statusHtml}</td>
                         <td style="display:flex;gap:4px">
                             <button class="btn-primary" style="padding: 5px 8px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
                                 <i class="fas fa-edit"></i>
@@ -1562,8 +1579,8 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
-                    </tr>
-                `).join('');
+                    </tr>`;
+                }).join('');
             } catch (err) {
                 console.error('Error loading employees:', err);
                 document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => `
@@ -2384,7 +2401,7 @@
 
         init();
         if (Notification && Notification.permission === 'default') Notification.requestPermission();
-        setInterval(() => { if (localData.currentUser?.empresa_id) { loadPedidos(); loadDashboard(); } }, 5000);
+        setInterval(() => { if (localData.currentUser?.empresa_id) { loadPedidos(); loadDashboard(); loadEmpleados(); } }, 15000);
 
         // Auto-login from Supabase Auth session (from login.html)
         (async () => {
