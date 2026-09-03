@@ -1488,9 +1488,18 @@
                         const playLoud = () => { audio.currentTime=0; audio.play().catch(()=> beepFallback()); if (++count < 3) setTimeout(playLoud, 900); };
                         playLoud();
                     } else beepFallback();
-                    // flash visual
-                    document.body.style.transition='background 0.2s';
-                    let flashes=0; const flash = setInterval(()=>{ document.body.style.background = flashes%2===0 ? '#ff3b30' : ''; if (++flashes>6) clearInterval(flash); }, 200);
+                    // flash solo en la fila del pedido nuevo
+                    setTimeout(()=>{
+                        const firstRow = document.querySelector('#pedidosTable tr');
+                        if (firstRow) {
+                            let flashes=0; const origBg = firstRow.style.background;
+                            const flash = setInterval(()=>{
+                                firstRow.style.background = flashes%2===0 ? 'rgba(255,59,48,0.3)' : '';
+                                firstRow.style.transition='background 0.2s';
+                                if (++flashes>6) { clearInterval(flash); firstRow.style.background = origBg; }
+                            }, 300);
+                        }
+                    }, 600);
                     if (Notification && Notification.permission === 'granted') {
                         new Notification('🔔 Nuevo pedido', { body: `${nuevos[0].cliente_nombre||'Cliente'} - Mesa #${nuevos[0].mesa_numero||'?'} - $${nuevos[0].total||''}`, requireInteraction: true });
                     } else if (Notification && Notification.permission !== 'denied') {
