@@ -630,15 +630,22 @@ async function confirmarPedido() {
         document.getElementById("pedidoIdDisplay").textContent = `Pedido de ${nombre}`;
         document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido se está preparando";
         document.getElementById("estadoPedido").querySelector(".icon").textContent = "🍳";
-        document.getElementById("estadoPedido").querySelector("p").innerHTML = "Te avisaremos cuando esté en tu mesa.<br>Podés seguir pidiendo.";
+        document.getElementById("estadoPedido").querySelector("p").innerHTML = "Te avisaremos cuando esté listo.<br>Podés seguir pidiendo.";
         document.getElementById("estadoPedido").classList.add("show");
-        // Poll estado hasta entregado, recién ahí mostrar rating
+        // Poll estado: listo -> avisar que en breve se lleva a la mesa, entregado -> rating
         if (currentPedidoId) {
+            let avisoListo = false;
             const poll = setInterval(async () => {
                 const { data: ped } = await sb.from("pedidos").select("estado").eq("id", currentPedidoId).maybeSingle();
-                if (ped && ped.estado === "entregado") {
+                if (!ped) return;
+                if (ped.estado === "listo" && !avisoListo) {
+                    avisoListo = true;
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido ya está listo!";
+                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "🔔";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "En breve se te llevará a la mesa.";
+                }
+                if (ped.estado === "entregado") {
                     clearInterval(poll);
-                    document.getElementById("estadoPedido").classList.remove("show");
                     document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido llegó!";
                     document.getElementById("estadoPedido").querySelector(".icon").textContent = "✅";
                     document.getElementById("estadoPedido").querySelector("p").innerHTML = "Ya está en tu mesa. ¡Buen provecho!";
@@ -648,7 +655,7 @@ async function confirmarPedido() {
                         showRatingScreen();
                     }, 2500);
                 }
-            }, 4000);
+            }, 3000);
         }
     } catch (e) {
         alert("Error: " + e.message);

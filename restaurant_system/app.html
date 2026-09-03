@@ -649,24 +649,32 @@
                 return;
             }
 
-            container.innerHTML = pedidosCocina.map(p => `
-                <div class="order-card">
+            container.innerHTML = pedidosCocina.map(p => {
+                let items=[]; try{ items = typeof p.items==='string' ? JSON.parse(p.items) : p.items; }catch(e){ items=p.items||[]; }
+                const mesa = p.mesa_numero ? `Mesa ${p.mesa_numero}` : (p.tipo_entrega||'');
+                return `
+                <div class="order-card" onclick="this.querySelector('.order-detail').style.display=this.querySelector('.order-detail').style.display==='none'?'block':'none'" style="cursor:pointer">
                     <div class="order-header">
-                        <span class="order-number">#${p.numero}</span>
+                        <span class="order-number">#${p.id?.substring(0,4)} - ${mesa}</span>
                         <span class="order-badge badge-${p.estado === 'recibido' ? 'nuevo' : 'preparando'}">
                             ${p.estado === 'recibido' ? 'NUEVO' : 'PREPARANDO'}
                         </span>
                     </div>
-                    <div class="order-items">
-                        ${p.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
+                    <div style="font-size:12px;color:var(--text2);margin:6px 0"><i class="fas fa-user"></i> ${p.cliente_nombre||'Cliente'}</div>
+                    <div class="order-detail" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+                        <div class="order-items">
+                            ${items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
+                        </div>
+                        ${p.notas ? `<div style="font-size:11px;color:var(--text2);margin-top:6px">Notas: ${p.notas}</div>` : ''}
                     </div>
-                    <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
-                    <div class="order-actions">
-                        ${p.estado === 'nuevo' ? `<button class="order-btn btn-primary" onclick="updateEstado('${p.id}', 'preparando')">EN PREPARACIÓN</button>` : ''}
-                        ${p.estado === 'preparando' ? `<button class="order-btn btn-primary" onclick="updateEstado('${p.id}', 'listo')">LISTO ✓</button>` : ''}
+                    <div class="order-time"><i class="fas fa-clock"></i> ${p.time||''}</div>
+                    <div class="order-actions" onclick="event.stopPropagation()">
+                        ${p.estado === 'recibido' ? `<button class="order-btn btn-primary" onclick="updateEstado('${p.id}', 'preparando')">EN PREPARACIÓN</button>` : ''}
+                        ${p.estado === 'preparando' ? `<button class="order-btn btn-success" onclick="updateEstado('${p.id}', 'listo')">✓ LISTO - Avisar camarero</button>` : ''}
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         async function updateEstado(pedidoId, nuevoEstado) {
