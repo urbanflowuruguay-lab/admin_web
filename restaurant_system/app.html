@@ -228,8 +228,13 @@
     <!-- PENDING SCREEN -->
     <div class="pending-screen" id="pendingScreen">
         <i class="fas fa-qrcode"></i>
-        <h2>Esperando escaneo QR</h2>
-        <p>Escaneá el código QR desde la terminal para iniciar tu turno</p>
+        <h2>Ingresá tu PIN</h2>
+        <p>Escaneaste el QR único. Ahora poné tu PIN para abrir tu app</p>
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;align-items:center">
+            <input type="text" id="pinInput" placeholder="PIN (4 dígitos)" maxlength="4" style="padding:12px 16px;font-size:18px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:180px">
+            <button class="clock-btn entry" onclick="loginConPin()" style="width:180px"><i class="fas fa-sign-in-alt"></i> ENTRAR</button>
+            <p id="pinError" style="color:var(--red);font-size:12px;display:none">PIN incorrecto</p>
+        </div>
     </div>
     <div class="pending-screen" id="roleSelector" style="display:none">
         <h2>¿En qué función trabajás hoy?</h2>
@@ -497,12 +502,33 @@
         async function registrarFichaje(user, tipo){
             try{
                 await sb.from('fichajes').insert({ empleado_id:user.id, empresa_id:user.empresa_id, tipo:tipo, rol:user.rol, estado:'pendiente' });
-                // también local
                 const key='fichajes_'+user.empresa_id;
                 const arr=JSON.parse(localStorage.getItem(key)||'[]');
                 arr.push({empleado_id:user.id, nombre:user.nombre, rol:user.rol, tipo, fecha:new Date().toISOString(), estado:'pendiente'});
                 localStorage.setItem(key, JSON.stringify(arr));
             }catch(e){ console.log('fichaje',e); }
+        }
+        async function loginConPin(){
+            const pin = document.getElementById('pinInput').value.trim();
+            if (!pin) { document.getElementById('pinError').textContent='Ingresá PIN'; document.getElementById('pinError').style.display='block'; return; }
+            const params = new URLSearchParams(window.location.search);
+            const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || (typeof empresa_id!=='undefined' ? empresa_id : null);
+            if (!empresaId) { document.getElementById('pinError').textContent='Falta empresa en QR'; document.getElementById('pinError').style.display='block'; return; }
+            const { data, error } = await sb.from('empleados').select('*').eq('empresa_id', empresaId).eq('pin', pin).eq('activo', true).limit(1);
+            if (error || !data || data.length===0) {
+                document.getElementById('pinError').textContent='PIN incorrecto';
+                document.getElementById('pinError').style.display='block';
+                return;
+            }
+            const emp = data[0];
+            const roles = emp.roles || (emp.rol ? [emp.rol] : []);
+            const empObj = { id: emp.id, nombre: emp.nombre, pin: emp.pin, rol: roles[0]||emp.rol, roles: roles, emoji: emp.emoji||'👤', empresa_id: emp.empresa_id };
+            if (roles.length > 1) { mostrarSelectorRol(empObj); return; }
+            currentUser = empObj;
+            document.getElementById('pendingScreen').style.display='none';
+            document.getElementById('app').style.display='block';
+            initApp();
+            registrarFichaje(currentUser,'entrada');
         }
 
         async function initApp() {

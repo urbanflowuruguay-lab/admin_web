@@ -158,6 +158,13 @@
             <div class="clock" id="clock"></div>
         </div>
 
+        <!-- QR UNICO PARA TODOS -->
+        <div style="text-align:center;margin-bottom:30px;background:var(--bg2);border:2px solid var(--accent);border-radius:16px;padding:30px">
+            <h3 style="color:var(--accent);margin-bottom:8px"><i class="fas fa-qrcode"></i> QR Único - Todos los empleados escanean el mismo</h3>
+            <p style="color:var(--text2);font-size:13px">Escaneá y luego ingresá tu PIN para abrir tu app</p>
+            <div id="singleQR" style="background:white;padding:15px;border-radius:12px;display:inline-block;margin:16px 0"></div>
+            <p id="singleQRUrl" style="font-size:11px;color:var(--text2);word-break:break-all"></p>
+        </div>
         <div class="employees-grid" id="employeesGrid"></div>
 
         <div class="recent-activity">
@@ -267,20 +274,14 @@
             grid.innerHTML = '';
 
             employees.forEach(emp => {
-                const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin, ts: Date.now() }));
-                const url = `${baseUrl}?token=${token}`;
-                
                 const card = document.createElement('div');
                 card.className = 'employee-card';
-                card.onclick = () => showBigQR(emp, url);
 
                 card.innerHTML = `
                     <div class="emp-avatar">${emp.emoji}</div>
                     <div class="emp-name">${emp.nombre}</div>
                     <div class="emp-role">${emp.rol}</div>
-                    <div class="qr-container">
-                        <canvas id="qr-${emp.id}"></canvas>
-                    </div>
+                    <div style="margin:10px 0;padding:8px;background:var(--bg3);border-radius:6px;font-size:11px;color:var(--text2)">PIN: <b style="color:var(--accent);font-size:14px">${emp.pin}</b></div>
                     <div class="emp-status ${emp.online ? 'status-online' : 'status-offline'}">
                         <span class="status-dot"></span>
                         ${emp.online ? 'En línea' : 'Fuera'}
@@ -288,18 +289,6 @@
                     </div>
                 `;
                 grid.appendChild(card);
-
-                // Generate QR
-                setTimeout(() => {
-                    const canvas = document.getElementById('qr-' + emp.id);
-                    if (canvas) {
-                        QRCode.toCanvas(canvas, url, {
-                            width: 120,
-                            margin: 1,
-                            color: { dark: '#000000', light: '#ffffff' }
-                        });
-                    }
-                }, 100);
             });
         }
 
@@ -359,10 +348,21 @@
         }
         setInterval(simulateOnline, 30000);
 
+        function renderSingleQR() {
+            const singleUrl = `${baseUrl}?empresa=${empresaId || getEmpresaId() || ''}`;
+            const container = document.getElementById('singleQR');
+            const urlEl = document.getElementById('singleQRUrl');
+            if (!container) return;
+            container.innerHTML = '';
+            const canvas = document.createElement('canvas');
+            container.appendChild(canvas);
+            if (urlEl) urlEl.textContent = singleUrl;
+            QRCode.toCanvas(canvas, singleUrl, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
+        }
         // =============================================
         // INIT
         // =============================================
-        loadEmployees();
+        loadEmployees().then(()=> renderSingleQR());
         renderActivity();
     </script>
 </body>
