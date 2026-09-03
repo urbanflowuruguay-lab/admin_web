@@ -6,7 +6,7 @@
     <title>UrbanFlow Terminal - Marcación</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #0a0a0a; --bg2: #111; --bg3: #1a1a1a; --accent: #d4af37; --green: #4caf50; --red: #f44336; --text: #fff; --text2: #888; --border: #333; }
@@ -298,17 +298,10 @@
         function showBigQR(emp, url) {
             document.getElementById('modalEmpName').innerHTML = `${emp.emoji} ${emp.nombre}`;
             document.getElementById('qrModal').classList.add('active');
-            
             setTimeout(() => {
                 const container = document.getElementById('modalQR');
                 container.innerHTML = '';
-                const canvas = document.createElement('canvas');
-                container.appendChild(canvas);
-                QRCode.toCanvas(canvas, url, {
-                    width: 250,
-                    margin: 2,
-                    color: { dark: '#000000', light: '#ffffff' }
-                });
+                new QRCode(container, { text: url, width: 250, height: 250, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
             }, 100);
         }
 
@@ -355,13 +348,9 @@
             const urlEl = document.getElementById('singleQRUrl');
             if (!container) return;
             container.innerHTML = '';
-            const canvas = document.createElement('canvas');
-            container.appendChild(canvas);
             if (urlEl) urlEl.textContent = singleUrl;
             try {
-                QRCode.toCanvas(canvas, singleUrl, { width: 220, margin: 1, color: { dark: '#000000', light: '#ffffff' } }, function(err){
-                    if (err) { console.error('QR err', err); container.innerHTML = '<p style="color:#f85149">Error QR: '+err.message+'</p>'; }
-                });
+                new QRCode(container, { text: singleUrl, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
             } catch(e) { console.error(e); container.innerHTML = '<p style="color:#f85149">Error: '+e.message+'</p>'; }
         }
         // =============================================
