@@ -1556,7 +1556,7 @@
                     const now = new Date();
                     const diffSec = lastSeen ? Math.floor((now - lastSeen) / 1000) : 9999;
                     const diffMin = Math.floor(diffSec / 60);
-                    const online = diffSec < 20;
+                    const online = diffSec < 10;
                     let statusHtml = '';
                     if (online) {
                         statusHtml = '<span style="color:#22c55e;font-weight:600">● En línea</span>';
@@ -2399,17 +2399,16 @@
                 const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
                 if (section === 'empleados') loadEmpleados();
             }
-        }, 5000);
+        }, 3000);
 
         // Realtime: detectar cambios en empleados (online/offline)
-        sb.channel('empleados-changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'empleados' }, (payload) => {
+        sbService.channel('empleados-changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'empleados' }, (payload) => {
             const updated = payload.new;
             const emp = localData.empleados.find(e => e.id === updated.id);
             if (emp) {
                 emp.is_online = updated.is_online;
                 emp.last_seen = updated.last_seen;
-                const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-                if (section === 'empleados') renderEmpleadosTable();
+                renderEmpleadosTable();
             }
         }).subscribe();
 
