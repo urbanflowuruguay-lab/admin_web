@@ -167,6 +167,12 @@
             <div class="negocio-desc" id="headerDesc"></div>
             <div class="negocio-mesa" id="headerMesa"></div>
         </div>
+        <div id="liveClock" style="width:42px;height:42px;border:2px solid var(--accent);border-radius:50%;position:relative;flex-shrink:0;background:var(--bg2)">
+            <div id="clockHour" style="position:absolute;left:50%;bottom:50%;width:2px;height:12px;background:var(--text);transform-origin:50% 100%;border-radius:2px;margin-left:-1px"></div>
+            <div id="clockMin" style="position:absolute;left:50%;bottom:50%;width:2px;height:16px;background:var(--accent);transform-origin:50% 100%;border-radius:2px;margin-left:-1px"></div>
+            <div id="clockSec" style="position:absolute;left:50%;bottom:50%;width:1px;height:18px;background:var(--danger);transform-origin:50% 100%;margin-left:-0.5px"></div>
+            <div style="position:absolute;left:50%;top:50%;width:6px;height:6px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%)"></div>
+        </div>
     </div>
     <div class="categorias" id="categoriasBar"></div>
     <div class="productos-scroll" id="mainContent">
@@ -362,6 +368,18 @@ function applyPortadaTheme(templateId) {
         case "rustico": if (!hasImage) portadaBg.style.background = "linear-gradient(180deg, #3e2723 0%, #5d4037 50%, #2c1a12 100%)"; overlay.style.background = "rgba(0,0,0,0.3)"; nombre.style.color = "#f5f0e8"; mesa.style.color = "rgba(245,240,238,0.6)"; btn.style.borderColor = "rgba(245,240,238,0.4)"; btn.style.color = "#f5f0e8"; break;
     }
 }
+function updateLiveClock(){
+    const now=new Date();
+    const sec=now.getSeconds()*6;
+    const min=now.getMinutes()*6 + now.getSeconds()*0.1;
+    const hour=(now.getHours()%12)*30 + now.getMinutes()*0.5;
+    const s=document.getElementById('clockSec'), m=document.getElementById('clockMin'), h=document.getElementById('clockHour');
+    if(s) s.style.transform=`rotate(${sec}deg)`;
+    if(m) m.style.transform=`rotate(${min}deg)`;
+    if(h) h.style.transform=`rotate(${hour}deg)`;
+}
+setInterval(updateLiveClock, 1000);
+setTimeout(updateLiveClock, 300);
 
 async function init() {
     if (!mesaToken) {
