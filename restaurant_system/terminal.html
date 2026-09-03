@@ -349,7 +349,8 @@
         setInterval(simulateOnline, 30000);
 
         function renderSingleQR() {
-            const singleUrl = `${baseUrl}?empresa=${empresaId || getEmpresaId() || ''}`;
+            const eid = empresaId || getEmpresaId() || '';
+            const singleUrl = eid ? `${baseUrl}?empresa=${eid}` : baseUrl;
             const container = document.getElementById('singleQR');
             const urlEl = document.getElementById('singleQRUrl');
             if (!container) return;
@@ -357,7 +358,11 @@
             const canvas = document.createElement('canvas');
             container.appendChild(canvas);
             if (urlEl) urlEl.textContent = singleUrl;
-            QRCode.toCanvas(canvas, singleUrl, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } });
+            try {
+                QRCode.toCanvas(canvas, singleUrl, { width: 220, margin: 1, color: { dark: '#000000', light: '#ffffff' } }, function(err){
+                    if (err) { console.error('QR err', err); container.innerHTML = '<p style="color:#f85149">Error QR: '+err.message+'</p>'; }
+                });
+            } catch(e) { console.error(e); container.innerHTML = '<p style="color:#f85149">Error: '+e.message+'</p>'; }
         }
         // =============================================
         // INIT
