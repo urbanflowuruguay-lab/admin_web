@@ -102,13 +102,6 @@
                             <div class="desc">Acceso completo al panel</div>
                         </div>
                     </div>
-                    <div class="role-btn" onclick="selectRole('encargado')">
-                        <div class="icon">👔</div>
-                        <div class="info">
-                            <div>Encargado</div>
-                            <div class="desc">Gestión parcial del negocio</div>
-                        </div>
-                    </div>
                     <div class="role-btn" onclick="selectRole('personal')">
                         <div class="icon">🧑‍🍳</div>
                         <div class="info">
@@ -126,6 +119,11 @@
             <div id="step-pin" class="hidden">
                 <h2 id="pinTitle">Contraseña</h2>
                 <p class="subtitle" id="pinSubtitle">Ingresá tu clave</p>
+                <div id="codigoBox" class="hidden" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;text-align:center">
+                    <p style="font-size:12px;color:var(--text2);margin-bottom:8px">Código de tu negocio (para que el personal lo lea)</p>
+                    <p id="codigoDisplay" style="font-size:28px;font-weight:800;color:var(--accent);letter-spacing:3px"></p>
+                    <p style="font-size:11px;color:var(--text2);margin-top:8px">Copialo y compartilo con tu equipo</p>
+                </div>
                 <div class="error-msg" id="pinErrorMsg"></div>
                 <form onsubmit="handlePin(event)">
                     <div class="form-group">
@@ -134,6 +132,13 @@
                     </div>
                     <button type="submit" class="btn" id="btnPin">Entrar</button>
                 </form>
+                <div id="installBox" class="hidden" style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+                    <p style="font-size:12px;color:var(--text2);margin-bottom:10px">¿Querés entrar más rápido?</p>
+                    <a id="installBtn" onclick="instalarApp()" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-decoration:none">
+                        <img src="/restaurant_system/servicio.png" style="width:28px;height:28px;border-radius:6px" onerror="this.style.display='none'">
+                        Instalar app en tu celular
+                    </a>
+                </div>
                 <div class="links">
                     <a onclick="backToRole()">← Volver</a>
                 </div>
@@ -332,28 +337,50 @@
         // =============================================
         function selectRole(role) {
             selectedRole = role;
+            const codigoBox = document.getElementById('codigoBox');
+            const installBox = document.getElementById('installBox');
             if (role === 'dueno') {
                 document.getElementById('pinTitle').textContent = '🔑 Contraseña de Dueño';
                 document.getElementById('pinSubtitle').textContent = 'Ingresá tu contraseña interna';
                 document.getElementById('pinLabel').textContent = 'Contraseña Interna';
                 document.getElementById('pinInput').placeholder = 'Tu contraseña de dueño';
                 document.getElementById('pinInput').removeAttribute('maxLength');
-            } else if (role === 'encargado') {
-                document.getElementById('pinTitle').textContent = 'PIN de Encargado';
-                document.getElementById('pinSubtitle').textContent = 'Ingresá tu PIN de 4 dígitos';
-                document.getElementById('pinLabel').textContent = 'PIN';
-                document.getElementById('pinInput').placeholder = 'PIN de 4 dígitos';
-                document.getElementById('pinInput').maxLength = 4;
+                codigoBox.classList.add('hidden');
+                installBox.classList.add('hidden');
             } else {
                 document.getElementById('pinTitle').textContent = 'PIN de Personal';
                 document.getElementById('pinSubtitle').textContent = 'Ingresá tu PIN de 4 dígitos';
                 document.getElementById('pinLabel').textContent = 'PIN';
                 document.getElementById('pinInput').placeholder = 'PIN de 4 dígitos';
                 document.getElementById('pinInput').maxLength = 4;
+                if (userEmpresa && userEmpresa.codigo_interno) {
+                    document.getElementById('codigoDisplay').textContent = userEmpresa.codigo_interno;
+                    codigoBox.classList.remove('hidden');
+                }
+                installBox.classList.remove('hidden');
             }
             document.getElementById('pinInput').value = '';
             showError('pinErrorMsg', '');
             showStep('step-pin');
+        }
+
+        function copyCodigo() {
+            if (userEmpresa && userEmpresa.codigo_interno) {
+                navigator.clipboard.writeText(userEmpresa.codigo_interno);
+            }
+        }
+
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+
+        async function instalarApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            } else {
+                window.open('/restaurant_system/app.html', '_blank');
+            }
         }
 
         // =============================================
@@ -403,13 +430,6 @@
 
                 const emp = empleados[0];
                 const empRol = (emp.rol || '').toLowerCase();
-
-                if (selectedRole === 'encargado' && empRol !== 'encargado') {
-                    showError('pinErrorMsg', 'Tu rol no es encargado');
-                    document.getElementById('btnPin').disabled = false;
-                    document.getElementById('btnPin').textContent = 'Entrar';
-                    return;
-                }
 
                 const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
                 localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
