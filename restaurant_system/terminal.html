@@ -153,16 +153,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-store"></i> La Parrilla - Terminal de Empleados</h1>
+            <h1 id="terminalTitle"><i class="fas fa-store"></i> Cargando... - Terminal de Empleados</h1>
             <p>Escaneá el QR con tu celular para marcar entrada y abrir tu app</p>
             <div class="clock" id="clock"></div>
         </div>
 
         <!-- QR UNICO PARA TODOS -->
-        <div style="text-align:center;margin-bottom:30px;background:var(--bg2);border:2px solid var(--accent);border-radius:16px;padding:30px">
+        <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:30px;background:var(--bg2);border:2px solid var(--accent);border-radius:16px;padding:30px">
             <h3 style="color:var(--accent);margin-bottom:8px"><i class="fas fa-qrcode"></i> QR Único - Todos los empleados escanean el mismo</h3>
             <p style="color:var(--text2);font-size:13px">Escaneá y luego ingresá tu PIN para abrir tu app</p>
-            <div id="singleQR" style="background:white;padding:20px;border-radius:12px;display:inline-block;margin:16px 0"></div>
+            <div id="singleQR" style="background:white;padding:20px;border-radius:12px;margin:16px 0;display:flex;justify-content:center"></div>
             <p id="singleQRUrl" style="font-size:11px;color:var(--text2);word-break:break-all"></p>
         </div>
         <div class="employees-grid" id="employeesGrid"></div>
@@ -223,6 +223,13 @@
                 document.getElementById('employeesGrid').innerHTML = '<div class="empty"><i class="fas fa-qrcode" style="font-size:48px;margin-bottom:16px;display:block;color:#30363d"></i><p style="color:#8b949e">Abrí esta terminal desde la gestión del restaurante</p></div>';
                 return;
             }
+            // cargar nombre del restaurante
+            try {
+                const { data: empData } = await sb.from('empresas').select('nombre').eq('id', empresaId).maybeSingle();
+                if (empData && empData.nombre) {
+                    document.getElementById('terminalTitle').innerHTML = `<i class="fas fa-store"></i> ${empData.nombre} - Terminal de Empleados`;
+                }
+            } catch(e) {}
 
             try {
                 const { data, error } = await sb.from('empleados')
