@@ -244,15 +244,19 @@
                     return;
                 }
 
-                employees = data.map(e => ({
-                    id: e.id,
-                    nombre: e.nombre,
-                    pin: e.pin,
-                    rol: e.rol,
-                    emoji: e.emoji || '👤',
-                    online: false,
-                    lastSeen: null
-                }));
+                employees = data.map(e => {
+                    const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
+                    const online = lastSeen ? (Date.now() - lastSeen.getTime()) < 120000 : false;
+                    return {
+                        id: e.id,
+                        nombre: e.nombre,
+                        pin: e.pin,
+                        rol: e.rol,
+                        emoji: e.emoji || '👤',
+                        online,
+                        lastSeen: lastSeen ? lastSeen.toLocaleTimeString('es-UY', {hour:'2-digit',minute:'2-digit'}) : null
+                    };
+                });
 
                 renderEmployees();
             } catch (err) {

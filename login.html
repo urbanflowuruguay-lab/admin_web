@@ -3,116 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrbanFlow — Acceso</title>
+    <title>UrbanFlow - Iniciar Sesión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: #0F1B2D; color: #e6edf3; min-height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            -webkit-font-smoothing: antialiased;
-        }
-        .login-container { width: 100%; max-width: 440px; padding: 24px; }
-        .logo-section { text-align: center; margin-bottom: 32px; }
-        .logo-section img { max-width: 140px; margin-bottom: 16px; filter: brightness(0) invert(1); }
-        .role-badge {
-            display: inline-block; padding: 8px 20px; border-radius: 999px;
-            font-size: 13px; font-weight: 600; letter-spacing: 0.3px;
-            background: rgba(108,99,255,0.15); color: #a5a1ff; border: 1px solid rgba(108,99,255,0.3);
-        }
-        .logo-section p { color: #8b949e; font-size: 15px; margin-top: 8px; }
-        .card {
-            background: #161b22; border: 1px solid #30363d;
-            border-radius: 20px; padding: 40px 32px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-        }
-        .card h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; text-align: center; letter-spacing: -0.3px; color: #e6edf3; }
-        .card .subtitle { font-size: 14px; color: #8b949e; text-align: center; margin-bottom: 28px; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 500; color: #c9d1d9; margin-bottom: 8px; }
-        .form-group input {
-            width: 100%; padding: 14px 16px; background: #0d1117;
-            border: 1.5px solid #30363d; border-radius: 12px;
-            color: #e6edf3; font-size: 15px; font-family: inherit;
-            outline: none; transition: all 0.2s ease;
-        }
-        .form-group input:focus { border-color: #58a6ff; background: #161b22; }
-        .form-group input::placeholder { color: #484f58; }
-        .btn {
-            width: 100%; padding: 16px; color: white; border: none;
-            border-radius: 12px; font-size: 16px; font-weight: 600;
-            font-family: inherit; cursor: pointer; transition: all 0.2s ease;
-            margin-top: 8px; background: #6C63FF;
-        }
-        .btn:hover { background: #5558e6; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(108,99,255,0.3); }
-        .btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; transform: none; box-shadow: none; }
-        .error-msg {
-            background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #f85149;
-            padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500;
-            margin-bottom: 20px; display: none;
-        }
-        .error-msg.show { display: block; }
-        .toggle-text {
-            text-align: center; margin-top: 20px; font-size: 14px; color: #8b949e;
-        }
-        .toggle-text a { color: #e6edf3; font-weight: 600; text-decoration: none; cursor: pointer; }
-        .toggle-text a:hover { text-decoration: underline; }
-        .back-link { text-align: center; margin-top: 24px; }
-        .back-link a { color: #8b949e; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
-        .back-link a:hover { color: #e6edf3; }
-        .register-fields { display: none; }
-        #authLoader { display:flex;align-items:center;justify-content:center;padding:60px 0; }
-        #authLoader .spinner { width:36px;height:36px;border:3px solid #30363d;border-top-color:#6C63FF;border-radius:50%;animation:spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .card.hidden { display:none; }
-        @media (max-width: 480px) {
-            .login-container { padding: 16px; }
-            .card { padding: 28px 20px; }
-            .logo-section img { max-width: 110px; }
-            .form-group input { font-size: 16px; padding: 16px; }
-        }
+        :root { --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --border:#333; --text:#fff; --text2:#999; --accent:#d4af37; --accent2:#b8962e; --red:#f44336; --green:#4caf50; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .container { max-width:420px; width:100%; }
+        .card { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:32px; }
+        .card h2 { text-align:center; color:var(--accent); margin-bottom:4px; font-size:22px; }
+        .card .subtitle { text-align:center; color:var(--text2); font-size:13px; margin-bottom:24px; }
+        .form-group { margin-bottom:16px; }
+        .form-group label { display:block; font-size:12px; color:var(--text2); margin-bottom:6px; }
+        .form-group input { width:100%; padding:12px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; }
+        .form-group input:focus { border-color:var(--accent); }
+        .btn { width:100%; padding:14px; background:var(--accent); color:var(--bg); border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; margin-top:8px; }
+        .btn:hover { background:var(--accent2); }
+        .btn:disabled { background:#333; color:#666; cursor:not-allowed; }
+        .error-msg { color:var(--red); font-size:13px; text-align:center; margin-top:12px; display:none; }
+        .error-msg.show { display:block; }
+        .links { text-align:center; margin-top:16px; font-size:13px; }
+        .links a { color:var(--accent); text-decoration:none; cursor:pointer; }
+        .links a:hover { text-decoration:underline; }
+        .back-link { text-align:center; margin-top:20px; }
+        .back-link a { color:var(--text2); font-size:12px; text-decoration:none; }
+        .hidden { display:none; }
+        .spinner { width:20px; height:20px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; display:inline-block; vertical-align:middle; margin-right:8px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        #authLoader { text-align:center; padding:60px; }
+        .role-selector { display:grid; gap:10px; margin-top:16px; }
+        .role-btn { padding:16px; background:var(--bg3); border:2px solid var(--border); border-radius:12px; color:var(--text); font-size:15px; font-weight:600; cursor:pointer; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s; }
+        .role-btn:hover { border-color:var(--accent); background:var(--bg); }
+        .role-btn .icon { font-size:24px; }
+        .role-btn .info { flex:1; }
+        .role-btn .desc { font-size:11px; color:var(--text2); font-weight:400; margin-top:2px; }
+        .role-btn.selected { border-color:var(--accent); background:rgba(212,175,55,0.1); }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo-section">
-            <img src="/logouf.png" alt="UrbanFlow">
-            <div class="role-badge">Bienvenido</div>
-            <p>Accedé a tu cuenta de UrbanFlow</p>
-        </div>
+    <div class="container">
+        <div id="authLoader"><div class="spinner"></div><p style="color:var(--text2);margin-top:12px">Verificando sesión...</p></div>
 
-        <div id="authLoader"><div class="spinner"></div></div>
         <div class="card hidden" id="loginCard">
-            <h2 id="formTitle">Iniciar sesión</h2>
-            <p class="subtitle" id="formSubtitle">Ingresa tus datos para continuar</p>
-            <div class="error-msg" id="errorMsg"></div>
-
-            <form onsubmit="handleSubmit(event)">
-                <div class="register-fields" id="registerFields">
+            <!-- PASO 1: Login normal (email + contraseña) -->
+            <div id="step-login">
+                <h2>Iniciar Sesión</h2>
+                <p class="subtitle">Ingresa tus datos para continuar</p>
+                <div class="error-msg" id="errorMsg"></div>
+                <form onsubmit="handleLogin(event)">
                     <div class="form-group">
-                        <label for="regEmail">Email</label>
-                        <input type="email" id="regEmail" placeholder="tu@email.com">
+                        <label>Email</label>
+                        <input type="email" id="email" placeholder="tu@email.com" required autocomplete="email">
                     </div>
                     <div class="form-group">
-                        <label for="regPassword">Contraseña</label>
-                        <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres">
+                        <label>Contraseña</label>
+                        <input type="password" id="password" placeholder="Ingresa tu contraseña" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn" id="btnLogin">Entrar</button>
+                </form>
+                <div class="links">
+                    <a onclick="showRegister()">Registrate</a>
+                </div>
+            </div>
+
+            <!-- PASO 1b: Registro (dueño crea cuenta) -->
+            <div id="step-register" class="hidden">
+                <h2>Crear Cuenta</h2>
+                <p class="subtitle">Registrate para empezar a usar UrbanFlow</p>
+                <div class="error-msg" id="regErrorMsg"></div>
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="regEmail" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña Interna (tu clave de dueño)</label>
+                        <input type="password" id="regPinDueno" placeholder="Ej: 1234" maxlength="8">
+                        <small style="color:var(--text2);font-size:11px">La usás para entrar como Dueño en la web</small>
+                    </div>
+                    <button type="submit" class="btn" id="btnRegister">Crear cuenta</button>
+                </form>
+                <div class="links">
+                    <a onclick="showLogin()">¿Ya tenés cuenta? Iniciá sesión</a>
+                </div>
+            </div>
+
+            <!-- PASO 2: Selector de rol -->
+            <div id="step-role" class="hidden">
+                <h2>¿Quién sos?</h2>
+                <p class="subtitle">Elegí tu rol para continuar</p>
+                <div class="role-selector">
+                    <div class="role-btn" onclick="selectRole('dueno')">
+                        <div class="icon">👑</div>
+                        <div class="info">
+                            <div>Dueño</div>
+                            <div class="desc">Acceso completo al panel</div>
+                        </div>
+                    </div>
+                    <div class="role-btn" onclick="selectRole('encargado')">
+                        <div class="icon">👔</div>
+                        <div class="info">
+                            <div>Encargado</div>
+                            <div class="desc">Gestión parcial del negocio</div>
+                        </div>
+                    </div>
+                    <div class="role-btn" onclick="selectRole('personal')">
+                        <div class="icon">🧑‍🍳</div>
+                        <div class="info">
+                            <div>Personal</div>
+                            <div class="desc">Cajero, cocinero, camarero, etc.</div>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group" id="loginFields">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="tu@email.com" required autocomplete="email">
+                <div class="links" style="margin-top:20px">
+                    <a onclick="backToLogin()">← Volver al login</a>
                 </div>
-                <div class="form-group" id="loginPasswordField">
-                    <label for="password">Contraseña</label>
-                    <input type="password" id="password" placeholder="Ingresa tu contraseña" required autocomplete="current-password">
-                </div>
-                <button type="submit" class="btn" id="btnSubmit">Entrar</button>
-            </form>
+            </div>
 
-            <div class="toggle-text" style="display:none">
-                <span id="toggleText">¿No tenés cuenta?</span>
-                <a id="toggleLink" onclick="toggleMode()">Registrate</a>
+            <!-- PASO 3: Contraseña interna (dueño) o PIN (personal) -->
+            <div id="step-pin" class="hidden">
+                <h2 id="pinTitle">Contraseña de Dueño</h2>
+                <p class="subtitle" id="pinSubtitle">Ingresá tu contraseña interna</p>
+                <div class="error-msg" id="pinErrorMsg"></div>
+                <form onsubmit="handlePin(event)">
+                    <div class="form-group">
+                        <label id="pinLabel">Contraseña Interna</label>
+                        <input type="password" id="pinInput" placeholder="Tu contraseña de dueño" required>
+                    </div>
+                    <button type="submit" class="btn" id="btnPin">Entrar</button>
+                </form>
+                <div class="links">
+                    <a onclick="backToRole()">← Volver</a>
+                </div>
             </div>
         </div>
 
@@ -127,148 +153,258 @@
         const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-        const params = new URLSearchParams(window.location.search);
-        let isRegister = params.get("register") === "1";
+        let currentUser = null;
+        let userEmpresa = null;
+        let selectedRole = null;
 
-        if (isRegister) {
-            setTimeout(() => toggleMode(), 100);
-        }
-
-        const errorParam = params.get("error");
-        if (errorParam === "not_admin") showError("Tu cuenta no tiene acceso al panel de administración.");
-        else if (errorParam === "no_profile") showError("No se encontró tu perfil. Contactá al administrador.");
-
+        // Inicializar
         (async () => {
             const { data: { session } } = await sb.auth.getSession();
-            if (session) {
-                await redirectByRole(session.user.id);
+            if (session && session.user) {
+                currentUser = session.user;
+                await loadEmpresa();
+                showStep('step-role');
             } else {
-                document.getElementById('authLoader').style.display='none';
-                document.getElementById('loginCard').classList.remove('hidden');
+                showStep('step-login');
             }
+            document.getElementById('authLoader').style.display = 'none';
+            document.getElementById('loginCard').classList.remove('hidden');
         })();
 
-        function toggleMode() {
-            isRegister = !isRegister;
-            document.getElementById("formTitle").textContent = isRegister ? "Crear cuenta" : "Iniciar sesión";
-            document.getElementById("formSubtitle").textContent = isRegister ? "Registrate para empezar a usar UrbanFlow" : "Ingresa tus datos para continuar";
-            document.getElementById("btnSubmit").textContent = isRegister ? "Crear cuenta" : "Entrar";
-            document.getElementById("registerFields").style.display = isRegister ? "" : "none";
-            document.getElementById("loginFields").style.display = isRegister ? "none" : "";
-            document.getElementById("loginPasswordField").style.display = isRegister ? "none" : "";
-            document.getElementById("toggleText").textContent = isRegister ? "¿Ya tenés cuenta?" : "¿No tenés cuenta?";
-            document.getElementById("toggleLink").textContent = isRegister ? "Iniciá sesión" : "Registrate";
-            showError("");
+        function showStep(id) {
+            document.querySelectorAll('[id^="step-"]').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
         }
 
-        async function handleSubmit(e) {
+        function showError(id, msg) {
+            const el = document.getElementById(id);
+            if (msg) { el.textContent = msg; el.classList.add('show'); }
+            else { el.textContent = ''; el.classList.remove('show'); }
+        }
+
+        // === LOGIN ===
+        async function handleLogin(e) {
             e.preventDefault();
-            const btn = document.getElementById("btnSubmit");
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            if (!email || !pass) { showError('errorMsg', 'Completa email y contraseña'); return; }
 
-            let email, password;
-            if (isRegister) {
-                email = document.getElementById("regEmail").value.trim();
-                password = document.getElementById("regPassword").value.trim();
-                if (!email || !password) { showError("Completa email y contraseña"); return; }
-                if (password.length < 6) { showError("La contraseña debe tener al menos 6 caracteres"); return; }
-            } else {
-                email = document.getElementById("email").value.trim();
-                password = document.getElementById("password").value.trim();
-                if (!email || !password) { showError("Completa email y contraseña"); return; }
+            document.getElementById('btnLogin').disabled = true;
+            document.getElementById('btnLogin').textContent = 'Entrando...';
+            showError('errorMsg', '');
+
+            const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+            if (error) {
+                showError('errorMsg', error.message.includes('Invalid') ? 'Email o contraseña incorrectos' : error.message);
+                document.getElementById('btnLogin').disabled = false;
+                document.getElementById('btnLogin').textContent = 'Entrar';
+                return;
             }
 
-            btn.disabled = true;
-            btn.textContent = isRegister ? "Creando cuenta..." : "Entrando...";
+            currentUser = data.user;
+            await loadEmpresa();
+            showStep('step-role');
+            document.getElementById('btnLogin').disabled = false;
+            document.getElementById('btnLogin').textContent = 'Entrar';
+        }
 
-            let result;
-            if (isRegister) {
-                result = await sb.auth.signUp({ email, password });
+        // === REGISTRO ===
+        async function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('regEmail').value.trim();
+            const pass = document.getElementById('regPassword').value.trim();
+            const pinDueno = document.getElementById('regPinDueno').value.trim();
 
-                if (!result.error && result.data.user) {
-                    if (result.data.session) {
-                        await redirectByRole(result.data.user.id);
-                        return;
-                    }
-                    showError("Cuenta creada. Revisa tu email para confirmar.");
-                    btn.disabled = false;
-                    btn.textContent = "Crear cuenta";
-                    return;
-                }
-            } else {
-                result = await sb.auth.signInWithPassword({ email, password });
-                if (!result.error) {
-                    await redirectByRole(result.data.user.id);
-                    return;
-                }
+            if (!email || !pass) { showError('regErrorMsg', 'Completa email y contraseña'); return; }
+            if (pass.length < 6) { showError('regErrorMsg', 'La contraseña debe tener al menos 6 caracteres'); return; }
+            if (!pinDueno) { showError('regErrorMsg', 'Poné tu contraseña interna de dueño'); return; }
+
+            document.getElementById('btnRegister').disabled = true;
+            document.getElementById('btnRegister').textContent = 'Creando...';
+            showError('regErrorMsg', '');
+
+            // 1. Crear usuario en Supabase Auth
+            const { data, error } = await sb.auth.signUp({ email, password: pass });
+
+            if (error) {
+                showError('regErrorMsg', error.message.includes('already') ? 'Ese email ya está registrado' : error.message);
+                document.getElementById('btnRegister').disabled = false;
+                document.getElementById('btnRegister').textContent = 'Crear cuenta';
+                return;
             }
 
-            btn.disabled = false;
-            btn.textContent = isRegister ? "Crear cuenta" : "Entrar";
-            if (result.error) {
-                if (result.error.message.includes("already")) showError("Este email ya está registrado. Iniciá sesión.");
-                else if (result.error.message.includes("Invalid login")) showError("Email o contraseña incorrectos");
-                else showError(result.error.message);
+            // 2. Crear empresa vinculada al usuario
+            const userId = data.user?.id;
+            if (!userId) {
+                showError('regErrorMsg', 'Error al crear usuario');
+                document.getElementById('btnRegister').disabled = false;
+                document.getElementById('btnRegister').textContent = 'Crear cuenta';
+                return;
+            }
+
+            // Generar código interno
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const codigoInterno = Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+
+            const { error: empError } = await sb.from('empresas').insert({
+                usuario_id: userId,
+                email: email,
+                nombre: '',
+                rubro: 'restaurante',
+                pin_dueno: pinDueno,
+                codigo_interno: codigoInterno,
+                status: 'pendiente',
+                activo: true
+            });
+
+            if (empError) {
+                console.error('Error creating empresa:', empError);
+                showError('regErrorMsg', 'Error al crear empresa: ' + empError.message);
+                document.getElementById('btnRegister').disabled = false;
+                document.getElementById('btnRegister').textContent = 'Crear cuenta';
+                return;
+            }
+
+            await loadEmpresa();
+            showStep('step-role');
+            document.getElementById('btnRegister').disabled = false;
+            document.getElementById('btnRegister').textContent = 'Crear cuenta';
+        }
+
+        // === CARGAR EMPRESA ===
+        async function loadEmpresa() {
+            if (!currentUser) return;
+            const { data } = await sb.from('empresas').select('*').eq('usuario_id', currentUser.id).limit(1);
+            userEmpresa = data && data[0] ? data[0] : null;
+        }
+
+        // === SELECTOR DE ROL ===
+        function selectRole(role) {
+            selectedRole = role;
+
+            if (role === 'dueno') {
+                document.getElementById('pinTitle').textContent = 'Contraseña de Dueño';
+                document.getElementById('pinSubtitle').textContent = 'Ingresá tu contraseña interna';
+                document.getElementById('pinLabel').textContent = 'Contraseña Interna';
+                document.getElementById('pinInput').placeholder = 'Tu contraseña de dueño';
+                document.getElementById('pinInput').type = 'password';
+            } else if (role === 'encargado') {
+                document.getElementById('pinTitle').textContent = 'PIN de Encargado';
+                document.getElementById('pinSubtitle').textContent = 'Ingresá tu PIN de 4 dígitos';
+                document.getElementById('pinLabel').textContent = 'PIN';
+                document.getElementById('pinInput').placeholder = 'PIN de 4 dígitos';
+                document.getElementById('pinInput').type = 'password';
+                document.getElementById('pinInput').maxLength = 4;
+            } else {
+                document.getElementById('pinTitle').textContent = 'PIN de Personal';
+                document.getElementById('pinSubtitle').textContent = 'Ingresá tu PIN de 4 dígitos';
+                document.getElementById('pinLabel').textContent = 'PIN';
+                document.getElementById('pinInput').placeholder = 'PIN de 4 dígitos';
+                document.getElementById('pinInput').type = 'password';
+                document.getElementById('pinInput').maxLength = 4;
+            }
+
+            document.getElementById('pinInput').value = '';
+            showError('pinErrorMsg', '');
+            showStep('step-pin');
+        }
+
+        // === VERIFICAR PIN/CONTRASEÑA ===
+        async function handlePin(e) {
+            e.preventDefault();
+            const pin = document.getElementById('pinInput').value.trim();
+            if (!pin) { showError('pinErrorMsg', 'Ingresá tu contraseña/PIN'); return; }
+
+            document.getElementById('btnPin').disabled = true;
+            document.getElementById('btnPin').textContent = 'Verificando...';
+            showError('pinErrorMsg', '');
+
+            if (selectedRole === 'dueno') {
+                // Verificar contra pin_dueno de la empresa
+                if (!userEmpresa) {
+                    showError('pinErrorMsg', 'No se encontró tu empresa. Registrate primero.');
+                    document.getElementById('btnPin').disabled = false;
+                    document.getElementById('btnPin').textContent = 'Entrar';
+                    return;
+                }
+                if (userEmpresa.pin_dueno !== pin) {
+                    showError('pinErrorMsg', 'Contraseña interna incorrecta');
+                    document.getElementById('btnPin').disabled = false;
+                    document.getElementById('btnPin').textContent = 'Entrar';
+                    return;
+                }
+                // ✅ Dueño verificado → ir a gestión
+                localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
+                window.location.href = '/restaurant_system/gestion.html';
+
+            } else {
+                // Encargado o Personal → buscar en empleados
+                if (!userEmpresa) {
+                    showError('pinErrorMsg', 'No se encontró tu empresa');
+                    document.getElementById('btnPin').disabled = false;
+                    document.getElementById('btnPin').textContent = 'Entrar';
+                    return;
+                }
+
+                const { data: empleados } = await sb.from('empleados')
+                    .select('*')
+                    .eq('empresa_id', userEmpresa.id)
+                    .eq('pin', pin)
+                    .eq('activo', true)
+                    .limit(1);
+
+                if (!empleados || empleados.length === 0) {
+                    showError('pinErrorMsg', 'PIN incorrecto o personal inactivo');
+                    document.getElementById('btnPin').disabled = false;
+                    document.getElementById('btnPin').textContent = 'Entrar';
+                    return;
+                }
+
+                const emp = empleados[0];
+                const empRol = (emp.rol || '').toLowerCase();
+
+                // Verificar que el rol coincida
+                if (selectedRole === 'encargado' && empRol !== 'encargado') {
+                    showError('pinErrorMsg', 'Tu rol no es encargado');
+                    document.getElementById('btnPin').disabled = false;
+                    document.getElementById('btnPin').textContent = 'Entrar';
+                    return;
+                }
+
+                const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
+                localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
+
+                if (empRol.includes('cajero')) {
+                    window.location.href = '/restaurant_system/pos.html?empresa=' + userEmpresa.id;
+                } else {
+                    window.location.href = '/restaurant_system/app.html?token=' + encodeURIComponent(token);
+                }
             }
         }
 
-        async function redirectByRole(userId) {
-            // First check perfiles table
-            const { data: profile } = await sb.from("perfiles").select("type, status, role").eq("id", userId).single();
-
-            if (profile && profile.role === "admin") {
-                window.location.href = "/admin/";
-                return;
-            }
-
-            if (profile && profile.type === "chofer") {
-                if (profile.status === "aprobado") { window.location.href = "/chofer/"; return; }
-                showError("Tu cuenta de chofer está " + profile.status + ".");
-                await sb.auth.signOut();
-                return;
-            }
-
-            if (profile && (profile.type === "servicios" || profile.type === "empresa")) {
-                const { data: empresa } = await sb.from("empresas").select("status, rubro").eq("usuario_id", userId).single();
-                const empresaStatus = empresa ? empresa.status : profile.status;
-                
-                if (empresaStatus === "aprobado") {
-                    if (empresa && (empresa.rubro === "restaurante" || empresa.rubro === "gastronomia" || empresa.rubro === "comida")) {
-                        window.location.href = "/restaurant_system/gestion.html";
-                        return;
-                    }
-                    window.location.href = "/empresa/";
-                    return;
-                }
-                showError("Tu cuenta está " + empresaStatus + ".");
-                await sb.auth.signOut();
-                return;
-            }
-
-            // Fallback: check empresas directly (app may not create perfiles)
-            const { data: empresaDirect } = await sb.from("empresas").select("status, rubro").eq("usuario_id", userId).single();
-            
-            if (empresaDirect) {
-                if (empresaDirect.status === "aprobado") {
-                    if (empresaDirect.rubro === "restaurante" || empresaDirect.rubro === "gastronomia" || empresaDirect.rubro === "comida") {
-                        window.location.href = "/restaurant_system/gestion.html";
-                        return;
-                    }
-                    window.location.href = "/empresa/";
-                    return;
-                }
-                showError("Tu cuenta está " + empresaDirect.status + ". Esperá la aprobación.");
-                await sb.auth.signOut();
-                return;
-            }
-
-            showError("Tu cuenta no está registrada. Descargá la app para registrarte.");
-            await sb.auth.signOut();
+        function showLogin() {
+            showError('regErrorMsg', '');
+            showStep('step-login');
         }
 
-        function showError(msg) {
-            const el = document.getElementById("errorMsg");
-            if (msg) { el.textContent = msg; el.classList.add("show"); }
-            else { el.textContent = ""; el.classList.remove("show"); }
+        function showRegister() {
+            showError('errorMsg', '');
+            showStep('step-register');
+        }
+
+        function backToLogin() {
+            sb.auth.signOut();
+            currentUser = null;
+            userEmpresa = null;
+            selectedRole = null;
+            showError('errorMsg', '');
+            showStep('step-login');
+        }
+
+        function backToRole() {
+            selectedRole = null;
+            showStep('step-role');
         }
     </script>
 </body>

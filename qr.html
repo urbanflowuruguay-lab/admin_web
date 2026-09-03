@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Empleados - UrbanFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --border:#333; --text:#fff; --text2:#999; --accent:#d4af37; --accent2:#b8962e; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+
+        .qr-container { max-width:400px; width:100%; text-align:center; }
+        .logo { font-size:48px; margin-bottom:12px; }
+        .restaurant-name { font-size:28px; font-weight:700; color:var(--accent); margin-bottom:8px; }
+        .subtitle { color:var(--text2); font-size:14px; margin-bottom:30px; }
+
+        .qr-box { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:30px; margin-bottom:20px; }
+        #qrCode { display:flex; justify-content:center; margin-bottom:16px; }
+        #qrCode img { border-radius:8px; }
+        .qr-label { color:var(--text2); font-size:12px; margin-top:8px; }
+
+        .pin-entry { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:24px; }
+        .pin-entry h3 { font-size:16px; margin-bottom:16px; color:var(--accent); }
+        .pin-input-group { display:flex; gap:8px; justify-content:center; margin-bottom:16px; }
+        .pin-digit { width:50px; height:60px; text-align:center; font-size:24px; font-weight:700; background:var(--bg3); border:2px solid var(--border); border-radius:10px; color:var(--text); outline:none; }
+        .pin-digit:focus { border-color:var(--accent); }
+        .enter-btn { width:100%; padding:14px; background:var(--accent); color:var(--bg); border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; }
+        .enter-btn:hover { background:var(--accent2); }
+        .enter-btn:disabled { background:#333; color:#666; cursor:not-allowed; }
+
+        .error-msg { color:#f44336; font-size:13px; margin-top:12px; display:none; }
+        .error-msg.show { display:block; }
+
+        .footer { margin-top:30px; color:var(--text2); font-size:11px; }
+
+        .loading { display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text2); }
+        .spinner { width:20px; height:20px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="qr-container">
+        <div class="logo">🍽️</div>
+        <div class="restaurant-name" id="restaurantName">Cargando...</div>
+        <div class="subtitle">Panel de Empleados</div>
+
+        <div class="qr-box">
+            <div id="qrCode"></div>
+            <div class="qr-label">Escaneá con tu cámara y entrá con tu PIN</div>
+        </div>
+
+        <div class="pin-entry">
+            <h3><i class="fas fa-lock"></i> Entrá con tu PIN</h3>
+            <div class="pin-input-group">
+                <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autofocus>
+                <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+                <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+            </div>
+            <button class="enter-btn" id="enterBtn" disabled onclick="loginWithPin()">
+                <i class="fas fa-sign-in-alt"></i> Entrar
+            </button>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+
+        <div class="footer">UrbanFlow · Sistema de Gestión</div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        const params = new URLSearchParams(window.location.search);
+        const empresaId = params.get("empresa");
+
+        let empresaData = null;
+
+        async function init() {
+            if (!empresaId) {
+                document.getElementById("restaurantName").textContent = "QR no disponible";
+                document.getElementById("errorMsg").textContent = "Falta el ID del restaurante";
+                document.getElementById("errorMsg").classList.add("show");
+                return;
+            }
+
+            try {
+                const { data, error } = await sb.from("empresas")
+                    .select("id, nombre, logo_url")
+                    .eq("id", empresaId)
+                    .maybeSingle();
+
+                if (error || !data) {
+                    document.getElementById("restaurantName").textContent = "Restaurante no encontrado";
+                    return;
+                }
+
+                empresaData = data;
+                document.getElementById("restaurantName").textContent = data.nombre;
+
+                // Generar QR con link a esta misma página
+                const qrUrl = window.location.origin + "/qr.html?empresa=" + empresaId;
+                new QRCode(document.getElementById("qrCode"), {
+                    text: qrUrl,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch (err) {
+                console.error("Error loading empresa:", err);
+            }
+
+            // Setup PIN inputs
+            setupPinInputs();
+        }
+
+        function setupPinInputs() {
+            const inputs = document.querySelectorAll(".pin-digit");
+            inputs.forEach((input, i) => {
+                input.addEventListener("input", () => {
+                    if (input.value.length === 1 && i < inputs.length - 1) {
+                        inputs[i + 1].focus();
+                    }
+                    checkPinComplete();
+                });
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Backspace" && !input.value && i > 0) {
+                        inputs[i - 1].focus();
+                    }
+                    if (e.key === "Enter") loginWithPin();
+                });
+                input.addEventListener("paste", (e) => {
+                    e.preventDefault();
+                    const paste = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "");
+                    inputs.forEach((inp, j) => { if (paste[j]) inp.value = paste[j]; });
+                    if (paste.length >= 4) inputs[3].focus();
+                    checkPinComplete();
+                });
+            });
+        }
+
+        function checkPinComplete() {
+            const pin = Array.from(document.querySelectorAll(".pin-digit")).map(i => i.value).join("");
+            document.getElementById("enterBtn").disabled = pin.length !== 4;
+        }
+
+        async function loginWithPin() {
+            if (!empresaId) return;
+            const pin = Array.from(document.querySelectorAll(".pin-digit")).map(i => i.value).join("");
+            if (pin.length !== 4) return;
+
+            const btn = document.getElementById("enterBtn");
+            const errorEl = document.getElementById("errorMsg");
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+            errorEl.classList.remove("show");
+
+            try {
+                const { data: empleados, error } = await sb.from("empleados")
+                    .select("*")
+                    .eq("empresa_id", empresaId)
+                    .eq("pin", pin)
+                    .eq("activo", true)
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (!empleados || empleados.length === 0) {
+                    errorEl.textContent = "PIN incorrecto o inactivo";
+                    errorEl.classList.add("show");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+                    // Limpiar inputs
+                    document.querySelectorAll(".pin-digit").forEach(i => { i.value = ""; });
+                    document.querySelector(".pin-digit").focus();
+                    return;
+                }
+
+                const emp = empleados[0];
+                const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
+                const rol = (emp.rol || "").toLowerCase();
+
+                localStorage.setItem("urbanflow_empresa_id", empresaId);
+
+                if (rol.includes("cajero")) {
+                    window.location.href = "restaurant_system/pos.html?empresa=" + empresaId;
+                } else {
+                    window.location.href = "restaurant_system/app.html?token=" + encodeURIComponent(token);
+                }
+            } catch (err) {
+                console.error("Login error:", err);
+                errorEl.textContent = "Error al conectar";
+                errorEl.classList.add("show");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

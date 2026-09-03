@@ -366,40 +366,53 @@
         };
 
         // =============================================
-        // BUILD UI FROM ROLE
+        // BUILD UI FROM ROLE (with Supabase permissions)
         // =============================================
-        function buildUI() {
-            const config = ROLE_CONFIGS[currentUser.rol] || ROLE_CONFIGS['cajero'];
+        const sectionLabels = {
+            dashboard: { icon: 'fa-chart-line', label: 'Dashboard' },
+            pedidos:   { icon: 'fa-receipt', label: 'Pedidos' },
+            delivery:  { icon: 'fa-motorcycle', label: 'Delivery' },
+            inventario:{ icon: 'fa-boxes-stacked', label: 'Inventario' },
+            empleados: { icon: 'fa-users', label: 'Equipo' },
+            mesas:     { icon: 'fa-table', label: 'Mesas' },
+            cocina:    { icon: 'fa-fire-burner', label: 'Cocina' },
+            misdatos:  { icon: 'fa-user', label: 'Yo' }
+        };
+
+        async function buildUI() {
+            const defaultConfig = ROLE_CONFIGS[currentUser.rol] || ROLE_CONFIGS['cajero'];
+            let allowedSections = defaultConfig.sections;
+            // intentar leer permisos de Supabase
+            try {
+                const { data } = await sb.from('permisos_roles')
+                    .select('modulo,activo')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .eq('rol', currentUser.rol);
+                if (data && data.length > 0) {
+                    const permMap = {};
+                    data.forEach(p => permMap[p.modulo] = p.activo);
+                    // filtrar secciones por permisos (misdatos siempre visible)
+                    allowedSections = defaultConfig.sections.filter(s => s === 'misdatos' || permMap[s] !== false);
+                }
+            } catch(e) { console.log('Usando permisos default:', e.message); }
+            if (allowedSections.length === 0) allowedSections = ['misdatos'];
+
             const tabsContainer = document.getElementById('tabsContainer');
             const contentContainer = document.getElementById('contentContainer');
-            
-            const sectionLabels = {
-                dashboard: { icon: 'fa-chart-line', label: 'Dashboard' },
-                pedidos:   { icon: 'fa-receipt', label: 'Pedidos' },
-                delivery:  { icon: 'fa-motorcycle', label: 'Delivery' },
-                inventario:{ icon: 'fa-boxes-stacked', label: 'Inventario' },
-                empleados: { icon: 'fa-users', label: 'Equipo' },
-                mesas:     { icon: 'fa-table', label: 'Mesas' },
-                cocina:    { icon: 'fa-fire-burner', label: 'Cocina' },
-                misdatos:  { icon: 'fa-user', label: 'Yo' }
-            };
 
-            // Build tabs
-            tabsContainer.innerHTML = config.sections.map((s, i) => `
+            tabsContainer.innerHTML = allowedSections.map((s, i) => `
                 <div class="tab ${i === 0 ? 'active' : ''}" onclick="showTab('${s}')">
-                    <i class="fas ${sectionLabels[s].icon}"></i> ${sectionLabels[s].label}
+                    <i class="fas ${sectionLabels[s]?.icon||'fa-circle'}"></i> ${sectionLabels[s]?.label||s}
                 </div>
             `).join('');
 
-            // Build sections
-            contentContainer.innerHTML = config.sections.map((s, i) => `
+            contentContainer.innerHTML = allowedSections.map((s, i) => `
                 <div class="section ${i === 0 ? 'active' : ''}" id="section-${s}">
                     <div id="content-${s}"></div>
                 </div>
             `).join('');
 
-            // Render content per section
-            config.sections.forEach(s => renderSection(s));
+            allowedSections.forEach(s => renderSection(s));
         }
 
         function renderSection(section) {

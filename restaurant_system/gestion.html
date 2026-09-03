@@ -287,10 +287,13 @@
     <!-- LOGIN -->
     <div class="login-container" id="loginContainer">
         <h1><i class="fas fa-utensils"></i> UrbanFlow Restaurant</h1>
-        <input type="text" id="loginEmail" placeholder="Email" value="">
-        <input type="password" id="loginPin" placeholder="PIN (ej: 0000)" value="0000">
-        <button onclick="login()">Ingresar</button>
+        <input type="text" id="loginEmail" placeholder="Email" value="" disabled>
+        <input type="password" id="loginPin" placeholder="PIN (ej: 0000)" value="" disabled>
+        <button disabled>Este panel es solo para el dueño</button>
         <div class="error" id="loginError"></div>
+        <p style="margin-top:12px;font-size:12px;color:var(--text2);text-align:center">
+            ¿Sos empleado? Entrá desde <a href="/login.html" style="color:var(--accent)">login con PIN</a> o escaneá el QR
+        </p>
     </div>
 
     <!-- APP -->
@@ -673,6 +676,14 @@
                             <label>Dirección</label>
                             <input type="text" id="configDireccion" value="">
                         </div>
+                        <div class="form-group">
+                            <label>Código Interno <small style="color:var(--text2)">(para que los empleados se registren)</small></label>
+                            <div style="display:flex;gap:8px">
+                                <input type="text" id="configCodigo" value="" placeholder="Ej: BURGUER01" style="text-transform:uppercase;flex:1">
+                                <button class="btn-primary" onclick="generarCodigo()" style="font-size:12px;padding:6px 12px"><i class="fas fa-refresh"></i> Generar</button>
+                            </div>
+                            <small style="color:var(--text2);font-size:11px">Compartí este código con los empleados para que se registren</small>
+                        </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
                             <div>
                                 <label style="font-size:12px;color:var(--text2)">Logo del local</label>
@@ -730,6 +741,13 @@
                             Las zonas de delivery solo son visibles para el dueño y encargados.
                         </p>
                         <div id="configZonas"></div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 20px;"><i class="fas fa-shield-halved"></i> Permisos por Rol</h3>
+                        <p style="color: var(--text2); font-size: 13px; margin-bottom: 15px;">Controlá qué secciones ve cada empleado en su app</p>
+                        <div id="permisosGrid" style="overflow-x:auto"></div>
+                        <button class="btn-primary" onclick="savePermisos()" style="margin-top:12px"><i class="fas fa-save"></i> Guardar Permisos</button>
                     </div>
                 </div>
 
@@ -1048,120 +1066,9 @@
         // LOGIN
         // =============================================
         async function login() {
-            const email = document.getElementById('loginEmail').value;
-            const pin = document.getElementById('loginPin').value;
-            
-            if (!email || !pin) {
-                document.getElementById('loginError').textContent = 'Ingresá email y PIN';
-                return;
-            }
-
-            try {
-                // First try to find empresa by email
-                const { data: empresas, error: empError } = await sb.from('empresas')
-                    .select('*')
-                    .eq('email', email)
-                    .limit(1);
-
-                if (empError) throw empError;
-
-                if (empresas && empresas.length > 0) {
-                    // Found empresa - this is the owner login
-                    const empresa = empresas[0];
-                    
-                    // For now, accept any PIN for the owner (in production, verify against stored hash)
-                    localData.currentUser = {
-                        id: empresa.id,
-                        empresa_id: empresa.id,
-                        nombre: empresa.nombre,
-                        roles: ['rol_dueno'],
-                        activo: true
-                    };
-                    
-                    // Store empresa_id for terminal.html
-                    localStorage.setItem('urbanflow_empresa_id', empresa.id);
-                    
-                    document.getElementById('loginContainer').style.display = 'none';
-                    document.getElementById('appContainer').classList.add('active');
-                    document.getElementById('userName').textContent = empresa.nombre;
-                    document.getElementById('userRole').textContent = 'DUEÑO';
-                    document.getElementById('userAvatar').textContent = empresa.nombre.substring(0, 2).toUpperCase();
-                    
-                    loadDashboard();
-                    return;
-                }
-
-                // Try to find employee by email in Supabase
-                const { data: empleados, error: empEmpError } = await sb.from('empleados')
-                    .select('*')
-                    .eq('email', email)
-                    .eq('pin', pin)
-                    .eq('activo', true)
-                    .limit(1);
-
-                if (empEmpError) throw empEmpError;
-
-                if (empleados && empleados.length > 0) {
-                    const emp = empleados[0];
-                    localData.currentUser = {
-                        id: emp.id,
-                        empresa_id: emp.empresa_id,
-                        nombre: emp.nombre,
-                        roles: ['rol_' + emp.rol],
-                        activo: true
-                    };
-                    
-                    // Store empresa_id for terminal.html
-                    localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
-                    
-                    document.getElementById('loginContainer').style.display = 'none';
-                    document.getElementById('appContainer').classList.add('active');
-                    document.getElementById('userName').textContent = emp.nombre;
-                    document.getElementById('userRole').textContent = emp.rol.toUpperCase();
-                    document.getElementById('userAvatar').textContent = emp.nombre.split(' ').map(n => n[0]).join('');
-                    
-                    loadDashboard();
-                    return;
-                }
-
-                // Fallback to local data
-                const empLocal = localData.empleados.find(e => 
-                    e.email === email && e.pin === pin && e.activo
-                );
-
-                if (empLocal) {
-                    localData.currentUser = empLocal;
-                    document.getElementById('loginContainer').style.display = 'none';
-                    document.getElementById('appContainer').classList.add('active');
-                    document.getElementById('userName').textContent = empLocal.nombre;
-                    document.getElementById('userRole').textContent = empLocal.roles[0].replace('rol_', '').toUpperCase();
-                    document.getElementById('userAvatar').textContent = empLocal.nombre.split(' ').map(n => n[0]).join('');
-                    
-                    loadDashboard();
-                    return;
-                }
-
-                document.getElementById('loginError').textContent = 'Credenciales incorrectas';
-            } catch (err) {
-                console.error('Login error:', err);
-                // Fallback to local data
-                const empLocal = localData.empleados.find(e => 
-                    e.email === email && e.pin === pin && e.activo
-                );
-
-                if (empLocal) {
-                    localData.currentUser = empLocal;
-                    document.getElementById('loginContainer').style.display = 'none';
-                    document.getElementById('appContainer').classList.add('active');
-                    document.getElementById('userName').textContent = empLocal.nombre;
-                    document.getElementById('userRole').textContent = empLocal.roles[0].replace('rol_', '').toUpperCase();
-                    document.getElementById('userAvatar').textContent = empLocal.nombre.split(' ').map(n => n[0]).join('');
-                    
-                    loadDashboard();
-                } else {
-                    document.getElementById('loginError').textContent = 'Credenciales incorrectas';
-                }
-            }
+            //gestion.html solo accede el dueño via Supabase Auth (login.html)
+            //El login local está deshabilitado
+            document.getElementById('loginError').textContent = 'Usá el login normal desde login.html';
         }
 
         async function logout() {
@@ -1195,6 +1102,37 @@
             if (section === 'facturacion') loadFacturacion();
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
+            if (section === 'config') loadPermisos();
+        }
+
+        async function filterSidebar() {
+            const empresaId = localData.currentUser?.empresa_id;
+            const rol = (localData.currentUser?.roles?.[0] || '').replace('rol_', '');
+            if (!empresaId || !rol) return;
+            try {
+                const { data } = await sb.from('permisos_roles')
+                    .select('modulo,activo')
+                    .eq('empresa_id', empresaId)
+                    .eq('rol', rol);
+                if (!data || data.length === 0) return;
+                const permMap = {};
+                data.forEach(p => permMap[p.modulo] = p.activo);
+                // mapeo sidebar-item a modulo
+                const sidebarModMap = {
+                    'section-dashboard':'dashboard','section-productos':'productos','section-pedidos':'pedidos',
+                    'section-mesas':'mesas','section-inventario':'inventario','section-clientes':'clientes',
+                    'section-empleados':'empleados','section-zonas':'zonas','section-facturacion':'facturacion',
+                    'section-auditoria':'auditoria','section-config':'config','section-propinas':'propinas'
+                };
+                document.querySelectorAll('.sidebar-item').forEach(item => {
+                    const onclick = item.getAttribute('onclick') || '';
+                    const match = onclick.match(/showSection\('(\w+)'\)/);
+                    if (match) {
+                        const mod = sidebarModMap['section-' + match[1]];
+                        if (mod && permMap[mod] === false) item.style.display = 'none';
+                    }
+                });
+            } catch(e) { console.log('Filter sidebar error:', e.message); }
         }
 
         function openPOS() {
@@ -1362,6 +1300,7 @@
                 document.getElementById('configTelefono').value = emp.telefono || '';
                 document.getElementById('configEmail').value = emp.email || '';
                 document.getElementById('configDireccion').value = emp.direccion || '';
+                document.getElementById('configCodigo').value = emp.codigo_interno || '';
                 selectedTemplate = emp.carta_template || 'dark_elegance';
                 renderTemplateGrid(selectedTemplate);
                 if (emp.logo_url) { document.getElementById('logoPreview').src = emp.logo_url; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; }
@@ -1612,11 +1551,14 @@
                         <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
                         <td>${e.pin}</td>
                         <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
-                        <td>
-                            <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
+                        <td style="display:flex;gap:4px">
+                            <button class="btn-primary" style="padding: 5px 8px; font-size: 11px;" onclick="editEmpleado('${e.id}')">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-danger" style="padding: 5px 10px; font-size: 11px;" onclick="deleteEmpleado('${e.id}')">
+                            <button class="btn-primary" style="padding: 5px 8px; font-size: 11px;background:${e.activo?'#6b7280':'var(--green)'}" onclick="toggleActivoEmpleado('${e.id}', ${e.activo})" title="${e.activo?'Desactivar':'Activar'}">
+                                <i class="fas ${e.activo?'fa-pause':'fa-play'}"></i>
+                            </button>
+                            <button class="btn-danger" style="padding: 5px 8px; font-size: 11px;" onclick="deleteEmpleado('${e.id}')">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -2157,6 +2099,23 @@
             }
         }
 
+        async function toggleActivoEmpleado(id, currentActivo) {
+            const nuevo = !currentActivo;
+            const accion = nuevo ? 'activar' : 'desactivar';
+            if (!confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} este empleado?`)) return;
+            try {
+                const { error } = await sb.from('empleados').update({ activo: nuevo }).eq('id', id);
+                if (error) throw error;
+                const emp = localData.empleados.find(e => e.id === id);
+                if (emp) emp.activo = nuevo;
+                loadEmpleados();
+                alert(`Empleado ${accion === 'activar' ? 'activado' : 'desactivado'}`);
+            } catch (err) {
+                console.error('Error toggling employee:', err);
+                alert('Error al cambiar estado: ' + err.message);
+            }
+        }
+
         function saveZona() {
             const zona = {
                 id: 'zona_' + Date.now(),
@@ -2173,14 +2132,106 @@
             logAccion('zona_creada', 'zonas', { nombre: zona.nombre });
         }
 
-        function saveConfig() {
-            localData.restaurante.nombre = document.getElementById('configNombre').value;
-            localData.restaurante.descripcion = document.getElementById('configDescripcion').value;
-            localData.restaurante.telefono = document.getElementById('configTelefono').value;
-            localData.restaurante.email = document.getElementById('configEmail').value;
-            localData.restaurante.direccion = document.getElementById('configDireccion').value;
-            alert('Configuración guardada');
-            logAccion('config_modificada', 'configuracion', { campo: 'datos_generales' });
+        async function saveConfig() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) { alert('No hay empresa seleccionada'); return; }
+            const updates = {
+                nombre: document.getElementById('configNombre').value,
+                telefono: document.getElementById('configTelefono').value,
+                email: document.getElementById('configEmail').value,
+                direccion: document.getElementById('configDireccion').value,
+                codigo_interno: document.getElementById('configCodigo').value.trim().toUpperCase()
+            };
+            try {
+                const { error } = await sb.from('empresas').update(updates).eq('id', empresaId);
+                if (error) throw error;
+                Object.assign(localData.restaurante, updates);
+                alert('Configuración guardada');
+                logAccion('config_modificada', 'configuracion', updates);
+            } catch (err) {
+                console.error('Error saving config:', err);
+                alert('Error al guardar: ' + err.message);
+            }
+        }
+
+        function generarCodigo() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            document.getElementById('configCodigo').value = code;
+        }
+
+        const MODULOS = ['dashboard','productos','pedidos','mesas','inventario','clientes','empleados','zonas','facturacion','auditoria','config','propinas'];
+        const MODULOS_LABELS = {dashboard:'Dashboard',productos:'Productos',pedidos:'Pedidos',mesas:'Mesas',inventario:'Inventario',clientes:'Clientes',empleados:'Empleados',zonas:'Zonas',facturacion:'Facturación',auditoria:'Auditoría',config:'Configuración',propinas:'Propinas'};
+        const ROLES = ['cajero','cocinero','camarero','delivery','vendedor','encargado'];
+        let permisosData = {};
+
+        async function loadPermisos() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            try {
+                const { data, error } = await sb.from('permisos_roles').select('*').eq('empresa_id', empresaId);
+                if (error) throw error;
+                permisosData = {};
+                ROLES.forEach(r => permisosData[r] = {});
+                (data||[]).forEach(p => {
+                    if (!permisosData[p.rol]) permisosData[p.rol] = {};
+                    permisosData[p.rol][p.modulo] = p.activo;
+                });
+                renderPermisosGrid();
+            } catch (err) {
+                console.error('Error loading permisos:', err);
+                renderPermisosGrid();
+            }
+        }
+
+        function renderPermisosGrid() {
+            const grid = document.getElementById('permisosGrid');
+            if (!grid) return;
+            let html = '<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);color:var(--text2);font-size:12px">Módulo</th>';
+            ROLES.forEach(r => {
+                html += `<th style="text-align:center;padding:8px;border-bottom:1px solid var(--border);color:var(--text2);font-size:11px;text-transform:uppercase">${r}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            MODULOS.forEach(m => {
+                html += `<tr><td style="padding:8px;border-bottom:1px solid var(--border);font-size:13px">${MODULOS_LABELS[m]||m}</td>`;
+                ROLES.forEach(r => {
+                    const checked = permisosData[r] && permisosData[r][m] !== false;
+                    html += `<td style="text-align:center;padding:8px;border-bottom:1px solid var(--border)"><input type="checkbox" ${checked?'checked':''} onchange="togglePermiso('${r}','${m}',this.checked)" style="accent-color:var(--accent)"></td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            grid.innerHTML = html;
+        }
+
+        function togglePermiso(rol, modulo, activo) {
+            if (!permisosData[rol]) permisosData[rol] = {};
+            permisosData[rol][modulo] = activo;
+        }
+
+        async function savePermisos() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            try {
+                // borrar los viejos
+                await sb.from('permisos_roles').delete().eq('empresa_id', empresaId);
+                // insertar los nuevos
+                const rows = [];
+                ROLES.forEach(r => {
+                    MODULOS.forEach(m => {
+                        const activo = permisosData[r] && permisosData[r][m] !== false;
+                        rows.push({ empresa_id: empresaId, rol: r, modulo: m, activo });
+                    });
+                });
+                const { error } = await sb.from('permisos_roles').insert(rows);
+                if (error) throw error;
+                alert('Permisos guardados');
+                logAccion('permisos_modificados', 'configuracion', { roles: ROLES.length, modulos: MODULOS.length });
+            } catch (err) {
+                console.error('Error saving permisos:', err);
+                alert('Error al guardar permisos: ' + err.message);
+            }
         }
 
         async function updatePedidoEstado(id, currentEstado) {
@@ -2370,7 +2421,15 @@
                     document.getElementById('headerRestaurantName').textContent = emp.nombre;
 
                     loadDashboard();
+                    filterSidebar();
+                } else {
+                    document.getElementById('loginContainer').style.display = 'block';
+                    document.getElementById('loginError').textContent = 'Tu cuenta no tiene restaurante asociado. Creá uno desde la app.';
                 }
+            } else {
+                // Sin sesión: mostrar login deshabilitado con mensaje
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginError').textContent = 'Entrá desde login.html con tu cuenta de dueño';
             }
         })();
     </script>
