@@ -986,6 +986,22 @@
         </div>
     </div>
 
+    <!-- MODAL PEDIDO DETALLE -->
+    <div class="modal" id="modal-pedido">
+        <div class="modal-content" style="max-width:600px">
+            <div class="modal-header">
+                <h3 id="pedidoDetalleTitle">Pedido #</h3>
+                <button class="modal-close" onclick="closeModal('pedido')">&times;</button>
+            </div>
+            <div id="pedidoDetalleBody" style="font-size:13px;line-height:1.6"></div>
+            <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+                <button class="btn-primary" style="background:var(--danger)" onclick="borrarPedidoDetalle()"><i class="fas fa-trash"></i> Borrar pedido</button>
+                <select id="pedidoEstadoSelect" style="flex:1;padding:8px;border-radius:6px;background:var(--bg3);color:var(--text);border:1px solid var(--border)"><option value="recibido">Recibido</option><option value="preparando">Preparando</option><option value="listo">Listo</option><option value="en_camino">En camino</option><option value="entregado">Entregado</option><option value="cancelado">Cancelado</option></select>
+                <button class="btn-primary" onclick="cambiarEstadoPedidoDetalle()">Cambiar estado</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // =============================================
         // SUPABASE CONFIG
@@ -1487,22 +1503,8 @@
                     <td>$${(p.total || 0).toLocaleString()}</td>
                     <td>${metodo}</td>
                     <td><span class="badge badge-${getEstadoColor(p.estado)}">${p.estado}</span></td>
-                    <td style="display:flex;gap:4px">
-                        <button class="btn-primary" style="padding: 5px 8px; font-size: 11px;" onclick="updatePedidoEstado('${p.id}', '${p.estado}')" title="Avanzar estado">
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
-                        <button style="padding:5px 8px;font-size:11px;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer" onclick="borrarPedido('${p.id}')" title="Borrar pedido">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <select onchange="cambiarEstadoPedido('${p.id}', this.value)" style="font-size:11px;padding:4px;border-radius:4px;background:var(--bg3);color:var(--text);border:1px solid var(--border)">
-                            <option value="">Cambiar...</option>
-                            <option value="recibido">Recibido</option>
-                            <option value="preparando">Preparando</option>
-                            <option value="listo">Listo</option>
-                            <option value="en_camino">En camino</option>
-                            <option value="entregado">Entregado</option>
-                            <option value="cancelado">Cancelado</option>
-                        </select>
+                    <td>
+                        <button class="btn-primary" style="padding:5px 10px;font-size:11px" onclick="verPedidoDetalle('${p.id}')"><i class="fas fa-eye"></i> Ver</button>
                     </td>
                 </tr>
             `}).join('');
@@ -2178,6 +2180,28 @@
                 loadPedidos(); loadDashboard();
             } catch(e) { alert('Error: '+e.message); }
         }
+        let pedidoDetalleId = null;
+        function verPedidoDetalle(id) {
+            const p = localData.pedidos.find(x=>x.id===id);
+            if (!p) return;
+            pedidoDetalleId = id;
+            let items=[]; try{items=JSON.parse(p.items||'[]')}catch(e){}
+            const propinaInfo = p.metodo_pago==='tarjeta_app' ? '<br>Propina: ver en Propinas (si dejó con tarjeta)' : '';
+            document.getElementById('pedidoDetalleTitle').textContent = 'Pedido #'+(p.numero||p.id.substring(0,8))+' - '+p.estado;
+            document.getElementById('pedidoDetalleBody').innerHTML = `
+                <p><b>Cliente:</b> ${p.cliente_nombre||'-'}</p>
+                <p><b>Mesa:</b> ${p.mesa_numero? '#'+p.mesa_numero : p.tipo_entrega} ${p.direccion_entrega? ' - '+p.direccion_entrega : ''}</p>
+                <p><b>Estado:</b> ${p.estado} | <b>Pago:</b> ${p.metodo_pago||'-'} (${p.metodo_pago_estado||'pendiente'}) ${propinaInfo}</p>
+                <p><b>Total:</b> $${(p.total||0).toLocaleString()} | <b>Items:</b> ${items.length}</p>
+                <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">${items.map(i=>`<div>${i.nombre||i.cantidad} x${i.cantidad||1} - $${i.precio||i.subtotal||''}</div>`).join('') || '<i>Sin detalle</i>'}</div>
+                ${p.notas? `<p style="margin-top:8px;color:var(--text2)"><b>Notas:</b> ${p.notas}</p>`:''}
+                <p style="font-size:11px;color:var(--text2);margin-top:8px">Creado: ${new Date(p.created_at).toLocaleString()}</p>
+            `;
+            document.getElementById('pedidoEstadoSelect').value = p.estado;
+            showModal('pedido');
+        }
+        function borrarPedidoDetalle(){ if(pedidoDetalleId){ borrarPedido(pedidoDetalleId); closeModal('pedido'); } }
+        function cambiarEstadoPedidoDetalle(){ const v=document.getElementById('pedidoEstadoSelect').value; if(pedidoDetalleId&&v){ cambiarEstadoPedido(pedidoDetalleId, v); setTimeout(()=>verPedidoDetalle(pedidoDetalleId),400); } }
         async function borrarDemo() {
             if (!confirm('¿Borrar TODOS los pedidos demo, facturación y propinas de esta empresa?')) return;
             const empresaId = localData.currentUser?.empresa_id;
