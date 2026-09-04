@@ -661,8 +661,11 @@
                     updatePresence(false);
                 }
             });
-            window.addEventListener('beforeunload', () => { try{ sbSvc.from('empleados').update({is_online:false, last_seen:new Date().toISOString(), estado:'descanso'}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
-            window.addEventListener('pagehide', () => { try{ sbSvc.from('empleados').update({is_online:false, estado:'descanso'}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
+            const markOfflineBody = JSON.stringify({is_online:false, last_seen:new Date().toISOString(), estado:'descanso'});
+            const markOfflineHeaders = { 'Content-Type': 'application/json', 'apikey': SUPABASE_SERVICE, 'Authorization': 'Bearer ' + SUPABASE_SERVICE, 'Prefer': 'return=minimal' };
+            const markOfflineUrl = 'https://eyfgkopaamnkprzpwocz.supabase.co/rest/v1/empleados?id=eq.' + currentUser.id;
+            window.addEventListener('beforeunload', () => { try{ fetch(markOfflineUrl, { method:'PATCH', headers:markOfflineHeaders, body:markOfflineBody, keepalive:true }); }catch(e){} });
+            window.addEventListener('pagehide', () => { try{ fetch(markOfflineUrl, { method:'PATCH', headers:markOfflineHeaders, body:JSON.stringify({is_online:false, estado:'descanso'}), keepalive:true }); }catch(e){} });
 
             // Load restaurant name from Supabase
             if (currentUser.empresa_id) {
