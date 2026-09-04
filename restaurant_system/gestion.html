@@ -874,11 +874,12 @@
             </div>
             <div class="form-group">
                 <label>Foto</label>
-                <div onclick="document.getElementById('prodFoto').click()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
+                <div onclick="elegirFotoProducto()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
                     <img id="prodFotoPreview" src="" style="display:none;width:100%;height:100%;object-fit:cover">
                     <span id="prodFotoPlaceholder" style="color:var(--text2);font-size:12px">Click para subir foto</span>
                 </div>
                 <input type="file" id="prodFoto" accept="image/*" style="display:none">
+                <input type="file" id="prodFotoCamera" accept="image/*" capture="environment" style="display:none">
             </div>
             <div class="form-group">
                 <label>Precio ($)</label>
@@ -1997,6 +1998,12 @@
             document.getElementById('prodFotoPreview').style.display='block';
             document.getElementById('prodFotoPlaceholder').style.display='none';
         });
+        document.getElementById('prodFotoCamera')?.addEventListener('change', function() {
+            const f = this.files[0]; if (!f) return;
+            document.getElementById('prodFotoPreview').src = URL.createObjectURL(f);
+            document.getElementById('prodFotoPreview').style.display='block';
+            document.getElementById('prodFotoPlaceholder').style.display='none';
+        });
         let editingProductoId = null;
         function editProducto(id) {
             const p = localData.productos.find(x => x.id === id);
@@ -2029,6 +2036,21 @@
             document.getElementById('prodDisponible').value = 'ambas';
             document.getElementById('modal-producto').classList.add('active');
         }
+        function elegirFotoProducto() {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999';
+            modal.innerHTML = `
+                <div style="background:var(--bg2);border-radius:12px;padding:24px;width:280px;text-align:center">
+                    <h3 style="margin:0 0 16px;font-size:16px"><i class="fas fa-camera"></i> Foto del producto</h3>
+                    <button onclick="document.getElementById('prodFotoCamera').click();this.closest('div[style]').parentElement.remove()" style="width:100%;padding:12px;margin-bottom:8px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-size:14px;cursor:pointer"><i class="fas fa-camera"></i> Sacar foto</button>
+                    <button onclick="document.getElementById('prodFoto').click();this.closest('div[style]').parentElement.remove()" style="width:100%;padding:12px;margin-bottom:8px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer"><i class="fas fa-image"></i> Elegir de galería</button>
+                    <button onclick="this.closest('div[style]').parentElement.remove()" style="width:100%;padding:10px;background:transparent;color:var(--text2);border:none;font-size:13px;cursor:pointer">Cancelar</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
         async function saveProducto() {
             let catVal = document.getElementById('prodCategoria').value;
             let catNombre = document.getElementById('prodCategoria').selectedOptions[0]?.textContent || catVal;
