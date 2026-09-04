@@ -1587,19 +1587,29 @@
 
                 // Render active employees
                 document.getElementById('empleadosTable').innerHTML = localData.empleados.filter(e => e.activo).map(e => {
+                    // Si no recibe heartbeat en 15 segundos, marcar como desconectado
+                    const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
+                    const diffSec = lastSeen ? Math.floor((Date.now() - lastSeen.getTime()) / 1000) : 9999;
+                    const estaVivo = diffSec < 15;
+                    
                     let statusHtml = '';
-                    switch(e.estado) {
-                        case 'trabajando':
-                            statusHtml = '<span style="color:#22c55e;font-weight:600">● Trabajando</span>';
-                            break;
-                        case 'espera':
-                            statusHtml = '<span style="color:#eab308;font-weight:600">● En espera</span>';
-                            break;
-                        case 'descanso':
-                            statusHtml = '<span style="color:#6b7280">● Descanso</span>';
-                            break;
-                        default:
-                            statusHtml = '<span style="color:#6b7280">● Desconectado</span>';
+                    if (!estaVivo) {
+                        // Sin heartbeat = desconectado sin importar el estado
+                        statusHtml = '<span style="color:#6b7280;font-weight:600">● Desconectado</span>';
+                    } else {
+                        switch(e.estado) {
+                            case 'trabajando':
+                                statusHtml = '<span style="color:#22c55e;font-weight:600">● Trabajando</span>';
+                                break;
+                            case 'espera':
+                                statusHtml = '<span style="color:#eab308;font-weight:600">● En espera</span>';
+                                break;
+                            case 'descanso':
+                                statusHtml = '<span style="color:#6b7280">● Descanso</span>';
+                                break;
+                            default:
+                                statusHtml = '<span style="color:#6b7280">● Desconectado</span>';
+                        }
                     }
                     return `
                     <tr>
