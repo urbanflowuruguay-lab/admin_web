@@ -659,10 +659,14 @@
         }
         async function registrarFichaje(user, tipo){
             try{
-                await sb.from('fichajes').insert({ empleado_id:user.id, empresa_id:user.empresa_id, tipo:tipo, rol:user.rol, estado:'pendiente' });
+                const now = new Date().toISOString();
+                const payload = { empresa_id:user.empresa_id, usuario_id:user.id, nombre:user.nombre };
+                if(tipo==='entrada') payload.entrada = now;
+                else payload.salida = now;
+                await sb.from('fichajes').insert(payload);
                 const key='fichajes_'+user.empresa_id;
                 const arr=JSON.parse(localStorage.getItem(key)||'[]');
-                arr.push({empleado_id:user.id, nombre:user.nombre, rol:user.rol, tipo, fecha:new Date().toISOString(), estado:'pendiente'});
+                arr.push({usuario_id:user.id, nombre:user.nombre, tipo, fecha:now});
                 localStorage.setItem(key, JSON.stringify(arr));
             }catch(e){ console.log('fichaje',e); }
         }
