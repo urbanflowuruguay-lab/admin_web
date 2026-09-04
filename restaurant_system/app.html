@@ -481,8 +481,29 @@
             const token = params.get('token');
             const empresaId = params.get('empresa');
             
-            // Guardar empresa_id si viene en URL
             if (empresaId) localStorage.setItem('urbanflow_empresa_id', empresaId);
+
+            // Auto-login desde localStorage
+            const saved = localStorage.getItem('urbanflow_employee');
+            if (saved && !token) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    const { data: empData, error } = await sbSvc.from('empleados')
+                        .select('*').eq('id', parsed.id).eq('activo', true).limit(1);
+                    if (!error && empData && empData.length > 0) {
+                        const emp = empData[0];
+                        currentUser = {
+                            id: emp.id, nombre: emp.nombre, pin: emp.pin,
+                            rol: emp.rol, emoji: emp.emoji || '👤',
+                            empresa_id: emp.empresa_id, foto_url: emp.foto_url || ''
+                        };
+                        document.getElementById('pendingScreen').style.display = 'none';
+                        document.getElementById('app').style.display = 'block';
+                        initApp();
+                        return;
+                    }
+                } catch(e) {}
+            }
             
             if (token) {
                 try {
@@ -509,6 +530,7 @@
                         
                         document.getElementById('pendingScreen').style.display = 'none';
                         document.getElementById('app').style.display = 'block';
+                        localStorage.setItem('urbanflow_employee', JSON.stringify(currentUser));
                         initApp();
                         return;
                     }
@@ -575,6 +597,7 @@
             
             document.getElementById('pendingScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
+            localStorage.setItem('urbanflow_employee', JSON.stringify(currentUser));
             initApp();
         }
 
@@ -649,6 +672,7 @@
                     currentUser={...emp, rol:r, roles:roles};
                     sel.style.display='none';
                     document.getElementById('app').style.display='block';
+                    localStorage.setItem('urbanflow_employee', JSON.stringify(currentUser));
                     initApp();
                 };
                 cont.appendChild(btn);
@@ -1113,7 +1137,7 @@
                         <i class="fas fa-key"></i> Cambiar mi contraseña
                     </button>
                     <button class="clock-btn exit" onclick="logout()" style="font-size: 14px; padding: 12px; width: 100%;">
-                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        <i class="fas fa-sign-out-alt"></i> Salir
                     </button>
                 </div>
             `;
@@ -1213,7 +1237,9 @@
         }
 
         function logout() {
-            if (confirm('¿Cerrar sesión?')) {
+            if (confirm('¿Salir?')) {
+                registrarFichaje(currentUser, 'desconectado');
+                localStorage.removeItem('urbanflow_employee');
                 window.location.href = window.location.pathname;
             }
         }
