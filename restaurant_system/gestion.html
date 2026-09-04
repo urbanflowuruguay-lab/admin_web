@@ -529,6 +529,13 @@
                             <i class="fas fa-plus"></i> Nuevo Empleado
                         </button>
                     </div>
+                    
+                    <!-- Empleados pendientes de activación -->
+                    <div class="card" id="pendientesCard" style="display:none;margin-bottom:16px;border-left:4px solid var(--accent)">
+                        <h3 class="card-title" style="margin-bottom:12px"><i class="fas fa-user-clock"></i> Pendientes de Activación</h3>
+                        <div id="pendientesList"></div>
+                    </div>
+
                     <div class="card">
                         <div class="table-container">
                             <table>
@@ -536,7 +543,6 @@
                                     <tr>
                                         <th>Nombre</th>
                                         <th>Roles</th>
-                                        <th>PIN</th>
                                         <th>Estado</th>
                                         <th>Conectado</th>
                                         <th>Acciones</th>
@@ -1551,7 +1557,33 @@
         }
 
         function renderEmpleadosTable() {
-                document.getElementById('empleadosTable').innerHTML = localData.empleados.map(e => {
+                // Render pending employees
+                const pendientes = localData.empleados.filter(e => !e.activo && (!e.roles || e.roles.length === 0));
+                const card = document.getElementById('pendientesCard');
+                if (pendientes.length > 0) {
+                    card.style.display = 'block';
+                    document.getElementById('pendientesList').innerHTML = pendientes.map(e => `
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid var(--border)">
+                            <div>
+                                <strong>${e.nombre}</strong>
+                                <span style="color:var(--text2);font-size:12px;margin-left:8px">Sin roles asignados</span>
+                            </div>
+                            <div style="display:flex;gap:6px">
+                                <button class="btn-primary" style="padding:5px 10px;font-size:12px" onclick="activarEmpleado('${e.id}')">
+                                    <i class="fas fa-user-check"></i> Activar
+                                </button>
+                                <button class="btn-danger" style="padding:5px 10px;font-size:12px" onclick="deleteEmpleado('${e.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    card.style.display = 'none';
+                }
+
+                // Render active employees
+                document.getElementById('empleadosTable').innerHTML = localData.empleados.filter(e => e.activo || (e.roles && e.roles.length > 0)).map(e => {
                     const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
                     const now = new Date();
                     const diffSec = lastSeen ? Math.floor((now - lastSeen) / 1000) : 9999;
@@ -1568,8 +1600,7 @@
                     return `
                     <tr>
                         <td><strong>${e.nombre}</strong></td>
-                        <td>${e.roles.map(r => r.replace('rol_', '')).join(', ')}</td>
-                        <td>••••</td>
+                        <td>${(e.roles||[]).map(r => r.replace('rol_', '')).join(', ') || '<em style="color:var(--text2)">Sin roles</em>'}</td>
                         <td><span class="badge ${e.activo ? 'badge-success' : 'badge-danger'}">${e.activo ? 'Activo' : 'Inactivo'}</span></td>
                         <td>${statusHtml}</td>
                         <td style="display:flex;gap:4px">
@@ -1585,6 +1616,43 @@
                         </td>
                     </tr>`;
                 }).join('');
+        }
+
+        async function activarEmpleado(id) {
+            const emp = localData.empleados.find(e => e.id === id);
+            if (!emp) return;
+            
+            // Pedir roles
+            const rolesDisponibles = ['rol_cajero', 'rol_cocinero', 'rol_mozo', 'rol_delivery', 'rol_encargado'];
+            const input = prompt('Escribí los roles separados por coma:\n' + rolesDisponibles.map(r => r.replace('rol_', '')).join(', '));
+            if (!input) return;
+            
+            const rolesSeleccionados = input.split(',').map(r => {
+                r = r.trim().toLowerCase();
+                if (!r.startsWith('rol_')) r = 'rol_' + r;
+                return r;
+            }).filter(r => rolesDisponibles.includes(r));
+            
+            if (rolesSeleccionados.length === 0) {
+                alert('No se reconoció ningún rol válido');
+                return;
+            }
+            
+            const { error } = await sbService.from('empleados').update({
+                activo: true,
+                roles: rolesSeleccionados,
+                rol: rolesSeleccionados[0]
+            }).eq('id', id);
+            
+            if (error) {
+                alert('Error: ' + error.message);
+                return;
+            }
+            
+            emp.activo = true;
+            emp.roles = rolesSeleccionados;
+            emp.rol = rolesSeleccionados[0];
+            renderEmpleadosTable();
         }
 
         function loadZonas() {
@@ -2078,19 +2146,36 @@
             const emp = localData.empleados.find(e => e.id === id);
             if (!emp) return;
 
-            const newRol = prompt('Nuevo rol (Cajero/Cocinero/Delivery/Vendedor/Encargado):', emp.roles[0].replace('rol_', ''));
-            if (newRol === null) return;
+            const rolesDisponibles = ['rol_cajero', 'rol_cocinero', 'rol_mozo', 'rol_delivery', 'rol_encargado'];
+            const actuales = (emp.roles || []).map(r => r.replace('rol_', '')).join(', ');
+            const input = prompt('Roles actuales: ' + actuales + '\n\nEscribí los roles separados por coma:', actuales);
+            if (input === null) return;
+            
+            const rolesSeleccionados = input.split(',').map(r => {
+                r = r.trim().toLowerCase();
+                if (!r.startsWith('rol_')) r = 'rol_' + r;
+                return r;
+            }).filter(r => rolesDisponibles.includes(r));
+            
+            if (rolesSeleccionados.length === 0) {
+                alert('No se reconoció ningún rol válido');
+                return;
+            }
 
             try {
-                const { error } = await sb.from('empleados').update({
-                    rol: newRol
+                const { error } = await sbService.from('empleados').update({
+                    roles: rolesSeleccionados,
+                    rol: rolesSeleccionados[0],
+                    activo: true
                 }).eq('id', id);
 
                 if (error) throw error;
 
-                emp.roles = ['rol_' + newRol];
+                emp.roles = rolesSeleccionados;
+                emp.rol = rolesSeleccionados[0];
+                emp.activo = true;
                 loadEmpleados();
-                logAccion('empleado_editado', 'empleados', { id: id, rol: newRol });
+                logAccion('empleado_editado', 'empleados', { id: id, roles: rolesSeleccionados });
                 alert('Empleado actualizado');
             } catch (err) {
                 console.error('Error updating employee:', err);
