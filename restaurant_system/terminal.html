@@ -225,9 +225,12 @@
             }
             // cargar nombre del restaurante
             try {
-                const { data: empData } = await sb.from('empresas').select('nombre').eq('id', empresaId).maybeSingle();
-                if (empData && empData.nombre) {
-                    document.getElementById('terminalTitle').innerHTML = `<i class="fas fa-store"></i> ${empData.nombre} - Terminal de Empleados`;
+                const { data: empData } = await sb.from('empresas').select('*').eq('id', empresaId).maybeSingle();
+                if (empData) {
+                    localData.empresa = empData;
+                    if (empData.nombre) {
+                        document.getElementById('terminalTitle').innerHTML = `<i class="fas fa-store"></i> ${empData.nombre} - Terminal de Empleados`;
+                    }
                 }
             } catch(e) {}
 
@@ -359,8 +362,8 @@
         setInterval(loadEmployees, 30000);
 
         function renderSingleQR() {
-            // QR ultra simple: solo la app, sin empresa en URL (se resuelve por PIN)
-            const singleUrl = baseUrl;
+            const empresaId = localData.empresa?.id || '';
+            const singleUrl = empresaId ? baseUrl + '?empresa=' + empresaId : baseUrl;
             const container = document.getElementById('singleQR');
             const urlEl = document.getElementById('singleQRUrl');
             if (!container) return;
