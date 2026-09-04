@@ -660,14 +660,13 @@
         async function registrarFichaje(user, tipo){
             try{
                 const now = new Date().toISOString();
-                const payload = { empresa_id:user.empresa_id, usuario_id:user.id, nombre:user.nombre };
-                if(tipo==='entrada') payload.entrada = now;
-                else payload.salida = now;
-                await sbSvc.from('fichajes').insert(payload);
-                const key='fichajes_'+user.empresa_id;
-                const arr=JSON.parse(localStorage.getItem(key)||'[]');
-                arr.push({usuario_id:user.id, nombre:user.nombre, tipo, fecha:now});
-                localStorage.setItem(key, JSON.stringify(arr));
+                const update = {};
+                if(tipo==='entrada') update.entrada = now;
+                else update.salida = now;
+                update.nombre = user.nombre;
+                update.empresa_id = user.empresa_id;
+                const {error} = await sbSvc.from('fichajes').upsert({usuario_id:user.id, empresa_id:user.empresa_id, nombre:user.nombre, ...update}, {onConflict:'usuario_id'});
+                if(error) console.log('fichaje upsert error:', error);
             }catch(e){ console.log('fichaje',e); }
         }
         async function initApp() {
