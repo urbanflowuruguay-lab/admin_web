@@ -663,7 +663,7 @@
                 const payload = { empresa_id:user.empresa_id, usuario_id:user.id, nombre:user.nombre };
                 if(tipo==='entrada') payload.entrada = now;
                 else payload.salida = now;
-                await sb.from('fichajes').insert(payload);
+                await sbSvc.from('fichajes').insert(payload);
                 const key='fichajes_'+user.empresa_id;
                 const arr=JSON.parse(localStorage.getItem(key)||'[]');
                 arr.push({usuario_id:user.id, nombre:user.nombre, tipo, fecha:now});
