@@ -2289,32 +2289,23 @@
             try{
                 const desde = document.getElementById('movFechaDesde').value;
                 const hasta = document.getElementById('movFechaHasta').value;
-                let q = sb.from('fichajes').select('*').eq('empresa_id', empresaId).order('entrada', {ascending:false}).limit(200);
-                if(desde) q = q.gte('entrada', desde+'T00:00:00');
-                if(hasta) q = q.lte('entrada', hasta+'T23:59:59');
+                let q = sb.from('fichajes_historial').select('*').eq('empresa_id', empresaId).order('fecha', {ascending:false}).limit(200);
+                if(desde) q = q.gte('fecha', desde+'T00:00:00');
+                if(hasta) q = q.lte('fecha', hasta+'T23:59:59');
                 const {data, error} = await q;
                 if(error) throw error;
                 if(!data || !data.length){
                     el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text2)"><i class="fas fa-inbox" style="font-size:24px;display:block;margin-bottom:8px"></i>No hay movimientos registrados</div>';
                     return;
                 }
-                el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:8px 6px;color:var(--text2)">Empleado</th><th style="text-align:left;padding:8px 6px;color:var(--text2)">Tipo</th><th style="text-align:left;padding:8px 6px;color:var(--text2)">Entrada</th><th style="text-align:left;padding:8px 6px;color:var(--text2)">Salida</th><th style="text-align:left;padding:8px 6px;color:var(--text2)">Duración</th></tr></thead><tbody>'+
+                el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:8px 6px;color:var(--text2)">Empleado</th><th style="text-align:left;padding:8px 6px;color:var(--text2)">Tipo</th><th style="text-align:left;padding:8px 6px;color:var(--text2)">Fecha y Hora</th></tr></thead><tbody>'+
                 data.map(f=>{
-                    const ent = f.entrada ? new Date(f.entrada) : null;
-                    const sal = f.salida ? new Date(f.salida) : null;
-                    const fmt = d => d ? d.toLocaleDateString('es-UY')+' '+d.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
-                    let dur = '—';
-                    if(ent && sal){
-                        const diff = Math.floor((sal - ent)/1000);
-                        const h = Math.floor(diff/3600);
-                        const m = Math.floor((diff%3600)/60);
-                        const s = diff%60;
-                        dur = (h>0?h+'h ':'')+(m>0?m+'m ':'')+s+'s';
-                    }
-                    const tipoColor = '#22c55e';
-                    const tipoIcon = f.entrada && !f.salida ? 'fa-arrow-right' : 'fa-arrow-left';
-                    const tipoText = f.entrada && !f.salida ? 'Entrada' : (f.salida ? 'Salida' : '—');
-                    return `<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 6px;font-weight:600">${f.nombre||'—'}</td><td style="padding:8px 6px"><span style="color:${tipoColor}"><i class="fas ${tipoIcon}" style="margin-right:4px"></i>${tipoText}</span></td><td style="padding:8px 6px">${fmt(ent)}</td><td style="padding:8px 6px">${fmt(sal)}</td><td style="padding:8px 6px;font-weight:600">${dur}</td></tr>`;
+                    const d = new Date(f.fecha);
+                    const fmt = d.toLocaleDateString('es-UY')+' '+d.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+                    const color = f.tipo==='entrada' ? '#22c55e' : '#ef4444';
+                    const icon = f.tipo==='entrada' ? 'fa-arrow-right' : 'fa-arrow-left';
+                    const text = f.tipo==='entrada' ? 'Entrada' : 'Salida';
+                    return `<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 6px;font-weight:600">${f.nombre||'—'}</td><td style="padding:8px 6px"><span style="color:${color}"><i class="fas ${icon}" style="margin-right:4px"></i>${text}</span></td><td style="padding:8px 6px">${fmt}</td></tr>`;
                 }).join('')+'</tbody></table>';
             }catch(e){
                 el.innerHTML = '<div style="text-align:center;padding:16px;color:#ef4444">Error: '+e.message+'</div>';
