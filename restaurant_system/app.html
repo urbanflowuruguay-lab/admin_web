@@ -349,7 +349,7 @@
             if (!currentUser || !currentUser.empresa_id) return;
 
             try {
-                const { data, error } = await sb.from('pedidos')
+                const { data, error } = await sbSvc.from('pedidos')
                     .select('*')
                     .eq('empresa_id', currentUser.empresa_id)
                     .in('estado', ['recibido', 'preparando', 'listo'])
@@ -888,7 +888,7 @@
 
             container.innerHTML = pedidosCocina.map(p => {
                 let items=[]; try{ items = typeof p.items==='string' ? JSON.parse(p.items) : p.items; }catch(e){ items=p.items||[]; }
-                const mesa = p.mesa_numero ? `Mesa ${p.mesa_numero}` : (p.tipo_entrega||'');
+                const mesa = p.mesa ? `Mesa ${p.mesa}` : 'Delivery';
                 return `
                 <div class="order-card" onclick="this.querySelector('.order-detail').style.display=this.querySelector('.order-detail').style.display==='none'?'block':'none'" style="cursor:pointer">
                     <div class="order-header">
@@ -916,7 +916,7 @@
 
         async function updateEstado(pedidoId, nuevoEstado) {
             try {
-                const { error } = await sb.from('pedidos')
+                const { error } = await sbSvc.from('pedidos')
                     .update({ estado: nuevoEstado })
                     .eq('id', pedidoId);
 
@@ -984,7 +984,7 @@
             const container = document.getElementById('content-delivery');
             if (!container) return;
 
-            if (currentUser.rol !== 'Delivery') {
+            if (currentUser.rol?.toLowerCase() !== 'delivery') {
                 container.innerHTML = '<div class="empty"><i class="fas fa-motorcycle"></i><p>Solo para delivery</p></div>';
                 return;
             }
@@ -992,19 +992,16 @@
             container.innerHTML = deliveries.map(d => `
                 <div class="delivery-card">
                     <div class="order-header">
-                        <span class="order-number">Pedido #${d.pedido}</span>
+                        <span class="order-number">Pedido #${d.numero || d.id?.substring(0,4)}</span>
                         <span class="order-badge badge-${d.estado === 'listo' ? 'listo' : 'preparando'}">
                             ${d.estado === 'listo' ? 'LISTO PARA RECOGER' : 'EN CAMINO'}
                         </span>
                     </div>
                     <div class="delivery-address">
-                        <i class="fas fa-map-marker-alt"></i> ${d.direccion}
+                        <i class="fas fa-map-marker-alt"></i> ${d.notas || 'Sin dirección'}
                     </div>
                     <div class="order-items">
-                        ${d.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty}</span></div>`).join('')}
-                    </div>
-                    <div class="delivery-map">
-                        <i class="fas fa-map"></i> Ver mapa
+                        ${d.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
                     </div>
                     <div class="order-actions">
                         ${d.estado === 'listo' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
@@ -1016,7 +1013,7 @@
 
         async function updateDelivery(deliveryId, nuevoEstado) {
             try {
-                const { error } = await sb.from('pedidos')
+                const { error } = await sbSvc.from('pedidos')
                     .update({ estado: nuevoEstado })
                     .eq('id', deliveryId);
 
