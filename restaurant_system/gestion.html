@@ -2592,8 +2592,15 @@
             }
         }).subscribe();
 
-        // Auto-login: empresa_id desde login.html
+        // Auto-login: empresa_id desde login.html o URL
         (async () => {
+            // Si viene ?empresa= en la URL, guardarlo en localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlEmpresa = urlParams.get('empresa');
+            if (urlEmpresa) {
+                localStorage.setItem('urbanflow_empresa_id', urlEmpresa);
+            }
+
             const empId = localStorage.getItem('urbanflow_empresa_id');
             if (!empId) {
                 document.getElementById('loadingMsg').textContent = 'Sin sesión. Redirigiendo...';
