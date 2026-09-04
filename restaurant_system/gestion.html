@@ -567,10 +567,13 @@
                     <div class="card" style="margin-top:16px;border-left:4px solid var(--accent)">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
                             <h3 class="card-title" style="margin:0"><i class="fas fa-clock"></i> Movimientos de Personal</h3>
-                            <div style="display:flex;gap:6px;align-items:center">
+                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                                 <input type="date" id="movFechaDesde" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-size:12px">
                                 <input type="date" id="movFechaHasta" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-size:12px">
                                 <button class="btn-primary" style="padding:6px 10px;font-size:12px" onclick="loadMovimientos()"><i class="fas fa-search"></i></button>
+                                <button class="btn-primary" style="padding:6px 10px;font-size:12px;background:#6366f1" onclick="exportarMovimientos()"><i class="fas fa-download"></i> Exportar</button>
+                                <button class="btn-primary" style="padding:6px 10px;font-size:12px;background:#8b5cf6" onclick="guardarEnCarpeta()"><i class="fas fa-folder-open"></i> Guardar</button>
+                                <button class="btn-danger" style="padding:6px 10px;font-size:12px" onclick="borrarMovimientos()"><i class="fas fa-trash"></i> Borrar</button>
                             </div>
                         </div>
                         <div id="movimientosList" style="max-height:300px;overflow-y:auto"></div>
@@ -2309,6 +2312,86 @@
                 }).join('')+'</tbody></table>';
             }catch(e){
                 el.innerHTML = '<div style="text-align:center;padding:16px;color:#ef4444">Error: '+e.message+'</div>';
+            }
+        }
+
+        function exportarMovimientos(){
+            const empresaId = localData.currentUser?.empresa_id;
+            if(!empresaId) return;
+            const desde = document.getElementById('movFechaDesde').value;
+            const hasta = document.getElementById('movFechaHasta').value;
+            let q = sb.from('fichajes_historial').select('*').eq('empresa_id', empresaId).order('fecha', {ascending:false}).limit(500);
+            if(desde) q = q.gte('fecha', desde+'T00:00:00');
+            if(hasta) q = q.lte('fecha', hasta+'T23:59:59');
+            q.then(({data, error}) => {
+                if(error || !data || !data.length){ alert('No hay datos para exportar'); return; }
+                let csv = 'Empleado,Tipo,Fecha\n';
+                data.forEach(f => {
+                    const d = new Date(f.fecha);
+                    const fecha = d.toLocaleDateString('es-UY')+' '+d.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+                    csv += `"${f.nombre||''}","${f.tipo}","${fecha}"\n`;
+                });
+                const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'fichajes_'+new Date().toISOString().slice(0,10)+'.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        async function guardarEnCarpeta(){
+            const empresaId = localData.currentUser?.empresa_id;
+            if(!empresaId) return;
+            if(!window.showDirectoryPicker){
+                alert('Guardar en carpeta solo funciona en Chrome/Edge desktop. Usá Exportar para descargar el archivo.');
+                return;
+            }
+            try{
+                const dirHandle = await window.showDirectoryPicker();
+                const desde = document.getElementById('movFechaDesde').value;
+                const hasta = document.getElementById('movFechaHasta').value;
+                let q = sb.from('fichajes_historial').select('*').eq('empresa_id', empresaId).order('fecha', {ascending:false}).limit(500);
+                if(desde) q = q.gte('fecha', desde+'T00:00:00');
+                if(hasta) q = q.lte('fecha', hasta+'T23:59:59');
+                const {data, error} = await q;
+                if(error || !data || !data.length){ alert('No hay datos para guardar'); return; }
+                let csv = 'Empleado,Tipo,Fecha\n';
+                data.forEach(f => {
+                    const d = new Date(f.fecha);
+                    const fecha = d.toLocaleDateString('es-UY')+' '+d.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+                    csv += `"${f.nombre||''}","${f.tipo}","${fecha}"\n`;
+                });
+                const fileName = 'fichajes_'+new Date().toISOString().slice(0,10)+'.csv';
+                const fileHandle = await dirHandle.getFileHandle(fileName, {create:true});
+                const writable = await fileHandle.createWritable();
+                await writable.write(csv);
+                await writable.close();
+                alert('Guardado: '+fileName);
+            }catch(e){
+                if(e.name !== 'AbortError') alert('Error al guardar: '+e.message);
+            }
+        }
+
+        async function borrarMovimientos(){
+            const empresaId = localData.currentUser?.empresa_id;
+            if(!empresaId) return;
+            const desde = document.getElementById('movFechaDesde').value;
+            const hasta = document.getElementById('movFechaHasta').value;
+            let msg = '¿Borrar TODOS los movimientos de personal?';
+            if(desde || hasta) msg = '¿Borrar movimientos' + (desde?' desde '+desde:'') + (hasta?' hasta '+hasta:'') + '?';
+            if(!confirm(msg)) return;
+            try{
+                let q = sb.from('fichajes_historial').delete().eq('empresa_id', empresaId);
+                if(desde) q = q.gte('fecha', desde+'T00:00:00');
+                if(hasta) q = q.lte('fecha', hasta+'T23:59:59');
+                const {error} = await q;
+                if(error) throw error;
+                loadMovimientos();
+                alert('Movimientos eliminados');
+            }catch(e){
+                alert('Error: '+e.message);
             }
         }
 
