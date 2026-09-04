@@ -1529,7 +1529,7 @@
 
             try {
                 // Load from Supabase
-                const { data, error } = await sb.from('empleados')
+                const { data, error } = await sbService.from('empleados')
                     .select('*')
                     .eq('empresa_id', empresaId)
                     .order('created_at', { ascending: false });
@@ -2540,6 +2540,27 @@
                 const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
                 if (section === 'empleados') loadEmpleados();
             }
+        }, 3000);
+
+        // SIEMPRE refrescar estado online/offline cada 3s (sin importar la sección)
+        setInterval(async () => {
+            if (!localData.currentUser?.empresa_id || localData.empleados.length === 0) return;
+            try {
+                const { data } = await sbService.from('empleados')
+                    .select('id,last_seen,is_online')
+                    .eq('empresa_id', localData.currentUser.empresa_id);
+                if (data) {
+                    data.forEach(d => {
+                        const emp = localData.empleados.find(e => e.id === d.id);
+                        if (emp) {
+                            emp.last_seen = d.last_seen;
+                            emp.is_online = d.is_online;
+                        }
+                    });
+                    const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+                    if (section === 'empleados') renderEmpleadosTable();
+                }
+            } catch(e) {}
         }, 3000);
 
         // Realtime: detectar cambios en empleados (online/offline)
