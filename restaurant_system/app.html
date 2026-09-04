@@ -143,6 +143,7 @@
         }
         .btn-primary { background: var(--accent); color: var(--bg); }
         .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+        .btn-success { background: #22c55e; color: #fff; }
 
         /* DELIVERY */
         .delivery-card {
@@ -750,6 +751,17 @@
             
             // Auto-refresh orders every 15 seconds
             setInterval(loadPedidosFromDB, 15000);
+
+            // Realtime: notificar cuando un pedido cambia de estado
+            sbSvc.channel('pedidos-changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, (payload) => {
+                const NuevoEstado = payload.new?.estado;
+                const pedidoId = payload.new?.id?.substring(0,4);
+                if(NuevoEstado === 'listo'){
+                    playNotificacion();
+                    showToast('Pedido #'+pedidoId+' LISTO para retirar');
+                }
+                loadPedidosFromDB();
+            }).subscribe();
         }
         let presenceInterval = null;
         function startPresenceHeartbeat(){
@@ -764,6 +776,26 @@
         // =============================================
         // CLOCK
         // =============================================
+        function playNotificacion(){
+            try{
+                const ctx = new (window.AudioContext||window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type='sine'; osc.frequency.value=880;
+                gain.gain.value=0.3;
+                osc.start(); osc.stop(ctx.currentTime+0.15);
+                setTimeout(()=>{ const o2=ctx.createOscillator(); const g2=ctx.createGain(); o2.connect(g2); g2.connect(ctx.destination); o2.type='sine'; o2.frequency.value=1100; g2.gain.value=0.3; o2.start(); o2.stop(ctx.currentTime+0.15); }, 200);
+            }catch(e){}
+        }
+        function showToast(msg){
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;z-index:99999;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeIn 0.3s';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(()=>t.remove(), 4000);
+        }
+
         function updateClock() {
             const now = new Date();
             document.getElementById('clockTime').textContent = now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
@@ -822,20 +854,22 @@
             const container = document.getElementById('content-pedidos');
             if (!container) return;
 
-            container.innerHTML = pedidos.map(p => `
-                <div class="order-card">
+            container.innerHTML = pedidos.map(p => {
+                const esListo = p.estado === 'listo';
+                return `
+                <div class="order-card" style="${esListo ? 'border:2px solid #22c55e;box-shadow:0 0 12px rgba(34,197,94,0.3)' : ''}">
                     <div class="order-header">
                         <span class="order-number">#${p.numero} ${p.mesa ? '• Mesa ' + p.mesa : '📱 Delivery'}</span>
                         <span class="order-badge badge-${p.estado === 'nuevo' ? 'nuevo' : p.estado === 'preparando' ? 'preparando' : 'listo'}">
-                            ${p.estado.toUpperCase()}
+                            ${esListo ? '✅ LISTO PARA RETIRAR' : p.estado.toUpperCase()}
                         </span>
                     </div>
                     <div class="order-items">
                         ${p.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
                     </div>
                     <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         // =============================================

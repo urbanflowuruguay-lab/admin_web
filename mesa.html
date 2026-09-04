@@ -628,9 +628,9 @@ async function confirmarPedido() {
         carritoPanelOpen = false;
         document.getElementById("carritoPanel").classList.remove("show");
         document.getElementById("pedidoIdDisplay").textContent = `Pedido de ${nombre}`;
-        document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido se está preparando";
-        document.getElementById("estadoPedido").querySelector(".icon").textContent = "🍳";
-        document.getElementById("estadoPedido").querySelector("p").innerHTML = "Te avisaremos cuando esté listo.<br>Podés seguir pidiendo.";
+        document.getElementById("estadoPedido").querySelector("h2").textContent = "Pedido recibido";
+        document.getElementById("estadoPedido").querySelector(".icon").textContent = "📋";
+        document.getElementById("estadoPedido").querySelector("p").innerHTML = "Tu pedido está en cola.<br>Te avisaremos cuando empiece a prepararse.";
         document.getElementById("estadoPedido").classList.add("show");
         // Poll estado: listo -> avisar que en breve se lleva a la mesa, entregado -> rating
         if (currentPedidoId) {
@@ -638,6 +638,11 @@ async function confirmarPedido() {
             const poll = setInterval(async () => {
                 const { data: ped } = await sb.from("pedidos").select("estado").eq("id", currentPedidoId).maybeSingle();
                 if (!ped) return;
+                if (ped.estado === "preparando" && !avisoListo) {
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido se está preparando";
+                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "👨‍🍳";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "El cocinero está trabajando en tu pedido.";
+                }
                 if (ped.estado === "listo" && !avisoListo) {
                     avisoListo = true;
                     document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido ya está listo!";
