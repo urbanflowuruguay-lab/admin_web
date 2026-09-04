@@ -231,18 +231,12 @@
     <div class="pending-screen" id="pendingScreen">
         <i class="fas fa-user-plus"></i>
         <h2>Crear tu cuenta</h2>
-        <p id="registroSubtext">Escaneaste el QR. Completá tus datos para crear tu cuenta.</p>
+        <p>Poné tu nombre y una contraseña para crear tu cuenta.</p>
         <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;align-items:center;width:280px">
-            <div id="stepCodigo" style="width:100%">
-                <input type="text" id="codigoInput" placeholder="Código interno" maxlength="20" style="padding:12px 16px;font-size:16px;text-align:center;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
-                <button class="clock-btn entry" onclick="verificarCodigo()" style="width:100%;margin-top:8px"><i class="fas fa-arrow-right"></i> CONTINUAR</button>
-            </div>
-            <div id="stepRegistro" style="display:none;width:100%">
-                <input type="text" id="regNombre" placeholder="Tu nombre" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
-                <input type="password" id="regPin" placeholder="Contraseña (4 dígitos)" maxlength="4" style="padding:12px 16px;font-size:16px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box;margin-top:10px">
-                <input type="password" id="regPinConfirm" placeholder="Confirmar contraseña" maxlength="4" style="padding:12px 16px;font-size:16px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box;margin-top:10px">
-                <button class="clock-btn entry" onclick="crearCuenta()" style="width:100%;margin-top:12px"><i class="fas fa-check"></i> CREAR CUENTA</button>
-            </div>
+            <input type="text" id="regNombre" placeholder="Tu nombre" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <input type="password" id="regPin" placeholder="Contraseña (4 dígitos)" maxlength="4" style="padding:12px 16px;font-size:16px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <input type="password" id="regPinConfirm" placeholder="Confirmar contraseña" maxlength="4" style="padding:12px 16px;font-size:16px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <button class="clock-btn entry" onclick="crearCuenta()" style="width:100%;margin-top:8px"><i class="fas fa-check"></i> CREAR CUENTA</button>
             <p id="regError" style="color:var(--red);font-size:13px;display:none"></p>
             <button id="installBtn" style="display:none;margin-top:12px;padding:10px 16px;background:var(--bg2);border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:13px;cursor:pointer"><i class="fas fa-download"></i> Fijar en escritorio</button>
         </div>
@@ -250,7 +244,7 @@
     <div class="pending-screen" id="pendienteAprobacion" style="display:none">
         <i class="fas fa-clock" style="color:var(--accent);font-size:60px;margin-bottom:20px"></i>
         <h2>Cuenta creada</h2>
-        <p>Tu cuenta fue creada. Esperá a que el dueño te active y te dé los roles para empezar a usar la app.</p>
+        <p>Tu cuenta fue creada. Esperá a que el dueño te active y te dé los roles.</p>
     </div>
     <div class="pending-screen" id="roleSelector" style="display:none">
         <h2>¿En qué función trabajás hoy?</h2>
@@ -499,27 +493,6 @@
             document.getElementById('app').style.display = 'none';
         }
 
-        async function verificarCodigo() {
-            const codigo = document.getElementById('codigoInput').value.trim();
-            if (!codigo) { regError('Ingresá el código interno'); return; }
-            
-            const empId = localStorage.getItem('urbanflow_empresa_id');
-            let query = sbSvc.from('empresas').select('id, nombre').eq('codigo_interno', codigo);
-            if (empId) query = query.eq('id', empId);
-            
-            const { data, error } = await query.limit(1);
-            if (error || !data || data.length === 0) {
-                regError('Código incorrecto');
-                return;
-            }
-            
-            // Guardar empresa_id y mostrar formulario de registro
-            localStorage.setItem('urbanflow_empresa_id', data[0].id);
-            document.getElementById('stepCodigo').style.display = 'none';
-            document.getElementById('stepRegistro').style.display = 'block';
-            document.getElementById('registroSubtext').textContent = data[0].nombre;
-        }
-
         async function crearCuenta() {
             const nombre = document.getElementById('regNombre').value.trim();
             const pin = document.getElementById('regPin').value.trim();
@@ -530,7 +503,7 @@
             if (pin !== pinConfirm) { regError('Las contraseñas no coinciden'); return; }
             
             const empresaId = localStorage.getItem('urbanflow_empresa_id');
-            if (!empresaId) { regError('Error: no se detectó la empresa'); return; }
+            if (!empresaId) { regError('Error: escaneá el QR de nuevo'); return; }
             
             // Verificar que no exista ya un empleado con ese pin en la empresa
             const { data: existente } = await sbSvc.from('empleados')
@@ -559,17 +532,6 @@
                 regError('Error al crear cuenta: ' + error.message);
                 return;
             }
-            
-            // Guardar datos localmente para que la app funcione
-            currentUser = {
-                id: nuevo[0].id,
-                nombre: nombre,
-                pin: pin,
-                rol: 'rol_empleado',
-                roles: [],
-                emoji: '👤',
-                empresa_id: empresaId
-            };
             
             // Mostrar pantalla de pendiente
             document.getElementById('pendingScreen').style.display = 'none';
