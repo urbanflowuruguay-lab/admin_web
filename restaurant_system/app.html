@@ -489,7 +489,8 @@
                             pin: emp.pin,
                             rol: emp.rol,
                             emoji: emp.emoji || '👤',
-                            empresa_id: emp.empresa_id
+                            empresa_id: emp.empresa_id,
+                            foto_url: emp.foto_url || ''
                         };
                         
                         document.getElementById('pendingScreen').style.display = 'none';
@@ -543,7 +544,8 @@
                 pin: emp.pin,
                 rol: emp.rol,
                 emoji: emp.emoji || '👤',
-                empresa_id: emp.empresa_id
+                empresa_id: emp.empresa_id,
+                foto_url: emp.foto_url || ''
             };
             
             document.getElementById('pendingScreen').style.display = 'none';
@@ -641,7 +643,13 @@
         async function initApp() {
             document.getElementById('userName').textContent = currentUser.nombre;
             document.getElementById('userRole').textContent = currentUser.rol;
-            document.getElementById('userAvatar').textContent = currentUser.emoji;
+            
+            const avatar = document.getElementById('userAvatar');
+            if (currentUser.foto_url) {
+                avatar.innerHTML = `<img src="${currentUser.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+            } else {
+                avatar.textContent = currentUser.emoji;
+            }
             
             // Presencia: arrancar ANTES de todo para que se vea conectado rápido
             updatePresence(true);
@@ -1026,7 +1034,17 @@
             const container = document.getElementById('content-misdatos');
             if (!container) return;
 
+            const fotoUrl = currentUser.foto_url || '';
+
             container.innerHTML = `
+                <div style="text-align:center;margin-bottom:20px">
+                    <div onclick="subirFoto()" style="width:100px;height:100px;border-radius:50%;margin:0 auto 10px;cursor:pointer;overflow:hidden;border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;background:var(--bg3);position:relative" id="avatarContainer">
+                        ${fotoUrl ? `<img src="${fotoUrl}" style="width:100%;height:100%;object-fit:cover">` : `<i class="fas fa-camera" style="font-size:32px;color:var(--text2)"></i>`}
+                        <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);padding:4px;font-size:10px;color:white"><i class="fas fa-camera"></i> Foto</div>
+                    </div>
+                    <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="guardarFoto(event)">
+                    <p style="font-size:13px;color:var(--text2)">Tocá para cambiar tu foto</p>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-box">
                         <div class="stat-value" id="statPedidos">0</div>
@@ -1075,30 +1093,67 @@
         });
 
         async function cambiarMiPin() {
-            const actual = prompt('Ingresá tu PIN actual:');
+            const actual = prompt('Ingresá tu contraseña actual:');
             if (actual === null) return;
             if (!currentUser || currentUser.pin !== actual) {
-                alert('PIN actual incorrecto');
+                alert('Contraseña incorrecta');
                 return;
             }
-            const nuevo = prompt('Nuevo PIN (4 dígitos):');
-            if (nuevo === null || nuevo.trim().length < 4) {
-                alert('El PIN debe tener al menos 4 caracteres');
+            const nuevo = prompt('Nueva contraseña:');
+            if (nuevo === null || nuevo.trim().length < 3) {
+                alert('La contraseña debe tener al menos 3 caracteres');
                 return;
             }
-            const confirmar = prompt('Confirmá tu nuevo PIN:');
+            const confirmar = prompt('Confirmá tu nueva contraseña:');
             if (confirmar !== nuevo) {
-                alert('Los PINs no coinciden');
+                alert('Las contraseñas no coinciden');
                 return;
             }
             try {
-                const { error } = await sb.from('empleados').update({ pin: nuevo.trim() }).eq('id', currentUser.id);
+                const { error } = await sbSvc.from('empleados').update({ pin: nuevo.trim() }).eq('id', currentUser.id);
                 if (error) throw error;
                 currentUser.pin = nuevo.trim();
-                alert('PIN actualizado correctamente');
+                alert('Contraseña actualizada correctamente');
             } catch (err) {
                 alert('Error: ' + err.message);
             }
+        }
+
+        function subirFoto() {
+            document.getElementById('fotoInput').click();
+        }
+
+        async function guardarFoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.size > 2 * 1024 * 1024) {
+                alert('La foto es muy grande. Máximo 2MB.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result;
+                
+                try {
+                    const { error } = await sbSvc.from('empleados').update({ foto_url: base64 }).eq('id', currentUser.id);
+                    if (error) throw error;
+                    
+                    currentUser.foto_url = base64;
+                    
+                    // Actualizar avatar en header
+                    const avatar = document.getElementById('userAvatar');
+                    avatar.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+                    
+                    // Refrescar Mis Datos
+                    renderMisDatos();
+                    alert('Foto actualizada');
+                } catch (err) {
+                    alert('Error al guardar foto: ' + err.message);
+                }
+            };
+            reader.readAsDataURL(file);
         }
 
         function logout() {
