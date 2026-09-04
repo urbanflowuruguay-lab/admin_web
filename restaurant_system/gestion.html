@@ -1622,25 +1622,65 @@
             const emp = localData.empleados.find(e => e.id === id);
             if (!emp) return;
             
-            // Pedir roles
-            const rolesDisponibles = ['rol_cajero', 'rol_cocinero', 'rol_mozo', 'rol_delivery', 'rol_encargado'];
-            const input = prompt('Escribí los roles separados por coma:\n' + rolesDisponibles.map(r => r.replace('rol_', '')).join(', '));
-            if (!input) return;
+            const rolesDisponibles = ['rol_cajero', 'rol_cocinero', 'rol_mozo', 'rol_delivery', 'rol_encargado', 'rol_empleado'];
             
-            const rolesSeleccionados = input.split(',').map(r => {
-                r = r.trim().toLowerCase();
-                if (!r.startsWith('rol_')) r = 'rol_' + r;
-                return r;
-            }).filter(r => rolesDisponibles.includes(r));
+            // Crear modal
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999';
+            modal.innerHTML = `
+                <div style="background:var(--bg2);border-radius:12px;padding:24px;width:320px;max-width:90%">
+                    <h3 style="margin:0 0 16px;font-size:18px"><i class="fas fa-user-check"></i> Activar: ${emp.nombre}</h3>
+                    <label style="font-size:13px;color:var(--text2);margin-bottom:6px;display:block">Seleccioná el rol:</label>
+                    <select id="modalRol" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:14px;margin-bottom:16px">
+                        ${rolesDisponibles.map(r => `<option value="${r}">${r.replace('rol_','').charAt(0).toUpperCase()+r.replace('rol_','').slice(1)}</option>`).join('')}
+                    </select>
+                    <label style="font-size:13px;color:var(--text2);margin-bottom:6px;display:block">¿Crear un rol nuevo?</label>
+                    <div style="display:flex;gap:8px;margin-bottom:16px">
+                        <input type="text" id="nuevoRolInput" placeholder="Nombre del rol" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
+                        <button onclick="agregarRolModal()" style="padding:8px 12px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-size:13px"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button onclick="confirmarActivacion('${id}')" style="flex:1;padding:10px;background:var(--green);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600"><i class="fas fa-check"></i> ACTIVAR</button>
+                        <button onclick="this.closest('div[style]').parentElement.remove()" style="padding:10px 16px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Cancelar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        function agregarRolModal() {
+            const input = document.getElementById('nuevoRolInput');
+            const nombre = input.value.trim();
+            if (!nombre) return;
             
-            if (rolesSeleccionados.length === 0) {
-                alert('No se reconoció ningún rol válido');
+            const select = document.getElementById('modalRol');
+            const value = 'rol_' + nombre.toLowerCase().replace(/\s+/g, '_');
+            
+            // Verificar si ya existe
+            if ([...select.options].some(o => o.value === value)) {
+                alert('Ese rol ya existe');
                 return;
             }
             
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+            select.appendChild(opt);
+            select.value = value;
+            input.value = '';
+        }
+
+        async function confirmarActivacion(id) {
+            const emp = localData.empleados.find(e => e.id === id);
+            if (!emp) return;
+            
+            const select = document.getElementById('modalRol');
+            const rol = select.value;
+            
             const { error } = await sbService.from('empleados').update({
                 activo: true,
-                rol: rolesSeleccionados[0]
+                rol: rol
             }).eq('id', id);
             
             if (error) {
@@ -1649,9 +1689,11 @@
             }
             
             emp.activo = true;
-            emp.roles = rolesSeleccionados;
-            emp.rol = rolesSeleccionados[0];
+            emp.rol = rol;
             renderEmpleadosTable();
+            
+            // Cerrar modal
+            document.querySelector('div[style*="position:fixed"]')?.remove();
         }
 
         function loadZonas() {
@@ -2145,36 +2187,49 @@
             const emp = localData.empleados.find(e => e.id === id);
             if (!emp) return;
 
-            const rolesDisponibles = ['rol_cajero', 'rol_cocinero', 'rol_mozo', 'rol_delivery', 'rol_encargado'];
-            const actuales = (emp.roles || []).map(r => r.replace('rol_', '')).join(', ');
-            const input = prompt('Roles actuales: ' + actuales + '\n\nEscribí los roles separados por coma:', actuales);
-            if (input === null) return;
+            const rolesDisponibles = ['rol_cajero', 'rol_cocinero', 'rol_mozo', 'rol_delivery', 'rol_encargado', 'rol_empleado'];
             
-            const rolesSeleccionados = input.split(',').map(r => {
-                r = r.trim().toLowerCase();
-                if (!r.startsWith('rol_')) r = 'rol_' + r;
-                return r;
-            }).filter(r => rolesDisponibles.includes(r));
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999';
+            modal.innerHTML = `
+                <div style="background:var(--bg2);border-radius:12px;padding:24px;width:320px;max-width:90%">
+                    <h3 style="margin:0 0 16px;font-size:18px"><i class="fas fa-edit"></i> Editar: ${emp.nombre}</h3>
+                    <label style="font-size:13px;color:var(--text2);margin-bottom:6px;display:block">Rol actual: <b>${(emp.rol||'').replace('rol_','')}</b></label>
+                    <label style="font-size:13px;color:var(--text2);margin-bottom:6px;display:block">Nuevo rol:</label>
+                    <select id="modalEditRol" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:14px;margin-bottom:16px">
+                        ${rolesDisponibles.map(r => `<option value="${r}" ${emp.rol===r?'selected':''}>${r.replace('rol_','').charAt(0).toUpperCase()+r.replace('rol_','').slice(1)}</option>`).join('')}
+                    </select>
+                    <div style="display:flex;gap:8px">
+                        <button onclick="confirmarEditEmpleado('${id}')" style="flex:1;padding:10px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;cursor:pointer;font-weight:600"><i class="fas fa-save"></i> GUARDAR</button>
+                        <button onclick="this.closest('div[style]').parentElement.remove()" style="padding:10px 16px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Cancelar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        async function confirmarEditEmpleado(id) {
+            const emp = localData.empleados.find(e => e.id === id);
+            if (!emp) return;
             
-            if (rolesSeleccionados.length === 0) {
-                alert('No se reconoció ningún rol válido');
-                return;
-            }
+            const select = document.getElementById('modalEditRol');
+            const rol = select.value;
 
             try {
                 const { error } = await sbService.from('empleados').update({
-                    rol: rolesSeleccionados[0],
+                    rol: rol,
                     activo: true
                 }).eq('id', id);
 
                 if (error) throw error;
 
-                emp.roles = rolesSeleccionados;
-                emp.rol = rolesSeleccionados[0];
+                emp.rol = rol;
                 emp.activo = true;
                 loadEmpleados();
-                logAccion('empleado_editado', 'empleados', { id: id, rol: rolesSeleccionados[0] });
-                alert('Empleado actualizado');
+                logAccion('empleado_editado', 'empleados', { id: id, rol: rol });
+                
+                document.querySelector('div[style*="position:fixed"]')?.remove();
             } catch (err) {
                 console.error('Error updating employee:', err);
                 alert('Error al actualizar: ' + err.message);

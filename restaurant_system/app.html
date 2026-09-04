@@ -227,25 +227,47 @@
     </style>
 </head>
 <body>
-    <!-- PENDING SCREEN - REGISTRO DE EMPLEADO -->
+    <!-- PANTALLA DE LOGIN -->
     <div class="pending-screen" id="pendingScreen">
-        <i class="fas fa-user-plus"></i>
-        <h2>Crear tu cuenta</h2>
-        <p>Poné tu nombre y una contraseña para crear tu cuenta.</p>
+        <i class="fas fa-sign-in-alt"></i>
+        <h2>Iniciar Sesión</h2>
+        <p>Ingresá tu usuario y contraseña</p>
         <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;align-items:center;width:280px">
-            <input type="text" id="regNombre" placeholder="Tu nombre" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
-            <input type="password" id="regPin" placeholder="Contraseña (4 dígitos)" maxlength="4" style="padding:12px 16px;font-size:16px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
-            <input type="password" id="regPinConfirm" placeholder="Confirmar contraseña" maxlength="4" style="padding:12px 16px;font-size:16px;text-align:center;letter-spacing:8px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
-            <button class="clock-btn entry" onclick="crearCuenta()" style="width:100%;margin-top:8px"><i class="fas fa-check"></i> CREAR CUENTA</button>
-            <p id="regError" style="color:var(--red);font-size:13px;display:none"></p>
+            <input type="text" id="loginNombre" placeholder="Tu nombre" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <input type="password" id="loginPin" placeholder="Contraseña" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <button class="clock-btn entry" onclick="loginNormal()" style="width:100%;margin-top:8px"><i class="fas fa-sign-in-alt"></i> ENTRAR</button>
+            <p id="loginError" style="color:var(--red);font-size:13px;display:none"></p>
+            <hr style="width:100%;border:none;border-top:1px solid var(--border);margin:8px 0">
+            <p style="font-size:13px;color:var(--text2)">¿No tenés cuenta?</p>
+            <button onclick="mostrarRegistro()" style="width:100%;padding:10px;background:var(--bg2);border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:14px;cursor:pointer"><i class="fas fa-user-plus"></i> Registrarse</button>
             <button id="installBtn" style="display:none;margin-top:12px;padding:10px 16px;background:var(--bg2);border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:13px;cursor:pointer"><i class="fas fa-download"></i> Fijar en escritorio</button>
         </div>
     </div>
+
+    <!-- PANTALLA DE REGISTRO -->
+    <div class="pending-screen" id="registroScreen" style="display:none">
+        <i class="fas fa-user-plus"></i>
+        <h2>Crear Cuenta</h2>
+        <p>Completá tus datos para registrarte</p>
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;align-items:center;width:280px">
+            <input type="text" id="regNombre" placeholder="Tu nombre" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <input type="password" id="regPin" placeholder="Contraseña (lo que quieras)" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <input type="password" id="regPinConfirm" placeholder="Confirmar contraseña" style="padding:12px 16px;font-size:16px;border:2px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:100%;box-sizing:border-box">
+            <button class="clock-btn entry" onclick="crearCuenta()" style="width:100%;margin-top:8px"><i class="fas fa-check"></i> CREAR CUENTA</button>
+            <p id="regError" style="color:var(--red);font-size:13px;display:none"></p>
+            <hr style="width:100%;border:none;border-top:1px solid var(--border);margin:8px 0">
+            <button onclick="mostrarLogin()" style="width:100%;padding:10px;background:var(--bg2);border:1px solid var(--text2);color:var(--text2);border-radius:8px;font-size:14px;cursor:pointer"><i class="fas fa-arrow-left"></i> Volver al Login</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA PENDIENTE DE APROBACIÓN -->
     <div class="pending-screen" id="pendienteAprobacion" style="display:none">
         <i class="fas fa-clock" style="color:var(--accent);font-size:60px;margin-bottom:20px"></i>
         <h2>Cuenta creada</h2>
         <p>Tu cuenta fue creada. Esperá a que el dueño te active y te dé los roles.</p>
     </div>
+
+    <!-- SELECTOR DE ROL -->
     <div class="pending-screen" id="roleSelector" style="display:none">
         <h2>¿En qué función trabajás hoy?</h2>
         <p id="roleSelectorName" style="margin-bottom:16px"></p>
@@ -452,7 +474,6 @@
                 try {
                     const data = JSON.parse(atob(token));
                     
-                    // Try to load employee from Supabase
                     const { data: empData, error } = await sbSvc.from('empleados')
                         .select('*')
                         .eq('id', data.empId)
@@ -482,32 +503,82 @@
                 }
             }
             
-            // Mostrar formulario de registro
+            // Mostrar login
             document.getElementById('pendingScreen').style.display = 'flex';
             document.getElementById('app').style.display = 'none';
         }
 
+        function mostrarRegistro() {
+            document.getElementById('pendingScreen').style.display = 'none';
+            document.getElementById('registroScreen').style.display = 'flex';
+        }
+
+        function mostrarLogin() {
+            document.getElementById('registroScreen').style.display = 'none';
+            document.getElementById('pendingScreen').style.display = 'flex';
+            document.getElementById('loginError').style.display = 'none';
+        }
+
+        async function loginNormal() {
+            const nombre = document.getElementById('loginNombre').value.trim();
+            const pin = document.getElementById('loginPin').value;
+            
+            if (!nombre) { loginError('Poné tu nombre'); return; }
+            if (!pin) { loginError('Poné tu contraseña'); return; }
+            
+            const empresaId = localStorage.getItem('urbanflow_empresa_id');
+            let query = sbSvc.from('empleados').select('*').eq('nombre', nombre).eq('pin', pin).eq('activo', true);
+            if (empresaId) query = query.eq('empresa_id', empresaId);
+            
+            const { data, error } = await query.limit(5);
+            if (error || !data || data.length === 0) {
+                loginError('Usuario o contraseña incorrectos');
+                return;
+            }
+            
+            const emp = data[0];
+            currentUser = {
+                id: emp.id,
+                nombre: emp.nombre,
+                pin: emp.pin,
+                rol: emp.rol,
+                emoji: emp.emoji || '👤',
+                empresa_id: emp.empresa_id
+            };
+            
+            document.getElementById('pendingScreen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            initApp();
+            registrarFichaje(currentUser, 'entrada');
+        }
+
+        function loginError(msg) {
+            const el = document.getElementById('loginError');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
         async function crearCuenta() {
             const nombre = document.getElementById('regNombre').value.trim();
-            const pin = document.getElementById('regPin').value.trim();
-            const pinConfirm = document.getElementById('regPinConfirm').value.trim();
+            const pin = document.getElementById('regPin').value;
+            const pinConfirm = document.getElementById('regPinConfirm').value;
             
             if (!nombre) { regError('Poné tu nombre'); return; }
-            if (!pin || pin.length < 4) { regError('La contraseña debe tener al menos 4 caracteres'); return; }
+            if (!pin || pin.length < 3) { regError('La contraseña debe tener al menos 3 caracteres'); return; }
             if (pin !== pinConfirm) { regError('Las contraseñas no coinciden'); return; }
             
             const empresaId = localStorage.getItem('urbanflow_empresa_id');
             if (!empresaId) { regError('Error: escaneá el QR de nuevo'); return; }
             
-            // Verificar que no exista ya un empleado con ese pin en la empresa
+            // Verificar que no exista ya un empleado con ese nombre en la empresa
             const { data: existente } = await sbSvc.from('empleados')
                 .select('id')
                 .eq('empresa_id', empresaId)
-                .eq('pin', pin)
+                .eq('nombre', nombre)
                 .limit(1);
             
             if (existente && existente.length > 0) {
-                regError('Esa contraseña ya está en uso. Elegí otra.');
+                regError('Ya existe alguien con ese nombre. Elegí otro.');
                 return;
             }
             
@@ -527,7 +598,7 @@
             }
             
             // Mostrar pantalla de pendiente
-            document.getElementById('pendingScreen').style.display = 'none';
+            document.getElementById('registroScreen').style.display = 'none';
             document.getElementById('pendienteAprobacion').style.display = 'flex';
         }
 
