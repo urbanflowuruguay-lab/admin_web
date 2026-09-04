@@ -555,6 +555,19 @@
             document.getElementById('userRole').textContent = currentUser.rol;
             document.getElementById('userAvatar').textContent = currentUser.emoji;
             
+            // Presencia: arrancar ANTES de todo para que se vea conectado rápido
+            updatePresence(true);
+            startPresenceHeartbeat();
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    updatePresence(true);
+                } else {
+                    updatePresence(false);
+                }
+            });
+            window.addEventListener('beforeunload', () => { try{ sbSvc.from('empleados').update({is_online:false, last_seen:new Date().toISOString()}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
+            window.addEventListener('pagehide', () => { try{ sbSvc.from('empleados').update({is_online:false}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
+
             // Load restaurant name from Supabase
             if (currentUser.empresa_id) {
                 try {
@@ -580,18 +593,6 @@
             
             // Auto-refresh orders every 15 seconds
             setInterval(loadPedidosFromDB, 15000);
-
-            // Presencia: heartbeat cada 30s, offline al cerrar
-            startPresenceHeartbeat();
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    updatePresence(true);
-                } else {
-                    updatePresence(false);
-                }
-            });
-            window.addEventListener('beforeunload', () => { try{ sbSvc.from('empleados').update({is_online:false, last_seen:new Date().toISOString()}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
-            window.addEventListener('pagehide', () => { try{ sbSvc.from('empleados').update({is_online:false}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
         }
         let presenceInterval = null;
         function startPresenceHeartbeat(){
