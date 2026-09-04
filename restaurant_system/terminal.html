@@ -226,11 +226,8 @@
             // cargar nombre del restaurante
             try {
                 const { data: empData } = await sb.from('empresas').select('*').eq('id', empresaId).maybeSingle();
-                if (empData) {
-                    localData.empresa = empData;
-                    if (empData.nombre) {
-                        document.getElementById('terminalTitle').innerHTML = `<i class="fas fa-store"></i> ${empData.nombre} - Terminal de Empleados`;
-                    }
+                if (empData && empData.nombre) {
+                    document.getElementById('terminalTitle').innerHTML = `<i class="fas fa-store"></i> ${empData.nombre} - Terminal de Empleados`;
                 }
             } catch(e) {}
 
@@ -362,8 +359,8 @@
         setInterval(loadEmployees, 30000);
 
         function renderSingleQR() {
-            const empresaId = localData.empresa?.id || '';
-            const singleUrl = empresaId ? baseUrl + '?empresa=' + empresaId : baseUrl;
+            const empId = empresaId || '';
+            const singleUrl = empId ? baseUrl + '?empresa=' + empId : baseUrl;
             const container = document.getElementById('singleQR');
             const urlEl = document.getElementById('singleQRUrl');
             if (!container) return;
