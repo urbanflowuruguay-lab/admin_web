@@ -1588,9 +1588,9 @@
                 document.getElementById('empleadosTable').innerHTML = localData.empleados.filter(e => e.activo).map(e => {
                     const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
                     const now = new Date();
-                    const diffSec = lastSeen ? Math.floor((now - lastSeen) / 1000) : 9999;
+                    const diffSec = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / 1000) : 9999;
                     const diffMin = Math.floor(diffSec / 60);
-                    const online = diffSec < 10;
+                    const online = diffSec < 15;
                     let statusHtml = '';
                     if (online) {
                         statusHtml = '<span style="color:#22c55e;font-weight:600">● En línea</span>';
@@ -2550,15 +2550,19 @@
                     .select('id,last_seen,is_online')
                     .eq('empresa_id', localData.currentUser.empresa_id);
                 if (data) {
+                    let changed = false;
                     data.forEach(d => {
                         const emp = localData.empleados.find(e => e.id === d.id);
-                        if (emp) {
+                        if (emp && (emp.last_seen !== d.last_seen || emp.is_online !== d.is_online)) {
                             emp.last_seen = d.last_seen;
                             emp.is_online = d.is_online;
+                            changed = true;
                         }
                     });
-                    const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-                    if (section === 'empleados') renderEmpleadosTable();
+                    if (changed) {
+                        const section = document.querySelector('.sidebar-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+                        if (section === 'empleados') renderEmpleadosTable();
+                    }
                 }
             } catch(e) {}
         }, 3000);
