@@ -510,7 +510,6 @@
                         document.getElementById('pendingScreen').style.display = 'none';
                         document.getElementById('app').style.display = 'block';
                         initApp();
-                        registrarFichaje(currentUser, 'entrada');
                         return;
                     }
                 } catch(e) {
@@ -577,7 +576,6 @@
             document.getElementById('pendingScreen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             initApp();
-            registrarFichaje(currentUser, 'entrada');
         }
 
         function loginError(msg) {
@@ -652,7 +650,6 @@
                     sel.style.display='none';
                     document.getElementById('app').style.display='block';
                     initApp();
-                    registrarFichaje(currentUser,'entrada');
                 };
                 cont.appendChild(btn);
             });
