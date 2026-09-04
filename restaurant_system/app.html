@@ -462,17 +462,11 @@
 
                     if (!error && empData && empData.length > 0) {
                         const emp = empData[0];
-                        const roles = emp.roles || (emp.rol ? [emp.rol] : []);
-                        if (roles.length > 1) {
-                            mostrarSelectorRol(emp);
-                            return;
-                        }
                         currentUser = {
                             id: emp.id,
                             nombre: emp.nombre,
                             pin: emp.pin,
-                            rol: roles[0] || emp.rol,
-                            roles: roles,
+                            rol: emp.rol,
                             emoji: emp.emoji || '👤',
                             empresa_id: emp.empresa_id
                         };
@@ -523,7 +517,6 @@
                 nombre: nombre,
                 pin: pin,
                 activo: false,
-                roles: [],
                 rol: 'rol_empleado',
                 emoji: '👤'
             }).select().limit(1);
