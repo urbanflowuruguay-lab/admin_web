@@ -2305,10 +2305,9 @@
                 data.map(f=>{
                     const d = new Date(f.fecha);
                     const fmt = d.toLocaleDateString('es-UY')+' '+d.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-                    const color = f.tipo==='entrada' ? '#22c55e' : '#ef4444';
-                    const icon = f.tipo==='entrada' ? 'fa-arrow-right' : 'fa-arrow-left';
-                    const text = f.tipo==='entrada' ? 'Entrada' : 'Salida';
-                    return `<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 6px;font-weight:600">${f.nombre||'—'}</td><td style="padding:8px 6px"><span style="color:${color}"><i class="fas ${icon}" style="margin-right:4px"></i>${text}</span></td><td style="padding:8px 6px">${fmt}</td></tr>`;
+                    const types = {entrada:{c:'#22c55e',i:'fa-arrow-right',t:'Entrada'}, salida:{c:'#ef4444',i:'fa-arrow-left',t:'Salida'}, conectado:{c:'#3b82f6',i:'fa-link',t:'Conectado'}, desconectado:{c:'#6b7280',i:'fa-unlink',t:'Desconectado'}};
+                    const tp = types[f.tipo] || {c:'#6b7280',i:'fa-circle',t:f.tipo};
+                    return `<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 6px;font-weight:600">${f.nombre||'—'}</td><td style="padding:8px 6px"><span style="color:${tp.c}"><i class="fas ${tp.i}" style="margin-right:4px"></i>${tp.t}</span></td><td style="padding:8px 6px">${fmt}</td></tr>`;
                 }).join('')+'</tbody></table>';
             }catch(e){
                 el.innerHTML = '<div style="text-align:center;padding:16px;color:#ef4444">Error: '+e.message+'</div>';

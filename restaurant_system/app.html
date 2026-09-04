@@ -660,6 +660,11 @@
                 await sbSvc.from('fichajes_historial').insert({empresa_id:user.empresa_id, usuario_id:user.id, nombre:user.nombre, tipo:tipo, fecha:now});
             }catch(e){ console.log('fichaje',e); }
         }
+
+        function tipoFichajeDisconnect(){
+            if(isClocked) return 'salida';
+            return 'desconectado';
+        }
         async function initApp() {
             document.getElementById('userName').textContent = currentUser.nombre;
             document.getElementById('userRole').textContent = currentUser.rol;
@@ -686,13 +691,15 @@
             const markOfflineUrl = 'https://eyfgkopaamnkprzpwocz.supabase.co/rest/v1/empleados?id=eq.' + currentUser.id;
             const fichajeHeaders = { 'Content-Type': 'application/json', 'apikey': SUPABASE_SERVICE, 'Authorization': 'Bearer ' + SUPABASE_SERVICE, 'Prefer': 'return=minimal' };
             const fichajeUrl = 'https://eyfgkopaamnkprzpwocz.supabase.co/rest/v1/fichajes_historial';
-            const fichajeBody = JSON.stringify({empresa_id:currentUser.empresa_id, usuario_id:currentUser.id, nombre:currentUser.nombre, tipo:'salida', fecha:new Date().toISOString()});
             const doDisconnect = () => {
+                const tipo = tipoFichajeDisconnect();
+                const fichajeBody = JSON.stringify({empresa_id:currentUser.empresa_id, usuario_id:currentUser.id, nombre:currentUser.nombre, tipo:tipo, fecha:new Date().toISOString()});
                 try{ fetch(markOfflineUrl, { method:'PATCH', headers:markOfflineHeaders, body:markOfflineBody, keepalive:true }); }catch(e){}
                 try{ fetch(fichajeUrl, { method:'POST', headers:fichajeHeaders, body:fichajeBody, keepalive:true }); }catch(e){}
             };
             window.addEventListener('beforeunload', doDisconnect);
             window.addEventListener('pagehide', doDisconnect);
+            registrarFichaje(currentUser, 'conectado');
 
             // Load restaurant name from Supabase
             if (currentUser.empresa_id) {
