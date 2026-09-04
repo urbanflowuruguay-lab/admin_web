@@ -1548,7 +1548,8 @@
                     created_at: e.created_at,
                     is_online: e.is_online,
                     last_seen: e.last_seen,
-                    foto_url: e.foto_url || ''
+                    foto_url: e.foto_url || '',
+                    estado: e.estado || 'espera'
                 }));
 
                 renderEmpleadosTable();
@@ -1586,18 +1587,19 @@
 
                 // Render active employees
                 document.getElementById('empleadosTable').innerHTML = localData.empleados.filter(e => e.activo).map(e => {
-                    const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
-                    const now = new Date();
-                    const diffSec = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / 1000) : 9999;
-                    const diffMin = Math.floor(diffSec / 60);
-                    const online = diffSec < 15;
                     let statusHtml = '';
-                    if (online) {
-                        statusHtml = '<span style="color:#22c55e;font-weight:600">● En línea</span>';
-                    } else if (diffMin < 60) {
-                        statusHtml = '<span style="color:#eab308;font-size:12px">● Hace ' + diffMin + 'min</span>';
-                    } else {
-                        statusHtml = '<span style="color:#6b7280;font-size:12px">● Desconectado</span>';
+                    switch(e.estado) {
+                        case 'trabajando':
+                            statusHtml = '<span style="color:#22c55e;font-weight:600">● Trabajando</span>';
+                            break;
+                        case 'espera':
+                            statusHtml = '<span style="color:#eab308;font-weight:600">● En espera</span>';
+                            break;
+                        case 'descanso':
+                            statusHtml = '<span style="color:#6b7280">● Descanso</span>';
+                            break;
+                        default:
+                            statusHtml = '<span style="color:#6b7280">● Desconectado</span>';
                     }
                     return `
                     <tr>
@@ -2547,15 +2549,16 @@
             if (!localData.currentUser?.empresa_id || localData.empleados.length === 0) return;
             try {
                 const { data } = await sbService.from('empleados')
-                    .select('id,last_seen,is_online')
+                    .select('id,last_seen,is_online,estado')
                     .eq('empresa_id', localData.currentUser.empresa_id);
                 if (data) {
                     let changed = false;
                     data.forEach(d => {
                         const emp = localData.empleados.find(e => e.id === d.id);
-                        if (emp && (emp.last_seen !== d.last_seen || emp.is_online !== d.is_online)) {
+                        if (emp && (emp.last_seen !== d.last_seen || emp.is_online !== d.is_online || emp.estado !== d.estado)) {
                             emp.last_seen = d.last_seen;
                             emp.is_online = d.is_online;
+                            emp.estado = d.estado;
                             changed = true;
                         }
                     });
@@ -2574,6 +2577,7 @@
             if (emp) {
                 emp.is_online = updated.is_online;
                 emp.last_seen = updated.last_seen;
+                emp.estado = updated.estado;
                 renderEmpleadosTable();
             }
         }).subscribe();

@@ -661,8 +661,8 @@
                     updatePresence(false);
                 }
             });
-            window.addEventListener('beforeunload', () => { try{ sbSvc.from('empleados').update({is_online:false, last_seen:new Date().toISOString()}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
-            window.addEventListener('pagehide', () => { try{ sbSvc.from('empleados').update({is_online:false}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
+            window.addEventListener('beforeunload', () => { try{ sbSvc.from('empleados').update({is_online:false, last_seen:new Date().toISOString(), estado:'descanso'}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
+            window.addEventListener('pagehide', () => { try{ sbSvc.from('empleados').update({is_online:false, estado:'descanso'}).eq('id', currentUser.id).then(()=>{}); }catch(e){} });
 
             // Load restaurant name from Supabase
             if (currentUser.empresa_id) {
@@ -696,7 +696,8 @@
             presenceInterval = setInterval(()=> updatePresence(true), 3000);
         }
         async function updatePresence(online){
-            try{ await sbSvc.from('empleados').update({ is_online: online, last_seen: new Date().toISOString() }).eq('id', currentUser.id); }catch(e){}
+            const estado = online ? (isClocked ? 'trabajando' : 'espera') : 'descanso';
+            try{ await sbSvc.from('empleados').update({ is_online: online, last_seen: new Date().toISOString(), estado: estado }).eq('id', currentUser.id); }catch(e){}
         }
 
         // =============================================
@@ -726,6 +727,9 @@
                 btn.innerHTML = '<i class="fas fa-sign-out-alt"></i> MARCAR SALIDA';
                 status.className = 'clock-status active';
                 status.innerHTML = '<i class="fas fa-check-circle"></i> En turno desde ' + clockInTime.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+                // Actualizar estado a trabajando
+                updatePresence(true);
+                registrarFichaje(currentUser, 'entrada');
             } else {
                 isClocked = false;
                 btn.className = 'clock-btn entry';
@@ -733,6 +737,9 @@
                 status.className = 'clock-status inactive';
                 status.innerHTML = '<i class="fas fa-clock"></i> Fuera de turno';
                 clockInTime = null;
+                // Actualizar estado a espera
+                updatePresence(true);
+                registrarFichaje(currentUser, 'salida');
             }
         }
 
