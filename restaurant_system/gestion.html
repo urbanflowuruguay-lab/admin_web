@@ -280,6 +280,12 @@
             .content { padding: 15px; margin-left: 0; }
             .main-layout { flex-direction: column; }
             #sidebarToggle { display: block !important; }
+            .empleados-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .empleado-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+            .empleado-card .emp-name { font-weight: 700; font-size: 14px; }
+            .empleado-card .emp-rol { font-size: 11px; color: var(--text2); }
+            .empleado-card .emp-status { font-size: 12px; }
+            .empleado-card .emp-actions { display: flex; gap: 4px; margin-top: 4px; }
         }
     </style>
 </head>
@@ -536,7 +542,10 @@
                         <div id="pendientesList"></div>
                     </div>
 
-                    <div class="card">
+                    <!-- Mobile: grid de empleados -->
+                    <div id="empleadosGrid" class="empleados-grid" style="display:none"></div>
+
+                    <div class="card" id="empleadosTableCard">
                         <div class="table-container">
                             <table>
                                 <thead>
@@ -1632,6 +1641,44 @@
                         </td>
                     </tr>`;
                 }).join('');
+
+                // Mobile: grid de tarjetas
+                const isMobile = window.innerWidth <= 768;
+                const gridEl = document.getElementById('empleadosGrid');
+                const tableCard = document.getElementById('empleadosTableCard');
+                if (isMobile) {
+                    gridEl.style.display = 'grid';
+                    tableCard.style.display = 'none';
+                    gridEl.innerHTML = localData.empleados.filter(e => e.activo).map(e => {
+                        const lastSeen = e.last_seen ? new Date(e.last_seen) : null;
+                        const diffSec = lastSeen ? Math.floor((Date.now() - lastSeen.getTime()) / 1000) : 9999;
+                        const estaVivo = diffSec < 15;
+                        let statusColor = '#6b7280';
+                        let statusText = 'Desconectado';
+                        if (estaVivo) {
+                            switch(e.estado) {
+                                case 'trabajando': statusColor = '#22c55e'; statusText = 'Trabajando'; break;
+                                case 'espera': statusColor = '#eab308'; statusText = 'En espera'; break;
+                                case 'descanso': statusText = 'Descanso'; break;
+                            }
+                        }
+                        return `<div class="empleado-card">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center">${e.foto_url ? `<img src="${e.foto_url}" style="width:100%;height:100%;object-fit:cover">` : `<i class="fas fa-user" style="font-size:12px;color:var(--text2)"></i>`}</div>
+                                <div><div class="emp-name">${e.nombre}</div><div class="emp-rol">${e.rol ? e.rol.replace('rol_','') : 'Sin rol'}</div></div>
+                            </div>
+                            <div class="emp-status" style="color:${statusColor}">● ${statusText}</div>
+                            <div class="emp-actions">
+                                <button class="btn-primary" style="padding:4px 8px;font-size:10px;flex:1" onclick="editEmpleado('${e.id}')"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn-primary" style="padding:4px 8px;font-size:10px;flex:1;background:${e.activo?'#6b7280':'var(--green)'}" onclick="toggleActivoEmpleado('${e.id}',${e.activo})"><i class="fas ${e.activo?'fa-pause':'fa-play'}"></i></button>
+                                <button class="btn-danger" style="padding:4px 8px;font-size:10px" onclick="deleteEmpleado('${e.id}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>`;
+                    }).join('');
+                } else {
+                    gridEl.style.display = 'none';
+                    tableCard.style.display = 'block';
+                }
         }
 
         async function activarEmpleado(id) {
