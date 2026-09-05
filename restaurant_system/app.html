@@ -889,6 +889,7 @@
                             </div>
                         `).join('')}
                     </div>
+                    ${todosEntregados && p.estado !== 'entregado' ? `<button class="btn-success" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff" onclick="completarEntrega('${p.id}')"><i class="fas fa-check-double"></i> ENTREGA COMPLETA</button>` : ''}
                     <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
                 </div>`;
             }).join('');
@@ -909,6 +910,21 @@
                 renderPedidos();
             } catch(e) {
                 console.error('Error entregando item:', e);
+            }
+        }
+
+        async function completarEntrega(pedidoId) {
+            try {
+                const { error } = await sbSvc.from('pedidos')
+                    .update({ estado: 'entregado' })
+                    .eq('id', pedidoId);
+                if (error) throw error;
+                const pedido = pedidos.find(p => p.id === pedidoId);
+                if (pedido) pedido.estado = 'entregado';
+                pedidos = pedidos.filter(p => p.id !== pedidoId);
+                renderPedidos();
+            } catch(e) {
+                console.error('Error completando entrega:', e);
             }
         }
 

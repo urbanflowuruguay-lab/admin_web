@@ -651,14 +651,14 @@ async function confirmarPedido() {
                 }
                 if (ped.estado === "entregado") {
                     clearInterval(poll);
-                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido llegó!";
-                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "✅";
-                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Ya está en tu mesa. ¡Buen provecho!";
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Gracias por tu compra!";
+                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "❤️";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que todo sea de tu agrado.<br>No olvides calificar nuestro trabajo ⭐";
                     document.getElementById("estadoPedido").classList.add("show");
                     setTimeout(() => {
                         document.getElementById("estadoPedido").classList.remove("show");
                         showRatingScreen();
-                    }, 2500);
+                    }, 4000);
                 }
             }, 3000);
         }
