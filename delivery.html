@@ -306,6 +306,7 @@ let productos = [];
 let carrito = [];
 let clienteToken = localStorage.getItem("cliente_token_delivery") || crypto.randomUUID();
 localStorage.setItem("cliente_token_delivery", clienteToken);
+if (window.AndroidBridge) AndroidBridge.saveClienteToken(clienteToken);
 let carritoPanelOpen = false;
 
 const themes = {

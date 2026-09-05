@@ -3,222 +3,877 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrbanFlow - Iniciar Sesión</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>UrbanFlow - Portal de Acceso</title>
+    <!-- Fuentes Google: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6.4.0 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        :root { --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --border:#333; --text:#fff; --text2:#999; --accent:#d4af37; --accent2:#b8962e; --red:#f44336; }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-        .container { max-width:420px; width:100%; }
-        .card { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:32px; }
-        .card h2 { text-align:center; color:var(--accent); margin-bottom:4px; font-size:22px; }
-        .card .subtitle { text-align:center; color:var(--text2); font-size:13px; margin-bottom:24px; }
-        .form-group { margin-bottom:16px; }
-        .form-group label { display:block; font-size:12px; color:var(--text2); margin-bottom:6px; }
-        .form-group input { width:100%; padding:12px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; }
-        .form-group input:focus { border-color:var(--accent); }
-        .btn { width:100%; padding:14px; background:var(--accent); color:var(--bg); border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; margin-top:8px; }
-        .btn:hover { background:var(--accent2); }
-        .btn:disabled { background:#333; color:#666; cursor:not-allowed; }
-        .error-msg { color:var(--red); font-size:13px; text-align:center; margin-top:12px; display:none; }
-        .error-msg.show { display:block; }
-        .links { text-align:center; margin-top:16px; font-size:13px; }
-        .links a { color:var(--accent); text-decoration:none; cursor:pointer; }
-        .links a:hover { text-decoration:underline; }
-        .back-link { text-align:center; margin-top:20px; }
-        .back-link a { color:var(--text2); font-size:12px; text-decoration:none; }
-        .hidden { display:none; }
-        .spinner { width:20px; height:20px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; display:inline-block; vertical-align:middle; margin-right:8px; }
-        @keyframes spin { to { transform:rotate(360deg); } }
-        #authLoader { text-align:center; padding:60px; }
-        .role-selector { display:grid; gap:10px; margin-top:16px; }
-        .role-btn { padding:16px; background:var(--bg3); border:2px solid var(--border); border-radius:12px; color:var(--text); font-size:15px; font-weight:600; cursor:pointer; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s; }
-        .role-btn:hover { border-color:var(--accent); background:var(--bg); }
-        .role-btn .icon { font-size:24px; }
-        .role-btn .info { flex:1; }
-        .role-btn .desc { font-size:11px; color:var(--text2); font-weight:400; margin-top:2px; }
+        :root {
+            --bg-base: #06090e;
+            --bg-card: rgba(18, 24, 38, 0.75);
+            --bg-input: rgba(10, 14, 23, 0.7);
+            --border-card: rgba(255, 255, 255, 0.1);
+            --border-glow: rgba(212, 175, 55, 0.4);
+            --accent-gold: #d4af37;
+            --accent-gold-hover: #f3cf55;
+            --accent-gold-glow: rgba(212, 175, 55, 0.25);
+            --accent-blue: #3b82f6;
+            --accent-emerald: #10b981;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --red-error: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Fondos animados con brillo moderno */
+        .bg-glow-1 {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .bg-glow-2 {
+            position: absolute;
+            bottom: -10%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 460px;
+            z-index: 10;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Encabezado Logo */
+        .logo-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 54px;
+            height: 54px;
+            background: linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0.05) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px var(--accent-gold-glow);
+            margin-bottom: 12px;
+        }
+
+        .logo-badge i {
+            font-size: 24px;
+            color: var(--accent-gold);
+        }
+
+        .logo-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #CBD5E1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Tarjeta Glassmorphic */
+        .auth-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-card);
+            border-radius: 24px;
+            padding: 36px 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+        }
+
+        .card-heading {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .card-subheading {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        /* Formularios y Campos */
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i.input-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--text-muted);
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .input-wrapper input, .input-wrapper select {
+            width: 100%;
+            padding: 13px 14px 13px 42px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .input-wrapper input:focus, .input-wrapper select:focus {
+            border-color: var(--accent-gold);
+            background: rgba(18, 24, 38, 0.95);
+            box-shadow: 0 0 0 4px var(--accent-gold-glow);
+        }
+
+        .input-wrapper input:focus + i.input-icon {
+            color: var(--accent-gold);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: var(--text-primary);
+        }
+
+        /* Botón Principal */
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #b89327 100%);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px var(--accent-gold-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+            background: linear-gradient(135deg, var(--accent-gold-hover) 0%, var(--accent-gold) 100%);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Selector de Rol */
+        .role-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .role-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border-card);
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.25s ease;
+        }
+
+        .role-card:hover {
+            border-color: var(--accent-gold);
+            background: rgba(212, 175, 55, 0.05);
+            transform: scale(1.01);
+        }
+
+        .role-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(212, 175, 55, 0.15);
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .role-info h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .role-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Pestañas / Links */
+        .tab-switch {
+            display: flex;
+            background: var(--bg-input);
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-card);
+        }
+
+        .tab-switch button {
+            flex: 1;
+            padding: 9px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-switch button.active {
+            background: var(--accent-gold);
+            color: #000;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .link-text {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .link-text a {
+            color: var(--accent-gold);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .link-text a:hover {
+            color: var(--accent-gold-hover);
+            text-decoration: underline;
+        }
+
+        /* Mensajes de Error */
+        .alert-error {
+            background: var(--red-bg);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hidden { display: none !important; }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Estilo QR Container */
+        .qr-box {
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 16px;
+            display: inline-block;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            margin: 16px 0;
+        }
+
+        .footer-back {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .footer-back a {
+            color: var(--text-muted);
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-back a:hover {
+            color: var(--text-primary);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="authLoader"><div class="spinner"></div><p style="color:var(--text2);margin-top:12px">Verificando sesión...</p></div>
 
-        <div class="card hidden" id="loginCard">
-            <!-- LOGIN -->
-            <div id="step-login">
-                <h2>Iniciar Sesión</h2>
-                <p class="subtitle">Ingresa tus datos para continuar</p>
-                <div class="error-msg" id="errorMsg"></div>
-                <form onsubmit="handleLogin(event)">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="email" placeholder="tu@email.com" required autocomplete="email">
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" id="password" placeholder="Ingresa tu contraseña" required autocomplete="current-password">
-                    </div>
-                    <button type="submit" class="btn" id="btnLogin">Entrar</button>
-                </form>
-                <div class="links">
-                    <a onclick="showRegister()">Registrate como empresa</a>
-                </div>
-            </div>
+    <div class="bg-glow-1"></div>
+    <div class="bg-glow-2"></div>
 
-            <!-- REGISTRO EMPRESA -->
-            <div id="step-register" class="hidden">
-                <h2>Registrar Empresa</h2>
-                <p class="subtitle">Creá tu cuenta de restaurante</p>
-                <div class="error-msg" id="regErrorMsg"></div>
-                <form onsubmit="handleRegister(event)">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="regEmail" placeholder="tu@email.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Tu contraseña de Dueño</label>
-                        <input type="password" id="regPinDueno" placeholder="La usás para entrar como Dueño" maxlength="8">
-                    </div>
-                    <button type="submit" class="btn" id="btnRegister">Crear cuenta</button>
-                </form>
-                <div class="links">
-                    <a onclick="showLogin()">¿Ya tenés cuenta? Iniciá sesión</a>
-                </div>
+    <div class="main-wrapper">
+        <!-- Logo Header -->
+        <div class="logo-header">
+            <div class="logo-badge">
+                <i class="fa-solid fa-utensils"></i>
             </div>
-
-            <!-- SELECTOR ROL (solo para empresas) -->
-            <div id="step-role" class="hidden">
-                <h2 id="roleTitle">¿Quién sos?</h2>
-                <p class="subtitle" id="roleSubtitle">Elegí tu rol en el restaurante</p>
-                <div class="role-selector">
-                    <div class="role-btn" onclick="selectRole('dueno')">
-                        <div class="icon">👑</div>
-                        <div class="info">
-                            <div>Dueño</div>
-                            <div class="desc">Acceso completo al panel</div>
-                        </div>
-                    </div>
-                    <div class="role-btn" onclick="selectRole('personal')">
-                        <div class="icon">🧑‍🍳</div>
-                        <div class="info">
-                            <div>Personal</div>
-                            <div class="desc">Cajero, cocinero, camarero, etc.</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="links" style="margin-top:20px">
-                    <a onclick="backToLogin()">← Volver</a>
-                </div>
-            </div>
-
-            <!-- PERSONAL: QR + instrucciones -->
-            <div id="step-personal" class="hidden">
-                <h2 style="text-align:center">Personal</h2>
-                <p class="subtitle" style="text-align:center">Escaneá el QR con tu celular</p>
-                <div style="text-align:center;margin:20px 0">
-                    <div id="qrContainer" style="background:#fff;display:inline-block;padding:12px;border-radius:12px"></div>
-                </div>
-                <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px">
-                    <p style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Cómo entrás:</p>
-                    <ol style="font-size:13px;color:var(--text2);padding-left:18px;line-height:2">
-                        <li>Escaneá el QR con la cámara de tu celular</li>
-                        <li>Ingresá el <strong style="color:var(--text)">código</strong> que te da tu empresa</li>
-                        <li>Agregá la app al escritorio de tu teléfono para entrar más rápido</li>
-                    </ol>
-                </div>
-                <div class="links" style="margin-top:16px">
-                    <a onclick="backToRole()">← Volver</a>
-                </div>
-            </div>
-
-            <!-- DUEÑO: PIN/CONTRASEÑA -->
-            <div id="step-pin" class="hidden">
-                <h2 id="pinTitle">🔑 Contraseña de Dueño</h2>
-                <p class="subtitle" id="pinSubtitle">Ingresá tu contraseña interna</p>
-                <div class="error-msg" id="pinErrorMsg"></div>
-                <form onsubmit="handlePin(event)">
-                    <div class="form-group">
-                        <label id="pinLabel">Contraseña Interna</label>
-                        <input type="password" id="pinInput" placeholder="Tu contraseña de dueño" required>
-                    </div>
-                    <button type="submit" class="btn" id="btnPin">Entrar</button>
-                </form>
-                <div class="links">
-                    <a onclick="backToRole()">← Volver</a>
-                </div>
-            </div>
+            <h1 class="logo-title">UrbanFlow Enterprise</h1>
+            <p class="logo-subtitle">Gestión de Restaurantes, Transporte & Plataforma</p>
         </div>
 
-        <div class="back-link">
-            <a href="/">Volver al sitio</a>
+        <!-- Auth Loader -->
+        <div id="authLoader" style="text-align: center; padding: 40px;">
+            <div class="spinner" style="border-top-color: var(--accent-gold); width: 28px; height: 28px; margin: 0 auto;"></div>
+            <p style="color: var(--text-secondary); margin-top: 14px; font-size: 14px;">Cargando ecosistema...</p>
+        </div>
+
+        <!-- Main Card Container -->
+        <div class="auth-card hidden" id="mainCard">
+
+            <!-- Switcher Tabs para Dueño / Empleado en Registro -->
+            <div class="tab-switch hidden" id="registerTabSwitch">
+                <button class="active" id="tabEmpresa" onclick="switchRegisterTab('empresa')">
+                    <i class="fa-solid fa-store"></i> Dueño de Negocio
+                </button>
+                <button id="tabEmpleado" onclick="switchRegisterTab('empleado')">
+                    <i class="fa-solid fa-user-tag"></i> Empleado de Local
+                </button>
+            </div>
+
+            <!-- STEP 1: LOGIN PRINCIPAL UNIFICADO -->
+            <div id="step-login">
+                <h2 class="card-heading">Iniciar Sesión</h2>
+                <p class="card-subheading">Ingresá tus credenciales para acceder a tu panel</p>
+
+                <div id="loginAlert" class="hidden"></div>
+
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Correo Electrónico o Usuario</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-envelope input-icon"></i>
+                            <input type="text" id="loginEmail" placeholder="ejemplo@urbanflow.com" required autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" id="loginPass" placeholder="Ingresá tu contraseña" required autocomplete="current-password">
+                            <i class="fa-regular fa-eye toggle-password" onclick="togglePassVisibility('loginPass', this)"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btnLogin">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar al Sistema
+                    </button>
+                </form>
+
+                <div class="link-text">
+                    ¿No tenés cuenta aún? <a onclick="showRegisterForm('empresa')">Registrar Negocio o Empleado</a>
+                </div>
+            </div>
+
+            <!-- STEP 2: REGISTRO DE EMPRESA / RESTAURANTE (DUEÑO) -->
+            <div id="step-register-empresa" class="hidden">
+                <h2 class="card-heading">Registrar Restaurante</h2>
+                <p class="card-subheading">Creá tu cuenta de Administrador de Local</p>
+
+                <div id="regEmpresaAlert" class="hidden"></div>
+
+                <form onsubmit="handleRegisterEmpresa(event)">
+                    <div class="form-group">
+                        <label>Nombre del Restaurante / Empresa</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-store input-icon"></i>
+                            <input type="text" id="regEmpNombre" placeholder="Ej. Pizzería San José" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-envelope input-icon"></i>
+                            <input type="email" id="regEmpEmail" placeholder="contacto@minegocio.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contraseña de Usuario</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon"></i>
+                            <input type="password" id="regEmpPass" placeholder="Mínimo 6 caracteres" required>
+                            <i class="fa-regular fa-eye toggle-password" onclick="togglePassVisibility('regEmpPass', this)"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contraseña de Dueño (Acceso Interno)</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-shield-halved input-icon"></i>
+                            <input type="password" id="regEmpPin" placeholder="Clave para validar tu rol de dueño" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btnRegEmpresa">
+                        <i class="fa-solid fa-crown"></i> Crear Cuenta de Dueño
+                    </button>
+                </form>
+
+                <div class="link-text">
+                    ¿Ya tenés cuenta registrada? <a onclick="showLoginForm()">Iniciar Sesión</a>
+                </div>
+            </div>
+
+            <!-- STEP 3: REGISTRO DE EMPLEADO (VÍA QR O CÓDIGO) -->
+            <div id="step-register-empleado" class="hidden">
+                <h2 class="card-heading">Registro de Empleado</h2>
+                <p class="card-subheading">Formá parte del equipo de un comercio o restaurante</p>
+
+                <div id="regEmpAlert" class="hidden"></div>
+
+                <form onsubmit="handleRegisterEmpleado(event)">
+                    <div class="form-group">
+                        <label>Tu Nombre Completo</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-user input-icon"></i>
+                            <input type="text" id="regEmpleadoNombre" placeholder="Ej. Carlos Rodríguez" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Código de Empresa / Local</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-barcode input-icon"></i>
+                            <input type="text" id="regEmpleadoCodigo" placeholder="Código de 8 dígitos de tu empresa" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contraseña Personal</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" id="regEmpleadoPass" placeholder="Tu contraseña de acceso" required>
+                            <i class="fa-regular fa-eye toggle-password" onclick="togglePassVisibility('regEmpleadoPass', this)"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btnRegEmpleado">
+                        <i class="fa-solid fa-id-badge"></i> Registrarme como Empleado
+                    </button>
+                </form>
+
+                <div class="link-text">
+                    ¿Ya tenés cuenta? <a onclick="showLoginForm()">Iniciar Sesión</a>
+                </div>
+            </div>
+
+            <!-- STEP 4: SELECTOR DE ROL DE EMPRESA (DUEÑO VS EMPLEADO QR) -->
+            <div id="step-role" class="hidden">
+                <h2 class="card-heading" id="roleTitle">Tu Negocio</h2>
+                <p class="card-subheading" id="roleSubtitle">Seleccioná cómo deseas acceder</p>
+
+                <div class="role-grid">
+                    <div class="role-card" onclick="selectRoleOption('dueno')">
+                        <div class="role-icon-box">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                        <div class="role-info">
+                            <h4>Dueño / Administrador</h4>
+                            <p>Acceso al panel general, aprobación de empleados y gestión total</p>
+                        </div>
+                    </div>
+
+                    <div class="role-card" onclick="selectRoleOption('empleado')">
+                        <div class="role-icon-box" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue);">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </div>
+                        <div class="role-info">
+                            <h4>Empleado de Local (Código / QR)</h4>
+                            <p>Acceso directo a marcaje de turno, comandos de cocina o caja POS</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="link-text">
+                    <a onclick="logoutAndReset()"><i class="fa-solid fa-arrow-left"></i> Cambiar de cuenta</a>
+                </div>
+            </div>
+
+            <!-- STEP 5: CONFIRMACIÓN DE CLAVE DE DUEÑO -->
+            <div id="step-pin" class="hidden">
+                <h2 class="card-heading">Acceso de Dueño</h2>
+                <p class="card-subheading">Ingresá tu clave de Dueño para acceder a Gestión</p>
+
+                <div id="pinAlert" class="hidden"></div>
+
+                <form onsubmit="handleVerifyPin(event)">
+                    <div class="form-group">
+                        <label>Contraseña Interna de Dueño</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-shield-cat input-icon"></i>
+                            <input type="password" id="pinInput" placeholder="Clave de dueño" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btnVerifyPin">
+                        <i class="fa-solid fa-door-open"></i> Entrar al Panel de Control
+                    </button>
+                </form>
+
+                <div class="link-text">
+                    <a onclick="showStep('step-role')"><i class="fa-solid fa-arrow-left"></i> Volver a la selección</a>
+                </div>
+            </div>
+
+            <!-- STEP 6: MOSTRAR QR DE EMPLEADOS Y FORMATO -->
+            <div id="step-qr-empleados" class="hidden" style="text-align: center;">
+                <h2 class="card-heading">Portal de Empleado</h2>
+                <p class="card-subheading">Escaneá este QR con tu móvil para ingresar o registrarte</p>
+
+                <div class="qr-box">
+                    <div id="qrContainer"></div>
+                </div>
+
+                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-top: 10px;">
+                    Al escanear el QR, se abrirá la opción de registrarte como empleado o acceder a tu turno.
+                </p>
+
+                <div class="link-text" style="margin-top: 16px;">
+                    <a onclick="showStep('step-role')"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                </div>
+            </div>
+
+            <!-- STEP 7: PENDIENTE DE APROBACIÓN POR EL DUEÑO -->
+            <div id="step-pending-approval" class="hidden" style="text-align: center; padding: 10px 0;">
+                <div style="font-size: 48px; color: var(--accent-gold); margin-bottom: 16px;">
+                    <i class="fa-solid fa-user-clock"></i>
+                </div>
+                <h2 class="card-heading">Cuenta Registrada</h2>
+                <p class="card-subheading" style="margin-bottom: 16px;">
+                    Tu cuenta de empleado fue enviada con éxito.
+                </p>
+                <div class="alert-success" style="text-align: left; line-height: 1.5;">
+                    <i class="fa-solid fa-circle-info" style="font-size: 18px; flex-shrink: 0;"></i>
+                    <span>El <strong>Dueño del Restaurante</strong> debe aprobar tu cuenta y asignarte tu rol (Cajero, Cocina, Camarero) desde su panel para habilitar tu acceso.</span>
+                </div>
+
+                <button class="btn-primary" onclick="showLoginForm()" style="margin-top: 16px;">
+                    Entendido, Volver al Login
+                </button>
+            </div>
+
+        </div>
+
+        <div class="footer-back">
+            <a href="/"><i class="fa-solid fa-house"></i> Volver a UrbanFlow Website</a>
         </div>
     </div>
 
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
         const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
         const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
         const sbService = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
 
         let currentUser = null;
         let userEmpresa = null;
-        let selectedRole = null;
 
-        // =============================================
         // INIT
-        // =============================================
         (async () => {
             const { data: { session } } = await sb.auth.getSession();
             if (session && session.user) {
                 await sb.auth.signOut();
             }
-            showStep('step-login');
-            document.getElementById('authLoader').style.display = 'none';
-            document.getElementById('loginCard').classList.remove('hidden');
+            document.getElementById('authLoader').classList.add('hidden');
+            document.getElementById('mainCard').classList.remove('hidden');
+
+            // Si viene un código de empresa en la URL por QR
+            const params = new URLSearchParams(window.location.search);
+            const empCode = params.get('code') || params.get('empresa');
+            if (empCode) {
+                document.getElementById('regEmpleadoCodigo').value = empCode;
+                showRegisterForm('empleado');
+            } else {
+                showStep('step-login');
+            }
         })();
 
         function showStep(id) {
             document.querySelectorAll('[id^="step-"]').forEach(s => s.classList.add('hidden'));
+            document.getElementById('registerTabSwitch').classList.add('hidden');
             document.getElementById(id).classList.remove('hidden');
         }
 
-        function showError(id, msg) {
-            const el = document.getElementById(id);
-            if (msg) { el.textContent = msg; el.classList.add('show'); }
-            else { el.textContent = ''; el.classList.remove('show'); }
+        function switchRegisterTab(type) {
+            const btnEmp = document.getElementById('tabEmpresa');
+            const btnEmpld = document.getElementById('tabEmpleado');
+            if (type === 'empresa') {
+                btnEmp.classList.add('active');
+                btnEmpld.classList.remove('active');
+                showStep('step-register-empresa');
+                document.getElementById('registerTabSwitch').classList.remove('hidden');
+            } else {
+                btnEmpld.classList.add('active');
+                btnEmp.classList.remove('active');
+                showStep('step-register-empleado');
+                document.getElementById('registerTabSwitch').classList.remove('hidden');
+            }
+        }
+
+        function showRegisterForm(type = 'empresa') {
+            switchRegisterTab(type);
+        }
+
+        function showLoginForm() {
+            showStep('step-login');
+        }
+
+        function showAlert(containerId, message, isError = true) {
+            const el = document.getElementById(containerId);
+            if (!message) {
+                el.classList.add('hidden');
+                el.innerHTML = '';
+                return;
+            }
+            el.className = isError ? 'alert-error' : 'alert-success';
+            el.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i> <span>${message}</span>`;
+            el.classList.remove('hidden');
+        }
+
+        function togglePassVisibility(inputId, iconEl) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                iconEl.className = 'fa-regular fa-eye-slash toggle-password';
+            } else {
+                input.type = 'password';
+                iconEl.className = 'fa-regular fa-eye toggle-password';
+            }
         }
 
         // =============================================
-        // REDIRECCIÓN AUTOMÁTICA según tipo de usuario
+        // ENRUTADOR INTELIGENTE DE LOGIN SEGÚN ROL Y PERFIL
         // =============================================
-        async function redirigir(user) {
+        async function handleLogin(e) {
+            e.preventDefault();
+            const emailOrUser = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+
+            if (!emailOrUser || !pass) {
+                showAlert('loginAlert', 'Ingresá tu usuario y contraseña.');
+                return;
+            }
+
+            const btn = document.getElementById('btnLogin');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Verificando...';
+            showAlert('loginAlert', '');
+
+            try {
+                // 1. Intentar Login como Usuario Autenticado en Supabase Auth
+                const { data, error } = await sb.auth.signInWithPassword({ email: emailOrUser, password: pass });
+
+                if (!error && data.user) {
+                    await processUserRedirection(data.user);
+                    return;
+                }
+
+                // 2. Si falla Auth estándar, verificar si es EMPLEADO por Nombre/Email en la tabla empleados
+                const { data: empData } = await sbService.from('empleados')
+                    .select('*')
+                    .or(`nombre.eq."${emailOrUser}",email.eq."${emailOrUser}"`)
+                    .eq('pin', pass)
+                    .limit(1);
+
+                if (empData && empData.length > 0) {
+                    const emp = empData[0];
+                    if (!emp.activo) {
+                        showAlert('loginAlert', 'Tu cuenta de empleado está registrada pero aún PENDIENTE de aprobación por el dueño.');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar al Sistema';
+                        return;
+                    }
+
+                    const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
+                    localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
+                    const rol = (emp.rol || '').toLowerCase();
+
+                    if (rol.includes('cajero')) {
+                        window.location.href = '/restaurant_system/pos.html?empresa=' + emp.empresa_id;
+                    } else {
+                        window.location.href = '/restaurant_system/app.html?token=' + encodeURIComponent(token);
+                    }
+                    return;
+                }
+
+                showAlert('loginAlert', 'Usuario o contraseña incorrectos.');
+
+            } catch (err) {
+                showAlert('loginAlert', 'Error al conectar: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar al Sistema';
+            }
+        }
+
+        async function processUserRedirection(user) {
             const userId = user.id;
 
-            // 1. ¿Es ADMIN de la plataforma?
+            // 1. ¿Es Administrador Supremo?
             const { data: profile } = await sb.from('perfiles').select('*').eq('id', userId).single();
-            if (profile && profile.role === 'admin') {
+            if (profile && (profile.role === 'admin' || profile.type === 'admin')) {
                 window.location.href = '/admin/';
                 return;
             }
 
-            // 2. ¿Es CHOFER?
+            // 2. ¿Es Chofer?
             if (profile && profile.type === 'chofer') {
                 if (profile.status === 'aprobado') {
                     window.location.href = '/chofer/';
-                    return;
+                } else {
+                    showAlert('loginAlert', 'Tu cuenta de chofer se encuentra en estado: ' + profile.status);
+                    await sb.auth.signOut();
                 }
-                showError('errorMsg', 'Tu cuenta de chofer está ' + profile.status);
-                await sb.auth.signOut();
                 return;
             }
 
-            // 3. ¿Es EMPRESA (dueño de restaurante)?
+            // 3. ¿Es Dueño de Empresa / Restaurante?
             const { data: empresas } = await sbService.from('empresas')
                 .select('*')
                 .eq('usuario_id', userId)
@@ -226,115 +881,103 @@
 
             if (empresas && empresas.length > 0) {
                 userEmpresa = empresas[0];
-                // Mostrar selector de rol SOLO para empresas
-                const nombre = userEmpresa.nombre || 'Tu restaurante';
-                document.getElementById('roleTitle').textContent = nombre;
-                document.getElementById('roleSubtitle').textContent = '¿Quién sos en ' + nombre + '?';
+                document.getElementById('roleTitle').textContent = userEmpresa.nombre || 'Tu Restaurante';
+                document.getElementById('roleSubtitle').textContent = '¿Cómo querés ingresar a ' + (userEmpresa.nombre || 'tu local') + '?';
                 showStep('step-role');
                 return;
             }
 
-            // 4. ¿Es EMPLEADO de alguna empresa?
-            const { data: empleados } = await sb.from('empleados')
-                .select('*')
-                .eq('email', user.email)
-                .eq('activo', true)
-                .limit(1);
-
-            if (empleados && empleados.length > 0) {
-                const emp = empleados[0];
-                const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
-                localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
-                const rol = (emp.rol || '').toLowerCase();
-                if (rol.includes('cajero')) {
-                    window.location.href = '/restaurant_system/pos.html?empresa=' + emp.empresa_id;
-                } else {
-                    window.location.href = '/restaurant_system/app.html?token=' + encodeURIComponent(token);
-                }
-                return;
-            }
-
-            // 5. No encontrado
-            showError('errorMsg', 'Tu cuenta no está registrada.');
+            showAlert('loginAlert', 'No se encontró un perfil asociado a esta cuenta.');
             await sb.auth.signOut();
         }
 
-        // =============================================
-        // LOGIN
-        // =============================================
-        async function handleLogin(e) {
+        // SELECTOR ROL EMPRESA
+        function selectRoleOption(role) {
+            if (role === 'dueno') {
+                showStep('step-pin');
+            } else {
+                const qrUrl = window.location.origin + '/admin/login.html?code=' + (userEmpresa?.codigo_interno || '');
+                generateQR(qrUrl);
+                showStep('step-qr-empleados');
+            }
+        }
+
+        function generateQR(text) {
+            const container = document.getElementById('qrContainer');
+            const url = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(text);
+            container.innerHTML = '<img src="' + url + '" style="width:200px;height:200px;border-radius:8px;" alt="QR">';
+        }
+
+        async function handleVerifyPin(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('password').value.trim();
-            if (!email || !pass) { showError('errorMsg', 'Completa email y contraseña'); return; }
+            const pin = document.getElementById('pinInput').value.trim();
+            if (!pin) { showAlert('pinAlert', 'Ingresá tu contraseña de dueño.'); return; }
 
-            document.getElementById('btnLogin').disabled = true;
-            document.getElementById('btnLogin').textContent = 'Entrando...';
-            showError('errorMsg', '');
+            const btn = document.getElementById('btnVerifyPin');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Verificando...';
+            showAlert('pinAlert', '');
 
-            const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-
-            if (error) {
-                showError('errorMsg', error.message.includes('Invalid') ? 'Email o contraseña incorrectos' : error.message);
-                document.getElementById('btnLogin').disabled = false;
-                document.getElementById('btnLogin').textContent = 'Entrar';
+            if (!userEmpresa || userEmpresa.pin_dueno !== pin) {
+                showAlert('pinAlert', 'Contraseña de dueño incorrecta.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-door-open"></i> Entrar al Panel de Control';
                 return;
             }
 
-            await redirigir(data.user);
-            document.getElementById('btnLogin').disabled = false;
-            document.getElementById('btnLogin').textContent = 'Entrar';
+            localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
+            window.location.href = '/restaurant_system/gestion.html';
         }
 
-        // =============================================
-        // REGISTRO EMPRESA
-        // =============================================
-        async function handleRegister(e) {
+        // REGISTRO DE EMPRESA (DUEÑO)
+        async function handleRegisterEmpresa(e) {
             e.preventDefault();
-            const email = document.getElementById('regEmail').value.trim();
-            const pass = document.getElementById('regPassword').value.trim();
-            const pinDueno = document.getElementById('regPinDueno').value.trim();
+            const nombre = document.getElementById('regEmpNombre').value.trim();
+            const email = document.getElementById('regEmpEmail').value.trim();
+            const pass = document.getElementById('regEmpPass').value.trim();
+            const pin = document.getElementById('regEmpPin').value.trim();
 
-            if (!email || !pass) { showError('regErrorMsg', 'Completa email y contraseña'); return; }
-            if (pass.length < 6) { showError('regErrorMsg', 'Mínimo 6 caracteres'); return; }
-            if (!pinDueno) { showError('regErrorMsg', 'Poné tu contraseña de Dueño'); return; }
+            if (!nombre || !email || !pass || !pin) {
+                showAlert('regEmpresaAlert', 'Por favor completá todos los campos.');
+                return;
+            }
 
-            document.getElementById('btnRegister').disabled = true;
-            document.getElementById('btnRegister').textContent = 'Creando...';
-            showError('regErrorMsg', '');
+            const btn = document.getElementById('btnRegEmpresa');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Registrando...';
+            showAlert('regEmpresaAlert', '');
 
             const { data, error } = await sb.auth.signUp({ email, password: pass });
+
             if (error) {
-                showError('regErrorMsg', error.message.includes('already') ? 'Ese email ya está registrado' : error.message);
-                document.getElementById('btnRegister').disabled = false;
-                document.getElementById('btnRegister').textContent = 'Crear cuenta';
+                showAlert('regEmpresaAlert', error.message.includes('already') ? 'Este email ya está registrado.' : error.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-crown"></i> Crear Cuenta de Dueño';
                 return;
             }
 
             const userId = data.user?.id;
-            if (!userId) {
-                showError('regErrorMsg', 'Error al crear usuario');
-                document.getElementById('btnRegister').disabled = false;
-                document.getElementById('btnRegister').textContent = 'Crear cuenta';
-                return;
-            }
-
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             const codigo = Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
 
             const { error: empError } = await sbService.from('empresas').insert({
-                usuario_id: userId, email, nombre: '', rubro: 'restaurante',
-                pin_dueno: pinDueno, codigo_interno: codigo, status: 'pendiente', activo: true
+                usuario_id: userId,
+                email,
+                nombre,
+                rubro: 'restaurante',
+                pin_dueno: pin,
+                codigo_interno: codigo,
+                status: 'aprobado',
+                activo: true
             });
 
             if (empError) {
-                showError('regErrorMsg', 'Error: ' + empError.message);
-                document.getElementById('btnRegister').disabled = false;
-                document.getElementById('btnRegister').textContent = 'Crear cuenta';
+                showAlert('regEmpresaAlert', 'Error al guardar la empresa: ' + empError.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-crown"></i> Crear Cuenta de Dueño';
                 return;
             }
 
-            // Entrar directo a gestión
             const { data: emp } = await sbService.from('empresas').select('*').eq('usuario_id', userId).limit(1);
             if (emp && emp[0]) {
                 localStorage.setItem('urbanflow_empresa_id', emp[0].id);
@@ -342,52 +985,78 @@
             }
         }
 
-        // =============================================
-        // SELECTOR DE ROL (solo empresas)
-        // =============================================
-        function selectRole(role) {
-            selectedRole = role;
-            if (role === 'dueno') {
-                showStep('step-pin');
-            } else {
-                const qrUrl = window.location.origin + '/restaurant_system/app.html';
-                generateQR(qrUrl);
-                showStep('step-personal');
-            }
-        }
-
-        function generateQR(text) {
-            const container = document.getElementById('qrContainer');
-            const url = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(text);
-            container.innerHTML = '<img src="' + url + '" style="width:200px;height:200px" alt="QR">';
-        }
-
-        // =============================================
-        // VERIFICAR PIN/CONTRASEÑA DEL ROL
-        // =============================================
-        async function handlePin(e) {
+        // REGISTRO DE EMPLEADO
+        async function handleRegisterEmpleado(e) {
             e.preventDefault();
-            const pin = document.getElementById('pinInput').value.trim();
-            if (!pin) { showError('pinErrorMsg', 'Ingresá tu clave'); return; }
+            const nombre = document.getElementById('regEmpleadoNombre').value.trim();
+            const codigo = document.getElementById('regEmpleadoCodigo').value.trim();
+            const pass = document.getElementById('regEmpleadoPass').value.trim();
 
-            document.getElementById('btnPin').disabled = true;
-            document.getElementById('btnPin').textContent = 'Verificando...';
-            showError('pinErrorMsg', '');
-
-            if (!userEmpresa || userEmpresa.pin_dueno !== pin) {
-                showError('pinErrorMsg', 'Contraseña incorrecta');
-                document.getElementById('btnPin').disabled = false;
-                document.getElementById('btnPin').textContent = 'Entrar';
+            if (!nombre || !codigo || !pass) {
+                showAlert('regEmpAlert', 'Completá tu nombre, código de empresa y contraseña.');
                 return;
             }
-            localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
-            window.location.href = '/restaurant_system/gestion.html';
+
+            const btn = document.getElementById('btnRegEmpleado');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Creando cuenta...';
+            showAlert('regEmpAlert', '');
+
+            // Buscar la empresa por código interno
+            const { data: empresas, error: searchErr } = await sbService.from('empresas')
+                .select('id, nombre')
+                .eq('codigo_interno', codigo)
+                .limit(1);
+
+            if (searchErr || !empresas || empresas.length === 0) {
+                showAlert('regEmpAlert', 'Código de empresa no válido. Solicitá el código al dueño.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-id-badge"></i> Registrarme como Empleado';
+                return;
+            }
+
+            const empId = empresas[0].id;
+
+            // Verificar si ya existe el nombre
+            const { data: dup } = await sbService.from('empleados')
+                .select('id')
+                .eq('empresa_id', empId)
+                .eq('nombre', nombre)
+                .limit(1);
+
+            if (dup && dup.length > 0) {
+                showAlert('regEmpAlert', 'Ya existe un empleado registrado con ese nombre en este local.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-id-badge"></i> Registrarme como Empleado';
+                return;
+            }
+
+            // Insertar empleado con activo: false (pendiente de aprobación por el dueño)
+            const { error: insErr } = await sbService.from('empleados').insert({
+                empresa_id: empId,
+                nombre,
+                pin: pass,
+                activo: false,
+                rol: 'rol_empleado',
+                emoji: '👨‍🍳'
+            });
+
+            if (insErr) {
+                showAlert('regEmpAlert', 'Error al registrar: ' + insErr.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-id-badge"></i> Registrarme como Empleado';
+                return;
+            }
+
+            showStep('step-pending-approval');
         }
 
-        function backToRole() { showStep('step-role'); }
-        function backToLogin() { sb.auth.signOut(); currentUser = null; userEmpresa = null; selectedRole = null; showStep('step-login'); }
-        function showLogin() { showError('regErrorMsg', ''); showStep('step-login'); }
-        function showRegister() { showError('errorMsg', ''); showStep('step-register'); }
+        function logoutAndReset() {
+            sb.auth.signOut();
+            currentUser = null;
+            userEmpresa = null;
+            showStep('step-login');
+        }
     </script>
 </body>
 </html>
