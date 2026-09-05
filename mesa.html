@@ -404,7 +404,7 @@ async function init() {
         }
         // Si no viene empresaId en URL, sacarla de la mesa
         let empresaIdFinal = empresaId;
-        if (!empresaIdFinal && mesaRes.data) {
+        if (!empresaIdFinal && mesaRes && mesaRes.data) {
             empresaIdFinal = mesaRes.data.empresa_id;
         }
         if (!empresaIdFinal) {
@@ -415,7 +415,7 @@ async function init() {
             sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaIdFinal).maybeSingle(),
             sb.from("productos_empresa").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("categoria")
         ]);
-        if (!mesaRes.data) {
+        if (!mesaRes || !mesaRes.data) {
             const alt2 = await sb.from("mesas").select("*").eq("empresa_id", empresaIdFinal).limit(1).maybeSingle();
             if (alt2.data) mesaRes = alt2;
         }
