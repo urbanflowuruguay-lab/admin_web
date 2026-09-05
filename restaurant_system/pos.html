@@ -407,6 +407,8 @@
             .order-panel.mobile-active { display: flex; position: fixed; top: 0; right: 0; bottom: 0; width: 350px; z-index: 50; }
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <!-- LOGIN SCREEN -->
@@ -445,6 +447,9 @@
                     </button>
                 </div>
                 <div class="top-bar-right">
+                    <button class="btn-logout" onclick="toggleDeliveryTracking()" title="Seguimiento Delivery" style="font-size:16px;padding:8px 12px;background:var(--bg3);color:var(--purple);border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                        <i class="fas fa-motorcycle"></i>
+                    </button>
                     <div class="user-badge">
                         <i class="fas fa-user"></i>
                         <span id="cashierName">Cajero</span>
@@ -520,6 +525,18 @@
             <h3 id="variantTitle">Seleccionar opción</h3>
             <div id="variantOptions"></div>
             <button class="variant-close" onclick="closeVariantModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- DELIVERY TRACKING OVERLAY -->
+    <div id="deliveryTrackingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #333">
+            <h3 style="color:#d4af37;margin:0;font-size:16px"><i class="fas fa-motorcycle"></i> Seguimiento Delivery</h3>
+            <button onclick="toggleDeliveryTracking()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">&times;</button>
+        </div>
+        <div style="flex:1;display:flex;overflow:hidden">
+            <div id="deliveryTrackingMap" style="flex:1"></div>
+            <div id="deliveryTrackingList" style="width:280px;overflow-y:auto;padding:12px;border-left:1px solid #333;background:#111"></div>
         </div>
     </div>
 
@@ -882,6 +899,92 @@
         // =============================================
         renderCategories();
         renderProducts();
+
+        // =============================================
+        // DELIVERY TRACKING (Cajero)
+        // =============================================
+        let trackingMap = null;
+        let trackingInterval = null;
+        const trackingMarkers = {};
+
+        function toggleDeliveryTracking() {
+            const overlay = document.getElementById('deliveryTrackingOverlay');
+            if (overlay.style.display === 'none') {
+                overlay.style.display = 'flex';
+                initTrackingMap();
+                loadDeliveryPositions();
+                trackingInterval = setInterval(loadDeliveryPositions, 5000);
+            } else {
+                overlay.style.display = 'none';
+                if (trackingInterval) clearInterval(trackingInterval);
+            }
+        }
+
+        async function initTrackingMap() {
+            if (trackingMap) { trackingMap.invalidateSize(); return; }
+            trackingMap = L.map('deliveryTrackingMap').setView([-34.9011, -56.1645], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap', maxZoom: 19
+            }).addTo(trackingMap);
+            // Load restaurant marker
+            try {
+                const empId = localStorage.getItem('urbanflow_empresa_id');
+                if (empId) {
+                    const resp = await fetch(`https://eyfgkopaamnkprzpwocz.supabase.co/rest/v1/empresas?select=lat,lng&id=eq.${empId}`, {
+                        headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk' }
+                    });
+                    const rows = await resp.json();
+                    if (rows[0] && rows[0].lat && rows[0].lng) {
+                        L.marker([rows[0].lat, rows[0].lng], {
+                            icon: L.divIcon({ className: '', html: '<div style="background:#d4af37;color:#000;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5)">🏪</div>', iconSize: [30,30], iconAnchor: [15,15] })
+                        }).addTo(trackingMap).bindPopup('Restaurante');
+                        trackingMap.setView([rows[0].lat, rows[0].lng], 15);
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async function loadDeliveryPositions() {
+            try {
+                const empId = localStorage.getItem('urbanflow_empresa_id');
+                if (!empId) return;
+                const resp = await fetch(`https://eyfgkopaamnkprzpwocz.supabase.co/rest/v1/delivery_positions?empresa_id=eq.${empId}`, {
+                    headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk' }
+                });
+                const positions = await resp.json();
+                const list = document.getElementById('deliveryTrackingList');
+                if (!positions || positions.length === 0) {
+                    list.innerHTML = '<p style="color:#a0a0a0;text-align:center;font-size:13px;margin-top:20px">No hay deliverys activos</p>';
+                    return;
+                }
+                // Update markers
+                Object.keys(trackingMarkers).forEach(id => {
+                    if (!positions.find(p => p.employee_id === id)) {
+                        trackingMap.removeLayer(trackingMarkers[id]);
+                        delete trackingMarkers[id];
+                    }
+                });
+                positions.forEach(p => {
+                    const key = p.employee_id;
+                    if (trackingMarkers[key]) {
+                        trackingMarkers[key].setLatLng([p.lat, p.lng]);
+                    } else {
+                        trackingMarkers[key] = L.marker([p.lat, p.lng], {
+                            icon: L.divIcon({ className: '', html: `<div style="background:#9c27b0;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">🛵</div>`, iconSize: [28,28], iconAnchor: [14,14] })
+                        }).addTo(trackingMap).bindPopup(`${p.employee_name || 'Delivery'}<br>${p.estado || 'disponible'}`);
+                    }
+                });
+                // Update list
+                list.innerHTML = positions.map(p => {
+                    const mins = Math.round((Date.now() - new Date(p.updated_at).getTime()) / 60000);
+                    const stale = mins > 5;
+                    return `<div style="padding:10px;border-radius:8px;background:#1a1a1a;margin-bottom:8px;border:1px solid ${stale?'#666':'#333'}">
+                        <div style="font-weight:600;font-size:13px;color:${stale?'#666':'#fff'}">🛵 ${p.employee_name || 'Delivery'}</div>
+                        <div style="font-size:11px;color:${stale?'#666':'#a0a0a0'};margin-top:4px">${stale?'Sin信号 '+mins+' min':'Activo'} · ${p.estado||'disponible'}</div>
+                    </div>`;
+                }).join('');
+            } catch(e) {}
+        }
     </script>
 </body>
 </html>

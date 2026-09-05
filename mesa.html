@@ -143,6 +143,8 @@
         .portada-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.97); }
         .portada-footer { position: relative; z-index: 2; color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 40px; }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -250,6 +252,10 @@
     <h2>Tu pedido está en proceso</h2>
     <p>Ya lo llevaremos a tu mesa.<br>Mientras tanto, podes seguir pidiendo o relajarte.</p>
     <p id="pedidoIdDisplay" style="color:var(--accent);margin-top:12px;font-size:12px"></p>
+    <div id="deliveryTrackingBox" style="display:none;width:100%;max-width:350px;margin-top:16px">
+        <div id="customerTrackingMap" style="height:200px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px"></div>
+        <p id="deliveryTrackingText" style="color:var(--text2);font-size:12px;text-align:center"></p>
+    </div>
     <button class="volver" onclick="volverCarta()">Volver a la carta</button>
 </div>
 
@@ -650,6 +656,13 @@ async function confirmarPedido() {
                     document.getElementById("estadoPedido").querySelector(".icon").textContent = "🔔";
                     document.getElementById("estadoPedido").querySelector("p").innerHTML = "En breve se te llevará a la mesa.";
                 }
+                if (ped.estado === "en_camino") {
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido va en camino";
+                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "🛵";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "El delivery va hacia vos.";
+                    document.getElementById("deliveryTrackingBox").style.display = "block";
+                    showCustomerTracking(empresaId);
+                }
                 if (ped.estado === "entregado") {
                     clearInterval(poll);
                     document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Gracias por tu compra!";
@@ -778,6 +791,43 @@ function showGraciasFinal() {
     document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que la hayas pasado bien.<br>¡Volvé pronto!";
     document.getElementById("pedidoIdDisplay").textContent = "";
     document.getElementById("estadoPedido").classList.add("show");
+}
+
+let customerMap = null;
+let customerTrackInterval = null;
+
+function showCustomerTracking(empId) {
+    if (customerTrackInterval) return;
+    const box = document.getElementById("deliveryTrackingBox");
+    box.style.display = "block";
+    if (!customerMap) {
+        customerMap = L.map("customerTrackingMap").setView([-34.9011, -56.1645], 15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap", maxZoom: 19
+        }).addTo(customerMap);
+    }
+    const SUPERVISOR_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+    const deliveryMarkerIcon = L.divIcon({ className: "", html: '<div style="background:#9c27b0;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">🛵</div>', iconSize: [26,26], iconAnchor: [13,13] });
+    let custDeliveryMarker = null;
+
+    customerTrackInterval = setInterval(async () => {
+        try {
+            const resp = await fetch(`https://eyfgkopaamnkprzpwocz.supabase.co/rest/v1/delivery_positions?empresa_id=eq.${empId}`, {
+                headers: { apikey: SUPERVISOR_KEY }
+            });
+            const positions = await resp.json();
+            if (positions && positions.length > 0) {
+                const p = positions[0];
+                if (custDeliveryMarker) custDeliveryMarker.setLatLng([p.lat, p.lng]);
+                else {
+                    custDeliveryMarker = L.marker([p.lat, p.lng], { icon: deliveryMarkerIcon }).addTo(customerMap);
+                }
+                customerMap.setView([p.lat, p.lng], 16);
+                const mins = Math.round((Date.now() - new Date(p.updated_at).getTime()) / 60000);
+                document.getElementById("deliveryTrackingText").textContent = mins < 2 ? "El delivery está cerca" : `Última ubicación: hace ${mins} min`;
+            }
+        } catch(e) {}
+    }, 4000);
 }
 
 function volverCarta() {

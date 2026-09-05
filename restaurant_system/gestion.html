@@ -1146,7 +1146,10 @@
             if (section === 'facturacion') loadFacturacion();
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
-            if (section === 'config') loadPermisos();
+            if (section === 'config') {
+                loadPermisos();
+                setTimeout(() => initRestaurantMap(), 150);
+            }
         }
 
         async function filterSidebar() {
@@ -1352,7 +1355,6 @@
                 if (emp.foto_url) { document.getElementById('portadaPreview').src = emp.foto_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
                 if (emp.lat) document.getElementById('configLat').value = emp.lat;
                 if (emp.lng) document.getElementById('configLng').value = emp.lng;
-                initRestaurantMap();
             } catch (err) {
                 console.error('Error loading config:', err);
             }
@@ -2531,6 +2533,7 @@
         let restaurantMarker = null;
 
         function initRestaurantMap() {
+            if (restaurantMap) { restaurantMap.invalidateSize(); return; }
             const savedLat = parseFloat(document.getElementById('configLat').value) || -34.9011;
             const savedLng = parseFloat(document.getElementById('configLng').value) || -56.1645;
             restaurantMap = L.map('restaurantMap').setView([savedLat, savedLng], 15);
