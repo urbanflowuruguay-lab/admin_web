@@ -2544,7 +2544,7 @@
             MODULOS.forEach(m => {
                 html += `<tr><td style="padding:8px;border-bottom:1px solid var(--border);font-size:13px">${MODULOS_LABELS[m]||m}</td>`;
                 ROLES.forEach(r => {
-                    const checked = permisosData[r] && permisosData[r][m] !== false;
+                    const checked = permisosData[r] && permisosData[r][m] === true;
                     html += `<td style="text-align:center;padding:8px;border-bottom:1px solid var(--border)"><input type="checkbox" ${checked?'checked':''} onchange="togglePermiso('${r}','${m}',this.checked)" style="accent-color:var(--accent)"></td>`;
                 });
                 html += '</tr>';
@@ -2568,7 +2568,7 @@
                 const rows = [];
                 ROLES.forEach(r => {
                     MODULOS.forEach(m => {
-                        const activo = permisosData[r] && permisosData[r][m] !== false;
+                        const activo = permisosData[r] && permisosData[r][m] === true;
                         rows.push({ empresa_id: empresaId, rol: r, modulo: m, activo });
                     });
                 });
