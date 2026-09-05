@@ -2518,7 +2518,7 @@
             const empresaId = localData.currentUser?.empresa_id;
             if (!empresaId) return;
             try {
-                const { data, error } = await sb.from('permisos_roles').select('*').eq('empresa_id', empresaId);
+                const { data, error } = await sbService.from('permisos_roles').select('*').eq('empresa_id', empresaId);
                 if (error) throw error;
                 permisosData = {};
                 ROLES.forEach(r => permisosData[r] = {});
@@ -2563,7 +2563,7 @@
             if (!empresaId) return;
             try {
                 // borrar los viejos
-                await sb.from('permisos_roles').delete().eq('empresa_id', empresaId);
+                await sbService.from('permisos_roles').delete().eq('empresa_id', empresaId);
                 // insertar los nuevos
                 const rows = [];
                 ROLES.forEach(r => {
@@ -2572,7 +2572,7 @@
                         rows.push({ empresa_id: empresaId, rol: r, modulo: m, activo });
                     });
                 });
-                const { error } = await sb.from('permisos_roles').insert(rows);
+                const { error } = await sbService.from('permisos_roles').insert(rows);
                 if (error) throw error;
                 alert('Permisos guardados');
                 logAccion('permisos_modificados', 'configuracion', { roles: ROLES.length, modulos: MODULOS.length });
