@@ -486,8 +486,9 @@
                 if (data && data.length > 0) {
                     const permMap = {};
                     data.forEach(p => permMap[p.modulo] = p.activo);
-                    // filtrar secciones por permisos (misdatos siempre visible)
-                    allowedSections = defaultConfig.sections.filter(s => s === 'misdatos' || permMap[s] !== false);
+                    // usar permisos de DB: tomar todos los módulos que tengan activo=true
+                    const allModules = Object.keys(sectionLabels);
+                    allowedSections = allModules.filter(s => s === 'misdatos' || permMap[s] === true);
                 }
             } catch(e) { console.log('Usando permisos default:', e.message); }
             if (allowedSections.length === 0) allowedSections = ['misdatos'];
