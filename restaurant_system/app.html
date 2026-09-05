@@ -482,7 +482,7 @@
                 const { data } = await sb.from('permisos_roles')
                     .select('modulo,activo')
                     .eq('empresa_id', currentUser.empresa_id)
-                    .eq('rol', currentUser.rol);
+                    .eq('rol', rolKey);
                 if (data && data.length > 0) {
                     const permMap = {};
                     data.forEach(p => permMap[p.modulo] = p.activo);
