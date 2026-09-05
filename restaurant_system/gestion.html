@@ -737,6 +737,22 @@
                     </div>
 
                     <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 12px;">Estado del Negocio</h3>
+                        <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Abrí o cerrá tu restaurante. Cuando está cerrado, los clientes lo ven en la app.</p>
+                        <div style="display:flex;align-items:center;gap:16px">
+                            <label id="abiertoToggle" style="position:relative;display:inline-block;width:60px;height:32px;cursor:pointer">
+                                <input type="checkbox" id="configAbierto" onchange="saveAbierto()" style="opacity:0;width:0;height:0">
+                                <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:#555;border-radius:32px;transition:.3s" id="abiertoSlider"></span>
+                                <span style="position:absolute;height:26px;width:26px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s" id="abiertoDot"></span>
+                            </label>
+                            <div>
+                                <span id="abiertoLabel" style="font-size:16px;font-weight:bold;color:#ef4444">Cerrado</span>
+                                <p id="abiertoDesc" style="color:var(--text2);font-size:12px;margin-top:2px">Los clientes no pueden hacer pedidos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
                         <h3 class="card-title" style="margin-bottom: 12px;">Ubicación del Restaurante</h3>
                         <p style="color:var(--text2);font-size:13px;margin-bottom:12px">Hacé click en el mapa para marcar la ubicación de tu local (para delivery)</p>
                         <div id="restaurantMap" style="height:300px;border-radius:8px;border:1px solid var(--border);margin-bottom:12px"></div>
@@ -1355,6 +1371,13 @@
                 if (emp.foto_url) { document.getElementById('portadaPreview').src = emp.foto_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
                 if (emp.lat) document.getElementById('configLat').value = emp.lat;
                 if (emp.lng) document.getElementById('configLng').value = emp.lng;
+                if (emp.abierto !== false) {
+                    document.getElementById('configAbierto').checked = true;
+                    updateAbiertoUI(true);
+                } else {
+                    document.getElementById('configAbierto').checked = false;
+                    updateAbiertoUI(false);
+                }
             } catch (err) {
                 console.error('Error loading config:', err);
             }
@@ -2518,6 +2541,42 @@
             } catch (err) {
                 console.error('Error saving config:', err);
                 alert('Error al guardar: ' + err.message);
+            }
+        }
+
+        function updateAbiertoUI(isOpen) {
+            const slider = document.getElementById('abiertoSlider');
+            const dot = document.getElementById('abiertoDot');
+            const label = document.getElementById('abiertoLabel');
+            const desc = document.getElementById('abiertoDesc');
+            if (isOpen) {
+                slider.style.background = '#22c55e';
+                dot.style.transform = 'translateX(28px)';
+                label.textContent = 'Abierto';
+                label.style.color = '#22c55e';
+                desc.textContent = 'Los clientes pueden hacer pedidos';
+            } else {
+                slider.style.background = '#ef4444';
+                dot.style.transform = 'translateX(0)';
+                label.textContent = 'Cerrado';
+                label.style.color = '#ef4444';
+                desc.textContent = 'Los clientes no pueden hacer pedidos';
+            }
+        }
+
+        async function saveAbierto() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const checked = document.getElementById('configAbierto').checked;
+            try {
+                const { error } = await sbService.from('empresas').update({ abierto: checked }).eq('id', empresaId);
+                if (error) throw error;
+                localData.restaurante.abierto = checked;
+                updateAbiertoUI(checked);
+                logAccion(checked ? 'negocio_abierto' : 'negocio_cerrado', 'configuracion', { abierto: checked });
+            } catch (err) {
+                console.error('Error saving abierto:', err);
+                alert('Error al guardar estado');
             }
         }
 
