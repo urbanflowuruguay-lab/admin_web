@@ -2205,7 +2205,8 @@
                         precio: parseFloat(document.getElementById('prodPrecio').value),
                         categoria: catNombre,
                         stock: parseInt(document.getElementById('prodStock').value),
-                        foto_url: fotoUrl || old.foto_url
+                        foto_url: fotoUrl || old.foto_url,
+                        disponible: disponible
                     };
                     // Supabase
                     if (empresaId && !String(editingProductoId).startsWith('prod_')) {
