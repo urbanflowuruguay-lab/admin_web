@@ -313,6 +313,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const params = new URLSearchParams(window.location.search);
 const mesaToken = params.get("mesa") || "";
 let empresaId = params.get("empresa") || "";
+const preselectedProductId = params.get("producto") || "";
 
 let empresaData = null;
 let mesaData = null;
@@ -381,15 +382,25 @@ function cerrarMantenimiento(){
     document.getElementById('mantenimientoModal').style.display='none';
 }
 async function init() {
-    if (!mesaToken) {
+    // Si viene del app con solo empresa param (sin mesa token), buscar mesa automáticamente
+    if (!mesaToken && empresaId) {
+        const alt = await sb.from("mesas").select("*").eq("empresa_id", empresaId).limit(1).maybeSingle();
+        if (alt.data) {
+            mesaData = alt.data;
+        }
+    }
+    if (!mesaToken && !empresaId) {
         document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>QR invalido. Pedile a un camarero.</p></div>';
         return;
     }
     try {
-        let mesaRes = await sb.from("mesas").select("*").eq("mesa_token", mesaToken).maybeSingle();
-        if (!mesaRes.data) {
-            const alt = await sb.from("mesas").select("*").eq("id", mesaToken).maybeSingle();
-            if (alt.data) mesaRes = alt;
+        let mesaRes = mesaData ? { data: mesaData } : null;
+        if (!mesaRes && mesaToken) {
+            mesaRes = await sb.from("mesas").select("*").eq("mesa_token", mesaToken).maybeSingle();
+            if (!mesaRes.data) {
+                const alt = await sb.from("mesas").select("*").eq("id", mesaToken).maybeSingle();
+                if (alt.data) mesaRes = alt;
+            }
         }
         // Si no viene empresaId en URL, sacarla de la mesa
         let empresaIdFinal = empresaId;
@@ -414,15 +425,15 @@ async function init() {
         productos = prodRes.data || [];
         // guardar empresaId resuelto para usar en pedidos
         if (empresaData) empresaId = empresaData.id;
-        if (!empresaData || !mesaData) {
-            document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Mesa no encontrada</p></div>';
+        if (!empresaData) {
+            document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Restaurante no encontrado</p></div>';
             return;
         }
         applyTheme(empresaData.carta_template || "dark_elegance");
 
         // Portada
         document.getElementById("portadaNombre").textContent = empresaData.nombre;
-        document.getElementById("portadaMesa").textContent = `Mesa #${mesaData.numero}`;
+        document.getElementById("portadaMesa").textContent = mesaData ? `Mesa #${mesaData.numero}` : "Pedido Online";
         if (empresaData.logo_url) {
             const logo = document.getElementById("portadaLogo");
             logo.src = empresaData.logo_url;
@@ -443,8 +454,8 @@ async function init() {
         }
         document.getElementById("headerNombre").textContent = empresaData.nombre;
         document.getElementById("headerDesc").textContent = empresaData.descripcion || "";
-        document.getElementById("headerMesa").textContent = `Mesa #${mesaData.numero}`;
-        if (mesaData.estado === 'mantenimiento') {
+        document.getElementById("headerMesa").textContent = mesaData ? `Mesa #${mesaData.numero}` : "Pedido Online";
+        if (mesaData && mesaData.estado === 'mantenimiento') {
             window.isMantenimiento = true;
             const modal = document.getElementById('mantenimientoModal');
             modal.style.display = 'flex';
@@ -454,9 +465,17 @@ async function init() {
             setTimeout(()=>{ modal.style.display='none'; }, 10000);
         } else {
             window.isMantenimiento = false;
-            sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
+            if (mesaData) sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
         }
         renderProductos();
+        // Si viene con ?producto=, auto-agregar al carrito
+        if (preselectedProductId) {
+            const preProd = productos.find(p => p.id === preselectedProductId);
+            if (preProd) {
+                addToCart(preProd.id);
+                setTimeout(() => { renderCarritoItems(); updateCarritoBar(); toggleCarritoPanel(); }, 500);
+            }
+        }
     } catch (e) {
         console.error("init error", e);
         document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Error cargando carta</p><p style="font-size:11px;margin-top:8px;opacity:0.6">'+(e.message||e)+'</p></div>';
