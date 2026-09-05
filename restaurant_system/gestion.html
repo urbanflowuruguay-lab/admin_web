@@ -288,6 +288,8 @@
             .empleado-card .emp-actions { display: flex; gap: 4px; margin-top: 4px; }
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <!-- LOADING -->
@@ -732,6 +734,18 @@
                         <button class="btn-primary" onclick="saveConfig()" style="margin-top:16px">
                             <i class="fas fa-save"></i> Guardar Cambios
                         </button>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 12px;">Ubicación del Restaurante</h3>
+                        <p style="color:var(--text2);font-size:13px;margin-bottom:12px">Hacé click en el mapa para marcar la ubicación de tu local (para delivery)</p>
+                        <div id="restaurantMap" style="height:300px;border-radius:8px;border:1px solid var(--border);margin-bottom:12px"></div>
+                        <div style="display:flex;gap:12px;align-items:center">
+                            <span id="mapCoords" style="color:var(--text2);font-size:12px">No seleccionada</span>
+                            <button class="btn-primary" onclick="saveMapPosition()" style="font-size:12px;padding:6px 12px"><i class="fas fa-save"></i> Guardar Ubicación</button>
+                        </div>
+                        <input type="hidden" id="configLat" value="">
+                        <input type="hidden" id="configLng" value="">
                     </div>
 
                     <div class="card" style="margin-top: 20px;">
@@ -1336,6 +1350,9 @@
                 if (emp.logo_url) { document.getElementById('logoPreview').src = emp.logo_url; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; }
                 if (emp.portada_url) { document.getElementById('portadaPreview').src = emp.portada_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
                 if (emp.foto_url) { document.getElementById('portadaPreview').src = emp.foto_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
+                if (emp.lat) document.getElementById('configLat').value = emp.lat;
+                if (emp.lng) document.getElementById('configLng').value = emp.lng;
+                initRestaurantMap();
             } catch (err) {
                 console.error('Error loading config:', err);
             }
@@ -2507,6 +2524,46 @@
             let code = '';
             for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
             document.getElementById('configCodigo').value = code;
+        }
+
+        // MAP PICKER
+        let restaurantMap = null;
+        let restaurantMarker = null;
+
+        function initRestaurantMap() {
+            const savedLat = parseFloat(document.getElementById('configLat').value) || -34.9011;
+            const savedLng = parseFloat(document.getElementById('configLng').value) || -56.1645;
+            restaurantMap = L.map('restaurantMap').setView([savedLat, savedLng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap', maxZoom: 19
+            }).addTo(restaurantMap);
+            if (document.getElementById('configLat').value) {
+                restaurantMarker = L.marker([savedLat, savedLng]).addTo(restaurantMap);
+                document.getElementById('mapCoords').textContent = `${savedLat.toFixed(5)}, ${savedLng.toFixed(5)}`;
+            }
+            restaurantMap.on('click', function(e) {
+                const lat = e.latlng.lat.toFixed(6);
+                const lng = e.latlng.lng.toFixed(6);
+                document.getElementById('configLat').value = lat;
+                document.getElementById('configLng').value = lng;
+                document.getElementById('mapCoords').textContent = `${lat}, ${lng}`;
+                if (restaurantMarker) restaurantMap.removeLayer(restaurantMarker);
+                restaurantMarker = L.marker([parseFloat(lat), parseFloat(lng)]).addTo(restaurantMap);
+            });
+        }
+
+        async function saveMapPosition() {
+            const empresaId = localData.currentUser?.empresa_id;
+            const lat = parseFloat(document.getElementById('configLat').value);
+            const lng = parseFloat(document.getElementById('configLng').value);
+            if (!lat || !lng) { alert('Hacé click en el mapa primero'); return; }
+            try {
+                const { error } = await sbService.from('empresas').update({ lat, lng }).eq('id', empresaId);
+                if (error) throw error;
+                alert('Ubicación guardada');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
         }
 
         const MODULOS = ['dashboard','productos','pedidos','mesas','inventario','clientes','empleados','zonas','facturacion','auditoria','config','propinas'];
