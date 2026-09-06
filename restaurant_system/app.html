@@ -478,6 +478,7 @@
         // =============================================
         const sectionLabels = {
             dashboard: { icon: 'fa-chart-line', label: 'Dashboard' },
+            productos: { icon: 'fa-burger', label: 'Productos' },
             pedidos:   { icon: 'fa-receipt', label: 'Pedidos' },
             delivery:  { icon: 'fa-motorcycle', label: 'Delivery' },
             inventario:{ icon: 'fa-boxes-stacked', label: 'Inventario' },
@@ -485,6 +486,12 @@
             mesas:     { icon: 'fa-table', label: 'Mesas' },
             cocina:    { icon: 'fa-fire-burner', label: 'Cocina' },
             mapa:      { icon: 'fa-map-location-dot', label: 'Mi Mapa' },
+            clientes:  { icon: 'fa-address-book', label: 'Clientes' },
+            zonas:     { icon: 'fa-map', label: 'Zonas' },
+            facturacion:{ icon: 'fa-file-invoice-dollar', label: 'Facturación' },
+            auditoria: { icon: 'fa-clipboard-list', label: 'Auditoría' },
+            config:    { icon: 'fa-gear', label: 'Config' },
+            propinas:  { icon: 'fa-hand-holding-dollar', label: 'Propinas' },
             misdatos:  { icon: 'fa-user', label: 'Yo' }
         };
 
@@ -544,6 +551,180 @@
                 case 'dashboard': renderDashboard(); break;
                 case 'mapa':      renderDeliveryMap(); break;
                 case 'misdatos':  renderMisDatos(); break;
+                case 'productos': renderProductosApp(); break;
+                case 'clientes':  renderClientesApp(); break;
+                case 'zonas':     renderZonasApp(); break;
+                case 'facturacion': renderFacturacionApp(); break;
+                case 'auditoria': renderAuditoriaApp(); break;
+                case 'config':    renderConfigApp(); break;
+                case 'propinas':  renderPropinasApp(); break;
+            }
+        }
+
+        // =============================================
+        // RENDER MODULOS EXTRA (solo lectura, permisos del dueño)
+        // =============================================
+        async function renderProductosApp() {
+            const container = document.getElementById('content-productos');
+            if (!container || !currentUser?.empresa_id) return;
+            container.innerHTML = '<div class="empty"><p>Cargando productos...</p></div>';
+            try {
+                const { data, error } = await sb.from('productos_empresa')
+                    .select('*').eq('empresa_id', currentUser.empresa_id).eq('activo', true).order('categoria');
+                if (error) throw error;
+                if (!data || !data.length) { container.innerHTML = '<div class="empty"><p>Sin productos</p></div>'; return; }
+                container.innerHTML = data.map(p => `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;">${p.nombre}</div>
+                            <div style="font-size: 11px; color: var(--text2);">${p.categoria || ''} · ${p.disponible === 'mesa' ? 'Solo mesa' : p.disponible === 'online' ? 'Solo online' : 'Mesa y online'}</div>
+                        </div>
+                        <div style="font-size: 16px; font-weight: 700; color: var(--accent);">$${p.precio_oferta || p.precio || 0}</div>
+                    </div>`).join('');
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar productos</p></div>';
+            }
+        }
+
+        async function renderClientesApp() {
+            const container = document.getElementById('content-clientes');
+            if (!container || !currentUser?.empresa_id) return;
+            container.innerHTML = '<div class="empty"><p>Cargando clientes...</p></div>';
+            try {
+                const { data, error } = await sb.from('pedidos')
+                    .select('cliente_nombre,total').eq('empresa_id', currentUser.empresa_id).limit(500);
+                if (error) throw error;
+                const map = {};
+                (data || []).forEach(p => {
+                    const n = (p.cliente_nombre || 'Sin nombre').trim() || 'Sin nombre';
+                    if (!map[n]) map[n] = { pedidos: 0, total: 0 };
+                    map[n].pedidos++;
+                    map[n].total += (p.total || 0);
+                });
+                const list = Object.entries(map).sort((a, b) => b[1].total - a[1].total).slice(0, 50);
+                if (!list.length) { container.innerHTML = '<div class="empty"><p>Sin clientes aún</p></div>'; return; }
+                container.innerHTML = list.map(([nombre, s]) => `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;">${nombre}</div>
+                            <div style="font-size: 11px; color: var(--text2);">${s.pedidos} pedidos</div>
+                        </div>
+                        <div style="font-size: 16px; font-weight: 700; color: var(--accent);">$${Math.round(s.total)}</div>
+                    </div>`).join('');
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar clientes</p></div>';
+            }
+        }
+
+        async function renderFacturacionApp() {
+            const container = document.getElementById('content-facturacion');
+            if (!container || !currentUser?.empresa_id) return;
+            container.innerHTML = '<div class="empty"><p>Cargando facturación...</p></div>';
+            try {
+                const { data, error } = await sb.from('pedidos')
+                    .select('total,created_at,estado').eq('empresa_id', currentUser.empresa_id)
+                    .neq('estado', 'cancelado').order('created_at', { ascending: false }).limit(200);
+                if (error) throw error;
+                const hoy = new Date().toISOString().split('T')[0];
+                let totalHoy = 0, totalMes = 0;
+                (data || []).forEach(p => {
+                    totalMes += (p.total || 0);
+                    if ((p.created_at || '').startsWith(hoy)) totalHoy += (p.total || 0);
+                });
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center;">
+                            <div style="font-size: 11px; color: var(--text2);">HOY</div>
+                            <div style="font-size: 20px; font-weight: 700; color: var(--accent);">$${Math.round(totalHoy)}</div>
+                        </div>
+                        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center;">
+                            <div style="font-size: 11px; color: var(--text2);">TOTAL</div>
+                            <div style="font-size: 20px; font-weight: 700; color: var(--accent);">$${Math.round(totalMes)}</div>
+                        </div>
+                    </div>
+                    ${(data || []).slice(0, 20).map(p => `
+                        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 12px; color: var(--text2);">${(p.created_at || '').slice(0, 10)} · ${p.estado || ''}</div>
+                            <div style="font-size: 14px; font-weight: 700;">$${Math.round(p.total || 0)}</div>
+                        </div>`).join('')}`;
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar facturación</p></div>';
+            }
+        }
+
+        async function renderPropinasApp() {
+            const container = document.getElementById('content-propinas');
+            if (!container || !currentUser?.empresa_id) return;
+            container.innerHTML = '<div class="empty"><p>Cargando propinas...</p></div>';
+            try {
+                const { data, error } = await sb.from('propinas')
+                    .select('*').eq('empresa_id', currentUser.empresa_id).order('created_at', { ascending: false }).limit(50);
+                if (error) throw error;
+                if (!data || !data.length) { container.innerHTML = '<div class="empty"><p>Sin propinas aún</p></div>'; return; }
+                const total = data.reduce((a, p) => a + (p.monto || 0), 0);
+                container.innerHTML = `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; margin-bottom: 12px;">
+                        <div style="font-size: 11px; color: var(--text2);">TOTAL PROPINA</div>
+                        <div style="font-size: 22px; font-weight: 700; color: var(--accent);">$${Math.round(total)}</div>
+                    </div>
+                    ${data.map(p => `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px;">${p.cliente_nombre || 'Cliente'}</div>
+                            <div style="font-size: 11px; color: var(--text2);">${(p.created_at || '').slice(0, 10)} · ${p.metodo_pago || ''}</div>
+                        </div>
+                        <div style="font-size: 16px; font-weight: 700; color: var(--accent);">$${p.monto || 0}</div>
+                    </div>`).join('')}`;
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar propinas</p></div>';
+            }
+        }
+
+        async function renderZonasApp() {
+            const container = document.getElementById('content-zonas');
+            if (!container) return;
+            container.innerHTML = '<div class="empty"><i class="fas fa-map"></i><p>Las zonas de delivery las configura el dueño desde Gestión.</p></div>';
+        }
+
+        async function renderAuditoriaApp() {
+            const container = document.getElementById('content-auditoria');
+            if (!container || !currentUser?.empresa_id) return;
+            container.innerHTML = '<div class="empty"><p>Cargando movimientos...</p></div>';
+            try {
+                const { data, error } = await sb.from('fichajes_historial')
+                    .select('*').eq('empresa_id', currentUser.empresa_id).order('created_at', { ascending: false }).limit(50);
+                if (error) throw error;
+                if (!data || !data.length) { container.innerHTML = '<div class="empty"><p>Sin movimientos registrados</p></div>'; return; }
+                container.innerHTML = data.map(f => `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;">
+                        <div style="font-weight: 600; font-size: 13px;">${f.empleado_nombre || f.nombre || 'Empleado'} · ${f.tipo || f.accion || ''}</div>
+                        <div style="font-size: 11px; color: var(--text2);">${(f.created_at || '').slice(0, 16).replace('T', ' ')}</div>
+                    </div>`).join('');
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><p>Sin movimientos registrados</p></div>';
+            }
+        }
+
+        async function renderConfigApp() {
+            const container = document.getElementById('content-config');
+            if (!container || !currentUser?.empresa_id) return;
+            container.innerHTML = '<div class="empty"><p>Cargando datos del local...</p></div>';
+            try {
+                const { data, error } = await sb.from('empresas')
+                    .select('nombre,direccion,telefono,email,abierto').eq('id', currentUser.empresa_id).limit(1);
+                if (error) throw error;
+                const e = (data && data[0]) || {};
+                container.innerHTML = `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+                        <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">${e.nombre || ''}</div>
+                        <div style="font-size: 13px; color: var(--text2); margin-bottom: 4px;"><i class="fas fa-location-dot"></i> ${e.direccion || '-'}</div>
+                        <div style="font-size: 13px; color: var(--text2); margin-bottom: 4px;"><i class="fas fa-phone"></i> ${e.telefono || '-'}</div>
+                        <div style="font-size: 13px; color: var(--text2); margin-bottom: 8px;"><i class="fas fa-envelope"></i> ${e.email || '-'}</div>
+                        <div style="font-size: 13px; font-weight: 700; color: ${e.abierto === false ? 'var(--red)' : 'var(--green)'};">${e.abierto === false ? '🔴 Cerrado' : '🟢 Abierto'}</div>
+                        <div style="font-size: 11px; color: var(--text2); margin-top: 8px;">Los cambios los hace el dueño desde Gestión.</div>
+                    </div>`;
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar datos</p></div>';
             }
         }
 
