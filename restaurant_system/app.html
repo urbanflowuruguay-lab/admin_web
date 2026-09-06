@@ -1473,10 +1473,19 @@
 
         async function completarEntrega(pedidoId) {
             try {
+                const extra = {
+                    delivered_at: new Date().toISOString(),
+                    entregado_por_nombre: currentUser?.nombre || null
+                };
                 const { error } = await sbSvc.from('pedidos')
-                    .update({ estado: 'entregado' })
+                    .update({ estado: 'entregado', ...extra })
                     .eq('id', pedidoId);
-                if (error) throw error;
+                if (error) {
+                    const retry = await sbSvc.from('pedidos')
+                        .update({ estado: 'entregado', delivered_at: extra.delivered_at })
+                        .eq('id', pedidoId);
+                    if (retry.error) throw retry.error;
+                }
                 const pedido = pedidos.find(p => p.id === pedidoId);
                 if (pedido) pedido.estado = 'entregado';
                 pedidos = pedidos.filter(p => p.id !== pedidoId);
@@ -1536,11 +1545,24 @@
 
         async function updateEstado(pedidoId, nuevoEstado) {
             try {
+                const extra = {};
+                if (nuevoEstado === 'preparando') {
+                    extra.started_at = new Date().toISOString();
+                    extra.cocinero_id = currentUser?.id || null;
+                    extra.cocinero_nombre = currentUser?.nombre || null;
+                }
+                if (nuevoEstado === 'listo') extra.ready_at = new Date().toISOString();
                 const { error } = await sbSvc.from('pedidos')
-                    .update({ estado: nuevoEstado })
+                    .update({ estado: nuevoEstado, ...extra })
                     .eq('id', pedidoId);
 
-                if (error) throw error;
+                if (error) {
+                    // Si fallan las columnas nuevas (aún no creadas), reintentar solo estado
+                    if (Object.keys(extra).length) {
+                        const retry = await sbSvc.from('pedidos').update({ estado: nuevoEstado }).eq('id', pedidoId);
+                        if (retry.error) throw retry.error;
+                    } else throw error;
+                }
 
                 // Update local state
                 const pedido = pedidos.find(p => p.id === pedidoId);

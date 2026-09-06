@@ -348,6 +348,9 @@
                 <div class="sidebar-item" onclick="showSection('facturacion')">
                     <i class="fas fa-file-invoice-dollar"></i><span>Facturación</span>
                 </div>
+                <div class="sidebar-item" onclick="showSection('historial')">
+                    <i class="fas fa-clipboard-list"></i><span>Historial del día</span>
+                </div>
                 <div class="sidebar-item" onclick="showSection('auditoria')">
                     <i class="fas fa-history"></i><span>Auditoría</span>
                 </div>
@@ -657,6 +660,63 @@
                                     </tr>
                                 </thead>
                                 <tbody id="cobrosTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORIAL DEL DÍA -->
+                <div class="section" id="section-historial">
+                    <div class="section-header">
+                        <h2 class="section-title">Historial del día</h2>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="date" id="historialFecha" style="padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                            <button class="btn-primary" onclick="loadHistorial()" style="padding: 8px 14px;"><i class="fas fa-sync"></i></button>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                            <div class="stat-value" id="histPedidos">0</div>
+                            <div class="stat-label">Pedidos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="stat-value" id="histTotal">$0</div>
+                            <div class="stat-label">Total vendido</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-utensils"></i></div>
+                            <div class="stat-value" id="histItems">0</div>
+                            <div class="stat-label">Platos vendidos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-ticket"></i></div>
+                            <div class="stat-value" id="histTicket">$0</div>
+                            <div class="stat-label">Ticket promedio</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Detalle por pedido</h3>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Hora</th>
+                                        <th>Pedido</th>
+                                        <th>Mesa / Tipo</th>
+                                        <th>Lo vendido</th>
+                                        <th>Total</th>
+                                        <th>Pago</th>
+                                        <th>Cocinó</th>
+                                        <th>Cobró</th>
+                                        <th>Entregó</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historialTable"></tbody>
                             </table>
                         </div>
                     </div>
@@ -1163,6 +1223,7 @@
             if (section === 'empleados') loadEmpleados();
             if (section === 'zonas') loadZonas();
             if (section === 'facturacion') loadFacturacion();
+            if (section === 'historial') loadHistorial();
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
             if (section === 'config') {
@@ -1869,6 +1930,69 @@
                     <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${JSON.stringify(l.detalle)}</td>
                 </tr>
             `).join('');
+        }
+
+        // =============================================
+        // HISTORIAL DEL DÍA (pedidos reales con quién hizo cada paso)
+        // =============================================
+        async function loadHistorial() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const fechaInput = document.getElementById('historialFecha');
+            if (fechaInput && !fechaInput.value) fechaInput.value = new Date().toISOString().split('T')[0];
+            const fecha = (fechaInput && fechaInput.value) || new Date().toISOString().split('T')[0];
+            const tbody = document.getElementById('historialTable');
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px">Cargando...</td></tr>';
+            try {
+                const { data, error } = await sbService.from('pedidos')
+                    .select('*')
+                    .eq('empresa_id', empresaId)
+                    .gte('created_at', fecha + 'T00:00:00')
+                    .lt('created_at', fecha + 'T23:59:59')
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                const pedidos = data || [];
+                let totalDia = 0, totalItems = 0;
+                pedidos.forEach(p => {
+                    totalDia += (p.total || 0);
+                    try {
+                        const items = JSON.parse(p.items || '[]');
+                        items.forEach(i => totalItems += (i.cantidad || i.qty || 1));
+                    } catch (e) {}
+                });
+                document.getElementById('histPedidos').textContent = pedidos.length;
+                document.getElementById('histTotal').textContent = '$' + Math.round(totalDia).toLocaleString();
+                document.getElementById('histItems').textContent = totalItems;
+                document.getElementById('histTicket').textContent = '$' + (pedidos.length ? Math.round(totalDia / pedidos.length).toLocaleString() : '0');
+                if (!pedidos.length) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px">Sin pedidos este día</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = pedidos.map(p => {
+                    let itemsHtml = '-';
+                    try {
+                        const items = JSON.parse(p.items || '[]');
+                        itemsHtml = items.map(i => `${i.nombre} x${i.cantidad || i.qty || 1}`).join('<br>');
+                    } catch (e) {}
+                    const mesaTipo = p.mesa_numero ? `Mesa ${p.mesa_numero}` : (p.tipo_entrega === 'online' || p.tipo_entrega === 'delivery' ? 'Online' : (p.tipo_entrega || '-'));
+                    const hora = (p.created_at || '').slice(11, 16);
+                    return `<tr>
+                        <td>${hora}</td>
+                        <td><strong>#${p.numero || String(p.id).substring(0, 4)}</strong><br><span style="font-size:11px;color:var(--text2)">${p.cliente_nombre || ''}</span></td>
+                        <td>${mesaTipo}</td>
+                        <td style="font-size:12px">${itemsHtml}</td>
+                        <td><strong>$${Math.round(p.total || 0)}</strong></td>
+                        <td>${p.metodo_pago || '-'}<br><span style="font-size:11px;color:var(--text2)">${p.metodo_pago_estado || ''}</span></td>
+                        <td>${p.cocinero_nombre || '<span style="color:var(--text2)">-</span>'}</td>
+                        <td>${p.cajero_nombre || '<span style="color:var(--text2)">-</span>'}</td>
+                        <td>${p.entregado_por_nombre || p.delivery_nombre || '<span style="color:var(--text2)">-</span>'}</td>
+                        <td><span class="badge ${p.estado === 'entregado' ? 'badge-success' : p.estado === 'cancelado' ? 'badge-danger' : 'badge-warning'}">${p.estado || ''}</span></td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading historial:', err);
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px">Error al cargar</td></tr>';
+            }
         }
 
         // =============================================

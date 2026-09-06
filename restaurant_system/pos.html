@@ -896,7 +896,7 @@
             // Save to Supabase pedidos (para que gestion/app lo vean)
             if (empresaIdPOS) {
                 try{
-                    await sbPOS.from('pedidos').insert({
+                    const { data: insData, error: insErr } = await sbPOS.from('pedidos').insert({
                         empresa_id: empresaIdPOS,
                         mesa_token: selectedMesa?.id || '',
                         mesa_numero: selectedMesa?.numero || 0,
@@ -908,7 +908,17 @@
                         tipo_entrega: selectedMesa ? 'Mesa' : 'online',
                         metodo_pago: method,
                         notas: `POS ${method} - Mesa ${selectedMesa ? selectedMesa.numero : 'Mostrador'}`
-                    });
+                    }).select();
+                    if (insErr) throw insErr;
+                    // Quién lo cobró (columnas nuevas: si no existen, se ignora sin romper)
+                    try {
+                        if (insData && insData[0]) {
+                            await sbPOS.from('pedidos').update({
+                                cajero_id: currentUser?.id || null,
+                                cajero_nombre: currentUser?.nombre || null
+                            }).eq('id', insData[0].id);
+                        }
+                    } catch (_) {}
                 }catch(e){ console.log('POS insert error', e.message); }
             }
             // Save to localStorage (fallback)
