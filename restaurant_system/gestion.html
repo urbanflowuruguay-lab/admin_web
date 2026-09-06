@@ -352,7 +352,7 @@
                     <i class="fas fa-clipboard-list"></i><span>Historial del día</span>
                 </div>
                 <div class="sidebar-item" onclick="showSection('simulador')">
-                    <i class="fas fa-calculator"></i><span>Simulador de precios</span>
+                    <i class="fas fa-calculator"></i><span>Constructor de precios</span>
                 </div>
                 <div class="sidebar-item" onclick="showSection('auditoria')">
                     <i class="fas fa-history"></i><span>Auditoría</span>
@@ -725,21 +725,36 @@
                     </div>
                 </div>
 
-                <!-- SIMULADOR DE PRECIOS -->
+                <!-- CONSTRUCTOR DE PRECIOS -->
                 <div class="section" id="section-simulador">
                     <div class="section-header">
-                        <h2 class="section-title">Simulador de precios</h2>
+                        <h2 class="section-title">Constructor de precios</h2>
                     </div>
                     <p style="color: var(--text2); font-size: 13px; margin-bottom: 16px;">
-                        Poné el precio de tu producto y mirá lo que verá el cliente y lo que recibís vos.
-                        En mesa se cobra <strong>1 UI</strong>, en pedidos online <strong>2 UI</strong> (Unidad Indexada).
-                        MercadoPago retiene <strong>7.88%</strong> del total.
+                        Construí el precio: elegí producto o poné precio manual, agregá delivery y servicios,
+                        elegí forma de pago y probá descuentos. En mesa se cobra <strong>1 UI</strong>,
+                        en online <strong>2 UI</strong>. Con tarjeta, MP 7.88% va incluido sin tocar tus valores.
                     </p>
                     <div class="card">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div class="form-group" style="margin: 0;">
-                                <label>Precio del producto ($)</label>
+                                <label>Producto (opcional)</label>
+                                <select id="simProducto" onchange="simProductoElegido()"></select>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Precio base ($)</label>
                                 <input type="number" id="simPrecio" value="400" min="0" oninput="simularPrecio()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Descuento (%)</label>
+                                <input type="number" id="simDescuento" value="0" min="0" max="90" oninput="simularPrecio()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Forma de pago</label>
+                                <select id="simPago" onchange="simularPrecio()">
+                                    <option value="efectivo">Efectivo (sin MP)</option>
+                                    <option value="tarjeta" selected>Tarjeta / MP (incluye 7.88%)</option>
+                                </select>
                             </div>
                             <div class="form-group" style="margin: 0;">
                                 <label>Tipo de pedido</label>
@@ -753,11 +768,15 @@
                                 <input type="number" id="simUI" value="6.50" step="0.01" min="0" oninput="simularPrecio()">
                             </div>
                         </div>
+                        <h4 style="margin: 8px 0; font-size: 13px;">Extras y servicios (delivery, cubiertos, etc.)</h4>
+                        <div id="simExtras"></div>
+                        <button class="btn-primary" onclick="simAgregarExtra()" style="padding: 8px 14px; font-size: 12px; margin-bottom: 12px;"><i class="fas fa-plus"></i> Agregar extra</button>
                         <div class="table-container">
                             <table>
                                 <tbody id="simResultado"></tbody>
                             </table>
                         </div>
+                        <button id="simGuardarOferta" class="btn-primary" onclick="simGuardarOferta()" style="margin-top: 12px; display: none;"><i class="fas fa-tag"></i> Guardar descuento en el producto</button>
                     </div>
                 </div>
 
@@ -1040,8 +1059,19 @@
             </div>
             <div class="form-group">
                 <label>Precio ($)</label>
-                <input type="number" id="prodPrecio">
+                <input type="number" id="prodPrecio" oninput="syncDescuentoFromPrecio()">
             </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group" style="margin: 0;">
+                    <label>Precio oferta ($)</label>
+                    <input type="number" id="prodPrecioOferta" placeholder="Sin oferta" oninput="syncDescuentoFromOferta()">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>Descuento (%)</label>
+                    <input type="number" id="prodDescuento" placeholder="0" min="0" max="90" oninput="syncDescuentoFromPct()">
+                </div>
+            </div>
+            <div style="height: 12px;"></div>
             <div class="form-group">
                 <label>Categoría</label>
                 <select id="prodCategoria" onchange="if(this.value==='nueva'){document.getElementById('catNuevaWrap').style.display='block'}else{document.getElementById('catNuevaWrap').style.display='none'}">
@@ -1263,7 +1293,7 @@
             if (section === 'zonas') loadZonas();
             if (section === 'facturacion') loadFacturacion();
             if (section === 'historial') loadHistorial();
-            if (section === 'simulador') { loadSimUI(); simularPrecio(); }
+            if (section === 'simulador') { loadSimUI(); simCargarProductos(); simRenderExtras(); simularPrecio(); }
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
             if (section === 'config') {
@@ -1551,6 +1581,7 @@
                             nombre: r.nombre,
                             descripcion: r.descripcion,
                             precio: parseFloat(r.precio),
+                            precio_oferta: r.precio_oferta ? parseFloat(r.precio_oferta) : null,
                             categorias: [r.categoria || 'general'],
                             categoriaNombre: r.categoria,
                             stock: r.stock,
@@ -1570,7 +1601,7 @@
                 <tr>
                     <td><strong>${p.nombre}</strong></td>
                     <td>${p.categoriaNombre || localData.categorias.find(c => c.id === p.categorias[0])?.nombre || p.categorias[0] || ''}</td>
-                    <td>$${p.precio}</td>
+                    <td>$${p.precio}${p.precio_oferta ? `<br><span class="badge badge-success">Oferta $${p.precio_oferta}</span>` : ''}</td>
                     <td>${p.stock}</td>
                     <td><span class="badge ${p.activo ? 'badge-success' : 'badge-danger'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
                     <td>
@@ -2049,21 +2080,95 @@
             } catch (e) { console.log('SIM UI fallback:', e.message); }
         }
 
+        let simExtrasList = [];
+        let simProductoId = null;
+
+        function simCargarProductos() {
+            const sel = document.getElementById('simProducto');
+            const prods = localData.productos || [];
+            sel.innerHTML = '<option value="">Precio manual</option>' +
+                prods.map(p => `<option value="${p.id}">${p.nombre} — $${p.precio_oferta || p.precio}</option>`).join('');
+        }
+
+        function simProductoElegido() {
+            const id = document.getElementById('simProducto').value;
+            simProductoId = id || null;
+            const p = (localData.productos || []).find(x => String(x.id) === String(id));
+            if (p) document.getElementById('simPrecio').value = p.precio_oferta || p.precio;
+            simularPrecio();
+        }
+
+        function simAgregarExtra(nombre, monto) {
+            simExtrasList.push({ nombre: nombre || '', monto: monto || 0 });
+            simRenderExtras();
+        }
+
+        function simRenderExtras() {
+            const box = document.getElementById('simExtras');
+            box.innerHTML = simExtrasList.map((e, i) => `
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <input placeholder="Ej: Delivery, servicio..." value="${e.nombre}" oninput="simExtrasList[${i}].nombre = this.value"
+                        style="flex: 2; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                    <input type="number" placeholder="$" value="${e.monto || ''}" oninput="simExtrasList[${i}].monto = parseFloat(this.value) || 0; simularPrecio()"
+                        style="flex: 1; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                    <button onclick="simExtrasList.splice(${i}, 1); simRenderExtras(); simularPrecio()" style="padding: 8px 12px; background: var(--danger); color: #fff; border: none; border-radius: 6px; cursor: pointer;"><i class="fas fa-trash"></i></button>
+                </div>`).join('');
+        }
+
         function simularPrecio() {
-            const precio = parseFloat(document.getElementById('simPrecio').value) || 0;
+            const precioBase = parseFloat(document.getElementById('simPrecio').value) || 0;
+            const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
+            const precio = precioBase * (1 - pct / 100);
+            const pago = document.getElementById('simPago').value;
             const uis = parseInt(document.getElementById('simTipo').value) || 2;
             const uiVal = parseFloat(document.getElementById('simUI').value) || 0;
             const cargoUF = uis * uiVal;
-            const totalCliente = (precio + cargoUF) / (1 - SIM_MP_PCT / 100);
-            const feeMP = totalCliente - precio - cargoUF;
-            const tipoTxt = uis === 1 ? 'En mesa (1 UI)' : 'Online (2 UI)';
-            document.getElementById('simResultado').innerHTML = `
-                <tr><td>Precio que ponés vos (lo recibís íntegro)</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
-                <tr><td>Cargo empresa (${uis} UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>
-                <tr><td>MercadoPago (${SIM_MP_PCT}% incluido para que no toque los valores)</td><td style="text-align:right">+ $${feeMP.toFixed(0)}</td></tr>
+            const extrasTotal = simExtrasList.reduce((a, e) => a + (parseFloat(e.monto) || 0), 0);
+            const base = precio + cargoUF + extrasTotal;
+            const conMP = pago === 'tarjeta';
+            const totalCliente = conMP ? base / (1 - SIM_MP_PCT / 100) : base;
+            const feeMP = totalCliente - base;
+            const tipoTxt = (uis === 1 ? 'En mesa (1 UI)' : 'Online (2 UI)') + (conMP ? ' · Tarjeta' : ' · Efectivo');
+            let html = `
+                <tr><td>Precio base</td><td style="text-align:right">$${precioBase.toFixed(0)}</td></tr>`;
+            if (pct > 0) html += `<tr><td>Descuento ${pct}%</td><td style="text-align:right;color:var(--green)">− $${(precioBase - precio).toFixed(0)}</td></tr>`;
+            html += `
+                <tr><td>Precio con descuento (lo recibe el negocio íntegro)</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
+                <tr><td>Cargo empresa (${uis} UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>`;
+            simExtrasList.forEach(e => {
+                if ((e.nombre || '').trim() || (parseFloat(e.monto) || 0) > 0) {
+                    html += `<tr><td>${e.nombre || 'Extra'}</td><td style="text-align:right">+ $${(parseFloat(e.monto) || 0).toFixed(0)}</td></tr>`;
+                }
+            });
+            if (conMP) html += `<tr><td>MercadoPago (${SIM_MP_PCT}% incluido)</td><td style="text-align:right">+ $${feeMP.toFixed(0)}</td></tr>`;
+            html += `
                 <tr style="background: rgba(212,175,55,0.1)"><td><strong>👁 Lo que ve y paga el cliente (${tipoTxt})</strong></td><td style="text-align:right"><strong>$${totalCliente.toFixed(0)}</strong></td></tr>
                 <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏪 El negocio recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
                 <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏢 La empresa recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${cargoUF.toFixed(0)}</strong></td></tr>`;
+            document.getElementById('simResultado').innerHTML = html;
+            document.getElementById('simGuardarOferta').style.display =
+                (simProductoId && pct > 0) ? 'block' : 'none';
+        }
+
+        async function simGuardarOferta() {
+            if (!simProductoId) return;
+            const precioBase = parseFloat(document.getElementById('simPrecio').value) || 0;
+            const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
+            if (!(pct > 0)) { alert('Poné un descuento mayor a 0'); return; }
+            const oferta = Math.round(precioBase * (1 - pct / 100));
+            try {
+                const empresaId = localData.currentUser?.empresa_id;
+                if (empresaId && !String(simProductoId).startsWith('prod_')) {
+                    const { error } = await sb.from('productos_empresa').update({ precio_oferta: oferta }).eq('id', simProductoId);
+                    if (error) throw error;
+                }
+                const p = (localData.productos || []).find(x => String(x.id) === String(simProductoId));
+                if (p) p.precio_oferta = oferta;
+                alert(`Oferta guardada: $${oferta} (${pct}% off)`);
+                loadProductos();
+            } catch (err) {
+                alert('Error al guardar oferta: ' + err.message);
+            }
         }
 
         // =============================================
@@ -2309,6 +2414,27 @@
             document.getElementById('prodFotoPlaceholder').style.display='none';
         });
         let editingProductoId = null;
+        function syncDescuentoFromPrecio() {
+            const precio = parseFloat(document.getElementById('prodPrecio').value) || 0;
+            const oferta = parseFloat(document.getElementById('prodPrecioOferta').value);
+            if (precio > 0 && oferta > 0 && oferta < precio) {
+                document.getElementById('prodDescuento').value = Math.round((1 - oferta / precio) * 100);
+            } else {
+                document.getElementById('prodDescuento').value = '';
+            }
+        }
+        function syncDescuentoFromOferta() {
+            syncDescuentoFromPrecio();
+        }
+        function syncDescuentoFromPct() {
+            const precio = parseFloat(document.getElementById('prodPrecio').value) || 0;
+            const pct = parseFloat(document.getElementById('prodDescuento').value) || 0;
+            if (precio > 0 && pct > 0 && pct < 100) {
+                document.getElementById('prodPrecioOferta').value = Math.round(precio * (1 - pct / 100));
+            } else {
+                document.getElementById('prodPrecioOferta').value = '';
+            }
+        }
         function editProducto(id) {
             const p = localData.productos.find(x => x.id === id);
             if (!p) return;
@@ -2317,6 +2443,8 @@
             document.getElementById('prodNombre').value = p.nombre || '';
             document.getElementById('prodDescripcion').value = p.descripcion || '';
             document.getElementById('prodPrecio').value = p.precio || '';
+            document.getElementById('prodPrecioOferta').value = p.precio_oferta || '';
+            document.getElementById('prodDescuento').value = (p.precio > 0 && p.precio_oferta > 0 && p.precio_oferta < p.precio) ? Math.round((1 - p.precio_oferta / p.precio) * 100) : '';
             document.getElementById('prodStock').value = p.stock || '';
             document.getElementById('prodDisponible').value = p.disponible || 'ambas';
             if (p.categorias && p.categorias[0]) document.getElementById('prodCategoria').value = p.categorias[0];
@@ -2330,6 +2458,8 @@
             document.getElementById('prodNombre').value = '';
             document.getElementById('prodDescripcion').value = '';
             document.getElementById('prodPrecio').value = '';
+            document.getElementById('prodPrecioOferta').value = '';
+            document.getElementById('prodDescuento').value = '';
             document.getElementById('prodStock').value = '';
             document.getElementById('prodFoto').value = '';
             document.getElementById('prodFotoPreview').style.display='none';
@@ -2381,6 +2511,9 @@
                 }
             }
             const disponible = document.getElementById('prodDisponible').value;
+            const ofertaVal = parseFloat(document.getElementById('prodPrecioOferta').value);
+            const precioBase = parseFloat(document.getElementById('prodPrecio').value);
+            const precioOferta = (ofertaVal > 0 && ofertaVal < precioBase) ? ofertaVal : null;
             let fotoUrl = null;
             const file = document.getElementById('prodFoto').files[0];
             if (file) {
@@ -2401,6 +2534,7 @@
                         nombre: document.getElementById('prodNombre').value,
                         descripcion: document.getElementById('prodDescripcion').value,
                         precio: parseFloat(document.getElementById('prodPrecio').value),
+                        precio_oferta: precioOferta,
                         categoria: catNombre,
                         stock: parseInt(document.getElementById('prodStock').value),
                         foto_url: fotoUrl || old.foto_url,
@@ -2423,6 +2557,7 @@
                     nombre: document.getElementById('prodNombre').value,
                     descripcion: document.getElementById('prodDescripcion').value,
                     precio: parseFloat(document.getElementById('prodPrecio').value),
+                    precio_oferta: precioOferta,
                     categoria: catNombre,
                     stock: parseInt(document.getElementById('prodStock').value),
                     foto_url: fotoUrl,
