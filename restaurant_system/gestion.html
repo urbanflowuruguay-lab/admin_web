@@ -2149,43 +2149,44 @@
             const r0 = n => '$' + (Math.round(n * 100) / 100).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('simPosWrap').style.display = (mod === 'mesa' && pago === 'pos') ? 'block' : 'none';
 
-            let clientePaga = 0, negocio = 0, empresa = 0, gastos = 0, gastosTxt = '', pagoTxt = '';
+            const N = G * (1 - pct / 100);
+            let clientePaga = 0, negocio = N, empresa = 0, gastos = 0, gastosTxt = '', pagoTxt = '';
             if (mod === 'mesa') {
                 if (pago === 'efectivo') {
                     pagoTxt = 'efectivo';
-                    clientePaga = G; negocio = G; empresa = 0; gastos = 0;
+                    clientePaga = N; empresa = 0; gastos = 0;
                     gastosTxt = 'sin gastos';
                 } else if (pago === 'pos') {
                     pagoTxt = 'POS (' + posPct + '%)';
-                    const costo = G * (posPct / 100);
-                    clientePaga = G; negocio = G - costo; empresa = 0; gastos = costo;
-                    gastosTxt = 'costo POS ' + r0(costo);
+                    clientePaga = N / (1 - posPct / 100);
+                    gastos = clientePaga - N;
+                    gastosTxt = 'costo POS ' + r0(gastos);
                 } else {
                     pagoTxt = 'tarjeta registrada UF';
-                    const uf = 1 * uiVal, mp = G * (SIM_MP_PCT / 100);
-                    clientePaga = G; negocio = G - uf - mp; empresa = uf; gastos = uf + mp;
-                    gastosTxt = '1 UI (' + r0(uf) + ') + MP (' + r0(mp) + ')';
+                    const uf = 1 * uiVal;
+                    clientePaga = (N + uf) / (1 - SIM_MP_PCT / 100);
+                    empresa = uf; gastos = clientePaga - N;
+                    gastosTxt = '1 UI (' + r0(uf) + ') + MP (' + r0(gastos - uf) + ')';
                 }
             } else {
                 pagoTxt = 'tarjeta registrada (UF + MP)';
                 const uf = 2 * uiVal;
-                const base = G + uf + delivery;
+                const base = N + uf + delivery;
                 clientePaga = base / (1 - SIM_MP_PCT / 100);
                 const mp = clientePaga - base;
-                negocio = G + delivery; empresa = uf; gastos = mp;
+                negocio = N + delivery; empresa = uf; gastos = mp;
                 gastosTxt = 'MP (' + r0(mp) + ')' + (delivery > 0 ? ' + delivery propio ' + r0(delivery) : 'sin delivery propio');
             }
-            const lista = pct > 0 ? G / (1 - pct / 100) : G;
             const dtoTxt = pct > 0 ? 'con un descuento del ' + pct + '%' : 'sin descuento';
             const delTxt = delivery > 0 ? 'con delivery propio (' + r0(delivery) + ')' : 'sin delivery propio';
             document.getElementById('simFrase').innerHTML =
-                `Un producto donde la empresa facturará libre <strong>${r0(G)}</strong>. ` +
-                `Los gastos extras, por tipo de pago (${pagoTxt}), ${mod === 'online' ? delTxt + ', ' : ''}serán de <strong>${r0(gastos)}${mod === 'mesa' && pago === 'efectivo' ? ' (sin gastos)' : ''}</strong>. ` +
+                `Un producto donde la empresa facturará libre <strong>${r0(negocio)}</strong>. ` +
+                `Los gastos extras, por tipo de pago (${pagoTxt}), ${mod === 'online' ? delTxt + ', ' : ''}serán de <strong>${r0(gastos)}${gastos === 0 ? ' (sin gastos)' : ''}</strong>. ` +
                 `${dtoTxt}, quedará una facturación de <strong>${r0(clientePaga)}</strong>. ` +
                 `Tu ganancia: <strong style="color:var(--green)">${r0(negocio)}</strong>.`;
             document.getElementById('simResultado').innerHTML = `
-                <tr><td>Ganancia deseada</td><td style="text-align:right"><strong>${r0(G)}</strong></td></tr>
-                ${pct > 0 ? `<tr><td>Precio lista (para que con ${pct}% off queden ${r0(G)})</td><td style="text-align:right">${r0(lista)}</td></tr>` : ''}
+                <tr><td>Ganancia deseada (sin descuento)</td><td style="text-align:right"><strong>${r0(G)}</strong></td></tr>
+                ${pct > 0 ? `<tr><td>Precio lista</td><td style="text-align:right">${r0(G)}</td></tr>` : ''}
                 <tr><td>👁 Cliente paga (${mod === 'mesa' ? 'mesa · ' + pagoTxt : 'online · tarjeta'})</td><td style="text-align:right"><strong>${r0(clientePaga)}</strong></td></tr>
                 <tr><td>💰 Tu ganancia</td><td style="text-align:right;color:var(--green)"><strong>${r0(negocio)}</strong></td></tr>
                 <tr><td>🏢 Empresa recibe</td><td style="text-align:right">${r0(empresa)}</td></tr>
@@ -2198,8 +2199,8 @@
             const G = Math.max(0, Math.round((parseFloat(document.getElementById('simGanancia').value) || 0) * 100) / 100);
             const quiereDto = document.getElementById('simQuiereDto').checked;
             const pct = quiereDto ? (parseInt(document.getElementById('simDescuento').value) || 0) : 0;
-            const precioBase = pct > 0 ? Math.round(G / (1 - pct / 100) * 100) / 100 : G;
-            const oferta = pct > 0 ? G : null;
+            const precioBase = G;
+            const oferta = pct > 0 ? Math.round(G * (1 - pct / 100) * 100) / 100 : null;
             try {
                 const empresaId = localData.currentUser?.empresa_id;
                 if (empresaId && !String(simProductoId).startsWith('prod_')) {
