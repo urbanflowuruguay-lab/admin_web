@@ -731,9 +731,9 @@
                         <h2 class="section-title">Constructor de precios</h2>
                     </div>
                     <p style="color: var(--text2); font-size: 13px; margin-bottom: 16px;">
-                        Construí el precio: elegí producto o poné precio manual, agregá delivery y servicios,
-                        elegí forma de pago y probá descuentos. En mesa se cobra <strong>1 UI</strong>,
-                        en online <strong>2 UI</strong>. Con tarjeta, MP 7.88% va incluido sin tocar tus valores.
+                        Construí el precio: elegí un producto existente o poné precio manual, agregá delivery y servicios,
+                        y probá descuentos. <strong>En mesa</strong>: precio pelado, sin UF ni MP.
+                        <strong>Online con tarjeta</strong>: siempre 2 UI + MP 7.88% incluido. El resultado se guarda solo en el producto.
                     </p>
                     <div class="card">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
@@ -752,15 +752,8 @@
                             <div class="form-group" style="margin: 0;">
                                 <label>Forma de pago</label>
                                 <select id="simPago" onchange="simularPrecio()">
-                                    <option value="efectivo">Efectivo (sin MP)</option>
-                                    <option value="tarjeta" selected>Tarjeta / MP (incluye 7.88%)</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Tipo de pedido</label>
-                                <select id="simTipo" onchange="simularPrecio()">
-                                    <option value="1">En mesa (1 UI)</option>
-                                    <option value="2" selected>Online (2 UI)</option>
+                                    <option value="mesa">En mesa (sin UF ni MP)</option>
+                                    <option value="online" selected>Online con tarjeta (2 UI + MP)</option>
                                 </select>
                             </div>
                             <div class="form-group" style="margin: 0;">
@@ -776,7 +769,7 @@
                                 <tbody id="simResultado"></tbody>
                             </table>
                         </div>
-                        <button id="simGuardarOferta" class="btn-primary" onclick="simGuardarOferta()" style="margin-top: 12px; display: none;"><i class="fas fa-tag"></i> Guardar descuento en el producto</button>
+                        <button id="simGuardarOferta" class="btn-primary" onclick="simGuardarOferta()" style="margin-top: 12px; display: none;"><i class="fas fa-tag"></i> Guardar resultado en el producto</button>
                     </div>
                 </div>
 
@@ -2120,54 +2113,51 @@
             const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
             const precio = precioBase * (1 - pct / 100);
             const pago = document.getElementById('simPago').value;
-            const uis = parseInt(document.getElementById('simTipo').value) || 2;
+            const esOnline = pago !== 'mesa';
             const uiVal = parseFloat(document.getElementById('simUI').value) || 0;
-            const cargoUF = uis * uiVal;
+            const cargoUF = esOnline ? 2 * uiVal : 0;
             const extrasTotal = simExtrasList.reduce((a, e) => a + (parseFloat(e.monto) || 0), 0);
             const base = precio + cargoUF + extrasTotal;
-            const conMP = pago === 'tarjeta';
-            const totalCliente = conMP ? base / (1 - SIM_MP_PCT / 100) : base;
+            const totalCliente = esOnline ? base / (1 - SIM_MP_PCT / 100) : base;
             const feeMP = totalCliente - base;
-            const tipoTxt = (uis === 1 ? 'En mesa (1 UI)' : 'Online (2 UI)') + (conMP ? ' · Tarjeta' : ' · Efectivo');
+            const tipoTxt = esOnline ? 'Online con tarjeta' : 'En mesa';
             let html = `
                 <tr><td>Precio base</td><td style="text-align:right">$${precioBase.toFixed(0)}</td></tr>`;
             if (pct > 0) html += `<tr><td>Descuento ${pct}%</td><td style="text-align:right;color:var(--green)">− $${(precioBase - precio).toFixed(0)}</td></tr>`;
             html += `
-                <tr><td>Precio con descuento (lo recibe el negocio íntegro)</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
-                <tr><td>Cargo empresa (${uis} UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>`;
+                <tr><td>Precio con descuento (lo recibe el negocio íntegro)</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>`;
+            if (esOnline) html += `<tr><td>Cargo empresa (2 UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>`;
             simExtrasList.forEach(e => {
                 if ((e.nombre || '').trim() || (parseFloat(e.monto) || 0) > 0) {
                     html += `<tr><td>${e.nombre || 'Extra'}</td><td style="text-align:right">+ $${(parseFloat(e.monto) || 0).toFixed(0)}</td></tr>`;
                 }
             });
-            if (conMP) html += `<tr><td>MercadoPago (${SIM_MP_PCT}% incluido)</td><td style="text-align:right">+ $${feeMP.toFixed(0)}</td></tr>`;
+            if (esOnline) html += `<tr><td>MercadoPago (${SIM_MP_PCT}% incluido)</td><td style="text-align:right">+ $${feeMP.toFixed(0)}</td></tr>`;
             html += `
                 <tr style="background: rgba(212,175,55,0.1)"><td><strong>👁 Lo que ve y paga el cliente (${tipoTxt})</strong></td><td style="text-align:right"><strong>$${totalCliente.toFixed(0)}</strong></td></tr>
-                <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏪 El negocio recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
-                <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏢 La empresa recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${cargoUF.toFixed(0)}</strong></td></tr>`;
+                <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏪 El negocio recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${(precio + extrasTotal).toFixed(0)}</strong></td></tr>`;
+            if (esOnline) html += `<tr style="background: rgba(76,175,80,0.1)"><td><strong>🏢 La empresa recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${cargoUF.toFixed(0)}</strong></td></tr>`;
             document.getElementById('simResultado').innerHTML = html;
-            document.getElementById('simGuardarOferta').style.display =
-                (simProductoId && pct > 0) ? 'block' : 'none';
+            document.getElementById('simGuardarOferta').style.display = simProductoId ? 'block' : 'none';
         }
 
         async function simGuardarOferta() {
             if (!simProductoId) return;
-            const precioBase = parseFloat(document.getElementById('simPrecio').value) || 0;
+            const precioBase = Math.round(parseFloat(document.getElementById('simPrecio').value) || 0);
             const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
-            if (!(pct > 0)) { alert('Poné un descuento mayor a 0'); return; }
-            const oferta = Math.round(precioBase * (1 - pct / 100));
+            const oferta = pct > 0 ? Math.round(precioBase * (1 - pct / 100)) : null;
             try {
                 const empresaId = localData.currentUser?.empresa_id;
                 if (empresaId && !String(simProductoId).startsWith('prod_')) {
-                    const { error } = await sb.from('productos_empresa').update({ precio_oferta: oferta }).eq('id', simProductoId);
+                    const { error } = await sb.from('productos_empresa').update({ precio: precioBase, precio_oferta: oferta }).eq('id', simProductoId);
                     if (error) throw error;
                 }
                 const p = (localData.productos || []).find(x => String(x.id) === String(simProductoId));
-                if (p) p.precio_oferta = oferta;
-                alert(`Oferta guardada: $${oferta} (${pct}% off)`);
+                if (p) { p.precio = precioBase; p.precio_oferta = oferta; }
+                alert(oferta ? `Guardado en el producto: precio $${precioBase}, oferta $${oferta} (${pct}% off)` : `Guardado en el producto: precio $${precioBase}, sin oferta`);
                 loadProductos();
             } catch (err) {
-                alert('Error al guardar oferta: ' + err.message);
+                alert('Error al guardar en el producto: ' + err.message);
             }
         }
 
