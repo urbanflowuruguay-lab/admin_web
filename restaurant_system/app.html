@@ -357,10 +357,9 @@
                     <div class="user-role" id="userRole">Cocinero</div>
                 </div>
             </div>
-            <div id="abiertoBoxApp" style="display: none; margin-top: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; align-items: center; justify-content: space-between;">
-                <span id="abiertoLabelApp" style="font-size: 13px; font-weight: 700;">🟢 Abierto</span>
-                <button id="abiertoBtnApp" onclick="toggleAbiertoApp()" style="padding: 8px 16px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; background: var(--red); color: #fff;">Cerrar</button>
-            </div>
+            <button id="abiertoBoxApp" onclick="toggleAbiertoApp()" style="display: none; width: 100%; margin-top: 12px; border: none; border-radius: 12px; padding: 16px; font-size: 17px; font-weight: 800; cursor: pointer; background: var(--green); color: #fff;">
+                <span id="abiertoLabelApp">🟢 LOCAL ABIERTO — Tocá para cerrar</span>
+            </button>
         </header>
 
         <!-- CLOCK -->
@@ -1119,10 +1118,11 @@
                     if (!error && data && data.length > 0) {
                         document.getElementById('restaurantName').textContent = data[0].nombre;
                         const rol = (currentUser.rol || '').toLowerCase().replace('rol_', '');
-                        if (['dueño', 'dueno', 'encargado', 'cajero'].includes(rol)) {
+                        console.log('abierto toggle: rol=', currentUser.rol, 'normalizado=', rol);
+                        if (['dueño', 'dueno', 'encargado', 'cajero', 'administrador', 'admin'].includes(rol)) {
                             window._abiertoActual = data[0].abierto !== false;
                             paintAbiertoApp();
-                            document.getElementById('abiertoBoxApp').style.display = 'flex';
+                            document.getElementById('abiertoBoxApp').style.display = 'block';
                         }
                     }
                 } catch (err) {
@@ -1230,10 +1230,8 @@
         // =============================================
         function paintAbiertoApp() {
             const abierto = window._abiertoActual !== false;
-            document.getElementById('abiertoLabelApp').textContent = abierto ? '🟢 Abierto' : '🔴 Cerrado';
-            const btn = document.getElementById('abiertoBtnApp');
-            btn.textContent = abierto ? 'Cerrar' : 'Abrir';
-            btn.style.background = abierto ? 'var(--red)' : 'var(--green)';
+            document.getElementById('abiertoLabelApp').textContent = abierto ? '🟢 LOCAL ABIERTO — Tocá para cerrar' : '🔴 LOCAL CERRADO — Tocá para abrir';
+            document.getElementById('abiertoBoxApp').style.background = abierto ? 'var(--green)' : 'var(--red)';
         }
 
         async function toggleAbiertoApp() {
