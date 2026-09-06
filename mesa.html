@@ -418,11 +418,16 @@ async function init() {
             return;
         }
         const [empRes, prodRes] = await Promise.all([
-            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url,abierto").eq("id", empresaIdFinal).maybeSingle(),
+            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaIdFinal).maybeSingle(),
             sb.from("productos_empresa").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("categoria")
         ]);
         empresaData = empRes.data;
         mesaData = mesaRes ? mesaRes.data : null;
+        // Estado abierto/cerrado (columna opcional: si no existe en la DB, se asume abierto)
+        try {
+            const abRes = await sb.from("empresas").select("abierto").eq("id", empresaIdFinal).maybeSingle();
+            if (abRes && abRes.data && empresaData) empresaData.abierto = abRes.data.abierto;
+        } catch (_) { /* columna abierto aún no creada: se asume abierto */ }
         productos = prodRes.data || [];
         // guardar empresaId resuelto para usar en pedidos
         if (empresaData) empresaId = empresaData.id;
