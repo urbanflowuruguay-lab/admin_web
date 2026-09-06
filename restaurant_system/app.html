@@ -15,12 +15,16 @@
         :root { --bg: #0a0a0a; --bg2: #111; --bg3: #1a1a1a; --accent: #d4af37; --green: #4caf50; --red: #f44336; --blue: #2196f3; --orange: #ff9800; --text: #fff; --text2: #888; --border: #333; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
-        /* PC: ancho completo con columnas */
+        /* PC: ancho completo con columnas + menú lateral fijo como el dueño */
         @media (min-width: 900px) {
             body { max-width: 1100px; padding: 0 24px; }
             #content-pedidos, #content-cocina, #content-delivery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
             #content-pedidos .order-card, #content-cocina .order-card, #content-delivery .order-card { margin: 0; }
         }
+        body.pc-mode .sidebar { left: 0; transition: none; }
+        body.pc-mode .hamburger-btn { display: none; }
+        body.pc-mode .content { margin-left: 260px; }
+        body.pc-mode { max-width: none; }
 
         /* HEADER */
         .app-header {
@@ -910,9 +914,22 @@
         // TABS
         // =============================================
         function toggleSidebar() {
+            if (document.body.classList.contains('pc-mode')) return;
             document.getElementById('sidebar').classList.toggle('open');
             document.getElementById('sidebarOverlay').classList.toggle('open');
         }
+
+        // Detección PC vs teléfono: en PC el menú lateral queda fijo como el del dueño
+        function isPC() {
+            const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+            const mobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            return !coarse && !mobileUA && window.innerWidth >= 900;
+        }
+        function applyDeviceMode() {
+            document.body.classList.toggle('pc-mode', isPC());
+        }
+        applyDeviceMode();
+        window.addEventListener('resize', applyDeviceMode);
 
         function showTab(tab) {
             document.querySelectorAll('.sidebar-item').forEach(t => t.classList.remove('active'));
