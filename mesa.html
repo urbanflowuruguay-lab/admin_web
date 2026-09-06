@@ -435,14 +435,13 @@ async function init() {
             document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Restaurante no encontrado</p></div>';
             return;
         }
-        if (empresaData.abierto === false) {
-            document.getElementById("mainContent").innerHTML = `
-                <div class="empty" style="padding-top:80px;text-align:center">
-                    <div style="font-size:48px;margin-bottom:16px">🚫</div>
-                    <p style="font-size:18px;font-weight:bold;color:#ef4444">Restaurante cerrado</p>
-                    <p style="font-size:13px;margin-top:8px;opacity:0.7">En este momento no estamos aceptando pedidos.<br>Intentá más tarde.</p>
-                </div>`;
-            return;
+        window.negocioCerrado = (empresaData.abierto === false);
+        if (window.negocioCerrado) {
+            const banner = document.createElement('div');
+            banner.id = 'cerradoBanner';
+            banner.innerHTML = '🔴 CERRADO — En este momento no aceptamos pedidos';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:400;background:#dc2626;color:#fff;text-align:center;font-weight:700;font-size:14px;padding:10px 12px;';
+            document.body.appendChild(banner);
         }
         applyTheme(empresaData.carta_template || "dark_elegance");
 
@@ -607,8 +606,9 @@ function updateCarritoBar() {
     document.getElementById("carritoCount").textContent = totalItems + " items";
     document.getElementById("carritoTotal").textContent = "$" + totalPrecio.toFixed(0);
     const btn = document.getElementById("btnPedir");
-    btn.disabled = totalItems === 0 || window.isMantenimiento;
-    if (window.isMantenimiento && totalItems>0) { btn.textContent = 'Mesa en mantenimiento'; btn.style.opacity='0.6'; }
+    btn.disabled = totalItems === 0 || window.isMantenimiento || window.negocioCerrado;
+    if (window.negocioCerrado && totalItems>0) { btn.textContent = 'Cerrado'; btn.style.opacity='0.6'; }
+    else if (window.isMantenimiento && totalItems>0) { btn.textContent = 'Mesa en mantenimiento'; btn.style.opacity='0.6'; }
     else { btn.textContent = 'Pedir'; btn.style.opacity='1'; }
     document.getElementById("carritoBar").style.display = totalItems > 0 ? "" : "none";
     renderCarritoItems();
@@ -651,6 +651,7 @@ function selectPago(metodo) {
 }
 
 async function confirmarPedido() {
+    if (window.negocioCerrado) { alert('El local está cerrado en este momento.'); return; }
     const nombre = document.getElementById("clienteNombre").value.trim() || "Cliente";
     hidePago();
     const total = carrito.reduce((s, c) => s + c.precio * c.qty, 0);
