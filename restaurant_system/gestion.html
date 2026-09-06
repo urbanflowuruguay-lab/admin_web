@@ -741,7 +741,7 @@
                         </div>
                         <div class="form-group">
                             <label>1) ¿Cuánto querés ganar por el producto? ($)</label>
-                            <input type="number" id="simGanancia" value="400" min="0" oninput="simularPrecio()">
+                            <input type="number" id="simGanancia" value="400" min="0" step="0.01" oninput="simularPrecio()">
                         </div>
                         <div class="form-group">
                             <label>2) Modalidad</label>
@@ -2146,7 +2146,7 @@
             const delivery = mod === 'online' ? Math.max(0, parseFloat(document.getElementById('simDelivery').value) || 0) : 0;
             const posPct = Math.max(0, parseFloat(document.getElementById('simPosPct').value) || 0);
             const uiVal = parseFloat(document.getElementById('simUI').value) || 0;
-            const r0 = n => '$' + Math.round(n).toLocaleString();
+            const r0 = n => '$' + (Math.round(n * 100) / 100).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('simPosWrap').style.display = (mod === 'mesa' && pago === 'pos') ? 'block' : 'none';
 
             let clientePaga = 0, negocio = 0, empresa = 0, gastos = 0, gastosTxt = '', pagoTxt = '';
@@ -2195,10 +2195,10 @@
 
         async function simGuardarOferta() {
             if (!simProductoId) return;
-            const G = Math.max(0, Math.round(parseFloat(document.getElementById('simGanancia').value) || 0));
+            const G = Math.max(0, Math.round((parseFloat(document.getElementById('simGanancia').value) || 0) * 100) / 100);
             const quiereDto = document.getElementById('simQuiereDto').checked;
             const pct = quiereDto ? (parseInt(document.getElementById('simDescuento').value) || 0) : 0;
-            const precioBase = pct > 0 ? Math.round(G / (1 - pct / 100)) : G;
+            const precioBase = pct > 0 ? Math.round(G / (1 - pct / 100) * 100) / 100 : G;
             const oferta = pct > 0 ? G : null;
             try {
                 const empresaId = localData.currentUser?.empresa_id;

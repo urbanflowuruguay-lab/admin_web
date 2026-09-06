@@ -814,10 +814,11 @@
             const totalCliente = selectedMesa ? subtotal : (subtotal + feeUF) / (1 - MP_FEE_PCT / 100);
             const feeMP = totalCliente - subtotal - feeUF;
 
-            document.getElementById('subtotal').textContent = '$' + subtotal.toLocaleString();
-            document.getElementById('feeUF').textContent = '$' + feeUF.toLocaleString();
-            document.getElementById('feeMP').textContent = '$' + Math.round(feeMP).toLocaleString();
-            document.getElementById('totalOrder').textContent = '$' + Math.round(totalCliente).toLocaleString();
+            const fmt2 = n => '$' + (Math.round(n * 100) / 100).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('subtotal').textContent = fmt2(subtotal);
+            document.getElementById('feeUF').textContent = fmt2(feeUF);
+            document.getElementById('feeMP').textContent = fmt2(feeMP);
+            document.getElementById('totalOrder').textContent = fmt2(totalCliente);
         }
 
         // =============================================
@@ -884,13 +885,13 @@
                     precio_unitario: o.precio,
                     subtotal: o.precio * o.qty
                 })),
-                subtotal: subtotal,
+                subtotal: Math.round(subtotal * 100) / 100,
                 uf_fee_ui: uis,
-                uf_fee_monto: feeUF,
+                uf_fee_monto: Math.round(feeUF * 100) / 100,
                 mp_fee_porcentaje: MP_FEE_PCT,
-                mp_fee_monto: Math.round(feeMP),
-                total_cliente: Math.round(totalCliente),
-                total_recibido: Math.round(totalRecibido),
+                mp_fee_monto: Math.round(feeMP * 100) / 100,
+                total_cliente: Math.round(totalCliente * 100) / 100,
+                total_recibido: Math.round(totalRecibido * 100) / 100,
                 metodo_pago: method,
                 mesa_id: selectedMesa?.id || null,
                 created_at: new Date().toISOString()
