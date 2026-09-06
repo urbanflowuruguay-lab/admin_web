@@ -731,37 +731,45 @@
                         <h2 class="section-title">Constructor de precios</h2>
                     </div>
                     <p style="color: var(--text2); font-size: 13px; margin-bottom: 16px;">
-                        Construí el precio: elegí un producto existente o poné precio manual, agregá delivery y servicios,
-                        y probá descuentos. <strong>En mesa</strong>: precio pelado, sin UF ni MP.
-                        <strong>Online con tarjeta</strong>: siempre 2 UI + MP 7.88% incluido. El resultado se guarda solo en el producto.
+                        Elegí un producto, probá descuento y delivery, y mirá el precio que ve el cliente
+                        y tu ganancia según forma de pago. <strong>En mesa</strong> el precio es el mismo:
+                        en efectivo te queda todo, con POS pagás su %, con tarjeta UF se descuentan 1 UI + MP.
+                        <strong>Online</strong> solo con tarjeta: 2 UI + MP incluidos sin tocar tus valores.
                     </p>
                     <div class="card">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div class="form-group" style="margin: 0;">
-                                <label>Producto (opcional)</label>
+                                <label>Producto</label>
                                 <select id="simProducto" onchange="simProductoElegido()"></select>
                             </div>
                             <div class="form-group" style="margin: 0;">
-                                <label>Descuento (%)</label>
+                                <label>Descuento / Promo (%)</label>
                                 <input type="number" id="simDescuento" value="0" min="0" max="90" oninput="simularPrecio()">
                             </div>
                             <div class="form-group" style="margin: 0;">
-                                <label>Forma de pago</label>
-                                <select id="simPago" onchange="simularPrecio()">
-                                    <option value="mesa">En mesa (sin UF ni MP)</option>
-                                    <option value="online" selected>Online con tarjeta (2 UI + MP)</option>
-                                </select>
+                                <label>Delivery ($, solo online)</label>
+                                <input type="number" id="simDelivery" value="0" min="0" oninput="simularPrecio()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Costo POS (% del servicio que uses)</label>
+                                <input type="number" id="simPosPct" value="3" step="0.1" min="0" oninput="simularPrecio()">
                             </div>
                             <div class="form-group" style="margin: 0;">
                                 <label>Valor UI ($)</label>
                                 <input type="number" id="simUI" value="6.50" step="0.01" min="0" oninput="simularPrecio()">
                             </div>
                         </div>
-                        <h4 style="margin: 8px 0; font-size: 13px;">Extras y servicios (delivery, cubiertos, etc.)</h4>
-                        <div id="simExtras"></div>
-                        <button class="btn-primary" onclick="simAgregarExtra()" style="padding: 8px 14px; font-size: 12px; margin-bottom: 12px;"><i class="fas fa-plus"></i> Agregar extra</button>
                         <div class="table-container">
                             <table>
+                                <thead>
+                                    <tr>
+                                        <th>Escenario</th>
+                                        <th style="text-align:right">Cliente paga</th>
+                                        <th style="text-align:right">Negocio recibe</th>
+                                        <th style="text-align:right">Empresa recibe</th>
+                                        <th style="text-align:right">Costo pasarela</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="simResultado"></tbody>
                             </table>
                         </div>
@@ -1282,7 +1290,7 @@
             if (section === 'zonas') loadZonas();
             if (section === 'facturacion') loadFacturacion();
             if (section === 'historial') loadHistorial();
-            if (section === 'simulador') { loadSimUI(); simCargarProductos(); simRenderExtras(); simularPrecio(); }
+            if (section === 'simulador') { loadSimUI(); simCargarProductos(); simularPrecio(); }
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
             if (section === 'config') {
@@ -2069,7 +2077,6 @@
             } catch (e) { console.log('SIM UI fallback:', e.message); }
         }
 
-        let simExtrasList = [];
         let simProductoId = null;
         let simPrecioBase = 0;
 
@@ -2093,53 +2100,40 @@
             simularPrecio();
         }
 
-        function simAgregarExtra(nombre, monto) {
-            simExtrasList.push({ nombre: nombre || '', monto: monto || 0 });
-            simRenderExtras();
-        }
-
-        function simRenderExtras() {
-            const box = document.getElementById('simExtras');
-            box.innerHTML = simExtrasList.map((e, i) => `
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                    <input placeholder="Ej: Delivery, servicio..." value="${e.nombre}" oninput="simExtrasList[${i}].nombre = this.value"
-                        style="flex: 2; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
-                    <input type="number" placeholder="$" value="${e.monto || ''}" oninput="simExtrasList[${i}].monto = parseFloat(this.value) || 0; simularPrecio()"
-                        style="flex: 1; padding: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
-                    <button onclick="simExtrasList.splice(${i}, 1); simRenderExtras(); simularPrecio()" style="padding: 8px 12px; background: var(--danger); color: #fff; border: none; border-radius: 6px; cursor: pointer;"><i class="fas fa-trash"></i></button>
-                </div>`).join('');
-        }
-
         function simularPrecio() {
             const precioBase = simPrecioBase || 0;
             const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
             const precio = precioBase * (1 - pct / 100);
-            const pago = document.getElementById('simPago').value;
-            const esOnline = pago !== 'mesa';
+            const delivery = Math.max(0, parseFloat(document.getElementById('simDelivery').value) || 0);
+            const posPct = Math.max(0, parseFloat(document.getElementById('simPosPct').value) || 0);
             const uiVal = parseFloat(document.getElementById('simUI').value) || 0;
-            const cargoUF = esOnline ? 2 * uiVal : 0;
-            const extrasTotal = simExtrasList.reduce((a, e) => a + (parseFloat(e.monto) || 0), 0);
-            const base = precio + cargoUF + extrasTotal;
-            const totalCliente = esOnline ? base / (1 - SIM_MP_PCT / 100) : base;
-            const feeMP = totalCliente - base;
-            const tipoTxt = esOnline ? 'Online con tarjeta' : 'En mesa';
-            let html = `
-                <tr><td>Precio base</td><td style="text-align:right">$${precioBase.toFixed(0)}</td></tr>`;
-            if (pct > 0) html += `<tr><td>Descuento ${pct}%</td><td style="text-align:right;color:var(--green)">− $${(precioBase - precio).toFixed(0)}</td></tr>`;
-            html += `
-                <tr><td>Precio con descuento (lo recibe el negocio íntegro)</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>`;
-            if (esOnline) html += `<tr><td>Cargo empresa (2 UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>`;
-            simExtrasList.forEach(e => {
-                if ((e.nombre || '').trim() || (parseFloat(e.monto) || 0) > 0) {
-                    html += `<tr><td>${e.nombre || 'Extra'}</td><td style="text-align:right">+ $${(parseFloat(e.monto) || 0).toFixed(0)}</td></tr>`;
-                }
-            });
-            if (esOnline) html += `<tr><td>MercadoPago (${SIM_MP_PCT}% incluido)</td><td style="text-align:right">+ $${feeMP.toFixed(0)}</td></tr>`;
-            html += `
-                <tr style="background: rgba(212,175,55,0.1)"><td><strong>👁 Lo que ve y paga el cliente (${tipoTxt})</strong></td><td style="text-align:right"><strong>$${totalCliente.toFixed(0)}</strong></td></tr>
-                <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏪 El negocio recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${(precio + extrasTotal).toFixed(0)}</strong></td></tr>`;
-            if (esOnline) html += `<tr style="background: rgba(76,175,80,0.1)"><td><strong>🏢 La empresa recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${cargoUF.toFixed(0)}</strong></td></tr>`;
-            document.getElementById('simResultado').innerHTML = html;
+            const ufMesa = 1 * uiVal;
+            const ufOnline = 2 * uiVal;
+            const r0 = n => '$' + Math.round(n).toLocaleString();
+            // Mesa: precio fijo, se descuenta el costo de cada medio
+            const costoPOS = precio * (posPct / 100);
+            const costoMPMesa = precio * (SIM_MP_PCT / 100);
+            const negEf = precio;
+            const negPOS = precio - costoPOS;
+            const negTarj = precio - ufMesa - costoMPMesa;
+            // Online: gross-up con 2 UI + MP + delivery
+            const baseOnline = precio + ufOnline + delivery;
+            const totalOnline = baseOnline / (1 - SIM_MP_PCT / 100);
+            const feeMPOnline = totalOnline - baseOnline;
+            const negOnline = precio + delivery;
+            const row = (esc, cli, neg, emp, costo, hl) => `
+                <tr${hl ? ' style="background: rgba(212,175,55,0.1)"' : ''}>
+                    <td><strong>${esc}</strong></td>
+                    <td style="text-align:right"><strong>${r0(cli)}</strong></td>
+                    <td style="text-align:right;color:var(--green)"><strong>${r0(neg)}</strong></td>
+                    <td style="text-align:right">${r0(emp)}</td>
+                    <td style="text-align:right;color:var(--text2)">${r0(costo)}</td>
+                </tr>`;
+            document.getElementById('simResultado').innerHTML =
+                row('🪑 Mesa · Efectivo', precio, negEf, 0, 0) +
+                row('🪑 Mesa · POS (' + posPct + '%)', precio, negPOS, 0, costoPOS) +
+                row('🪑 Mesa · Tarjeta UF', precio, negTarj, ufMesa, costoMPMesa) +
+                row('📱 Online · Tarjeta' + (pct > 0 ? ' (promo ' + pct + '%)' : '') + (delivery > 0 ? ' + delivery' : ''), totalOnline, negOnline, ufOnline, feeMPOnline, true);
             document.getElementById('simGuardarOferta').style.display = simProductoId ? 'block' : 'none';
         }
 
