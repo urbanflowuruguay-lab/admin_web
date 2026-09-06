@@ -2054,17 +2054,16 @@
             const uis = parseInt(document.getElementById('simTipo').value) || 2;
             const uiVal = parseFloat(document.getElementById('simUI').value) || 0;
             const cargoUF = uis * uiVal;
-            const totalCliente = precio + cargoUF;
-            const feeMP = totalCliente * (SIM_MP_PCT / 100);
-            const recibe = totalCliente - feeMP - cargoUF;
+            const feeMP = (precio + cargoUF) * (SIM_MP_PCT / 100);
+            const totalCliente = precio + cargoUF + feeMP;
             const tipoTxt = uis === 1 ? 'En mesa (1 UI)' : 'Online (2 UI)';
             document.getElementById('simResultado').innerHTML = `
-                <tr><td>Precio que ponés vos</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
-                <tr><td>Cargo UrbanFlow (${uis} UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>
+                <tr><td>Precio que ponés vos (lo recibís íntegro)</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
+                <tr><td>Cargo empresa (${uis} UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>
+                <tr><td>MercadoPago (${SIM_MP_PCT}% s/ producto + cargo)</td><td style="text-align:right">+ $${feeMP.toFixed(0)}</td></tr>
                 <tr style="background: rgba(212,175,55,0.1)"><td><strong>👁 Lo que ve y paga el cliente (${tipoTxt})</strong></td><td style="text-align:right"><strong>$${totalCliente.toFixed(0)}</strong></td></tr>
-                <tr><td>MercadoPago (${SIM_MP_PCT}%)</td><td style="text-align:right;color:var(--danger)">− $${feeMP.toFixed(0)}</td></tr>
-                <tr><td>Cargo UrbanFlow</td><td style="text-align:right;color:var(--danger)">− $${cargoUF.toFixed(0)}</td></tr>
-                <tr style="background: rgba(76,175,80,0.1)"><td><strong>💰 Lo que recibís vos</strong></td><td style="text-align:right"><strong>$${recibe.toFixed(0)}</strong></td></tr>`;
+                <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏪 El negocio recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
+                <tr style="background: rgba(76,175,80,0.1)"><td><strong>🏢 La empresa recibe (sin variaciones)</strong></td><td style="text-align:right"><strong>$${cargoUF.toFixed(0)}</strong></td></tr>`;
         }
 
         // =============================================
