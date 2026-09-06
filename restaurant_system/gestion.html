@@ -742,10 +742,6 @@
                                 <select id="simProducto" onchange="simProductoElegido()"></select>
                             </div>
                             <div class="form-group" style="margin: 0;">
-                                <label>Precio base ($)</label>
-                                <input type="number" id="simPrecio" value="400" min="0" oninput="simularPrecio()">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
                                 <label>Descuento (%)</label>
                                 <input type="number" id="simDescuento" value="0" min="0" max="90" oninput="simularPrecio()">
                             </div>
@@ -2075,6 +2071,7 @@
 
         let simExtrasList = [];
         let simProductoId = null;
+        let simPrecioBase = 0;
 
         function simCargarProductos() {
             const sel = document.getElementById('simProducto');
@@ -2092,7 +2089,7 @@
             const id = document.getElementById('simProducto').value;
             simProductoId = id || null;
             const p = (localData.productos || []).find(x => String(x.id) === String(id));
-            if (p) document.getElementById('simPrecio').value = p.precio_oferta || p.precio;
+            simPrecioBase = p ? (parseFloat(p.precio_oferta || p.precio) || 0) : 0;
             simularPrecio();
         }
 
@@ -2114,7 +2111,7 @@
         }
 
         function simularPrecio() {
-            const precioBase = parseFloat(document.getElementById('simPrecio').value) || 0;
+            const precioBase = simPrecioBase || 0;
             const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
             const precio = precioBase * (1 - pct / 100);
             const pago = document.getElementById('simPago').value;
@@ -2148,7 +2145,8 @@
 
         async function simGuardarOferta() {
             if (!simProductoId) return;
-            const precioBase = Math.round(parseFloat(document.getElementById('simPrecio').value) || 0);
+            const prod = (localData.productos || []).find(x => String(x.id) === String(simProductoId));
+            const precioBase = Math.round(parseFloat(prod?.precio) || 0);
             const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
             const oferta = pct > 0 ? Math.round(precioBase * (1 - pct / 100)) : null;
             try {
