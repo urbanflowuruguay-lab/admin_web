@@ -731,45 +731,66 @@
                         <h2 class="section-title">Constructor de precios</h2>
                     </div>
                     <p style="color: var(--text2); font-size: 13px; margin-bottom: 16px;">
-                        Elegí un producto, probá descuento y delivery, y mirá el precio que ve el cliente
-                        y tu ganancia según forma de pago. <strong>En mesa</strong> el precio es el mismo:
-                        en efectivo te queda todo, con POS pagás su %, con tarjeta UF se descuentan 1 UI + MP.
-                        <strong>Online</strong> solo con tarjeta: 2 UI + MP incluidos sin tocar tus valores.
+                        Decí cuánto querés ganar, elegí modalidad y forma de pago, sumá delivery si es online
+                        y probá descuentos. Al final ves el precio del cliente y tu ganancia.
                     </p>
                     <div class="card">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                            <div class="form-group" style="margin: 0;">
-                                <label>Producto</label>
-                                <select id="simProducto" onchange="simProductoElegido()"></select>
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Descuento / Promo (%)</label>
-                                <input type="number" id="simDescuento" value="0" min="0" max="90" oninput="simularPrecio()">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Delivery ($, solo online)</label>
-                                <input type="number" id="simDelivery" value="0" min="0" oninput="simularPrecio()">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Costo POS (% del servicio que uses)</label>
-                                <input type="number" id="simPosPct" value="3" step="0.1" min="0" oninput="simularPrecio()">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Valor UI ($)</label>
-                                <input type="number" id="simUI" value="6.50" step="0.01" min="0" oninput="simularPrecio()">
-                            </div>
+                        <div class="form-group">
+                            <label>Producto (carga su precio como ganancia)</label>
+                            <select id="simProducto" onchange="simProductoElegido()"></select>
                         </div>
+                        <div class="form-group">
+                            <label>1) ¿Cuánto querés ganar por el producto? ($)</label>
+                            <input type="number" id="simGanancia" value="400" min="0" oninput="simularPrecio()">
+                        </div>
+                        <div class="form-group">
+                            <label>2) Modalidad</label>
+                            <select id="simModalidad" onchange="simModalidadCambio()">
+                                <option value="mesa">En mesa</option>
+                                <option value="online" selected>Online</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>3) Forma de pago</label>
+                            <select id="simPago" onchange="simularPrecio()"></select>
+                        </div>
+                        <div class="form-group" id="simPosWrap" style="display: none;">
+                            <label>Costo POS (% del servicio que uses)</label>
+                            <input type="number" id="simPosPct" value="3" step="0.1" min="0" oninput="simularPrecio()">
+                        </div>
+                        <div class="form-group" id="simDeliveryWrap">
+                            <label>4) Costo de delivery ($, 0 si no hay)</label>
+                            <input type="number" id="simDelivery" value="0" min="0" oninput="simularPrecio()">
+                        </div>
+                        <div class="form-group">
+                            <label>Valor UI ($)</label>
+                            <input type="number" id="simUI" value="6.50" step="0.01" min="0" oninput="simularPrecio()">
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="simQuiereDto" onchange="document.getElementById('simDtoWrap').style.display = this.checked ? 'block' : 'none'; simularPrecio()" style="width: 18px; height: 18px; accent-color: var(--accent);">
+                                5) ¿Querés agregar descuento?
+                            </label>
+                        </div>
+                        <div class="form-group" id="simDtoWrap" style="display: none;">
+                            <label>Descuento (%)</label>
+                            <select id="simDescuento" onchange="simularPrecio()">
+                                <option value="0">Sin descuento</option>
+                                <option value="5">5%</option>
+                                <option value="10" selected>10%</option>
+                                <option value="15">15%</option>
+                                <option value="20">20%</option>
+                                <option value="25">25%</option>
+                                <option value="30">30%</option>
+                                <option value="35">35%</option>
+                                <option value="40">40%</option>
+                                <option value="45">45%</option>
+                                <option value="50">50%</option>
+                            </select>
+                        </div>
+                        <div id="simFrase" style="background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-size: 14px; line-height: 1.7; margin: 12px 0;"></div>
                         <div class="table-container">
                             <table>
-                                <thead>
-                                    <tr>
-                                        <th>Escenario</th>
-                                        <th style="text-align:right">Cliente paga</th>
-                                        <th style="text-align:right">Negocio recibe</th>
-                                        <th style="text-align:right">Empresa recibe</th>
-                                        <th style="text-align:right">Costo pasarela</th>
-                                    </tr>
-                                </thead>
                                 <tbody id="simResultado"></tbody>
                             </table>
                         </div>
@@ -1290,7 +1311,7 @@
             if (section === 'zonas') loadZonas();
             if (section === 'facturacion') loadFacturacion();
             if (section === 'historial') loadHistorial();
-            if (section === 'simulador') { loadSimUI(); simCargarProductos(); simularPrecio(); }
+            if (section === 'simulador') { loadSimUI(); simCargarProductos(); simModalidadCambio(); }
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
             if (section === 'config') {
@@ -2096,53 +2117,89 @@
             const id = document.getElementById('simProducto').value;
             simProductoId = id || null;
             const p = (localData.productos || []).find(x => String(x.id) === String(id));
-            simPrecioBase = p ? (parseFloat(p.precio_oferta || p.precio) || 0) : 0;
+            const gan = document.getElementById('simGanancia');
+            if (p && document.activeElement !== gan) gan.value = Math.round(parseFloat(p.precio) || 0);
+            simularPrecio();
+        }
+
+        function simModalidadCambio() {
+            const mod = document.getElementById('simModalidad').value;
+            const pago = document.getElementById('simPago');
+            if (mod === 'online') {
+                pago.innerHTML = '<option value="tarjeta">Tarjeta registrada (UF + MP)</option>';
+            } else {
+                pago.innerHTML = '<option value="efectivo">Efectivo</option><option value="pos">POS / terminal física</option><option value="tarjeta">Tarjeta registrada UF</option>';
+            }
+            document.getElementById('simDeliveryWrap').style.display = mod === 'online' ? 'block' : 'none';
+            document.getElementById('simPosWrap').style.display = 'none';
             simularPrecio();
         }
 
         function simularPrecio() {
-            const precioBase = simPrecioBase || 0;
-            const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
-            const precio = precioBase * (1 - pct / 100);
-            const delivery = Math.max(0, parseFloat(document.getElementById('simDelivery').value) || 0);
+            const G = Math.max(0, parseFloat(document.getElementById('simGanancia').value) || 0);
+            const mod = document.getElementById('simModalidad').value;
+            const pagoSel = document.getElementById('simPago');
+            if (!pagoSel.value) pagoSel.value = mod === 'online' ? 'tarjeta' : 'efectivo';
+            const pago = pagoSel.value;
+            const quiereDto = document.getElementById('simQuiereDto').checked;
+            const pct = quiereDto ? (parseInt(document.getElementById('simDescuento').value) || 0) : 0;
+            const delivery = mod === 'online' ? Math.max(0, parseFloat(document.getElementById('simDelivery').value) || 0) : 0;
             const posPct = Math.max(0, parseFloat(document.getElementById('simPosPct').value) || 0);
             const uiVal = parseFloat(document.getElementById('simUI').value) || 0;
-            const ufMesa = 1 * uiVal;
-            const ufOnline = 2 * uiVal;
             const r0 = n => '$' + Math.round(n).toLocaleString();
-            // Mesa: precio fijo, se descuenta el costo de cada medio
-            const costoPOS = precio * (posPct / 100);
-            const costoMPMesa = precio * (SIM_MP_PCT / 100);
-            const negEf = precio;
-            const negPOS = precio - costoPOS;
-            const negTarj = precio - ufMesa - costoMPMesa;
-            // Online: gross-up con 2 UI + MP + delivery
-            const baseOnline = precio + ufOnline + delivery;
-            const totalOnline = baseOnline / (1 - SIM_MP_PCT / 100);
-            const feeMPOnline = totalOnline - baseOnline;
-            const negOnline = precio + delivery;
-            const row = (esc, cli, neg, emp, costo, hl) => `
-                <tr${hl ? ' style="background: rgba(212,175,55,0.1)"' : ''}>
-                    <td><strong>${esc}</strong></td>
-                    <td style="text-align:right"><strong>${r0(cli)}</strong></td>
-                    <td style="text-align:right;color:var(--green)"><strong>${r0(neg)}</strong></td>
-                    <td style="text-align:right">${r0(emp)}</td>
-                    <td style="text-align:right;color:var(--text2)">${r0(costo)}</td>
-                </tr>`;
-            document.getElementById('simResultado').innerHTML =
-                row('🪑 Mesa · Efectivo', precio, negEf, 0, 0) +
-                row('🪑 Mesa · POS (' + posPct + '%)', precio, negPOS, 0, costoPOS) +
-                row('🪑 Mesa · Tarjeta UF', precio, negTarj, ufMesa, costoMPMesa) +
-                row('📱 Online · Tarjeta' + (pct > 0 ? ' (promo ' + pct + '%)' : '') + (delivery > 0 ? ' + delivery' : ''), totalOnline, negOnline, ufOnline, feeMPOnline, true);
+            document.getElementById('simPosWrap').style.display = (mod === 'mesa' && pago === 'pos') ? 'block' : 'none';
+
+            let clientePaga = 0, negocio = 0, empresa = 0, gastos = 0, gastosTxt = '', pagoTxt = '';
+            if (mod === 'mesa') {
+                if (pago === 'efectivo') {
+                    pagoTxt = 'efectivo';
+                    clientePaga = G; negocio = G; empresa = 0; gastos = 0;
+                    gastosTxt = 'sin gastos';
+                } else if (pago === 'pos') {
+                    pagoTxt = 'POS (' + posPct + '%)';
+                    const costo = G * (posPct / 100);
+                    clientePaga = G; negocio = G - costo; empresa = 0; gastos = costo;
+                    gastosTxt = 'costo POS ' + r0(costo);
+                } else {
+                    pagoTxt = 'tarjeta registrada UF';
+                    const uf = 1 * uiVal, mp = G * (SIM_MP_PCT / 100);
+                    clientePaga = G; negocio = G - uf - mp; empresa = uf; gastos = uf + mp;
+                    gastosTxt = '1 UI (' + r0(uf) + ') + MP (' + r0(mp) + ')';
+                }
+            } else {
+                pagoTxt = 'tarjeta registrada (UF + MP)';
+                const uf = 2 * uiVal;
+                const base = G + uf + delivery;
+                clientePaga = base / (1 - SIM_MP_PCT / 100);
+                const mp = clientePaga - base;
+                negocio = G + delivery; empresa = uf; gastos = mp;
+                gastosTxt = 'MP (' + r0(mp) + ')' + (delivery > 0 ? ' + delivery propio ' + r0(delivery) : 'sin delivery propio');
+            }
+            const lista = pct > 0 ? G / (1 - pct / 100) : G;
+            const dtoTxt = pct > 0 ? 'con un descuento del ' + pct + '%' : 'sin descuento';
+            const delTxt = delivery > 0 ? 'con delivery propio (' + r0(delivery) + ')' : 'sin delivery propio';
+            document.getElementById('simFrase').innerHTML =
+                `Un producto donde la empresa facturará libre <strong>${r0(G)}</strong>. ` +
+                `Los gastos extras, por tipo de pago (${pagoTxt}), ${mod === 'online' ? delTxt + ', ' : ''}serán de <strong>${r0(gastos)}${mod === 'mesa' && pago === 'efectivo' ? ' (sin gastos)' : ''}</strong>. ` +
+                `${dtoTxt}, quedará una facturación de <strong>${r0(clientePaga)}</strong>. ` +
+                `Tu ganancia: <strong style="color:var(--green)">${r0(negocio)}</strong>.`;
+            document.getElementById('simResultado').innerHTML = `
+                <tr><td>Ganancia deseada</td><td style="text-align:right"><strong>${r0(G)}</strong></td></tr>
+                ${pct > 0 ? `<tr><td>Precio lista (para que con ${pct}% off queden ${r0(G)})</td><td style="text-align:right">${r0(lista)}</td></tr>` : ''}
+                <tr><td>👁 Cliente paga (${mod === 'mesa' ? 'mesa · ' + pagoTxt : 'online · tarjeta'})</td><td style="text-align:right"><strong>${r0(clientePaga)}</strong></td></tr>
+                <tr><td>💰 Tu ganancia</td><td style="text-align:right;color:var(--green)"><strong>${r0(negocio)}</strong></td></tr>
+                <tr><td>🏢 Empresa recibe</td><td style="text-align:right">${r0(empresa)}</td></tr>
+                <tr><td>Gastos (${gastosTxt})</td><td style="text-align:right;color:var(--text2)">${r0(gastos)}</td></tr>`;
             document.getElementById('simGuardarOferta').style.display = simProductoId ? 'block' : 'none';
         }
 
         async function simGuardarOferta() {
             if (!simProductoId) return;
-            const prod = (localData.productos || []).find(x => String(x.id) === String(simProductoId));
-            const precioBase = Math.round(parseFloat(prod?.precio) || 0);
-            const pct = Math.min(90, Math.max(0, parseFloat(document.getElementById('simDescuento').value) || 0));
-            const oferta = pct > 0 ? Math.round(precioBase * (1 - pct / 100)) : null;
+            const G = Math.max(0, Math.round(parseFloat(document.getElementById('simGanancia').value) || 0));
+            const quiereDto = document.getElementById('simQuiereDto').checked;
+            const pct = quiereDto ? (parseInt(document.getElementById('simDescuento').value) || 0) : 0;
+            const precioBase = pct > 0 ? Math.round(G / (1 - pct / 100)) : G;
+            const oferta = pct > 0 ? G : null;
             try {
                 const empresaId = localData.currentUser?.empresa_id;
                 if (empresaId && !String(simProductoId).startsWith('prod_')) {
