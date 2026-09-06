@@ -811,8 +811,8 @@
 
             const subtotal = currentOrder.reduce((a, item) => a + (item.precio * item.qty), 0);
             const feeUF = (selectedMesa ? 1 : UF_FEE_UI) * VALOR_UI;
-            const feeMP = (subtotal + feeUF) * (MP_FEE_PCT / 100);
-            const totalCliente = subtotal + feeUF + feeMP;
+            const totalCliente = (subtotal + feeUF) / (1 - MP_FEE_PCT / 100);
+            const feeMP = totalCliente - subtotal - feeUF;
 
             document.getElementById('subtotal').textContent = '$' + subtotal.toLocaleString();
             document.getElementById('feeUF').textContent = '$' + feeUF.toLocaleString();
@@ -863,12 +863,12 @@
                 return;
             }
 
-            // Modelo: negocio recibe subtotal íntegro, empresa recibe UF íntegro, MP se suma arriba
+            // Modelo: gross-up para que tras el 7.88% de MP queden subtotal + UF intactos
             const uis = selectedMesa ? 1 : UF_FEE_UI;
             const subtotal = currentOrder.reduce((a, item) => a + (item.precio * item.qty), 0);
             const feeUF = uis * VALOR_UI;
-            const feeMP = (subtotal + feeUF) * (MP_FEE_PCT / 100);
-            const totalCliente = subtotal + feeUF + feeMP;
+            const totalCliente = (subtotal + feeUF) / (1 - MP_FEE_PCT / 100);
+            const feeMP = totalCliente - subtotal - feeUF;
             const totalRecibido = subtotal;
 
             const pedido = {
