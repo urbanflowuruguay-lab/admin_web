@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --bg: #0a0a0a; --bg2: #111; --bg3: #1a1a1a; --accent: #d4af37; --green: #4caf50; --red: #f44336; --blue: #2196f3; --orange: #ff9800; --text: #fff; --text2: #888; --border: #333; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -429,8 +430,11 @@
                         items: items,
                         estado: p.estado,
                         time: new Date(p.created_at).toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' }),
+                        fecha: (p.created_at || '').slice(0, 16).replace('T', ' '),
                         cliente_nombre: p.cliente_nombre,
                         metodo_pago: p.metodo_pago,
+                        total: p.total || 0,
+                        tipo_entrega: p.tipo_entrega || '',
                         notas: p.notas
                     };
                 });
@@ -564,45 +568,109 @@
         // =============================================
         // RENDER MODULOS EXTRA (solo lectura, permisos del dueño)
         // =============================================
+        let editingProductoAppId = null;
+
         async function renderProductosApp() {
+            editingProductoAppId = null;
             const container = document.getElementById('content-productos');
             if (!container || !currentUser?.empresa_id) return;
             container.innerHTML = '<div class="empty"><p>Cargando productos...</p></div>';
             try {
                 const { data, error } = await sb.from('productos_empresa')
-                    .select('*').eq('empresa_id', currentUser.empresa_id).eq('activo', true).order('categoria');
+                    .select('*').eq('empresa_id', currentUser.empresa_id).order('categoria');
                 if (error) throw error;
-                if (!data || !data.length) { container.innerHTML = '<div class="empty"><p>Sin productos</p></div>'; }
                 container.innerHTML = `
                     <button onclick="document.getElementById('prodFormApp').style.display = document.getElementById('prodFormApp').style.display === 'none' ? 'block' : 'none'"
                         style="width: 100%; padding: 12px; margin-bottom: 12px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;">
                         <i class="fas fa-plus"></i> Agregar producto
                     </button>
                     <div id="prodFormApp" style="display: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                        <h4 id="prodFormAppTitle" style="margin-bottom: 10px; font-size: 14px;">Nuevo producto</h4>
                         <input id="prodNombreApp" placeholder="Nombre del producto" style="width: 100%; padding: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
                         <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                             <input id="prodPrecioApp" type="number" placeholder="Precio" style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
                             <input id="prodCategoriaApp" placeholder="Categoría" style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
                         </div>
                         <input id="prodDescApp" placeholder="Descripción (opcional)" style="width: 100%; padding: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
-                        <select id="prodDispApp" style="width: 100%; padding: 10px; margin-bottom: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                        <select id="prodDispApp" style="width: 100%; padding: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
                             <option value="ambas">Ambas (Mesa y Online)</option>
                             <option value="mesa">Solo Mesa (carta QR)</option>
                             <option value="online">Solo Online</option>
                         </select>
-                        <button onclick="saveProductoApp()" style="width: 100%; padding: 12px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;">Guardar</button>
+                        <label style="display: block; font-size: 12px; color: var(--text2); margin-bottom: 8px;">
+                            Foto (opcional)
+                            <input id="prodFotoApp" type="file" accept="image/*" style="display: block; margin-top: 4px; font-size: 12px;">
+                        </label>
+                        <img id="prodFotoPreviewApp" style="display: none; width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="saveProductoApp()" style="flex: 1; padding: 12px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;">Guardar</button>
+                            <button onclick="cancelEditProductoApp()" style="padding: 12px 16px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; cursor: pointer;">Cancelar</button>
+                        </div>
                     </div>
                     <div id="prodListApp"></div>`;
-                document.getElementById('prodListApp').innerHTML = (data || []).map(p => `
-                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 14px;">${p.nombre}</div>
-                            <div style="font-size: 11px; color: var(--text2);">${p.categoria || ''} · ${p.disponible === 'mesa' ? 'Solo mesa' : p.disponible === 'online' ? 'Solo online' : 'Mesa y online'}</div>
+                document.getElementById('prodFotoApp').addEventListener('change', function() {
+                    const f = this.files[0];
+                    const prev = document.getElementById('prodFotoPreviewApp');
+                    if (f) { prev.src = URL.createObjectURL(f); prev.style.display = 'block'; }
+                    else { prev.style.display = 'none'; }
+                });
+                const list = data || [];
+                document.getElementById('prodListApp').innerHTML = list.length ? list.map(p => `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); ${p.activo === false ? 'opacity: 0.55;' : ''} border-radius: 10px; padding: 12px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                ${p.foto_url ? `<img src="${p.foto_url}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 8px;">` : ''}
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;">${p.nombre} ${p.activo === false ? '<span style="font-size:10px;color:var(--red)">INACTIVO</span>' : ''}</div>
+                                    <div style="font-size: 11px; color: var(--text2);">${p.categoria || ''} · ${p.disponible === 'mesa' ? 'Solo mesa' : p.disponible === 'online' ? 'Solo online' : 'Mesa y online'}</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 16px; font-weight: 700; color: var(--accent);">$${p.precio_oferta || p.precio || 0}</div>
                         </div>
-                        <div style="font-size: 16px; font-weight: 700; color: var(--accent);">$${p.precio_oferta || p.precio || 0}</div>
-                    </div>`).join('');
+                        <div style="display: flex; gap: 6px; margin-top: 10px;">
+                            <button onclick='editProductoApp(${JSON.stringify(p.id)})' style="flex: 1; padding: 8px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer;"><i class="fas fa-edit"></i> Editar</button>
+                            <button onclick="toggleActivoProductoApp('${p.id}', ${p.activo !== false})" style="flex: 1; padding: 8px; background: ${p.activo === false ? 'var(--green)' : '#6b7280'}; color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">${p.activo === false ? 'Activar' : 'Desactivar'}</button>
+                        </div>
+                    </div>`).join('') : '<div class="empty"><p>Sin productos</p></div>';
+                window._productosAppCache = list;
             } catch (err) {
                 container.innerHTML = '<div class="empty"><p>Error al cargar productos</p></div>';
+            }
+        }
+
+        function editProductoApp(id) {
+            const p = (window._productosAppCache || []).find(x => String(x.id) === String(id));
+            if (!p) return;
+            editingProductoAppId = p.id;
+            document.getElementById('prodFormAppTitle').textContent = 'Editar: ' + p.nombre;
+            document.getElementById('prodNombreApp').value = p.nombre || '';
+            document.getElementById('prodPrecioApp').value = p.precio || '';
+            document.getElementById('prodCategoriaApp').value = p.categoria || '';
+            document.getElementById('prodDescApp').value = p.descripcion || '';
+            document.getElementById('prodDispApp').value = p.disponible || 'ambas';
+            const prev = document.getElementById('prodFotoPreviewApp');
+            if (p.foto_url) { prev.src = p.foto_url; prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+            document.getElementById('prodFormApp').style.display = 'block';
+            document.getElementById('prodFormApp').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEditProductoApp() {
+            editingProductoAppId = null;
+            document.getElementById('prodFormAppTitle').textContent = 'Nuevo producto';
+            ['prodNombreApp', 'prodPrecioApp', 'prodCategoriaApp', 'prodDescApp'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('prodDispApp').value = 'ambas';
+            document.getElementById('prodFotoApp').value = '';
+            document.getElementById('prodFotoPreviewApp').style.display = 'none';
+            document.getElementById('prodFormApp').style.display = 'none';
+        }
+
+        async function toggleActivoProductoApp(id, currentActivo) {
+            try {
+                const { error } = await sb.from('productos_empresa').update({ activo: !currentActivo }).eq('id', id);
+                if (error) throw error;
+                renderProductosApp();
+            } catch (err) {
+                alert('Error: ' + err.message);
             }
         }
 
@@ -614,11 +682,28 @@
             const disponible = document.getElementById('prodDispApp').value;
             if (!nombre || !(precio >= 0)) { alert('Poné nombre y precio'); return; }
             try {
-                const { error } = await sb.from('productos_empresa').insert({
-                    empresa_id: currentUser.empresa_id,
-                    nombre, precio, categoria, descripcion, disponible, activo: true
-                });
-                if (error) throw error;
+                let fotoUrl = null;
+                const file = document.getElementById('prodFotoApp').files[0];
+                if (file) {
+                    const path = `empresa_${currentUser.empresa_id}/prod_${Date.now()}.jpg`;
+                    const { error: upErr } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+                    if (upErr) throw upErr;
+                    const { data: urlData } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                    fotoUrl = urlData.publicUrl;
+                }
+                if (editingProductoAppId) {
+                    const upd = { nombre, descripcion, precio, categoria, disponible };
+                    if (fotoUrl) upd.foto_url = fotoUrl;
+                    const { error } = await sb.from('productos_empresa').update(upd).eq('id', editingProductoAppId);
+                    if (error) throw error;
+                } else {
+                    const { error } = await sb.from('productos_empresa').insert({
+                        empresa_id: currentUser.empresa_id,
+                        nombre, precio, categoria, descripcion, disponible,
+                        foto_url: fotoUrl, activo: true
+                    });
+                    if (error) throw error;
+                }
                 renderProductosApp();
             } catch (err) {
                 alert('Error al guardar: ' + err.message);
@@ -1275,18 +1360,41 @@
         // =============================================
         // RENDER PEDIDOS (Cajero / Camarero / Vendedor)
         // =============================================
+        let filtroPedidosApp = 'todos';
+
+        function setFiltroPedidosApp(f) {
+            filtroPedidosApp = f;
+            renderPedidos();
+        }
+
         function renderPedidos() {
             const container = document.getElementById('content-pedidos');
             if (!container) return;
 
-            container.innerHTML = pedidos.map(p => {
+            const filtrados = pedidos.filter(p => {
+                if (filtroPedidosApp === 'mesa') return !!p.mesa;
+                if (filtroPedidosApp === 'online') return !p.mesa;
+                return true;
+            });
+
+            container.innerHTML = `
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    ${['todos', 'mesa', 'online'].map(f => `
+                        <button onclick="setFiltroPedidosApp('${f}')"
+                            style="flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid var(--border);
+                            background: ${filtroPedidosApp === f ? 'var(--accent)' : 'var(--bg2)'}; color: ${filtroPedidosApp === f ? '#000' : 'var(--text)'};">
+                            ${f === 'todos' ? 'Todos' : f === 'mesa' ? '🪑 Mesa' : '📱 Online'}
+                        </button>`).join('')}
+                </div>
+                ${filtrados.length === 0 ? '<div class="empty"><p>Sin pedidos</p></div>' : ''}` +
+            filtrados.map(p => {
                 const esListo = p.estado === 'listo';
                 const items = Array.isArray(p.items) ? p.items : [];
                 const todosEntregados = items.length > 0 && items.every(i => i.entregado);
                 return `
-                <div class="order-card" style="${esListo ? 'border:2px solid #22c55e;box-shadow:0 0 12px rgba(34,197,94,0.3)' : ''}">
+                <div class="order-card" style="${esListo ? 'border:2px solid #22c55e;box-shadow:0 0 12px rgba(34,197,94,0.3)' : ''};cursor:pointer" onclick="this.querySelector('.pedido-detail-app').style.display = this.querySelector('.pedido-detail-app').style.display === 'none' ? 'block' : 'none'">
                     <div class="order-header">
-                        <span class="order-number">#${p.numero} ${p.mesa ? '• Mesa ' + p.mesa : '📱 Delivery'}</span>
+                        <span class="order-number">#${p.numero} ${p.mesa ? '• 🪑 Mesa ' + p.mesa : '• 📱 Online'}</span>
                         <span class="order-badge badge-${todosEntregados ? 'listo' : esListo ? 'listo' : 'preparando'}">
                             ${todosEntregados ? '✅ TODO ENTREGADO' : esListo ? '✅ LISTO PARA RETIRAR' : p.estado.toUpperCase()}
                         </span>
@@ -1297,12 +1405,18 @@
                                 <span>${i.nombre}</span>
                                 <span style="display:flex;align-items:center;gap:6px">
                                     x${i.qty || i.cantidad || 1}
-                                    ${!i.entregado ? `<button class="btn-success" style="padding:3px 8px;font-size:10px;border-radius:4px;border:none;cursor:pointer;color:#fff" onclick="entregarItem('${p.id}', ${idx})">Entregado</button>` : '<span style="color:#22c55e;font-size:11px">✓</span>'}
+                                    ${!i.entregado ? `<button class="btn-success" style="padding:3px 8px;font-size:10px;border-radius:4px;border:none;cursor:pointer;color:#fff" onclick="event.stopPropagation();entregarItem('${p.id}', ${idx})">Entregado</button>` : '<span style="color:#22c55e;font-size:11px">✓</span>'}
                                 </span>
                             </div>
                         `).join('')}
                     </div>
-                    ${todosEntregados && p.estado !== 'entregado' ? `<button class="btn-success" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff" onclick="completarEntrega('${p.id}')"><i class="fas fa-check-double"></i> ENTREGA COMPLETA</button>` : ''}
+                    <div class="pedido-detail-app" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;font-size:12px;color:var(--text2)">
+                        <div><i class="fas fa-user"></i> ${p.cliente_nombre || 'Cliente'}</div>
+                        <div style="margin-top:4px">💰 Total: <strong style="color:var(--accent)">$${Math.round(p.total || 0)}</strong> · ${p.metodo_pago || 'efectivo'}</div>
+                        <div style="margin-top:4px">📅 ${p.fecha || ''} · ${p.tipo_entrega === 'online' ? 'Pedido Online' : p.mesa ? 'Mesa ' + p.mesa : ''}</div>
+                        ${p.notas ? `<div style="margin-top:4px">📝 ${p.notas}</div>` : ''}
+                    </div>
+                    ${todosEntregados && p.estado !== 'entregado' ? `<button class="btn-success" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff" onclick="event.stopPropagation();completarEntrega('${p.id}')"><i class="fas fa-check-double"></i> ENTREGA COMPLETA</button>` : ''}
                     <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
                 </div>`;
             }).join('');
@@ -1413,6 +1527,13 @@
 
         // =============================================
         // RENDER MESAS (Camarero) - mesas reales de Supabase
+        function genTokenApp() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+            let token = '';
+            for (let i = 0; i < 8; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
+            return token;
+        }
+
         async function renderMesas() {
             const container = document.getElementById('content-mesas');
             if (!container) return;
@@ -1425,14 +1546,23 @@
                 const { data, error } = await sb.from('mesas').select('*').eq('empresa_id', currentUser.empresa_id).order('numero');
                 if (error) throw error;
                 const mesas = data || [];
-                if (mesas.length === 0) {
-                    container.innerHTML = '<div class="empty"><i class="fas fa-table"></i><p>Sin mesas creadas</p><p style="font-size:12px;color:var(--text2)">Creadas en gestión -> Mesas</p></div>';
-                    return;
-                }
                 container.innerHTML = `
+                    <button onclick="document.getElementById('mesaFormApp').style.display = document.getElementById('mesaFormApp').style.display === 'none' ? 'block' : 'none'"
+                        style="width: 100%; padding: 12px; margin-bottom: 12px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Crear mesa
+                    </button>
+                    <div id="mesaFormApp" style="display: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                            <input id="mesaNumeroApp" type="number" placeholder="Número" style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                            <input id="mesaCapacidadApp" type="number" placeholder="Capacidad" value="4" style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                        </div>
+                        <button onclick="saveMesaApp()" style="width: 100%; padding: 12px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;">Guardar mesa</button>
+                    </div>
+                    ${mesas.length === 0 ? '<div class="empty"><i class="fas fa-table"></i><p>Sin mesas creadas</p></div>' : `
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
                         ${mesas.map(m => {
                             const estado = m.estado || 'libre';
+                            const token = m.mesa_token || m.id;
                             const color = estado==='libre'?'var(--green)': estado==='ocupada'?'var(--orange)': estado==='mantenimiento'?'var(--text2)':'var(--blue)';
                             const label = estado==='libre'?'Libre': estado==='ocupada'?'Ocupada': estado==='mantenimiento'?'Mantenimiento':'Reservada';
                             return `
@@ -1443,13 +1573,100 @@
                                     ${label}
                                 </div>
                                 ${m.capacidad ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${m.capacidad} personas</div>` : ''}
+                                <div style="display:flex;gap:4px;margin-top:10px;justify-content:center;flex-wrap:wrap">
+                                    <button class="btn-primary" style="padding:5px 8px;font-size:11px;border:none;border-radius:4px;cursor:pointer" onclick="toggleMesaApp('${m.id}', '${estado}')">
+                                        ${estado === 'libre' ? 'Ocupar' : estado === 'mantenimiento' ? 'Habilitar' : 'Liberar'}
+                                    </button>
+                                    <button class="btn-primary" style="padding:5px 10px;font-size:11px;border:none;border-radius:4px;cursor:pointer;background:#8b5cf6;color:#fff" onclick="showQRMesaApp('${token}', ${m.numero})">
+                                        <i class="fas fa-qrcode"></i> QR
+                                    </button>
+                                    <button style="padding:5px 10px;font-size:11px;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer" onclick="deleteMesaApp('${m.id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         `}).join('')}
+                    </div>`}
+                    <div id="qrMesaAppOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+                        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:90%;text-align:center">
+                            <h3 id="qrMesaAppTitle" style="margin-bottom:8px">QR Mesa</h3>
+                            <p style="color:var(--text2);font-size:12px;margin-bottom:12px">Escaneá para abrir la carta digital</p>
+                            <div id="qrMesaAppBox" style="background:#fff;padding:16px;display:inline-block;border-radius:8px;margin-bottom:12px"></div>
+                            <p id="qrMesaAppUrl" style="color:var(--text2);font-size:11px;word-break:break-all;margin-bottom:12px"></p>
+                            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                                <button class="btn-primary" style="padding:8px 14px;font-size:12px;border:none;border-radius:6px;cursor:pointer" onclick="printQRMesaApp()"><i class="fas fa-print"></i> Imprimir</button>
+                                <button class="btn-primary" style="padding:8px 14px;font-size:12px;border:none;border-radius:6px;cursor:pointer;background:var(--green);color:#fff" onclick="verCartaMesaApp()"><i class="fas fa-external-link-alt"></i> Ver carta</button>
+                                <button class="btn-primary" style="padding:8px 14px;font-size:12px;border:none;border-radius:6px;cursor:pointer;background:var(--bg3);color:var(--text)" onclick="document.getElementById('qrMesaAppOverlay').style.display='none'">Cerrar</button>
+                            </div>
+                        </div>
                     </div>
                 `;
             } catch(e) {
                 container.innerHTML = '<div class="empty"><p>Error al cargar mesas</p></div>';
             }
+        }
+
+        async function saveMesaApp() {
+            const numero = parseInt(document.getElementById('mesaNumeroApp').value);
+            const capacidad = parseInt(document.getElementById('mesaCapacidadApp').value) || 4;
+            if (!numero) { alert('Ingresá el número de mesa'); return; }
+            try {
+                const { error } = await sb.from('mesas').insert({
+                    empresa_id: currentUser.empresa_id, numero, capacidad,
+                    estado: 'libre', mesa_token: genTokenApp()
+                });
+                if (error) throw error;
+                renderMesas();
+            } catch (err) {
+                alert('Error al crear mesa: ' + err.message);
+            }
+        }
+
+        async function toggleMesaApp(id, estadoActual) {
+            const nuevo = estadoActual === 'libre' ? 'ocupada' : estadoActual === 'mantenimiento' ? 'libre' : 'libre';
+            try {
+                const { error } = await sb.from('mesas').update({ estado: nuevo }).eq('id', id);
+                if (error) throw error;
+                renderMesas();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function deleteMesaApp(id) {
+            if (!confirm('¿Borrar esta mesa?')) return;
+            try {
+                const { error } = await sb.from('mesas').delete().eq('id', id);
+                if (error) throw error;
+                renderMesas();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function showQRMesaApp(token, numero) {
+            const url = window.location.origin + '/mesa.html?mesa=' + token;
+            document.getElementById('qrMesaAppTitle').textContent = 'QR Mesa #' + numero;
+            document.getElementById('qrMesaAppUrl').textContent = url;
+            const box = document.getElementById('qrMesaAppBox');
+            box.innerHTML = '';
+            new QRCode(box, { text: url, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
+            document.getElementById('qrMesaAppOverlay').style.display = 'flex';
+        }
+
+        function printQRMesaApp() {
+            const title = document.getElementById('qrMesaAppTitle').textContent;
+            const url = document.getElementById('qrMesaAppUrl').textContent;
+            const canvas = document.querySelector('#qrMesaAppBox canvas');
+            const img = canvas ? canvas.toDataURL('image/png') : '';
+            const w = window.open('', '_blank');
+            w.document.write(`<html><head><title>${title}</title></head><body style="text-align:center;font-family:sans-serif;padding:40px"><h1>${title}</h1><img src="${img}" style="width:300px;height:300px"><p>${url}</p><p>Escaneá para abrir la carta digital</p><script>window.onload=function(){window.print()}<\/script></body></html>`);
+            w.document.close();
+        }
+
+        function verCartaMesaApp() {
+            const url = document.getElementById('qrMesaAppUrl').textContent;
+            if (url) window.open(url, '_blank');
         }
 
         // =============================================
@@ -1508,33 +1725,48 @@
         // =============================================
         // RENDER INVENTARIO (Dueño/Encargado)
         // =============================================
-        function renderInventario() {
+        async function renderInventario() {
             const container = document.getElementById('content-inventario');
-            if (!container) return;
-
-            const items = [
-                { nombre: 'Carne vacuna', stock: 45, unidad: 'kg', min: 20, estado: 'ok' },
-                { nombre: 'Pollo', stock: 30, unidad: 'kg', min: 15, estado: 'ok' },
-                { nombre: 'Papas fritas', stock: 8, unidad: 'kg', min: 10, estado: 'bajo' },
-                { nombre: 'Pilsen', stock: 120, unidad: 'un', min: 50, estado: 'ok' },
-                { nombre: 'Coca-Cola 1.5L', stock: 4, unidad: 'un', min: 20, estado: 'critico' },
-                { nombre: 'Pan hamburguesa', stock: 25, unidad: 'un', min: 30, estado: 'bajo' }
-            ];
-
-            container.innerHTML = items.map(i => `
-                <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px;">${i.nombre}</div>
-                        <div style="font-size: 12px; color: var(--text2);">Mín: ${i.min} ${i.unidad}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 18px; font-weight: 700; color: ${i.estado === 'critico' ? 'var(--red)' : i.estado === 'bajo' ? 'var(--orange)' : 'var(--green)'};">${i.stock} ${i.unidad}</div>
-                        <div style="font-size: 10px; color: ${i.estado === 'critico' ? 'var(--red)' : i.estado === 'bajo' ? 'var(--orange)' : 'var(--green)'}; text-transform: uppercase; font-weight: 600;">
-                            ${i.estado === 'critico' ? 'CRÍTICO' : i.estado === 'bajo' ? 'BAJO' : 'OK'}
+            if (!container || !currentUser?.empresa_id) return;
+            container.innerHTML = '<div class="empty"><p>Cargando stock...</p></div>';
+            try {
+                const { data, error } = await sb.from('productos_empresa')
+                    .select('id,nombre,stock').eq('empresa_id', currentUser.empresa_id).eq('activo', true).order('nombre');
+                if (error) throw error;
+                if (!data || !data.length) { container.innerHTML = '<div class="empty"><p>Sin productos</p></div>'; return; }
+                container.innerHTML = data.map(p => {
+                    const stock = p.stock ?? 0;
+                    const estado = stock <= 0 ? 'SIN STOCK' : stock < 10 ? 'BAJO' : 'OK';
+                    const color = stock <= 0 ? 'var(--red)' : stock < 10 ? 'var(--orange)' : 'var(--green)';
+                    return `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-weight: 600; font-size: 14px;">${p.nombre}</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button onclick="ajustarStockApp('${p.id}', -1)" style="width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--red); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;">−</button>
+                            <div style="text-align: center; min-width: 52px;">
+                                <div style="font-size: 18px; font-weight: 700; color: ${color};">${stock}</div>
+                                <div style="font-size: 10px; color: ${color}; font-weight: 600;">${estado}</div>
+                            </div>
+                            <button onclick="ajustarStockApp('${p.id}', 1)" style="width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--green); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;">+</button>
                         </div>
-                    </div>
-                </div>
-            `).join('');
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar stock</p></div>';
+            }
+        }
+
+        async function ajustarStockApp(id, delta) {
+            try {
+                const { data } = await sb.from('productos_empresa').select('stock').eq('id', id).limit(1);
+                const actual = (data && data[0] && data[0].stock) || 0;
+                const nuevo = Math.max(0, actual + delta);
+                const { error } = await sb.from('productos_empresa').update({ stock: nuevo }).eq('id', id);
+                if (error) throw error;
+                renderInventario();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
         }
 
         // =============================================
