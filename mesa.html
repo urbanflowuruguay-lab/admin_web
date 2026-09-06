@@ -314,6 +314,10 @@ const params = new URLSearchParams(window.location.search);
 const mesaToken = params.get("mesa") || "";
 let empresaId = params.get("empresa") || "";
 const preselectedProductId = params.get("producto") || "";
+const cartParam = params.get("cart") || "";
+function b64UrlDecode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; try{return decodeURIComponent(escape(atob(s)))}catch(e){try{return atob(s)}catch(_){return null}} }
+let preloadedCart = null;
+if(cartParam){ const dec=b64UrlDecode(cartParam); if(dec){ try{ preloadedCart=JSON.parse(dec) }catch(_){} } }
 
 let empresaData = null;
 let mesaData = null;
@@ -382,13 +386,6 @@ function cerrarMantenimiento(){
     document.getElementById('mantenimientoModal').style.display='none';
 }
 async function init() {
-    // Si viene del app con solo empresa param (sin mesa token), buscar mesa automáticamente
-    if (!mesaToken && empresaId) {
-        const alt = await sb.from("mesas").select("*").eq("empresa_id", empresaId).limit(1).maybeSingle();
-        if (alt.data) {
-            mesaData = alt.data;
-        }
-    }
     if (!mesaToken && !empresaId) {
         document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>QR invalido. Pedile a un camarero.</p></div>';
         return;
@@ -412,21 +409,25 @@ async function init() {
             return;
         }
         const [empRes, prodRes] = await Promise.all([
-            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url").eq("id", empresaIdFinal).maybeSingle(),
+            sb.from("empresas").select("id,nombre,descripcion,carta_template,logo_url,foto_url,portada_url,abierto").eq("id", empresaIdFinal).maybeSingle(),
             sb.from("productos_empresa").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("categoria")
         ]);
-        if (!mesaRes || !mesaRes.data) {
-            const alt2 = await sb.from("mesas").select("*").eq("empresa_id", empresaIdFinal).limit(1).maybeSingle();
-            if (alt2.data) mesaRes = alt2;
-        }
-
         empresaData = empRes.data;
-        mesaData = mesaRes.data;
+        mesaData = mesaRes ? mesaRes.data : null;
         productos = prodRes.data || [];
         // guardar empresaId resuelto para usar en pedidos
         if (empresaData) empresaId = empresaData.id;
         if (!empresaData) {
             document.getElementById("mainContent").innerHTML = '<div class="empty" style="padding-top:80px"><p>Restaurante no encontrado</p></div>';
+            return;
+        }
+        if (empresaData.abierto === false) {
+            document.getElementById("mainContent").innerHTML = `
+                <div class="empty" style="padding-top:80px;text-align:center">
+                    <div style="font-size:48px;margin-bottom:16px">🚫</div>
+                    <p style="font-size:18px;font-weight:bold;color:#ef4444">Restaurante cerrado</p>
+                    <p style="font-size:13px;margin-top:8px;opacity:0.7">En este momento no estamos aceptando pedidos.<br>Intentá más tarde.</p>
+                </div>`;
             return;
         }
         applyTheme(empresaData.carta_template || "dark_elegance");
@@ -468,6 +469,15 @@ async function init() {
             if (mesaData) sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
         }
         renderProductos();
+        if (preloadedCart && preloadedCart.length) {
+            preloadedCart.forEach(item => {
+                const prod = productos.find(p => p.id === item.id) || { id: item.id, nombre: item.nombre, precio: item.precio, foto_url: item.foto };
+                const ex = carrito.find(c => c.id === prod.id);
+                if (ex) ex.qty += (item.cantidad || 1);
+                else carrito.push({ id: prod.id, nombre: prod.nombre || item.nombre, precio: prod.precio || item.precio, qty: item.cantidad || 1, foto: prod.foto_url || item.foto, notas: item.notas || "" });
+            });
+            setTimeout(() => { renderCarritoItems(); updateCarritoBar(); document.getElementById("carritoPanel").classList.add("show"); }, 600);
+        }
         // Si viene con ?producto=, auto-agregar al carrito
         if (preselectedProductId) {
             const preProd = productos.find(p => p.id === preselectedProductId);
@@ -639,11 +649,11 @@ async function confirmarPedido() {
             items: JSON.stringify(carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio }))),
             total: total,
             estado: "recibido",
-            tipo_entrega: "Mesa",
+            tipo_entrega: mesaToken ? "Mesa" : "online",
             metodo_pago: selectedPago || "efectivo",
-            metodo_pago_estado: selectedPago === "tarjeta_app" ? "pendiente" : "pendiente",
+            metodo_pago_estado: "pendiente",
             mesa_numero: mesaData ? mesaData.numero : 0,
-            notas: `Mesa #${mesaData ? mesaData.numero : '?'} - ${nombre}`
+            notas: `${mesaData ? `Mesa #${mesaData.numero}` : 'Pedido Online'} - ${nombre}${preloadedCart ? ' (App)' : ''}`
         }).select();
 
         if (error) throw error;

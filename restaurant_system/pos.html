@@ -6,6 +6,7 @@
     <title>UrbanFlow POS - Cajero</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg: #0a0a0a;
@@ -551,12 +552,17 @@
         // =============================================
         // DATA
         // =============================================
+        const SUPABASE_URL_POS = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_ANON_POS = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const sbPOS = supabase.createClient(SUPABASE_URL_POS, SUPABASE_ANON_POS);
+        const empresaIdPOS = new URLSearchParams(window.location.search).get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
+
         let currentUser = null;
         let selectedMesa = null;
         let currentCategory = 'all';
         let currentOrder = [];
 
-        const employees = [
+        let employees = [
             { id: "emp_002", nombre: "María García", pin: "1234", roles: ["rol_cajero"], email: "maria@laparrilla.com.uy" },
             { id: "emp_003", nombre: "Pedro Martínez", pin: "5678", roles: ["rol_cocinero"], email: "pedro@laparrilla.com.uy" },
             { id: "emp_001", nombre: "Carlos López", pin: "0000", roles: ["rol_dueno"], email: "carlos@laparrilla.com.uy" }
@@ -572,7 +578,7 @@
             { id: 'cat_006', nombre: 'Postres', icono: '🍰' }
         ];
 
-        const products = [
+        let products = [
             { id: 'prod_001', nombre: 'Hamburguesa', precio: 400, foto: '🍔', categorias: ['cat_001'], variantes: [{nombre:'Simple',precio:400},{nombre:'Doble',precio:550}], stock: 50 },
             { id: 'prod_002', nombre: 'Pilsen 1870', precio: 180, foto: '🍺', categorias: ['cat_005'], variantes: [{nombre:'Lata 473ml',precio:180},{nombre:'Botella 330ml',precio:150}], stock: 100 },
             { id: 'prod_003', nombre: 'Pizza', precio: 380, foto: '🍕', categorias: ['cat_003'], variantes: [{nombre:'Individual',precio:380},{nombre:'Mediana',precio:700},{nombre:'Grande',precio:950}], stock: 30 },
@@ -587,7 +593,7 @@
             { id: 'prod_012', nombre: 'Empanadas', precio: 80, foto: '🥟', categorias: ['cat_001'], variantes: [{nombre:'Carne',precio:80},{nombre:'Pollo',precio:80},{nombre:'Queso',precio:85}], stock: 100 }
         ];
 
-        const tables = [
+        let tables = [
             { id: 1, numero: 1, estado: 'disponible', capacidad: 4 },
             { id: 2, numero: 2, estado: 'disponible', capacidad: 4 },
             { id: 3, numero: 3, estado: 'ocupada', capacidad: 2 },
@@ -597,6 +603,26 @@
             { id: 7, numero: 7, estado: 'ocupada', capacidad: 4 },
             { id: 8, numero: 8, estado: 'disponible', capacidad: 2 }
         ];
+
+        async function loadPOSData(){
+            if(!empresaIdPOS) return;
+            try{
+                const { data: empProds } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
+                if(empProds && empProds.length){
+                    products = empProds.map(p=>({ id:p.id, nombre:p.nombre, precio: p.precio || 0, foto: '🍽', categorias:['cat_001'], variantes:[{nombre:'Único',precio:p.precio||0}], stock: 999, foto_url:p.foto_url }));
+                    renderProducts();
+                }
+                const { data: empMesas } = await sbPOS.from('mesas').select('*').eq('empresa_id', empresaIdPOS).order('numero');
+                if(empMesas && empMesas.length){
+                    tables = empMesas.map(m=>({ id:m.id, numero:m.numero, estado: m.estado==='libre'?'disponible': m.estado, capacidad: m.capacidad||4 }));
+                    renderTables();
+                }
+                const { data: empEmpleados } = await sbPOS.from('empleados').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
+                if(empEmpleados && empEmpleados.length){
+                    employees = empEmpleados.map(e=>({ id:e.id, nombre:e.nombre, pin:e.pin, roles:[e.rol||'rol_cajero'], email:e.email||'' }));
+                }
+            }catch(e){ console.log('POS load error', e.message); }
+        }
 
         // =============================================
         // PIN LOGIN
@@ -827,7 +853,7 @@
         // =============================================
         // PAYMENT
         // =============================================
-        function payOrder(method) {
+        async function payOrder(method) {
             if (currentOrder.length === 0) {
                 alert('Agregá productos al pedido');
                 return;
@@ -863,7 +889,25 @@
                 created_at: new Date().toISOString()
             };
 
-            // Save to localStorage
+            // Save to Supabase pedidos (para que gestion/app lo vean)
+            if (empresaIdPOS) {
+                try{
+                    await sbPOS.from('pedidos').insert({
+                        empresa_id: empresaIdPOS,
+                        mesa_token: selectedMesa?.id || '',
+                        mesa_numero: selectedMesa?.numero || 0,
+                        cliente_nombre: pedido.cliente_nombre,
+                        cliente_token: 'pos_' + Date.now(),
+                        items: JSON.stringify(pedido.items.map(it=>({ nombre: it.nombre, cantidad: it.cantidad, precio: it.precio_unitario }))),
+                        total: pedido.total_cliente,
+                        estado: 'recibido',
+                        tipo_entrega: selectedMesa ? 'Mesa' : 'online',
+                        metodo_pago: method,
+                        notas: `POS ${method} - Mesa ${selectedMesa ? selectedMesa.numero : 'Mostrador'}`
+                    });
+                }catch(e){ console.log('POS insert error', e.message); }
+            }
+            // Save to localStorage (fallback)
             const orders = JSON.parse(localStorage.getItem('urbanflow_orders') || '[]');
             orders.push(pedido);
             localStorage.setItem('urbanflow_orders', JSON.stringify(orders));
@@ -899,6 +943,8 @@
         // =============================================
         renderCategories();
         renderProducts();
+        renderTables();
+        loadPOSData();
 
         // =============================================
         // DELIVERY TRACKING (Cajero)
