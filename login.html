@@ -624,6 +624,16 @@
                             <p>Acceso directo a marcaje de turno, comandos de cocina o caja POS</p>
                         </div>
                     </div>
+
+                    <div class="role-card" onclick="selectRoleOption('empleado_pc')">
+                        <div class="role-icon-box" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                            <i class="fa-solid fa-desktop"></i>
+                        </div>
+                        <div class="role-info">
+                            <h4>Empleado en esta PC</h4>
+                            <p>Entrar directo en esta computadora con nombre y PIN, sin escanear QR</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="link-text">
@@ -895,6 +905,9 @@
         function selectRoleOption(role) {
             if (role === 'dueno') {
                 showStep('step-pin');
+            } else if (role === 'empleado_pc') {
+                const empId = userEmpresa?.id || '';
+                window.location.href = '/restaurant_system/app.html?empresa=' + empId;
             } else {
                 const qrUrl = window.location.origin + '/admin/login.html?code=' + (userEmpresa?.codigo_interno || '');
                 generateQR(qrUrl);
