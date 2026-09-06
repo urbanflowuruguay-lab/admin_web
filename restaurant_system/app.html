@@ -15,6 +15,12 @@
         :root { --bg: #0a0a0a; --bg2: #111; --bg3: #1a1a1a; --accent: #d4af37; --green: #4caf50; --red: #f44336; --blue: #2196f3; --orange: #ff9800; --text: #fff; --text2: #888; --border: #333; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+        /* PC: ancho completo con columnas */
+        @media (min-width: 900px) {
+            body { max-width: 1100px; padding: 0 24px; }
+            #content-pedidos, #content-cocina, #content-delivery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+            #content-pedidos .order-card, #content-cocina .order-card, #content-delivery .order-card { margin: 0; }
+        }
 
         /* HEADER */
         .app-header {
