@@ -572,8 +572,28 @@
                 const { data, error } = await sb.from('productos_empresa')
                     .select('*').eq('empresa_id', currentUser.empresa_id).eq('activo', true).order('categoria');
                 if (error) throw error;
-                if (!data || !data.length) { container.innerHTML = '<div class="empty"><p>Sin productos</p></div>'; return; }
-                container.innerHTML = data.map(p => `
+                if (!data || !data.length) { container.innerHTML = '<div class="empty"><p>Sin productos</p></div>'; }
+                container.innerHTML = `
+                    <button onclick="document.getElementById('prodFormApp').style.display = document.getElementById('prodFormApp').style.display === 'none' ? 'block' : 'none'"
+                        style="width: 100%; padding: 12px; margin-bottom: 12px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Agregar producto
+                    </button>
+                    <div id="prodFormApp" style="display: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+                        <input id="prodNombreApp" placeholder="Nombre del producto" style="width: 100%; padding: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input id="prodPrecioApp" type="number" placeholder="Precio" style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                            <input id="prodCategoriaApp" placeholder="Categoría" style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                        </div>
+                        <input id="prodDescApp" placeholder="Descripción (opcional)" style="width: 100%; padding: 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                        <select id="prodDispApp" style="width: 100%; padding: 10px; margin-bottom: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                            <option value="ambas">Ambas (Mesa y Online)</option>
+                            <option value="mesa">Solo Mesa (carta QR)</option>
+                            <option value="online">Solo Online</option>
+                        </select>
+                        <button onclick="saveProductoApp()" style="width: 100%; padding: 12px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;">Guardar</button>
+                    </div>
+                    <div id="prodListApp"></div>`;
+                document.getElementById('prodListApp').innerHTML = (data || []).map(p => `
                     <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <div style="font-weight: 600; font-size: 14px;">${p.nombre}</div>
@@ -583,6 +603,25 @@
                     </div>`).join('');
             } catch (err) {
                 container.innerHTML = '<div class="empty"><p>Error al cargar productos</p></div>';
+            }
+        }
+
+        async function saveProductoApp() {
+            const nombre = document.getElementById('prodNombreApp').value.trim();
+            const precio = parseFloat(document.getElementById('prodPrecioApp').value);
+            const categoria = document.getElementById('prodCategoriaApp').value.trim() || 'General';
+            const descripcion = document.getElementById('prodDescApp').value.trim();
+            const disponible = document.getElementById('prodDispApp').value;
+            if (!nombre || !(precio >= 0)) { alert('Poné nombre y precio'); return; }
+            try {
+                const { error } = await sb.from('productos_empresa').insert({
+                    empresa_id: currentUser.empresa_id,
+                    nombre, precio, categoria, descripcion, disponible, activo: true
+                });
+                if (error) throw error;
+                renderProductosApp();
+            } catch (err) {
+                alert('Error al guardar: ' + err.message);
             }
         }
 
