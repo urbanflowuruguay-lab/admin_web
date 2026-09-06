@@ -351,6 +351,9 @@
                 <div class="sidebar-item" onclick="showSection('historial')">
                     <i class="fas fa-clipboard-list"></i><span>Historial del día</span>
                 </div>
+                <div class="sidebar-item" onclick="showSection('simulador')">
+                    <i class="fas fa-calculator"></i><span>Simulador de precios</span>
+                </div>
                 <div class="sidebar-item" onclick="showSection('auditoria')">
                     <i class="fas fa-history"></i><span>Auditoría</span>
                 </div>
@@ -717,6 +720,42 @@
                                     </tr>
                                 </thead>
                                 <tbody id="historialTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIMULADOR DE PRECIOS -->
+                <div class="section" id="section-simulador">
+                    <div class="section-header">
+                        <h2 class="section-title">Simulador de precios</h2>
+                    </div>
+                    <p style="color: var(--text2); font-size: 13px; margin-bottom: 16px;">
+                        Poné el precio de tu producto y mirá lo que verá el cliente y lo que recibís vos.
+                        En mesa se cobra <strong>1 UI</strong>, en pedidos online <strong>2 UI</strong> (Unidad Indexada).
+                        MercadoPago retiene <strong>7.88%</strong> del total.
+                    </p>
+                    <div class="card">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>Precio del producto ($)</label>
+                                <input type="number" id="simPrecio" value="400" min="0" oninput="simularPrecio()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Tipo de pedido</label>
+                                <select id="simTipo" onchange="simularPrecio()">
+                                    <option value="1">En mesa (1 UI)</option>
+                                    <option value="2" selected>Online (2 UI)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Valor UI ($)</label>
+                                <input type="number" id="simUI" value="6.50" step="0.01" min="0" oninput="simularPrecio()">
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <tbody id="simResultado"></tbody>
                             </table>
                         </div>
                     </div>
@@ -1224,6 +1263,7 @@
             if (section === 'zonas') loadZonas();
             if (section === 'facturacion') loadFacturacion();
             if (section === 'historial') loadHistorial();
+            if (section === 'simulador') { loadSimUI(); simularPrecio(); }
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
             if (section === 'config') {
@@ -1993,6 +2033,38 @@
                 console.error('Error loading historial:', err);
                 tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px">Error al cargar</td></tr>';
             }
+        }
+
+        // =============================================
+        // SIMULADOR DE PRECIOS (1 UI en mesa, 2 UI online, MP 7.88%)
+        // =============================================
+        const SIM_MP_PCT = 7.88;
+
+        async function loadSimUI() {
+            try {
+                const { data } = await sbService.from('config_tarifas').select('ui_value').eq('pais_code', 'UY').limit(1);
+                if (data && data[0] && data[0].ui_value) {
+                    document.getElementById('simUI').value = data[0].ui_value;
+                }
+            } catch (e) { console.log('SIM UI fallback:', e.message); }
+        }
+
+        function simularPrecio() {
+            const precio = parseFloat(document.getElementById('simPrecio').value) || 0;
+            const uis = parseInt(document.getElementById('simTipo').value) || 2;
+            const uiVal = parseFloat(document.getElementById('simUI').value) || 0;
+            const cargoUF = uis * uiVal;
+            const totalCliente = precio + cargoUF;
+            const feeMP = totalCliente * (SIM_MP_PCT / 100);
+            const recibe = totalCliente - feeMP - cargoUF;
+            const tipoTxt = uis === 1 ? 'En mesa (1 UI)' : 'Online (2 UI)';
+            document.getElementById('simResultado').innerHTML = `
+                <tr><td>Precio que ponés vos</td><td style="text-align:right"><strong>$${precio.toFixed(0)}</strong></td></tr>
+                <tr><td>Cargo UrbanFlow (${uis} UI × $${uiVal.toFixed(2)})</td><td style="text-align:right">+ $${cargoUF.toFixed(0)}</td></tr>
+                <tr style="background: rgba(212,175,55,0.1)"><td><strong>👁 Lo que ve y paga el cliente (${tipoTxt})</strong></td><td style="text-align:right"><strong>$${totalCliente.toFixed(0)}</strong></td></tr>
+                <tr><td>MercadoPago (${SIM_MP_PCT}%)</td><td style="text-align:right;color:var(--danger)">− $${feeMP.toFixed(0)}</td></tr>
+                <tr><td>Cargo UrbanFlow</td><td style="text-align:right;color:var(--danger)">− $${cargoUF.toFixed(0)}</td></tr>
+                <tr style="background: rgba(76,175,80,0.1)"><td><strong>💰 Lo que recibís vos</strong></td><td style="text-align:right"><strong>$${recibe.toFixed(0)}</strong></td></tr>`;
         }
 
         // =============================================
