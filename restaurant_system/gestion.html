@@ -2079,8 +2079,13 @@
         function simCargarProductos() {
             const sel = document.getElementById('simProducto');
             const prods = localData.productos || [];
-            sel.innerHTML = '<option value="">Precio manual</option>' +
-                prods.map(p => `<option value="${p.id}">${p.nombre} — $${p.precio_oferta || p.precio}</option>`).join('');
+            if (!prods.length) {
+                sel.innerHTML = '<option value="">Sin productos — crealos en Productos</option>';
+                simProductoId = null;
+                return;
+            }
+            sel.innerHTML = prods.map(p => `<option value="${p.id}">${p.nombre} — $${p.precio_oferta || p.precio}</option>`).join('');
+            simProductoElegido();
         }
 
         function simProductoElegido() {
