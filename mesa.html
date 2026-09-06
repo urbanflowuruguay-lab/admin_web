@@ -257,6 +257,7 @@
         <p id="deliveryTrackingText" style="color:var(--text2);font-size:12px;text-align:center"></p>
     </div>
     <button class="volver" onclick="volverCarta()">Volver a la carta</button>
+    <button class="volver" id="btnAceptarPedido" style="display:none;background:var(--accent);color:var(--bg);margin-top:8px" onclick="aceptarPedidoRecibido()">Aceptar</button>
 </div>
 
 <div class="nombre-input" id="ratingScreen">
@@ -384,6 +385,11 @@ function applyPortadaTheme(templateId) {
 }
 function cerrarMantenimiento(){
     document.getElementById('mantenimientoModal').style.display='none';
+}
+function aceptarPedidoRecibido(){
+    document.getElementById('estadoPedido').classList.remove('show');
+    document.getElementById('btnAceptarPedido').style.display='none';
+    document.querySelector("#estadoPedido .volver").style.display='block';
 }
 async function init() {
     if (!mesaToken && !empresaId) {
@@ -664,10 +670,15 @@ async function confirmarPedido() {
         carritoPanelOpen = false;
         document.getElementById("carritoPanel").classList.remove("show");
         document.getElementById("pedidoIdDisplay").textContent = `Pedido de ${nombre}`;
-        document.getElementById("estadoPedido").querySelector("h2").textContent = "Pedido recibido";
-        document.getElementById("estadoPedido").querySelector(".icon").textContent = "📋";
-        document.getElementById("estadoPedido").querySelector("p").innerHTML = "Tu pedido está en cola.<br>Te avisaremos cuando empiece a prepararse.";
+        document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido ha sido recibido!";
+        document.getElementById("estadoPedido").querySelector(".icon").textContent = "✅";
+        document.getElementById("estadoPedido").querySelector("p").innerHTML = "Te avisaremos cuando esté listo y en camino.";
         document.getElementById("estadoPedido").classList.add("show");
+        document.getElementById("btnAceptarPedido").style.display = "block";
+        document.querySelector("#estadoPedido .volver").style.display = "none";
+        if (window.AndroidBridge && window.AndroidBridge.pedidoRecibido && currentPedidoId) {
+            try { window.AndroidBridge.pedidoRecibido(currentPedidoId, empresaId || empresaData?.id || "", empresaData?.nombre || "Restaurante"); } catch(e){}
+        }
         // Poll estado: listo -> avisar que en breve se lleva a la mesa, entregado -> rating
         if (currentPedidoId) {
             let avisoListo = false;
