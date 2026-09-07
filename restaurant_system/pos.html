@@ -547,7 +547,13 @@
         let currentUser = null;
         let selectedMesa = null;
         let currentCategory = 'all';
-        let currentOrder = [];
+        // Un pedido por mesa (más mostrador) para saltar entre mesas
+        let ordersByMesa = { 'mostrador': [] };
+        let currentOrder = ordersByMesa['mostrador'];
+
+        function mesaKey() {
+            return selectedMesa ? String(selectedMesa.id) : 'mostrador';
+        }
 
         let employees = [
             { id: "emp_002", nombre: "María García", pin: "1234", roles: ["rol_cajero"], email: "maria@laparrilla.com.uy" },
@@ -808,6 +814,7 @@
             if (currentOrder.length === 0) {
                 container.innerHTML = '<div class="order-empty"><i class="fas fa-shopping-cart"></i><p>Agregar productos</p></div>';
                 document.getElementById('totalOrder').textContent = '$0';
+                paintOrderMesa();
                 return;
             }
 
@@ -832,6 +839,7 @@
 
             const fmt2 = n => '$' + (Math.round(n * 100) / 100).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('totalOrder').textContent = fmt2(subtotal);
+            paintOrderMesa();
         }
 
         // =============================================
@@ -843,22 +851,64 @@
             renderTables();
         }
 
+        function mesaTotal(id) {
+            const arr = ordersByMesa[String(id)] || [];
+            return arr.reduce((a, item) => a + (item.precio * item.qty), 0);
+        }
+
         function renderTables() {
-            document.getElementById('tablesGrid').innerHTML = tables.map(t => `
-                <div class="table-cell ${t.estado}" onclick="selectTable(${t.id})">
-                    <div class="table-cell-number">${t.numero}</div>
-                    <div class="table-cell-status">${t.estado}</div>
-                    <div style="font-size: 10px; color: var(--text2);">${t.capacidad} pers.</div>
-                </div>
-            `).join('');
+            const mostTotal = mesaTotal('mostrador');
+            document.getElementById('tablesGrid').innerHTML = `
+                <div class="table-cell ${!selectedMesa ? 'ocupada' : 'disponible'}" onclick="selectMostrador()" style="${!selectedMesa ? 'border-color: var(--accent); box-shadow: 0 0 10px rgba(212,175,55,0.4);' : ''}">
+                    <div class="table-cell-number">🧾</div>
+                    <div class="table-cell-status">Mostrador</div>
+                    <div style="font-size: 12px; color: var(--accent); font-weight: 700;">$${mostTotal.toFixed(2)}</div>
+                </div>` +
+                tables.map(t => {
+                    const tot = mesaTotal(t.id);
+                    const isSel = selectedMesa && String(selectedMesa.id) === String(t.id);
+                    return `
+                    <div class="table-cell ${t.estado}" onclick="selectTable('${t.id}')" style="${isSel ? 'border-color: var(--accent); box-shadow: 0 0 10px rgba(212,175,55,0.4);' : ''}">
+                        <div class="table-cell-number">${t.numero}</div>
+                        <div class="table-cell-status">${t.estado}</div>
+                        <div style="font-size: 10px; color: var(--text2);">${t.capacidad} pers.</div>
+                        ${tot > 0 ? `<div style="font-size: 12px; color: var(--accent); font-weight: 700;">$${tot.toFixed(2)}</div>` : ''}
+                    </div>
+                `}).join('');
+        }
+
+        function paintOrderMesa() {
+            const el = document.getElementById('orderMesa');
+            const tot = currentOrder.reduce((a, item) => a + (item.precio * item.qty), 0);
+            if (selectedMesa) {
+                el.innerHTML = `🪑 Mesa #${selectedMesa.numero} · <strong style="color:var(--accent)">$${tot.toFixed(2)}</strong>`;
+                el.style.borderColor = 'var(--accent)';
+            } else {
+                el.innerHTML = `🧾 Mostrador · <strong style="color:var(--accent)">$${tot.toFixed(2)}</strong>`;
+                el.style.borderColor = 'var(--border)';
+            }
         }
 
         function selectTable(id) {
-            const table = tables.find(t => t.id === id);
+            const table = tables.find(t => String(t.id) === String(id));
+            if (!table) return;
             selectedMesa = table;
+            if (!ordersByMesa[String(table.id)]) ordersByMesa[String(table.id)] = [];
+            currentOrder = ordersByMesa[String(table.id)];
             document.getElementById('mesaBtn').textContent = 'Mesa #' + table.numero;
             document.getElementById('mesaBtn').classList.add('active');
-            document.getElementById('orderMesa').textContent = 'Mesa #' + table.numero;
+            paintOrderMesa();
+            renderOrder();
+            showProductsView();
+        }
+
+        function selectMostrador() {
+            selectedMesa = null;
+            currentOrder = ordersByMesa['mostrador'];
+            document.getElementById('mesaBtn').textContent = 'Mesa #';
+            document.getElementById('mesaBtn').classList.remove('active');
+            paintOrderMesa();
+            renderOrder();
             showProductsView();
         }
 
@@ -955,12 +1005,9 @@
             // Show confirmation
             alert(`Pedido #${pedido.numero} creado\nTotal: $${pedido.total_cliente}\nMétodo: ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}`);
 
-            // Reset order
-            currentOrder = [];
-            selectedMesa = null;
-            document.getElementById('mesaBtn').textContent = 'Mesa #';
-            document.getElementById('mesaBtn').classList.remove('active');
-            document.getElementById('orderMesa').textContent = 'Sin mesa';
+            // Reset only the charged table's order (others keep theirs)
+            ordersByMesa[mesaKey()] = [];
+            currentOrder = ordersByMesa[mesaKey()];
             renderOrder();
             renderProducts();
             renderTables();
