@@ -342,7 +342,7 @@
                 <div class="sidebar-item" onclick="showSection('empleados')">
                     <i class="fas fa-user-tie"></i><span>Personal</span>
                 </div>
-                <div class="sidebar-item" onclick="showSection('zonas')">
+                <div class="sidebar-item" onclick="openZonas()">
                     <i class="fas fa-map-marked-alt"></i><span>Zonas</span>
                 </div>
                 <div class="sidebar-item" onclick="showSection('facturacion')">
@@ -1360,6 +1360,15 @@
                 window.open(`pos.html?empresa=${empresaId}`, '_blank');
             } else {
                 window.open('pos.html', '_blank');
+            }
+        }
+
+        function openZonas() {
+            const empresaId = localData.currentUser?.empresa_id || localStorage.getItem('urbanflow_empresa_id');
+            if (empresaId) {
+                window.open(`zonas.html?empresa=${empresaId}`, '_blank');
+            } else {
+                window.open('zonas.html', '_blank');
             }
         }
 

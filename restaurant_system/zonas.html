@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow - Zonas de Delivery</title>
+    <link rel="icon" type="image/png" href="./servicio.png">
+    <link rel="apple-touch-icon" href="./servicio.png">
+    <meta name="theme-color" content="#0a0a0a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg: #0a0a0a; --bg2: #111111; --bg3: #1a1a1a;
+            --text: #ffffff; --text2: #a0a0a0;
+            --accent: #d4af37; --green: #4caf50; --red: #f44336; --border: #333333;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .top-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); }
+        .top-bar h2 { font-size: 16px; flex: 1; }
+        .top-bar h2 span { color: var(--text2); font-size: 12px; font-weight: 400; }
+        .nav-btn { background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .main { flex: 1; display: flex; overflow: hidden; }
+        #zonasMap { flex: 1; min-width: 0; }
+        .side { width: 330px; border-left: 1px solid var(--border); background: var(--bg2); display: flex; flex-direction: column; overflow: hidden; }
+        .side-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        .side-section h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+        .hint { font-size: 12px; color: var(--text2); line-height: 1.6; }
+        #zonasList { flex: 1; overflow-y: auto; padding: 12px 14px; }
+        .zona-row { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        .zona-row.inactive { opacity: 0.55; }
+        .zona-row .znombre { font-weight: 700; font-size: 14px; }
+        .zona-row .zdata { font-size: 12px; color: var(--text2); margin-top: 4px; }
+        .zona-row .zdata strong { color: var(--accent); }
+        .zona-row .zbtns { display: flex; gap: 6px; margin-top: 10px; }
+        .zona-row .zbtns button { flex: 1; padding: 7px; border: none; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .form-box { background: var(--bg3); border: 1px solid var(--accent); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        .form-box input { width: 100%; padding: 9px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; }
+        .form-box .row { display: flex; gap: 8px; }
+        .form-box .row button { flex: 1; padding: 9px; border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        @media (max-width: 800px) {
+            .main { flex-direction: column; }
+            #zonasMap { min-height: 45%; }
+            .side { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <button class="nav-btn" onclick="goGestion()"><i class="fas fa-arrow-left"></i> Gestión</button>
+        <h2><i class="fas fa-map"></i> Zonas de delivery <span id="empName"></span></h2>
+    </div>
+    <div class="main">
+        <div id="zonasMap"></div>
+        <div class="side">
+            <div class="side-section">
+                <h4>Cómo marcar</h4>
+                <p class="hint">Usá el <strong>polígono</strong> de la barra del mapa para dibujar la zona de trabajo. Al terminar poné nombre, precio del delivery y pedido mínimo. Solo los usuarios dentro del rango verán tu restaurante.</p>
+            </div>
+            <div class="side-section" id="zonaFormBox" style="display:none">
+                <h4>Nueva zona</h4>
+                <div class="form-box">
+                    <input id="zonaNombre" placeholder="Nombre (Ej: Centro)">
+                    <div class="row">
+                        <input id="zonaPrecio" type="number" placeholder="Precio delivery $" style="margin-bottom:0">
+                        <input id="zonaMinimo" type="number" placeholder="Pedido mín. $" style="margin-bottom:0">
+                    </div>
+                    <div class="row" style="margin-top:8px">
+                        <button style="background:var(--green);color:#fff" onclick="saveZona()">Guardar</button>
+                        <button style="background:var(--bg);color:var(--text);border:1px solid var(--border)" onclick="cancelZona()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+            <div id="zonasList"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const params = new URLSearchParams(window.location.search);
+        const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
+        if (empresaId) localStorage.setItem('urbanflow_empresa_id', empresaId);
+
+        let map = null;
+        let drawnItems = null;
+        let tempLayer = null;
+        let zonas = [];
+        const COLORS = ['#d4af37', '#4caf50', '#2196f3', '#9c27b0', '#ff9800', '#f44336'];
+
+        function goGestion() {
+            window.location.href = '/restaurant_system/gestion.html' + (empresaId ? '?empresa=' + empresaId : '');
+        }
+
+        async function init() {
+            let center = [-34.9011, -56.1645], zoom = 13;
+            try {
+                const emp = await sb.from('empresas').select('nombre,lat,lon').eq('id', empresaId).limit(1).maybeSingle();
+                if (emp.data) {
+                    document.getElementById('empName').textContent = '· ' + (emp.data.nombre || '');
+                    if (emp.data.lat && emp.data.lon) { center = [emp.data.lat, emp.data.lon]; zoom = 14; }
+                }
+            } catch (e) {}
+            map = L.map('zonasMap').setView(center, zoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap', maxZoom: 19
+            }).addTo(map);
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+            map.addControl(new L.Control.Draw({
+                draw: { polygon: { allowIntersection: false, showArea: true }, polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false },
+                edit: { featureGroup: drawnItems, edit: false, remove: false }
+            }));
+            map.on(L.Draw.Event.CREATED, e => {
+                if (tempLayer) drawnItems.removeLayer(tempLayer);
+                tempLayer = e.layer;
+                drawnItems.addLayer(tempLayer);
+                document.getElementById('zonaFormBox').style.display = 'block';
+                document.getElementById('zonaNombre').focus();
+            });
+            await loadZonas();
+        }
+
+        async function loadZonas() {
+            try {
+                const { data, error } = await sb.from('zonas_delivery').select('*').eq('empresa_id', empresaId).order('created_at');
+                if (error) throw error;
+                zonas = data || [];
+            } catch (e) {
+                document.getElementById('zonasList').innerHTML = '<p class="hint">No se pudo cargar (falta crear la tabla zonas_delivery).</p>';
+                return;
+            }
+            drawnItems.eachLayer(l => { if (l !== tempLayer) drawnItems.removeLayer(l); });
+            const list = document.getElementById('zonasList');
+            if (!zonas.length) {
+                list.innerHTML = '<p class="hint">Sin zonas. Dibujá la primera en el mapa.</p>';
+                return;
+            }
+            list.innerHTML = '';
+            zonas.forEach((z, i) => {
+                try {
+                    const coords = (z.poligono?.geometry?.coordinates?.[0] || []).map(c => [c[1], c[0]]);
+                    if (coords.length) {
+                        const poly = L.polygon(coords, { color: COLORS[i % COLORS.length], weight: 2, fillOpacity: z.activo === false ? 0.05 : 0.2 });
+                        poly.bindPopup(`<strong>${z.nombre}</strong><br>Delivery $${z.precio}<br>Mínimo $${z.pedido_minimo || 0}`);
+                        poly.addTo(drawnItems);
+                        z._poly = poly;
+                    }
+                } catch (e) {}
+                const div = document.createElement('div');
+                div.className = 'zona-row' + (z.activo === false ? ' inactive' : '');
+                div.innerHTML = `
+                    <div class="znombre">${z.nombre} ${z.activo === false ? '(inactiva)' : ''}</div>
+                    <div class="zdata">Delivery <strong>$${z.precio}</strong> · Pedido mín. <strong>$${z.pedido_minimo || 0}</strong></div>
+                    <div class="zbtns">
+                        <button style="background:var(--bg);color:var(--text);border:1px solid var(--border)" onclick="zoomZona('${z.id}')">Ver</button>
+                        <button style="background:${z.activo === false ? 'var(--green)' : '#6b7280'};color:#fff" onclick="toggleZona('${z.id}', ${z.activo === false})">${z.activo === false ? 'Activar' : 'Pausar'}</button>
+                        <button style="background:var(--red);color:#fff" onclick="deleteZona('${z.id}')">Borrar</button>
+                    </div>`;
+                list.appendChild(div);
+            });
+        }
+
+        async function saveZona() {
+            const nombre = document.getElementById('zonaNombre').value.trim();
+            const precio = parseFloat(document.getElementById('zonaPrecio').value) || 0;
+            const minimo = parseFloat(document.getElementById('zonaMinimo').value) || 0;
+            if (!nombre || !tempLayer) { alert('Dibujá la zona y poné nombre y precio'); return; }
+            const latlngs = tempLayer.getLatLngs()[0].map(p => [p.lng, p.lat]);
+            latlngs.push(latlngs[0]);
+            const geo = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [latlngs] } };
+            try {
+                const { error } = await sb.from('zonas_delivery').insert({
+                    empresa_id: empresaId, nombre, precio: precio, pedido_minimo: minimo,
+                    poligono: geo, activo: true
+                });
+                if (error) throw error;
+                cancelZona();
+                loadZonas();
+            } catch (e) {
+                alert('Error al guardar: ' + e.message);
+            }
+        }
+
+        function cancelZona() {
+            document.getElementById('zonaFormBox').style.display = 'none';
+            document.getElementById('zonaNombre').value = '';
+            document.getElementById('zonaPrecio').value = '';
+            document.getElementById('zonaMinimo').value = '';
+            if (tempLayer) { drawnItems.removeLayer(tempLayer); tempLayer = null; }
+        }
+
+        function zoomZona(id) {
+            const z = zonas.find(x => x.id === id);
+            if (z && z._poly) map.fitBounds(z._poly.getBounds());
+        }
+
+        async function toggleZona(id, activar) {
+            try {
+                const { error } = await sb.from('zonas_delivery').update({ activo: activar }).eq('id', id);
+                if (error) throw error;
+                loadZonas();
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function deleteZona(id) {
+            if (!confirm('¿Borrar esta zona?')) return;
+            try {
+                const { error } = await sb.from('zonas_delivery').delete().eq('id', id);
+                if (error) throw error;
+                loadZonas();
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        init();
+    </script>
+</body>
+</html>
