@@ -401,6 +401,31 @@
         </div>
     </div>
 
+    <!-- LLAMADA AL DELIVERY (lo llama el camarero habilitado) -->
+    <div id="llamadaOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:600;align-items:center;justify-content:center">
+        <div style="background:var(--bg2);border:2px solid var(--accent);border-radius:20px;padding:32px 28px;max-width:380px;width:90%;text-align:center;animation:llamarPulse 1s infinite">
+            <div style="font-size:56px;margin-bottom:8px">🛵📞</div>
+            <h2 style="margin-bottom:4px">¡Te llaman!</h2>
+            <p id="llamadaTexto" style="color:var(--text2);font-size:14px;margin-bottom:8px"></p>
+            <p id="llamadaDir" style="font-size:15px;font-weight:700;margin-bottom:20px"></p>
+            <div style="display:flex;gap:10px">
+                <button onclick="rechazarLlamada()" style="flex:1;padding:14px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Rechazar</button>
+                <button onclick="aceptarLlamada()" style="flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Aceptar</button>
+            </div>
+        </div>
+    </div>
+    <style>@keyframes llamarPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }</style>
+
+    <!-- LLAMAR DELIVERY (camarero habilitado elige quién va) -->
+    <div id="llamarDeliveryOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarLlamarDelivery()">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:400px;width:92%;max-height:80vh;display:flex;flex-direction:column">
+            <h3 style="margin-bottom:4px">🛵 ¿A quién llamás?</h3>
+            <p style="color:var(--text2);font-size:12px;margin-bottom:12px">Deliverys del turno</p>
+            <div id="llamarDeliveryList" style="overflow-y:auto;flex:1"></div>
+            <button onclick="cerrarLlamarDelivery()" style="margin-top:12px;padding:10px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer">Cancelar</button>
+        </div>
+    </div>
+
     <!-- TOMAR PEDIDO EN MESA (camarero) -->
     <div id="tomarPedidoOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarTomarPedido()">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:480px;width:92%;max-height:88vh;display:flex;flex-direction:column">
@@ -495,6 +520,9 @@
                         metodo_pago: p.metodo_pago,
                         total: p.total || 0,
                         tipo_entrega: p.tipo_entrega || '',
+                        chofer_id: p.chofer_id || null,
+                        delivery_nombre: p.delivery_nombre || null,
+                        direccion_entrega: p.direccion_entrega || '',
                         notas: p.notas
                     };
                 });
@@ -1196,12 +1224,20 @@
             updateClock();
             setInterval(updateClock, 1000);
             
+            // Subroles (ej. arma_online) para habilitar acciones
+            try {
+                const { data: me } = await sbSvc.from('empleados').select('subroles').eq('id', currentUser.id).limit(1).maybeSingle();
+                currentUser.subroles = me?.subroles || '';
+            } catch (e) { currentUser.subroles = ''; }
             // Load real orders from Supabase
             await loadCategoriasMap();
             await loadPedidosFromDB();
             
             // Auto-refresh orders every 15 seconds
             setInterval(loadPedidosFromDB, 15000);
+            // Llamadas al delivery cada 10 segundos
+            checkLlamadas();
+            llamadaInterval = setInterval(checkLlamadas, 10000);
 
             // Realtime: notificar cuando un pedido cambia de estado
             sbSvc.channel('pedidos-changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, (payload) => {
@@ -1407,9 +1443,9 @@
             }).addTo(deliveryMap);
             // Load restaurant position
             try {
-                const { data } = await sbSvc.from('empresas').select('lat,lng').eq('id', currentUser.empresa_id).limit(1);
-                if (data && data[0] && data[0].lat && data[0].lng) {
-                    const rLat = data[0].lat, rLng = data[0].lng;
+                const { data } = await sbSvc.from('empresas').select('lat,lon').eq('id', currentUser.empresa_id).limit(1);
+                if (data && data[0] && data[0].lat && data[0].lon) {
+                    const rLat = data[0].lat, rLng = data[0].lon;
                     restaurantMarkerMap = L.marker([rLat, rLng], {
                         icon: L.divIcon({ className: '', html: '<div style="background:#d4af37;color:#000;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">🏪</div>', iconSize: [28,28], iconAnchor: [14,14] })
                     }).addTo(deliveryMap).bindPopup('Restaurante');
@@ -1480,12 +1516,175 @@
             } catch(e) { alert('Error: ' + e.message); }
         }
 
+        // =============================================
+        // LLAMADA AL DELIVERY (camarero habilitado lo llama)
+        // =============================================
+        let llamadaPedidoId = null;
+        let llamadaInterval = null;
+        let llamadaAudioTimer = null;
+
+        function ringLlamada() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [660, 880, 660].forEach((f, i) => {
+                    const o = ctx.createOscillator(), g = ctx.createGain();
+                    o.connect(g); g.connect(ctx.destination);
+                    o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.5;
+                    o.start(ctx.currentTime + i * 0.3); o.stop(ctx.currentTime + i * 0.3 + 0.25);
+                });
+            } catch (e) {}
+        }
+
+        async function checkLlamadas() {
+            try {
+                if (!currentUser || !currentUser.id) return;
+                if ((currentUser.rol || '').toLowerCase().replace('rol_', '') !== 'delivery') return;
+                if (llamadaPedidoId) return;
+                const { data } = await sbSvc.from('pedidos').select('id,cliente_nombre,direccion_entrega,mesa_numero')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .eq('chofer_id', currentUser.id)
+                    .eq('estado', 'listo')
+                    .order('created_at', { ascending: false }).limit(1);
+                if (data && data.length) mostrarLlamada(data[0]);
+            } catch (e) {}
+        }
+
+        function mostrarLlamada(p) {
+            llamadaPedidoId = p.id;
+            document.getElementById('llamadaTexto').textContent =
+                'Pedido #' + String(p.id).substring(0, 4) + ' · ' + (p.cliente_nombre || 'Cliente');
+            document.getElementById('llamadaDir').textContent = '📍 ' + (p.direccion_entrega || (p.mesa_numero ? 'Mesa ' + p.mesa_numero : 'Retiro en local'));
+            document.getElementById('llamadaOverlay').style.display = 'flex';
+            ringLlamada();
+            llamadaAudioTimer = setInterval(ringLlamada, 3000);
+        }
+
+        function ocultarLlamada() {
+            llamadaPedidoId = null;
+            clearInterval(llamadaAudioTimer);
+            document.getElementById('llamadaOverlay').style.display = 'none';
+        }
+
+        async function aceptarLlamada() {
+            const id = llamadaPedidoId;
+            ocultarLlamada();
+            if (!id) return;
+            try {
+                await sbSvc.from('pedidos').update({ estado: 'en_camino' }).eq('id', id);
+                showToast('Pedido aceptado. ¡En camino!');
+                loadPedidosFromDB();
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        async function rechazarLlamada() {
+            const id = llamadaPedidoId;
+            ocultarLlamada();
+            if (!id) return;
+            try {
+                await sbSvc.from('pedidos').update({ chofer_id: null, delivery_nombre: null }).eq('id', id);
+                loadPedidosFromDB();
+            } catch (e) {}
+        }
+
+        function puedeLlamarDelivery() {
+            const rol = (currentUser?.rol || '').toLowerCase().replace('rol_', '');
+            if (['dueño', 'dueno', 'encargado'].includes(rol)) return true;
+            return ((currentUser?.subroles || '').split(',').map(s => s.trim()).includes('arma_online'));
+        }
+
+        async function abrirLlamarDelivery(pedidoId) {
+            document.getElementById('llamarDeliveryOverlay').style.display = 'flex';
+            const box = document.getElementById('llamarDeliveryList');
+            box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Buscando deliverys...</p>';
+            try {
+                const { data } = await sbSvc.from('empleados').select('id,nombre,is_online,last_seen,foto_url')
+                    .eq('empresa_id', currentUser.empresa_id).eq('activo', true)
+                    .in('rol', ['rol_delivery', 'delivery']);
+                if (!data || !data.length) {
+                    box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">No hay deliverys registrados</p>';
+                    return;
+                }
+                box.innerHTML = data.map(d => {
+                    const online = d.is_online ? '🟢 En turno' : '⚪ Desconectado';
+                    return `
+                    <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">
+                        <div style="font-weight:700;font-size:14px;flex:1">${d.nombre}<div style="font-size:11px;color:var(--text2);font-weight:400">${online}</div></div>
+                        <button onclick="llamarDelivery('${pedidoId}', '${d.id}', '${(d.nombre || '').replace(/'/g, "\\'")}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Llamar</button>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al buscar</p>';
+            }
+        }
+
+        function cerrarLlamarDelivery() {
+            document.getElementById('llamarDeliveryOverlay').style.display = 'none';
+        }
+
+        async function llamarDelivery(pedidoId, empId, nombre) {
+            try {
+                const { error } = await sbSvc.from('pedidos').update({ chofer_id: empId, delivery_nombre: nombre }).eq('id', pedidoId);
+                if (error) throw error;
+                cerrarLlamarDelivery();
+                showToast('Llamando a ' + nombre + ' 🛵');
+                loadPedidosFromDB();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
         function centerOnMe() {
             if (deliveryMarker) deliveryMap.setView(deliveryMarker.getLatLng(), 16);
             else if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(pos => {
                     deliveryMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
                 });
+            }
+        }
+
+        let routeLine = null;
+        let destMarker = null;
+
+        async function geocodeDir(dir) {
+            try {
+                const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(dir));
+                const j = await r.json();
+                if (j && j.length) return { lat: parseFloat(j[0].lat), lon: parseFloat(j[0].lon) };
+            } catch (e) {}
+            return null;
+        }
+
+        async function verRecorrido(pedidoId) {
+            try {
+                const { data: p } = await sbSvc.from('pedidos').select('*').eq('id', pedidoId).limit(1).maybeSingle();
+                if (!p) { alert('Pedido no encontrado'); return; }
+                let dest = (p.lat_entrega && p.lon_entrega) ? { lat: p.lat_entrega, lon: p.lon_entrega } : null;
+                if (!dest && p.direccion_entrega) dest = await geocodeDir(p.direccion_entrega + ', Uruguay');
+                if (!dest) { alert('Sin ubicación del cliente'); return; }
+                if (!deliveryMap) { alert('Abrí la pestaña Mi Mapa'); return; }
+                if (destMarker) deliveryMap.removeLayer(destMarker);
+                destMarker = L.marker([dest.lat, dest.lon], {
+                    icon: L.divIcon({ className: '', html: '<div style="background:#f44336;color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff">📍</div>', iconSize: [30,30], iconAnchor: [15,15] })
+                }).addTo(deliveryMap).bindPopup((p.cliente_nombre || 'Cliente') + '<br>' + (p.direccion_entrega || '')).openPopup();
+                const pos = await new Promise(res => {
+                    if (!navigator.geolocation) return res(null);
+                    navigator.geolocation.getCurrentPosition(x => res({ lat: x.coords.latitude, lon: x.coords.longitude }), () => res(null), { timeout: 8000 });
+                });
+                if (!pos) { deliveryMap.setView([dest.lat, dest.lon], 15); return; }
+                const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${pos.lon},${pos.lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson`);
+                const rj = await rr.json();
+                if (routeLine) deliveryMap.removeLayer(routeLine);
+                const coords = rj?.routes?.[0]?.geometry?.coordinates?.map(c => [c[1], c[0]]) || [];
+                if (coords.length) {
+                    routeLine = L.polyline(coords, { color: '#d4af37', weight: 5 }).addTo(deliveryMap);
+                    deliveryMap.fitBounds(routeLine.getBounds());
+                    const mins = Math.round((rj.routes[0].duration || 0) / 60);
+                    showToast('Recorrido: ~' + mins + ' min hasta el cliente');
+                } else {
+                    deliveryMap.setView([dest.lat, dest.lon], 15);
+                }
+            } catch (e) {
+                alert('Error trazando recorrido: ' + e.message);
             }
         }
 
@@ -1556,6 +1755,9 @@
                         <div style="margin-top:4px">📅 ${p.fecha || ''} · ${p.tipo_entrega === 'online' ? 'Pedido Online' : p.mesa ? 'Mesa ' + p.mesa : ''}</div>
                         ${p.notas ? `<div style="margin-top:4px">📝 ${p.notas}</div>` : ''}
                     </div>
+                    ${!p.mesa && p.estado === 'listo' && puedeLlamarDelivery() ? (p.delivery_nombre
+                        ? `<div style="font-size:12px;color:var(--accent);margin-top:8px;font-weight:700">🛵 ${p.delivery_nombre} avisado</div>`
+                        : `<button style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--accent)" onclick="event.stopPropagation();abrirLlamarDelivery('${p.id}')"><i class="fas fa-motorcycle"></i> LLAMAR DELIVERY</button>`) : ''}
                     ${todosEntregados && p.estado !== 'entregado' ? `<button class="btn-success" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff" onclick="event.stopPropagation();completarEntrega('${p.id}')"><i class="fas fa-check-double"></i> ENTREGA COMPLETA</button>` : ''}
                     <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
                 </div>`;
@@ -2135,13 +2337,15 @@
                         </span>
                     </div>
                     <div class="delivery-address">
-                        <i class="fas fa-map-marker-alt"></i> ${d.notas || 'Sin dirección'}
+                        <i class="fas fa-map-marker-alt"></i> ${d.direccion_entrega || d.notas || 'Sin dirección'}
                     </div>
+                    <div style="font-size:12px;color:var(--text2);margin:4px 0"><i class="fas fa-user"></i> ${d.cliente_nombre || 'Cliente'} · <strong style="color:var(--accent)">$${Math.round(d.total || 0)}</strong> · ${d.metodo_pago || 'efectivo'}</div>
                     <div class="order-items">
                         ${d.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
                     </div>
                     <div class="order-actions">
                         ${d.estado === 'listo' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
+                        ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="verRecorrido('${d.id}')">🗺 VER RECORRIDO</button>` : ''}
                         ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'entregado')">ENTREGADO ✓</button>` : ''}
                     </div>
                 </div>
