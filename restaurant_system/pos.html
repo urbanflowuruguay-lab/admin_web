@@ -625,6 +625,13 @@
                 if(empEmpleados && empEmpleados.length){
                     employees = empEmpleados.map(e=>({ id:e.id, nombre:e.nombre, pin:e.pin, roles:[e.rol||'rol_cajero'], email:e.email||'' }));
                 }
+                // Dueño: entra a caja con su PIN y opera como cajero
+                try {
+                    const empRes = await sbPOS.from('empresas').select('nombre,pin_dueno').eq('id', empresaIdPOS).limit(1).maybeSingle();
+                    if (empRes.data && empRes.data.pin_dueno) {
+                        window._duenoPOS = { pin: empRes.data.pin_dueno, nombre: empRes.data.nombre || 'Dueño' };
+                    }
+                } catch (_) {}
             }catch(e){ console.log('POS load error', e.message); }
         }
 
@@ -634,7 +641,7 @@
         let pinInput = '';
 
         function addPin(n) {
-            if (pinInput.length < 4) {
+            if (pinInput.length < 8) {
                 pinInput += n;
                 document.getElementById('pinDisplay').textContent = pinInput;
             }
@@ -646,7 +653,10 @@
         }
 
         function enterPin() {
-            const emp = employees.find(e => e.pin === pinInput && e.activo !== false);
+            const emp = employees.find(e => e.pin === pinInput && e.activo !== false)
+                || (window._duenoPOS && window._duenoPOS.pin === pinInput
+                    ? { id: 'dueno', nombre: window._duenoPOS.nombre + ' (Dueño)', pin: pinInput, roles: ['rol_dueno', 'rol_cajero'], email: '' }
+                    : null);
             if (emp) {
                 currentUser = emp;
                 document.getElementById('loginScreen').style.display = 'none';

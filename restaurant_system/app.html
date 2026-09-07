@@ -489,7 +489,7 @@
             pedidos:   { icon: 'fa-receipt', label: 'Pedidos' },
             delivery:  { icon: 'fa-motorcycle', label: 'Delivery' },
             inventario:{ icon: 'fa-boxes-stacked', label: 'Inventario' },
-            empleados: { icon: 'fa-users', label: 'Equipo' },
+            empleados: { icon: 'fa-users', label: 'Personal' },
             mesas:     { icon: 'fa-table', label: 'Mesas' },
             cocina:    { icon: 'fa-fire-burner', label: 'Cocina' },
             mapa:      { icon: 'fa-map-location-dot', label: 'Mi Mapa' },
@@ -1838,7 +1838,7 @@
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
-                    container.innerHTML = '<div class="empty"><i class="fas fa-user-plus"></i><p>No hay empleados creados</p></div>';
+                    container.innerHTML = '<div class="empty"><i class="fas fa-user-plus"></i><p>No hay personal creado</p></div>';
                     return;
                 }
 
@@ -1856,8 +1856,8 @@
                     </div>
                 `).join('');
             } catch (err) {
-                console.error('Error loading empleados:', err);
-                container.innerHTML = '<div class="empty"><p>Error al cargar empleados</p></div>';
+                console.error('Error loading personal:', err);
+                container.innerHTML = '<div class="empty"><p>Error al cargar personal</p></div>';
             }
         }
 
