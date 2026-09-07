@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow Delivery - Seguimiento y Chat</title>
+    <link rel="icon" type="image/png" href="./servicio.png">
+    <link rel="apple-touch-icon" href="./servicio.png">
+    <meta name="theme-color" content="#0a0a0a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg: #0a0a0a; --bg2: #111111; --bg3: #1a1a1a;
+            --text: #ffffff; --text2: #a0a0a0;
+            --accent: #d4af37; --green: #4caf50; --red: #f44336;
+            --purple: #9c27b0; --border: #333333;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .top-bar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+        }
+        .top-bar h2 { font-size: 16px; flex: 1; }
+        .top-bar h2 span { color: var(--text2); font-size: 12px; font-weight: 400; }
+        .nav-btn {
+            background: var(--bg3); color: var(--text); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .nav-btn.gold { background: var(--accent); color: #000; border: none; }
+        .main { flex: 1; display: flex; overflow: hidden; }
+        #deliveryMap { flex: 1; min-width: 0; }
+        .side {
+            width: 340px; border-left: 1px solid var(--border); background: var(--bg2);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .side-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        .side-section h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+        #deliveryList { max-height: 180px; overflow-y: auto; }
+        .deli-row { padding: 8px 10px; border-radius: 8px; background: var(--bg3); margin-bottom: 6px; font-size: 13px; }
+        #pedidoSelect {
+            width: 100%; padding: 10px; background: var(--bg3); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+        }
+        #chatBox { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
+        .msg .who { font-size: 10px; opacity: 0.7; margin-bottom: 2px; }
+        .msg.local { align-self: flex-end; background: var(--accent); color: #000; }
+        .msg.delivery { align-self: flex-start; background: var(--bg3); border: 1px solid var(--border); }
+        .msg.cliente { align-self: flex-start; background: #1a2a1a; border: 1px solid var(--green); }
+        .chat-input { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
+        .chat-input input {
+            flex: 1; padding: 10px; background: var(--bg3); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+        }
+        .chat-input button {
+            padding: 10px 16px; background: var(--accent); color: #000; border: none;
+            border-radius: 8px; font-weight: 700; cursor: pointer;
+        }
+        @media (max-width: 800px) {
+            .main { flex-direction: column; }
+            #deliveryMap { min-height: 40%; }
+            .side { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <button class="nav-btn" onclick="goCaja()"><i class="fas fa-cash-register"></i> Caja</button>
+        <h2><i class="fas fa-motorcycle"></i> Delivery <span id="empName"></span></h2>
+        <button class="nav-btn gold" onclick="loadAll()">⟳ Actualizar</button>
+    </div>
+    <div class="main">
+        <div id="deliveryMap"></div>
+        <div class="side">
+            <div class="side-section">
+                <h4>Deliverys activos</h4>
+                <div id="deliveryList"><p style="color:var(--text2);font-size:12px">Cargando...</p></div>
+            </div>
+            <div class="side-section">
+                <h4>Chat del pedido</h4>
+                <select id="pedidoSelect" onchange="loadChat()"></select>
+            </div>
+            <div id="chatBox"></div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Escribí como Local..." onkeydown="if(event.key==='Enter')sendChat()">
+                <button onclick="sendChat()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const params = new URLSearchParams(window.location.search);
+        const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
+        if (empresaId) localStorage.setItem('urbanflow_empresa_id', empresaId);
+
+        let map = null;
+        const markers = {};
+        let chatTimer = null;
+        let lastChatId = null;
+
+        function goCaja() {
+            window.location.href = '/restaurant_system/pos.html' + (empresaId ? '?empresa=' + empresaId : '');
+        }
+
+        async function init() {
+            map = L.map('deliveryMap').setView([-34.9011, -56.1645], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap', maxZoom: 19
+            }).addTo(map);
+            try {
+                const emp = await sb.from('empresas').select('nombre,lat,lon').eq('id', empresaId).limit(1).maybeSingle();
+                if (emp.data) {
+                    document.getElementById('empName').textContent = '· ' + (emp.data.nombre || '');
+                    if (emp.data.lat && emp.data.lon) {
+                        L.marker([emp.data.lat, emp.data.lon], {
+                            icon: L.divIcon({ className: '', html: '<div style="background:#d4af37;color:#000;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff">🏪</div>', iconSize: [30,30], iconAnchor: [15,15] })
+                        }).addTo(map).bindPopup('Restaurante');
+                        map.setView([emp.data.lat, emp.data.lon], 14);
+                    }
+                }
+            } catch (e) {}
+            await loadPedidosChat();
+            await loadAll();
+            setInterval(loadPositions, 8000);
+        }
+
+        async function loadAll() {
+            await loadPositions();
+            await loadChat();
+        }
+
+        async function loadPositions() {
+            try {
+                const { data } = await sb.from('delivery_positions').select('*').eq('empresa_id', empresaId);
+                const list = document.getElementById('deliveryList');
+                if (!data || !data.length) {
+                    list.innerHTML = '<p style="color:var(--text2);font-size:12px">No hay deliverys activos</p>';
+                    return;
+                }
+                Object.keys(markers).forEach(id => {
+                    if (!data.find(p => p.employee_id === id)) { map.removeLayer(markers[id]); delete markers[id]; }
+                });
+                data.forEach(p => {
+                    if (markers[p.employee_id]) markers[p.employee_id].setLatLng([p.lat, p.lon]);
+                    else markers[p.employee_id] = L.marker([p.lat, p.lon], {
+                        icon: L.divIcon({ className: '', html: '<div style="background:#9c27b0;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff">🛵</div>', iconSize: [28,28], iconAnchor: [14,14] })
+                    }).addTo(map).bindPopup((p.employee_name || 'Delivery') + '<br>' + (p.estado || 'disponible'));
+                });
+                list.innerHTML = data.map(p =>
+                    `<div class="deli-row">🛵 <strong>${p.employee_name || 'Delivery'}</strong> · ${p.estado || 'disponible'}</div>`
+                ).join('');
+            } catch (e) {}
+        }
+
+        async function loadPedidosChat() {
+            try {
+                const { data } = await sb.from('pedidos').select('id,cliente_nombre,mesa_numero,estado,created_at')
+                    .eq('empresa_id', empresaId)
+                    .in('estado', ['recibido', 'preparando', 'listo', 'en_camino'])
+                    .order('created_at', { ascending: false }).limit(30);
+                const sel = document.getElementById('pedidoSelect');
+                if (!data || !data.length) {
+                    sel.innerHTML = '<option value="">Sin pedidos activos</option>';
+                    return;
+                }
+                const prev = sel.value;
+                sel.innerHTML = data.map(p =>
+                    `<option value="${p.id}">#${String(p.id).substring(0,4)} · ${p.cliente_nombre || 'Cliente'} · ${p.mesa_numero ? 'Mesa ' + p.mesa_numero : 'Online'} · ${p.estado}</option>`
+                ).join('');
+                if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+            } catch (e) {}
+        }
+
+        async function loadChat() {
+            const pedidoId = document.getElementById('pedidoSelect').value;
+            const box = document.getElementById('chatBox');
+            if (!pedidoId) { box.innerHTML = '<p style="color:var(--text2);font-size:12px;text-align:center">Elegí un pedido para chatear</p>'; return; }
+            try {
+                const { data, error } = await sb.from('delivery_chat').select('*')
+                    .eq('pedido_id', pedidoId).order('created_at', { ascending: true }).limit(100);
+                if (error) throw error;
+                if (data && data.length) lastChatId = data[data.length - 1].id;
+                box.innerHTML = (data || []).map(m => {
+                    const cls = m.sender === 'local' ? 'local' : (m.sender === 'delivery' ? 'delivery' : 'cliente');
+                    const who = m.sender === 'local' ? 'Local' : (m.sender_nombre || m.sender);
+                    return `<div class="msg ${cls}"><div class="who">${who}</div>${m.mensaje}</div>`;
+                }).join('') || '<p style="color:var(--text2);font-size:12px;text-align:center">Sin mensajes. Escribí el primero.</p>';
+                box.scrollTop = box.scrollHeight;
+            } catch (e) {
+                box.innerHTML = '<p style="color:var(--text2);font-size:12px;text-align:center">Chat no disponible (falta crear la tabla delivery_chat)</p>';
+            }
+        }
+
+        async function sendChat() {
+            const pedidoId = document.getElementById('pedidoSelect').value;
+            const input = document.getElementById('chatInput');
+            const texto = input.value.trim();
+            if (!pedidoId || !texto) return;
+            input.value = '';
+            try {
+                const { error } = await sb.from('delivery_chat').insert({
+                    empresa_id: empresaId, pedido_id: pedidoId,
+                    sender: 'local', sender_nombre: 'Local',
+                    mensaje: texto
+                });
+                if (error) throw error;
+                loadChat();
+            } catch (e) {
+                alert('No se pudo enviar: ' + e.message);
+            }
+        }
+
+        setInterval(() => {
+            const sel = document.getElementById('pedidoSelect');
+            if (sel && sel.value) loadChat();
+        }, 4000);
+
+        init();
+    </script>
+</body>
+</html>
