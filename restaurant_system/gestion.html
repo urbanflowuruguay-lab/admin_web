@@ -965,6 +965,32 @@
                         <div id="permisosGrid" style="overflow-x:auto"></div>
                         <button class="btn-primary" onclick="savePermisos()" style="margin-top:12px"><i class="fas fa-save"></i> Guardar Permisos</button>
                     </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 12px;">⭐ Staff del local</h3>
+                        <p style="color: var(--text2); font-size: 13px; margin-bottom: 12px;">Si lo activás, el cliente ve un botón Staff en la carta con una película de tu personal (3 fotos por persona, 3 segundos cada uno).</p>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 12px;">
+                            <input type="checkbox" id="configStaffActivo" onchange="saveStaffActivo()" style="width: 20px; height: 20px; accent-color: var(--accent);">
+                            <span style="font-size: 14px; font-weight: 700;">Mostrar Staff en la carta</span>
+                        </label>
+                        <div class="form-group">
+                            <label>Música del video (URL mp3, opcional — súbela según la duración total)</label>
+                            <input type="text" id="configStaffMusica" placeholder="https://.../mi-musica.mp3">
+                        </div>
+                        <button class="btn-primary" onclick="saveStaffMusica()" style="margin-bottom:16px;font-size:12px;padding:8px 14px"><i class="fas fa-music"></i> Guardar música</button>
+                        <div id="staffList"></div>
+                        <h4 style="margin: 12px 0 8px; font-size: 14px;">Agregar persona</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                            <input type="text" id="staffNombre" placeholder="Nombre (Ej: Juan)" style="padding: 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+                            <input type="text" id="staffRol" placeholder="Rol (Ej: cocinero)" style="padding: 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                            <label style="font-size: 11px; color: var(--text2);">Foto 1<input type="file" id="staffFoto1" accept="image/*" style="display: block; margin-top: 4px; font-size: 11px;"></label>
+                            <label style="font-size: 11px; color: var(--text2);">Foto 2<input type="file" id="staffFoto2" accept="image/*" style="display: block; margin-top: 4px; font-size: 11px;"></label>
+                            <label style="font-size: 11px; color: var(--text2);">Foto 3<input type="file" id="staffFoto3" accept="image/*" style="display: block; margin-top: 4px; font-size: 11px;"></label>
+                        </div>
+                        <button class="btn-primary" onclick="saveStaff()"><i class="fas fa-plus"></i> Agregar al staff</button>
+                    </div>
                 </div>
 
                 <!-- PROPINAS -->
@@ -1336,6 +1362,7 @@
             if (section === 'propinas') loadPropinas();
             if (section === 'config') {
                 loadPermisos();
+                loadStaff();
                 setTimeout(() => initRestaurantMap(), 150);
             }
         }
@@ -2246,6 +2273,106 @@
                 loadProductos();
             } catch (err) {
                 alert('Error al guardar en el producto: ' + err.message);
+            }
+        }
+
+        // =============================================
+        // STAFF (película en la carta, se activa desde config)
+        // =============================================
+        async function loadStaff() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            try {
+                const emp = await sbService.from('empresas').select('staff_activo,staff_musica').eq('id', empresaId).limit(1).maybeSingle();
+                if (emp.data) {
+                    document.getElementById('configStaffActivo').checked = emp.data.staff_activo === true;
+                    document.getElementById('configStaffMusica').value = emp.data.staff_musica || '';
+                }
+            } catch (_) {}
+            try {
+                const { data, error } = await sbService.from('staff').select('*').eq('empresa_id', empresaId).order('created_at');
+                if (error) throw error;
+                const list = data || [];
+                document.getElementById('staffList').innerHTML = list.length ? list.map(s => `
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid var(--border);">
+                        <div style="display: flex;">
+                            ${[s.foto1, s.foto2, s.foto3].filter(Boolean).map(f => `<img src="${f}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 2px solid var(--bg); margin-left: -10px;">`).join('')}
+                        </div>
+                        <div style="flex: 1;"><strong>${s.nombre}</strong> <span style="color: var(--text2); font-size: 12px;">· ${s.rol || ''}</span></div>
+                        <button onclick="deleteStaff('${s.id}')" style="padding: 6px 10px; background: var(--danger); color: #fff; border: none; border-radius: 6px; cursor: pointer;"><i class="fas fa-trash"></i></button>
+                    </div>`).join('')
+                    : '<p style="color: var(--text2); font-size: 13px;">Sin personal cargado todavía.</p>';
+            } catch (err) {
+                document.getElementById('staffList').innerHTML = '<p style="color: var(--text2); font-size: 13px;">Falta crear la tabla staff en Supabase.</p>';
+            }
+        }
+
+        async function saveStaffActivo() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const activo = document.getElementById('configStaffActivo').checked;
+            try {
+                const { error } = await sbService.from('empresas').update({ staff_activo: activo }).eq('id', empresaId);
+                if (error) throw error;
+            } catch (err) {
+                alert('Error: ' + err.message);
+                document.getElementById('configStaffActivo').checked = !activo;
+            }
+        }
+
+        async function saveStaffMusica() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const url = document.getElementById('configStaffMusica').value.trim();
+            try {
+                const { error } = await sbService.from('empresas').update({ staff_musica: url || null }).eq('id', empresaId);
+                if (error) throw error;
+                alert('Música guardada');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function saveStaff() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const nombre = document.getElementById('staffNombre').value.trim();
+            const rol = document.getElementById('staffRol').value.trim();
+            if (!nombre) { alert('Poné el nombre'); return; }
+            try {
+                const fotos = [];
+                for (let i = 1; i <= 3; i++) {
+                    const file = document.getElementById('staffFoto' + i).files[0];
+                    if (file) {
+                        const path = `empresa_${empresaId}/staff_${Date.now()}_${i}.jpg`;
+                        const { error: upErr } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+                        if (upErr) throw upErr;
+                        const { data: urlData } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                        fotos.push(urlData.publicUrl);
+                    } else fotos.push(null);
+                }
+                const { error } = await sbService.from('staff').insert({
+                    empresa_id: empresaId, nombre, rol,
+                    foto1: fotos[0], foto2: fotos[1], foto3: fotos[2], activo: true
+                });
+                if (error) throw error;
+                document.getElementById('staffNombre').value = '';
+                document.getElementById('staffRol').value = '';
+                for (let i = 1; i <= 3; i++) document.getElementById('staffFoto' + i).value = '';
+                loadStaff();
+            } catch (err) {
+                alert('Error al guardar: ' + err.message);
+            }
+        }
+
+        async function deleteStaff(id) {
+            if (!confirm('¿Borrar del staff?')) return;
+            try {
+                const { error } = await sbService.from('staff').delete().eq('id', id);
+                if (error) throw error;
+                loadStaff();
+            } catch (err) {
+                alert('Error: ' + err.message);
             }
         }
 

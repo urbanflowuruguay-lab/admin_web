@@ -182,7 +182,17 @@
         </div>
     </div>
     <button id="cambiarPagoBtn" onclick="cambiarPagoMesa()" style="display:none;width:calc(100% - 32px);margin:8px 16px 0;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)"></button>
+    <button id="staffBtn" onclick="openStaff()" style="display:none;width:calc(100% - 32px);margin:8px 16px 0;padding:10px;background:var(--bg2);border:1px solid var(--accent);border-radius:10px;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">⭐ Conocé a nuestro staff</button>
     <div class="categorias" id="categoriasBar"></div>
+
+    <div id="staffOverlay" style="display:none;position:fixed;inset:0;background:#000;z-index:600;flex-direction:column;align-items:center;justify-content:center">
+        <button onclick="closeStaff()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:18px;cursor:pointer;z-index:2">✕</button>
+        <div style="font-size:12px;letter-spacing:3px;color:rgba(255,255,255,0.6);margin-bottom:12px">NUESTRO STAFF</div>
+        <img id="staffPhoto" style="width:min(78vw,340px);height:min(78vw,340px);object-fit:cover;border-radius:16px;transition:opacity .25s">
+        <div id="staffCaption" style="margin-top:16px;font-size:20px;font-weight:700;color:#fff;text-align:center;padding:0 24px"></div>
+        <div id="staffProgress" style="margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)"></div>
+        <audio id="staffAudio" preload="auto"></audio>
+    </div>
     <div class="productos-scroll" id="mainContent">
         <div class="empty" style="padding-top:80px">
             <p>Cargando carta...</p>
@@ -484,6 +494,64 @@ function applyPortadaTheme(templateId) {
 function cerrarMantenimiento(){
     document.getElementById('mantenimientoModal').style.display='none';
 }
+
+// =============================================
+// STAFF: película 3 fotos x 3 segundos por persona
+// =============================================
+let staffData = [];
+let staffTimer = null;
+
+async function loadStaffCarta(empresaIdFinal) {
+    try {
+        const emp = await sb.from("empresas").select("staff_activo,staff_musica").eq("id", empresaIdFinal).limit(1).maybeSingle();
+        if (!emp.data || emp.data.staff_activo !== true) return;
+        window._staffMusica = emp.data.staff_musica || null;
+        const st = await sb.from("staff").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("created_at");
+        staffData = (st.data || []).filter(s => s.foto1 || s.foto2 || s.foto3);
+        if (staffData.length) document.getElementById("staffBtn").style.display = "block";
+    } catch (_) {}
+}
+
+function openStaff() {
+    if (!staffData.length) return;
+    const overlay = document.getElementById("staffOverlay");
+    overlay.style.display = "flex";
+    const audio = document.getElementById("staffAudio");
+    if (window._staffMusica) { audio.src = window._staffMusica; audio.play().catch(() => {}); }
+    let mi = 0, pi = 0;
+    const show = () => {
+        const m = staffData[mi];
+        const fotos = [m.foto1, m.foto2, m.foto3].filter(Boolean);
+        const img = document.getElementById("staffPhoto");
+        img.style.opacity = 0;
+        setTimeout(() => {
+            img.src = fotos[pi % fotos.length];
+            img.style.opacity = 1;
+        }, 200);
+        document.getElementById("staffCaption").textContent = (m.nombre || '') + (m.rol ? ' · ' + m.rol : '');
+        document.getElementById("staffProgress").textContent = (mi + 1) + ' / ' + staffData.length;
+    };
+    show();
+    clearInterval(staffTimer);
+    staffTimer = setInterval(() => {
+        const fotos = [staffData[mi].foto1, staffData[mi].foto2, staffData[mi].foto3].filter(Boolean);
+        pi++;
+        if (pi >= fotos.length) {
+            pi = 0;
+            mi++;
+            if (mi >= staffData.length) { closeStaff(); return; }
+        }
+        show();
+    }, 1000);
+}
+
+function closeStaff() {
+    clearInterval(staffTimer);
+    staffTimer = null;
+    const audio = document.getElementById("staffAudio");
+    audio.pause();
+    document.getElementById("staffOverlay").style.display = "none";
+}
 function aceptarPedidoRecibido(){
     document.getElementById('estadoPedido').classList.remove('show');
     document.getElementById('btnAceptarPedido').style.display='none';
@@ -586,6 +654,7 @@ async function init() {
             if (mesaData) sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
         }
         renderProductos();
+        loadStaffCarta(empresaIdFinal);
         if (preloadedCart && preloadedCart.length) {
             preloadedCart.forEach(item => {
                 const prod = productos.find(p => p.id === item.id) || { id: item.id, nombre: item.nombre, precio: item.precio, foto_url: item.foto };
