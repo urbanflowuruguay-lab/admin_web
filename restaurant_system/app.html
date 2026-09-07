@@ -2545,6 +2545,8 @@
                     delivery.estado = nuevoEstado;
                 }
                 renderDelivery();
+                if (document.getElementById('content-reparto')) renderReparto();
+                if (document.getElementById('content-entregados')) renderEntregados();
             } catch (err) {
                 console.error('Error updating delivery:', err);
                 alert('Error al actualizar');
@@ -2557,6 +2559,7 @@
                 if (error) throw error;
                 showToast('Avisado al cliente: ¡llegaste! 🔔');
                 loadPedidosFromDB();
+                if (document.getElementById('content-reparto')) renderReparto();
             } catch (e) {
                 alert('Error: ' + e.message);
             }
