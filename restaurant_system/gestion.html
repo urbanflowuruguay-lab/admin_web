@@ -312,6 +312,18 @@
                     <div class="role" id="userRole">Dueño</div>
                 </div>
                 <div class="header-avatar" id="userAvatar">CL</div>
+                <div style="position:relative">
+                    <button class="btn-logout" id="soundBtn" onclick="toggleSoundPanel(event)" title="Sonidos"><i class="fas fa-volume-up" id="soundBtnIcon"></i></button>
+                    <div id="soundPanel" style="display:none;position:absolute;right:0;top:44px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;width:230px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.5)">
+                        <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔔 Sonidos</div>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer">
+                            <input type="checkbox" id="sndMuteAll" onchange="saveSoundPrefs()" style="accent-color:var(--accent)"> Silenciar todo
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                            <input type="checkbox" id="sndPedidoNuevo" onchange="saveSoundPrefs()" style="accent-color:var(--accent)"> Entrada de pedidos
+                        </label>
+                    </div>
+                </div>
                 <button class="btn-logout" onclick="logout()">Salir</button>
             </div>
         </header>
@@ -1662,13 +1674,15 @@
                 localData.pedidos = data || [];
                 if (nuevos.length > 0) {
                     // timbre fuerte: volumen max + repetir 3 veces + beep WebAudio fallback
-                    const audio = document.getElementById('pedidoSound');
-                    if (audio) {
-                        audio.volume = 1.0;
-                        let count = 0;
-                        const playLoud = () => { audio.currentTime=0; audio.play().catch(()=> beepFallback()); if (++count < 3) setTimeout(playLoud, 900); };
-                        playLoud();
-                    } else beepFallback();
+                    if (soundOn('pedido_nuevo')) {
+                        const audio = document.getElementById('pedidoSound');
+                        if (audio) {
+                            audio.volume = 1.0;
+                            let count = 0;
+                            const playLoud = () => { audio.currentTime=0; audio.play().catch(()=> beepFallback()); if (++count < 3) setTimeout(playLoud, 900); };
+                            playLoud();
+                        } else beepFallback();
+                    }
                     // flash solo en la fila del pedido nuevo
                     setTimeout(()=>{
                         const firstRow = document.querySelector('#pedidosTable tr');
@@ -2959,6 +2973,45 @@
                 alert('Error al guardar: ' + err.message);
             }
         }
+
+        // =============================================
+        // SONIDOS (preferencias por evento)
+        // =============================================
+        function getSoundPrefs() {
+            try { return JSON.parse(localStorage.getItem('urbanflow_sounds') || '{}'); }
+            catch (e) { return {}; }
+        }
+        function soundOn(key) {
+            const p = getSoundPrefs();
+            if (p.muteAll) return false;
+            if (p[key] === false) return false;
+            return true;
+        }
+        function toggleSoundPanel(e) {
+            if (e) e.stopPropagation();
+            const panel = document.getElementById('soundPanel');
+            const prefs = getSoundPrefs();
+            document.getElementById('sndMuteAll').checked = !!prefs.muteAll;
+            document.getElementById('sndPedidoNuevo').checked = prefs.pedido_nuevo !== false;
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+        function saveSoundPrefs() {
+            const prefs = {
+                muteAll: document.getElementById('sndMuteAll').checked,
+                pedido_nuevo: document.getElementById('sndPedidoNuevo').checked
+            };
+            localStorage.setItem('urbanflow_sounds', JSON.stringify(prefs));
+            paintSoundBtn();
+        }
+        function paintSoundBtn() {
+            const icon = document.getElementById('soundBtnIcon');
+            if (icon) icon.className = soundOn('pedido_nuevo') ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+        }
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('soundPanel');
+            if (panel && panel.style.display === 'block' && !panel.contains(e.target)) panel.style.display = 'none';
+        });
+        paintSoundBtn();
 
         function updateAbiertoUI(isOpen) {
             const slider = document.getElementById('abiertoSlider');

@@ -336,6 +336,16 @@
     <!-- APP -->
     <div id="app" style="display: none;">
         <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <button id="soundBtnApp" onclick="toggleSoundPanelApp(event)" title="Sonidos" style="position:fixed;top:12px;right:12px;z-index:101;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:none;border:none;color:var(--text);font-size:18px;cursor:pointer"><i class="fas fa-volume-up" id="soundBtnAppIcon"></i></button>
+        <div id="soundPanelApp" style="display:none;position:fixed;top:56px;right:12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;width:230px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.5)">
+            <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔔 Sonidos</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer">
+                <input type="checkbox" id="sndMuteAllApp" onchange="saveSoundPrefsApp()" style="accent-color:var(--accent)"> Silenciar todo
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+                <input type="checkbox" id="sndPedidoListoApp" onchange="saveSoundPrefsApp()" style="accent-color:var(--accent)"> Pedido listo
+            </label>
+        </div>
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -1165,7 +1175,46 @@
         // =============================================
         // CLOCK
         // =============================================
+        function getSoundPrefsApp() {
+            try { return JSON.parse(localStorage.getItem('urbanflow_sounds') || '{}'); }
+            catch (e) { return {}; }
+        }
+        function soundOnApp(key) {
+            const p = getSoundPrefsApp();
+            if (p.muteAll) return false;
+            if (p[key] === false) return false;
+            return true;
+        }
+        function toggleSoundPanelApp(e) {
+            if (e) e.stopPropagation();
+            const panel = document.getElementById('soundPanelApp');
+            const prefs = getSoundPrefsApp();
+            document.getElementById('sndMuteAllApp').checked = !!prefs.muteAll;
+            document.getElementById('sndPedidoListoApp').checked = prefs.pedido_listo !== false;
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+        function saveSoundPrefsApp() {
+            localStorage.setItem('urbanflow_sounds', JSON.stringify({
+                muteAll: document.getElementById('sndMuteAllApp').checked,
+                pedido_listo: document.getElementById('sndPedidoListoApp').checked
+            }));
+            paintSoundBtnApp();
+        }
+        function paintSoundBtnApp() {
+            const icon = document.getElementById('soundBtnAppIcon');
+            if (icon) icon.className = soundOnApp('pedido_listo') ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            paintSoundBtnApp();
+            document.addEventListener('click', (e) => {
+                const panel = document.getElementById('soundPanelApp');
+                if (panel && panel.style.display === 'block' && !panel.contains(e.target)) panel.style.display = 'none';
+            });
+        });
+
         function playNotificacion(){
+            if (!soundOnApp('pedido_listo')) return;
             try{
                 const ctx = new (window.AudioContext||window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
