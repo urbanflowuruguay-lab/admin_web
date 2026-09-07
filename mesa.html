@@ -874,7 +874,7 @@ async function confirmarPedido() {
             total: total,
             estado: "recibido",
             tipo_entrega: mesaToken ? "Mesa" : "online",
-            metodo_pago: selectedPago || "efectivo",
+            metodo_pago: preloadedCart ? "tarjeta_app" : (selectedPago || "efectivo"),
             metodo_pago_estado: "pendiente",
             mesa_numero: mesaData ? mesaData.numero : 0,
             notas: `${mesaData ? `Mesa #${mesaData.numero}` : 'Pedido Online'} - ${nombre}${preloadedCart ? ' (App)' : ''}`
