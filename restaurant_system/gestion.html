@@ -948,7 +948,7 @@
                         </div>
                         <p style="font-size: 11px; color: var(--text2); margin-bottom: 10px;">Podés borrar archivos viejos (fotos que ya no usás) para liberar lugar.</p>
                         <div id="storageFiles" style="max-height: 220px; overflow-y: auto; margin-bottom: 12px;"></div>
-                        <button class="btn-primary" onclick="ampliarStorage()" style="font-size: 12px; padding: 8px 14px;"><i class="fas fa-plus"></i> Ampliar +500 MB</button>
+                        <button class="btn-primary" onclick="ampliarStorage()" style="font-size: 12px; padding: 8px 14px;"><i class="fas fa-plus"></i> Ampliar +500 MB ($100/mes)</button>
                     </div>
 
                     <div class="card" style="margin-top: 20px;">
@@ -2588,7 +2588,7 @@
         async function ampliarStorage() {
             const empresaId = localData.currentUser?.empresa_id;
             if (!empresaId) return;
-            if (!confirm('Ampliar +500 MB de espacio en el servidor?')) return;
+            if (!confirm('Ampliar +500 MB por $100/mes?')) return;
             try {
                 const q = await getStorageQuota();
                 const { error } = await sbService.from('empresas').update({ storage_mb: q + 500 }).eq('id', empresaId);
