@@ -551,6 +551,8 @@
                 renderSection('cocina');
                 renderSection('delivery');
                 renderSection('mesas');
+                if (document.getElementById('content-reparto')) renderReparto();
+                if (document.getElementById('content-entregados')) renderEntregados();
 
             } catch (err) {
                 console.error('Error loading pedidos:', err);
@@ -593,6 +595,8 @@
             mesas:     { icon: 'fa-table', label: 'Mesas' },
             cocina:    { icon: 'fa-fire-burner', label: 'Cocina' },
             mapa:      { icon: 'fa-map-location-dot', label: 'Mi Mapa' },
+            reparto:   { icon: 'fa-motorcycle', label: 'En curso' },
+            entregados:{ icon: 'fa-check-double', label: 'Entregados' },
             clientes:  { icon: 'fa-address-book', label: 'Clientes' },
             zonas:     { icon: 'fa-map', label: 'Zonas' },
             facturacion:{ icon: 'fa-file-invoice-dollar', label: 'Facturación' },
@@ -606,6 +610,11 @@
             let rolKey = (currentUser.rol || '').replace('rol_', '');
             // Alias: mozo trabaja como camarero (mesas + pedidos)
             if (rolKey === 'mozo') rolKey = 'camarero';
+            // Delivery: vista mínima (esperando + entregados), sin importar permisos
+            if (rolKey === 'delivery') {
+                buildDeliveryUI();
+                return;
+            }
             const defaultConfig = ROLE_CONFIGS[rolKey] || ROLE_CONFIGS['cajero'];
             let allowedSections = defaultConfig.sections;
             // intentar leer permisos de Supabase
@@ -652,8 +661,30 @@
             });
         }
 
+        // Delivery: solo esperando + entregados
+        function buildDeliveryUI() {
+            const allowedSections = ['reparto', 'entregados'];
+            document.getElementById('sidebarName').textContent = currentUser.nombre || '';
+            document.getElementById('sidebarRole').textContent = 'Delivery';
+            document.getElementById('sidebarAvatar').textContent = currentUser.emoji || '🛵';
+            document.getElementById('sidebarItems').innerHTML = allowedSections.map((s, i) => `
+                <div class="sidebar-item ${i === 0 ? 'active' : ''}" onclick="showTab('${s}')">
+                    <i class="fas ${sectionLabels[s]?.icon||'fa-circle'}"></i>
+                    <span>${sectionLabels[s]?.label||s}</span>
+                </div>
+            `).join('');
+            document.getElementById('contentContainer').innerHTML = allowedSections.map((s, i) => `
+                <div class="section ${i === 0 ? 'active' : ''}" id="section-${s}">
+                    <div id="content-${s}"></div>
+                </div>
+            `).join('');
+            allowedSections.forEach(s => renderSection(s));
+        }
+
         function renderSection(section) {
             switch(section) {
+                case 'reparto':   renderReparto(); break;
+                case 'entregados': renderEntregados(); break;
                 case 'pedidos':   renderPedidos(); break;
                 case 'delivery':  renderDelivery(); break;
                 case 'cocina':    renderCocina(); break;
@@ -2398,6 +2429,86 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        // =============================================
+        // REPARTO (delivery: esperando o en curso)
+        // =============================================
+        async function renderReparto() {
+            const container = document.getElementById('content-reparto');
+            if (!container) return;
+            container.innerHTML = '<div class="empty"><p>Buscando...</p></div>';
+            try {
+                const { data } = await sbSvc.from('pedidos').select('*')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .eq('chofer_id', currentUser.id)
+                    .in('estado', ['listo', 'preparando', 'en_camino'])
+                    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+                if (!data) {
+                    container.innerHTML = `
+                        <div class="empty" style="padding-top:60px">
+                            <div style="font-size:64px;margin-bottom:16px">🛵</div>
+                            <p style="font-size:18px;font-weight:700">Esperando pedido...</p>
+                            <p style="font-size:13px;margin-top:8px">Te avisaremos cuando el camarero te llame</p>
+                        </div>`;
+                    return;
+                }
+                let items = [];
+                try { items = JSON.parse(data.items || '[]'); } catch (e) {}
+                if (!Array.isArray(items)) items = [];
+                const total = items.reduce((a, i) => a + ((i.precio || 0) * (i.cantidad || i.qty || 0)), 0);
+                container.innerHTML = `
+                    <div class="delivery-card" style="border:2px solid var(--accent)">
+                        <div class="order-header">
+                            <span class="order-number">Pedido #${data.numero || String(data.id).substring(0, 4)}</span>
+                            <span class="order-badge badge-preparando">${(data.estado || '').toUpperCase()}</span>
+                        </div>
+                        <div style="font-size:14px;font-weight:700;margin:8px 0">📍 ${data.direccion_entrega || 'Retiro en local'}</div>
+                        <div style="font-size:12px;color:var(--text2);margin-bottom:8px"><i class="fas fa-user"></i> ${data.cliente_nombre || 'Cliente'} · <strong style="color:var(--accent)">$${Math.round(data.total || total)}</strong> · ${data.metodo_pago || 'efectivo'}</div>
+                        <div class="order-items">
+                            ${items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.cantidad || i.qty || 1}</span></div>`).join('')}
+                        </div>
+                        ${data.estado === 'en_camino' && data.palabra_secreta ? `<div style="font-size:14px;font-weight:700;color:var(--accent);margin:8px 0">🔑 Palabra: ${data.palabra_secreta}</div>` : ''}
+                        <div class="order-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+                            ${data.estado !== 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${data.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
+                            <button class="order-btn btn-primary" onclick="verRecorrido('${data.id}')">🗺 VER RECORRIDO</button>
+                            ${data.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${data.id}', '${data.palabra_secreta || ''}')">ENTREGADO ✓</button>` : ''}
+                        </div>
+                    </div>`;
+            } catch (e) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar</p></div>';
+            }
+        }
+
+        async function renderEntregados() {
+            const container = document.getElementById('content-entregados');
+            if (!container) return;
+            container.innerHTML = '<div class="empty"><p>Cargando...</p></div>';
+            try {
+                const { data } = await sbSvc.from('pedidos').select('id,numero,cliente_nombre,total,created_at,metodo_pago')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .eq('chofer_id', currentUser.id)
+                    .eq('estado', 'entregado')
+                    .order('created_at', { ascending: false }).limit(50);
+                const list = data || [];
+                const total = list.reduce((a, p) => a + (p.total || 0), 0);
+                container.innerHTML = `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; margin-bottom: 12px;">
+                        <div style="font-size: 11px; color: var(--text2);">ENTREGADOS · COBRADO</div>
+                        <div style="font-size: 22px; font-weight: 700;">${list.length} pedidos</div>
+                        <div style="font-size: 16px; font-weight: 700; color: var(--accent);">$${Math.round(total)}</div>
+                    </div>
+                    ${list.length ? list.map(p => `
+                    <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 13px;">#${p.numero || String(p.id).substring(0, 4)} · ${p.cliente_nombre || 'Cliente'}</div>
+                            <div style="font-size: 11px; color: var(--text2);">${(p.created_at || '').slice(0, 16).replace('T', ' ')} · ${p.metodo_pago || ''}</div>
+                        </div>
+                        <div style="font-size: 15px; font-weight: 700; color: var(--accent);">$${Math.round(p.total || 0)}</div>
+                    </div>`).join('') : '<div class="empty"><p>Todavía no entregaste pedidos</p></div>'}`;
+            } catch (e) {
+                container.innerHTML = '<div class="empty"><p>Error al cargar</p></div>';
+            }
         }
 
         async function updateDelivery(deliveryId, nuevoEstado) {
