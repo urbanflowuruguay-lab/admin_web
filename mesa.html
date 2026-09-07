@@ -506,10 +506,11 @@ let staffTimer = null;
 
 async function loadStaffCarta(empresaIdFinal) {
     try {
-        const emp = await sb.from("empresas").select("staff_activo,staff_musica,staff_segundos").eq("id", empresaIdFinal).limit(1).maybeSingle();
+        const emp = await sb.from("empresas").select("staff_activo,staff_musica,staff_segundos,staff_fundido").eq("id", empresaIdFinal).limit(1).maybeSingle();
         if (!emp.data || emp.data.staff_activo !== true) return;
         window._staffMusica = emp.data.staff_musica || null;
         window._staffSeg = Math.min(10, Math.max(1, emp.data.staff_segundos || 1));
+        window._staffFundido = Math.min(5, Math.max(0.3, emp.data.staff_fundido || 1.2));
         const st = await sb.from("staff").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("created_at");
         staffData = (st.data || []).filter(s => s.foto1 || s.foto2 || s.foto3);
         if (staffData.length) document.getElementById("staffBtn").style.display = "block";
@@ -558,7 +559,7 @@ function openStaff() {
     show();
     clearInterval(staffTimer);
     const segMs = (window._staffSeg || 1) * 1000;
-    const fadeMs = Math.max(600, Math.min(2000, Math.round(segMs * 0.5)));
+    const fadeMs = Math.round((window._staffFundido || 1.2) * 1000);
     document.getElementById("staffPhotoA").style.transition = `opacity ${fadeMs}ms ease-in-out`;
     document.getElementById("staffPhotoB").style.transition = `opacity ${fadeMs}ms ease-in-out`;
     staffTimer = setInterval(() => {
