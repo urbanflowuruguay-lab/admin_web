@@ -900,8 +900,9 @@ async function confirmarPedido() {
         // Poll estado: listo -> avisar que en breve se lleva a la mesa, entregado -> rating
         if (currentPedidoId) {
             let avisoListo = false;
+            let avisoLlego = false;
             const poll = setInterval(async () => {
-                const { data: ped } = await sb.from("pedidos").select("estado").eq("id", currentPedidoId).maybeSingle();
+                const { data: ped } = await sb.from("pedidos").select("estado,palabra_secreta,llego").eq("id", currentPedidoId).maybeSingle();
                 if (!ped) return;
                 if (ped.estado === "preparando" && !avisoListo) {
                     document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido se está preparando";
@@ -920,6 +921,15 @@ async function confirmarPedido() {
                     document.getElementById("estadoPedido").querySelector("p").innerHTML = "El delivery va hacia vos.";
                     document.getElementById("deliveryTrackingBox").style.display = "block";
                     showCustomerTracking(empresaId);
+                }
+                if (ped.llego && !avisoLlego) {
+                    avisoLlego = true;
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡El delivery llegó a tu puerta! 🔔";
+                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "📍";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML =
+                        "Salí a recibirlo con tu palabra secreta:" +
+                        (ped.palabra_secreta ? `<br><span style="font-size:28px;font-weight:800;color:var(--accent);letter-spacing:2px">${ped.palabra_secreta}</span>` : "");
+                    document.getElementById("estadoPedido").classList.add("show");
                 }
                 if (ped.estado === "entregado") {
                     clearInterval(poll);
@@ -1066,7 +1076,16 @@ function showCustomerTracking(empId) {
     }
     const SUPERVISOR_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
     const deliveryMarkerIcon = L.divIcon({ className: "", html: '<div style="background:#9c27b0;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">🛵</div>', iconSize: [26,26], iconAnchor: [13,13] });
+    const clientMarkerIcon = L.divIcon({ className: "", html: '<div style="background:#22c55e;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">🏠</div>', iconSize: [26,26], iconAnchor: [13,13] });
     let custDeliveryMarker = null;
+    let custClientMarker = null;
+    let custRouteLine = null;
+    let custClientPos = null;
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            x => { custClientPos = { lat: x.coords.latitude, lon: x.coords.longitude }; },
+            () => {}, { timeout: 8000 });
+    }
 
     customerTrackInterval = setInterval(async () => {
         try {
@@ -1080,12 +1099,35 @@ function showCustomerTracking(empId) {
                 else {
                     custDeliveryMarker = L.marker([p.lat, p.lng], { icon: deliveryMarkerIcon }).addTo(customerMap);
                 }
+                if (custClientPos && !custClientMarker) {
+                    custClientMarker = L.marker([custClientPos.lat, custClientPos.lon], { icon: clientMarkerIcon }).addTo(customerMap).bindPopup('Vos');
+                }
+                // Recorrido delivery -> cliente, mapa centrado en el recorrido (más zoom al acercarse)
+                if (custClientPos) {
+                    try {
+                        const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${p.lng},${p.lat};${custClientPos.lon},${custClientPos.lat}?overview=full&geometries=geojson`);
+                        const rj = await rr.json();
+                        const coords = rj?.routes?.[0]?.geometry?.coordinates?.map(c => [c[1], c[0]]) || [];
+                        if (coords.length) {
+                            if (custRouteLine) customerMap.removeLayer(custRouteLine);
+                            custRouteLine = L.polyline(coords, { color: '#d4af37', weight: 5 }).addTo(customerMap);
+                            customerMap.fitBounds(custRouteLine.getBounds(), { padding: [30, 30] });
+                            const mts = Math.round(rj.routes[0].distance || 0);
+                            document.getElementById("deliveryTrackingText").textContent =
+                                mts < 150 ? "¡Está en tu puerta! 🔔" : `El delivery está a ${mts >= 1000 ? (mts/1000).toFixed(1) + ' km' : mts + ' m'}`;
+                            return;
+                        }
+                    } catch (e) {}
+                    customerMap.fitBounds(L.latLngBounds([[p.lat, p.lng], [custClientPos.lat, custClientPos.lon]]), { padding: [40, 40] });
+                    document.getElementById("deliveryTrackingText").textContent = "El delivery va hacia vos.";
+                    return;
+                }
                 customerMap.setView([p.lat, p.lng], 16);
                 const mins = Math.round((Date.now() - new Date(p.updated_at).getTime()) / 60000);
                 document.getElementById("deliveryTrackingText").textContent = mins < 2 ? "El delivery está cerca" : `Última ubicación: hace ${mins} min`;
             }
         } catch(e) {}
-    }, 4000);
+    }, 5000);
 }
 
 function volverCarta() {
