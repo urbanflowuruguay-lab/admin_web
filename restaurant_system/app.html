@@ -1898,6 +1898,16 @@
             }).join('');
         }
 
+        window.addEventListener('error', (e) => {
+            try {
+                const t = document.createElement('div');
+                t.style.cssText = 'position:fixed;bottom:20px;left:10px;right:10px;background:#7f1d1d;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999';
+                t.textContent = 'Error: ' + (e.message || 'desconocido');
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), 6000);
+            } catch (_) {}
+        });
+
         async function updateEstado(pedidoId, nuevoEstado) {
             try {
                 const extra = {};
@@ -1920,13 +1930,14 @@
                 }
 
                 // Update local state
-                const pedido = pedidos.find(p => p.id === pedidoId);
-                if (pedido) {
-                    pedido.estado = nuevoEstado;
-                }
-
-                renderCocina();
-                renderPedidos();
+                try {
+                    const pedido = pedidos.find(p => p.id === pedidoId);
+                    if (pedido) {
+                        pedido.estado = nuevoEstado;
+                    }
+                } catch (_) {}
+                try { renderCocina(); } catch (e) { console.error('renderCocina:', e); }
+                try { renderPedidos(); } catch (e) { console.error('renderPedidos:', e); }
             } catch (err) {
                 console.error('Error updating estado:', err);
                 alert('Error al actualizar');
