@@ -845,6 +845,10 @@
                             <input type="text" id="configDireccion" value="">
                         </div>
                         <div class="form-group">
+                            <label>Costo POS (% de tu terminal física, se suma en mesa con POS)</label>
+                            <input type="number" id="configPosPct" value="3" step="0.1" min="0">
+                        </div>
+                        <div class="form-group">
                             <label>Código Interno <small style="color:var(--text2)">(para que los empleados se registren)</small></label>
                             <div style="display:flex;gap:8px">
                                 <input type="text" id="configCodigo" value="" placeholder="Ej: BURGUER01" style="text-transform:uppercase;flex:1">
@@ -1516,6 +1520,7 @@
                 document.getElementById('configEmail').value = emp.email || '';
                 document.getElementById('configDireccion').value = emp.direccion || '';
                 document.getElementById('configCodigo').value = emp.codigo_interno || '';
+                if (emp.pos_pct != null) document.getElementById('configPosPct').value = emp.pos_pct;
                 selectedTemplate = emp.carta_template || 'dark_elegance';
                 renderTemplateGrid(selectedTemplate);
                 if (emp.logo_url) { document.getElementById('logoPreview').src = emp.logo_url; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; }
@@ -2915,6 +2920,10 @@
                 const { error } = await sb.from('empresas').update(updates).eq('id', empresaId);
                 if (error) throw error;
                 Object.assign(localData.restaurante, updates);
+                try {
+                    const posPct = parseFloat(document.getElementById('configPosPct').value);
+                    if (!isNaN(posPct)) await sb.from('empresas').update({ pos_pct: posPct }).eq('id', empresaId);
+                } catch (_) { /* columna pos_pct aún no creada */ }
                 alert('Configuración guardada');
                 logAccion('config_modificada', 'configuracion', updates);
             } catch (err) {

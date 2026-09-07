@@ -228,7 +228,7 @@
                     <div style="font-size:11px;color:var(--text2)">Pagás en mesa</div>
                 </div>
             </button>
-            <button class="pago-option" onclick="selectPago('pos')" id="pagoPOS">
+            <button class="pago-option" onclick="selectPago('pos')" id="pagoPos">
                 <span style="font-size:24px">💳</span>
                 <div>
                     <div style="font-weight:600">POS / Débito</div>
@@ -246,6 +246,48 @@
         <div class="btn-row">
             <button style="background:var(--bg3);color:var(--text)" onclick="hidePago()">Volver</button>
             <button style="background:var(--success);color:white" id="btnConfirmarPago" disabled onclick="confirmarPedido()">Confirmar Pedido</button>
+        </div>
+    </div>
+</div>
+
+<div class="nombre-input" id="pagoMesaModal">
+    <div class="nombre-box" style="max-width:400px">
+        <h3>¿Cómo vas a pagar?</h3>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:16px;text-align:center">Elegí para ver los precios de la carta</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px">
+            <button class="pago-option" onclick="elegirPagoMesa('efectivo')">
+                <span style="font-size:24px">💵</span>
+                <div>
+                    <div style="font-weight:600">Efectivo</div>
+                    <div style="font-size:11px;color:var(--text2)">Precio de lista</div>
+                </div>
+            </button>
+            <button class="pago-option" onclick="elegirPagoMesa('pos')">
+                <span style="font-size:24px">💳</span>
+                <div>
+                    <div style="font-weight:600">POS / Débito</div>
+                    <div style="font-size:11px;color:var(--text2)">Te llevamos el terminal</div>
+                </div>
+            </button>
+            <button class="pago-option" onclick="elegirPagoMesa('tarjeta')">
+                <span style="font-size:24px">📱</span>
+                <div>
+                    <div style="font-weight:600">Tarjeta UF en la app</div>
+                    <div style="font-size:11px;color:var(--text2)">Con tu tarjeta registrada</div>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="nombre-input" id="appPromptModal">
+    <div class="nombre-box" style="max-width:400px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">📲</div>
+        <h3>Bajá la app de UrbanFlow</h3>
+        <p style="color:var(--text2);font-size:13px;margin:12px 0 16px;line-height:1.6">Para pagar con tarjeta UF necesitás la app,<br>ahí ya tenés tu tarjeta registrada.</p>
+        <div class="btn-row">
+            <button style="background:var(--bg3);color:var(--text)" onclick="document.getElementById('appPromptModal').classList.remove('show');document.getElementById('pagoMesaModal').classList.add('show')">Elegir otro medio</button>
+            <button style="background:var(--success);color:white" onclick="window.location.href='/descargar.html'">Descargar app</button>
         </div>
     </div>
 </div>
@@ -365,8 +407,48 @@ function applyTheme(templateId) {
     document.body.style.fontFamily = t.font;
 }
 
+let pagoMesa = null;
+let uiValMesa = 6.50;
+let posPctMesa = 0;
+const MP_PCT_MESA = 7.88;
+
+function precioMesa(p) {
+    const base = p.precio_oferta || p.precio || 0;
+    if (pagoMesa === 'pos') return base * (1 + posPctMesa / 100);
+    if (pagoMesa === 'tarjeta') return (base + 1 * uiValMesa) / (1 - MP_PCT_MESA / 100);
+    return base;
+}
+function fmt2(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
+
 function entrarCarta() {
+    // En mesa QR primero se elige forma de pago para saber qué precio mostrar
+    if (mesaToken && !pagoMesa) {
+        document.getElementById("pagoMesaModal").classList.add("show");
+        return;
+    }
     document.getElementById("portada").classList.remove("show");
+}
+
+function elegirPagoMesa(medio) {
+    if (medio === 'tarjeta' && !window.AndroidBridge) {
+        document.getElementById('pagoMesaModal').classList.remove('show');
+        document.getElementById('appPromptModal').classList.add('show');
+        return;
+    }
+    if (carrito.length > 0) carrito = [];
+    pagoMesa = medio;
+    document.getElementById("pagoMesaModal").classList.remove("show");
+    document.getElementById("portada").classList.remove("show");
+    renderProductos();
+    updateCarritoBar();
+}
+
+function cambiarPagoMesa() {
+    document.getElementById("pagoMesaModal").classList.add("show");
+}
+
+function pagoMesaLabel() {
+    return pagoMesa === 'pos' ? '💳 POS' : pagoMesa === 'tarjeta' ? '📱 Tarjeta UF' : '💵 Efectivo';
 }
 
 function applyPortadaTheme(templateId) {
@@ -423,6 +505,15 @@ async function init() {
         ]);
         empresaData = empRes.data;
         mesaData = mesaRes ? mesaRes.data : null;
+        // Valor UI y costo POS de la empresa para precios por medio de pago
+        try {
+            const cfg = await sb.from("config_tarifas").select("ui_value").eq("pais_code", "UY").limit(1).maybeSingle();
+            if (cfg.data && cfg.data.ui_value) uiValMesa = cfg.data.ui_value;
+        } catch (_) {}
+        try {
+            const posRes = await sb.from("empresas").select("pos_pct").eq("id", empresaIdFinal).maybeSingle();
+            if (posRes.data && posRes.data.pos_pct != null) posPctMesa = posRes.data.pos_pct;
+        } catch (_) {}
         // Estado abierto/cerrado (columna opcional: si no existe en la DB, se asume abierto)
         try {
             const abRes = await sb.from("empresas").select("abierto").eq("id", empresaIdFinal).maybeSingle();
@@ -511,7 +602,8 @@ function renderProductos(filtro) {
     const cats = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
     document.getElementById("categoriasBar").innerHTML = `
         <button class="cat-btn ${!filtro ? 'active' : ''}" onclick="renderProductos()">Todos</button>
-        ${cats.map(c => `<button class="cat-btn ${filtro === c ? 'active' : ''}" onclick="renderProductos('${c}')">${c}</button>`).join("")}`;
+        ${cats.map(c => `<button class="cat-btn ${filtro === c ? 'active' : ''}" onclick="renderProductos('${c}')">${c}</button>`).join("")}
+        ${mesaToken && pagoMesa ? `<button class="cat-btn" onclick="cambiarPagoMesa()" style="margin-left:auto">${pagoMesaLabel()} ▾</button>` : ''}`;
     if (filtrados.length === 0) {
         document.getElementById("mainContent").innerHTML = '<div class="empty"><p>Sin productos disponibles</p></div>';
         return;
@@ -520,14 +612,15 @@ function renderProductos(filtro) {
     let html = filtrados.map(p => {
         const enCarrito = carrito.find(c => c.id === p.id);
         const qty = enCarrito ? enCarrito.qty : 0;
+        const precioShow = (mesaToken && pagoMesa) ? precioMesa(p) : (p.precio_oferta || p.precio);
         return `<div class="producto-card">
             ${p.foto_url ? `<img src="${p.foto_url}" class="producto-img">` : `<div class="producto-img"></div>`}
             <div class="producto-info">
                 <div class="producto-nombre">${p.nombre}</div>
                 ${p.descripcion ? `<div class="producto-desc">${p.descripcion}</div>` : ""}
                 <div style="display:flex;align-items:center;gap:4px">
-                    ${p.precio_oferta ? `<span class="precio-original">$${p.precio.toFixed(0)}</span>` : ""}
-                    <span class="producto-precio" style="color:${css.getPropertyValue('--price').trim()}">$${(p.precio_oferta || p.precio).toFixed(0)}</span>
+                    ${p.precio_oferta && !(mesaToken && pagoMesa) ? `<span class="precio-original">$${p.precio.toFixed(2)}</span>` : ""}
+                    <span class="producto-precio" style="color:${css.getPropertyValue('--price').trim()}">${fmt2(precioShow)}</span>
                 </div>
                 <div class="producto-add">
                     ${qty > 0 ? `<button class="qty-btn" onclick="changeQty('${p.id}',-1)">-</button>
@@ -545,9 +638,10 @@ function renderProductos(filtro) {
 function addToCart(prodId) {
     const prod = productos.find(p => p.id === prodId);
     if (!prod) return;
+    const precio = (mesaToken && pagoMesa) ? precioMesa(prod) : (prod.precio_oferta || prod.precio);
     const existing = carrito.find(c => c.id === prodId);
     if (existing) { existing.qty++; }
-    else { carrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio_oferta || prod.precio, qty: 1 }); }
+    else { carrito.push({ id: prod.id, nombre: prod.nombre, precio: precio, qty: 1 }); }
     renderProductos(getCurrentFilter());
 }
 
@@ -588,7 +682,7 @@ function renderCarritoItems() {
         <div class="carrito-item">
             <div class="carrito-item-info">
                 <div class="nombre">${item.nombre}</div>
-                <div class="precio">$${(item.precio * item.qty).toFixed(0)}</div>
+                <div class="precio">${fmt2(item.precio * item.qty)}</div>
             </div>
             <div class="carrito-item-qty">
                 <button class="qty-btn" onclick="changeQty('${item.id}',-1)">-</button>
@@ -604,7 +698,7 @@ function updateCarritoBar() {
     const totalItems = carrito.reduce((s, c) => s + c.qty, 0);
     const totalPrecio = carrito.reduce((s, c) => s + c.precio * c.qty, 0);
     document.getElementById("carritoCount").textContent = totalItems + " items";
-    document.getElementById("carritoTotal").textContent = "$" + totalPrecio.toFixed(0);
+    document.getElementById("carritoTotal").textContent = fmt2(totalPrecio);
     const btn = document.getElementById("btnPedir");
     btn.disabled = totalItems === 0 || window.isMantenimiento || window.negocioCerrado;
     if (window.negocioCerrado && totalItems>0) { btn.textContent = 'Cerrado'; btn.style.opacity='0.6'; }
@@ -637,6 +731,11 @@ function showPago() {
     }
     document.getElementById("nombreInput").classList.remove("show");
     document.getElementById("pagoInput").classList.add("show");
+    // Si ya eligió medio al entrar por QR, preseleccionarlo
+    if (mesaToken && pagoMesa) {
+        const map = { efectivo: 'efectivo', pos: 'pos', tarjeta: 'tarjeta_app' };
+        if (map[pagoMesa]) selectPago(map[pagoMesa]);
+    }
 }
 
 function hidePago() {
