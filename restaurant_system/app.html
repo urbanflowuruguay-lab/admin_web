@@ -458,6 +458,12 @@
             if (!v) return true; // sin marca: se muestra en todos lados
             return v.split(',').map(s => s.trim()).includes(rol);
         }
+        // ¿Es plato de cocina? (para exigir LISTO antes de entregar)
+        function esItemCocina(nombre) {
+            if (visibleMap[nombre]) return visiblePara(nombre, 'cocina');
+            const n = (nombre || '').toLowerCase();
+            return !/bebida|gaseosa|cerveza|pilsen|patricia|vino|agua|coca|pepsi|sprite|fanta|jugo|refresco|fernet|ron|vodka|whisky|caipiri|mojito|limonada|licuado|drink|cola\b/.test(n);
+        }
 
         // =============================================
         // LOAD ORDERS FROM SUPABASE
@@ -1557,22 +1563,23 @@
         }
 
         async function entregarItem(pedidoId, itemIdx) {
-            let pedido = pedidos.find(p => p.id === pedidoId);
-            let items = pedido && Array.isArray(pedido.items) ? [...pedido.items] : null;
-            if (!items) {
-                try {
-                    const { data } = await sbSvc.from('pedidos').select('items').eq('id', pedidoId).limit(1).maybeSingle();
-                    items = JSON.parse(data?.items || '[]');
-                    if (!Array.isArray(items)) return;
-                } catch (e) { return; }
-            }
-            if (!items[itemIdx]) return;
-            items[itemIdx].entregado = true;
             try {
+                const { data: p } = await sbSvc.from('pedidos').select('items,estado').eq('id', pedidoId).limit(1).maybeSingle();
+                if (!p) return;
+                let items = [];
+                try { items = JSON.parse(p.items || '[]'); } catch (e) {}
+                if (!Array.isArray(items) || !items[itemIdx]) return;
+                const it = items[itemIdx];
+                if (!it.entregado && esItemCocina(it.nombre) && p.estado !== 'listo') {
+                    alert('Esperá que esté terminada, la cocina te avisará 🔔');
+                    return;
+                }
+                items[itemIdx].entregado = true;
                 const { error } = await sbSvc.from('pedidos')
                     .update({ items: JSON.stringify(items) })
                     .eq('id', pedidoId);
                 if (error) throw error;
+                const pedido = pedidos.find(x => x.id === pedidoId);
                 if (pedido) pedido.items = items;
                 renderPedidos();
             } catch(e) {
