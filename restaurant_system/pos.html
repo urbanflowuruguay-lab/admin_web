@@ -413,9 +413,20 @@
             .order-panel { display: none; }
             .order-panel.mobile-active { display: flex; position: fixed; top: 0; right: 0; bottom: 0; width: 350px; z-index: 50; }
         }
+
+        /* TICKET 80mm: solo visible al imprimir */
+        #ticketPrint { display: none; }
+        @media print {
+            body > *:not(#ticketPrint) { display: none !important; }
+            #ticketPrint { display: block !important; width: 72mm; margin: 0; padding: 0; color: #000; font-family: monospace; font-size: 12px; }
+            #ticketPrint h2 { text-align: center; font-size: 16px; margin: 0 0 4px; }
+            #ticketPrint .t-center { text-align: center; }
+            #ticketPrint .t-row { display: flex; justify-content: space-between; padding: 1px 0; }
+            #ticketPrint hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+            #ticketPrint .t-total { font-size: 15px; font-weight: bold; }
+            @page { size: 80mm auto; margin: 0; }
+        }
     </style>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <!-- LOGIN SCREEN -->
@@ -518,9 +529,15 @@
                         <i class="fas fa-credit-card"></i> MercadoPago
                     </button>
                 </div>
+                <button onclick="printTicket()" style="width: 100%; margin-top: 8px; padding: 10px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">
+                    <i class="fas fa-print"></i> Imprimir ticket
+                </button>
             </div>
         </div>
     </div>
+
+    <!-- TICKET IMPRIMIBLE (solo se ve al imprimir, 80mm térmica) -->
+    <div id="ticketPrint" style="display: none;"></div>
 
     <!-- VARIANT MODAL -->
     <div class="modal-overlay" id="variantModal">
@@ -734,6 +751,32 @@
 
         function goDelivery() {
             window.location.href = '/restaurant_system/delivery.html' + (empresaIdPOS ? '?empresa=' + empresaIdPOS : '');
+        }
+
+        function printTicket() {
+            const r2 = n => (Math.round(n * 100) / 100).toFixed(2);
+            const now = new Date();
+            const fecha = now.toLocaleDateString('es-UY') + ' ' + now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+            const nombre = (document.getElementById('posRestaurantName').textContent || 'UrbanFlow').trim() || 'UrbanFlow';
+            const cajero = (document.getElementById('cashierName').textContent || '').trim();
+            const mesaTxt = selectedMesa ? 'Mesa #' + selectedMesa.numero : 'Mostrador';
+            const lineas = [];
+            currentOrder.forEach(o => lineas.push({ nombre: o.nombre, cant: o.qty, precio: o.precio }));
+            (mesaCuenta.items || []).forEach(i => lineas.push({ nombre: i.nombre + ' (mesa)', cant: i.cantidad, precio: i.precio }));
+            if (!lineas.length) { alert('Nada para imprimir'); return; }
+            const total = lineas.reduce((a, i) => a + (i.precio * i.cant), 0);
+            document.getElementById('ticketPrint').innerHTML = `
+                <h2>${nombre}</h2>
+                <div class="t-center">${fecha} · ${mesaTxt}</div>
+                <div class="t-center">Atiende: ${cajero}</div>
+                <hr>
+                ${lineas.map(i => `
+                    <div class="t-row"><span>${i.nombre} x${i.cant}</span><span>$${r2(i.precio * i.cant)}</span></div>
+                `).join('')}
+                <hr>
+                <div class="t-row t-total"><span>TOTAL</span><span>$${r2(total)}</span></div>
+                <div class="t-center">Gracias por su visita</div>`;
+            window.print();
         }
 
         function logoutPOS() {
