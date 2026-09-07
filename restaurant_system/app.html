@@ -661,9 +661,9 @@
             });
         }
 
-        // Delivery: solo esperando + entregados
+        // Delivery: esperando + entregados + Yo (para salir)
         function buildDeliveryUI() {
-            const allowedSections = ['reparto', 'entregados'];
+            const allowedSections = ['reparto', 'entregados', 'misdatos'];
             document.getElementById('sidebarName').textContent = currentUser.nombre || '';
             document.getElementById('sidebarRole').textContent = 'Delivery';
             document.getElementById('sidebarAvatar').textContent = currentUser.emoji || '🛵';
