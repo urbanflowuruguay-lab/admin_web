@@ -388,6 +388,19 @@
         <div class="content" id="contentContainer"></div>
     </div>
 
+    <!-- TOMAR PEDIDO EN MESA (camarero) -->
+    <div id="tomarPedidoOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarTomarPedido()">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:480px;width:92%;max-height:88vh;display:flex;flex-direction:column">
+            <h3 id="tomarPedidoTitle" style="margin-bottom:4px">Tomar pedido</h3>
+            <p id="tomarPedidoCount" style="color:var(--text2);font-size:12px;margin-bottom:12px">0 productos</p>
+            <div id="tomarPedidoItems" style="overflow-y:auto;flex:1;margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px">
+                <button onclick="cerrarTomarPedido()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">Cancelar</button>
+                <button onclick="enviarPedidoMesa()" style="flex:2;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer"><i class="fas fa-fire-burner"></i> Enviar a cocina</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // =============================================
         // SUPABASE CONFIG
@@ -1482,10 +1495,15 @@
                     <div class="order-items">
                         ${items.map((i, idx) => `
                             <div class="order-item-row" style="${i.entregado ? 'opacity:0.5;text-decoration:line-through' : ''}">
-                                <span>${i.nombre}</span>
+                                <div style="flex:1">
+                                    <span>${i.nombre}</span>
+                                    ${i.notas ? `<div style="font-size:10px;color:var(--text2);font-style:italic">${i.notas}</div>` : ''}
+                                </div>
                                 <span style="display:flex;align-items:center;gap:6px">
                                     x${i.qty || i.cantidad || 1}
-                                    ${!i.entregado ? `<button class="btn-success" style="padding:3px 8px;font-size:10px;border-radius:4px;border:none;cursor:pointer;color:#fff" onclick="event.stopPropagation();entregarItem('${p.id}', ${idx})">Entregado</button>` : '<span style="color:#22c55e;font-size:11px">✓</span>'}
+                                    ${!i.entregado
+                                        ? `<span style="color:#22c55e;font-size:10px;font-weight:700;">PENDIENTE</span><button class="btn-success" style="padding:3px 8px;font-size:10px;border-radius:4px;border:none;cursor:pointer;color:#fff" onclick="event.stopPropagation();entregarItem('${p.id}', ${idx})">Entregado</button>`
+                                        : '<span style="color:#22c55e;font-size:11px">✓ ENTREGADO</span>'}
                                 </span>
                             </div>
                         `).join('')}
@@ -1679,6 +1697,9 @@
                                     <button class="btn-primary" style="padding:5px 8px;font-size:11px;border:none;border-radius:4px;cursor:pointer" onclick="toggleMesaApp('${m.id}', '${estado}')">
                                         ${estado === 'libre' ? 'Ocupar' : estado === 'mantenimiento' ? 'Habilitar' : 'Liberar'}
                                     </button>
+                                    <button class="btn-primary" style="padding:5px 10px;font-size:11px;border:none;border-radius:4px;cursor:pointer;background:var(--green);color:#fff" onclick="tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" title="Tomar pedido">
+                                        <i class="fas fa-pencil"></i>
+                                    </button>
                                     <button class="btn-primary" style="padding:5px 10px;font-size:11px;border:none;border-radius:4px;cursor:pointer;background:#8b5cf6;color:#fff" onclick="showQRMesaApp('${token}', ${m.numero})">
                                         <i class="fas fa-qrcode"></i> QR
                                     </button>
@@ -1705,6 +1726,109 @@
                 `;
             } catch(e) {
                 container.innerHTML = '<div class="empty"><p>Error al cargar mesas</p></div>';
+            }
+        }
+
+        // =============================================
+        // CAMARERO TOMA PEDIDO EN MESA (cliente sin teléfono)
+        // =============================================
+        let pedidoMesa = { mesaId: null, mesaNumero: null, mesaToken: null, items: {} };
+
+        async function tomarPedidoMesa(mesaId, mesaNumero, mesaToken) {
+            pedidoMesa = { mesaId, mesaNumero, mesaToken, items: {} };
+            document.getElementById('tomarPedidoTitle').textContent = 'Tomar pedido · Mesa ' + mesaNumero;
+            document.getElementById('tomarPedidoOverlay').style.display = 'flex';
+            const box = document.getElementById('tomarPedidoItems');
+            box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Cargando productos...</p>';
+            try {
+                const { data, error } = await sb.from('productos_empresa')
+                    .select('*').eq('empresa_id', currentUser.empresa_id).eq('activo', true).order('categoria');
+                if (error) throw error;
+                window._prodsMesa = data || [];
+                if (!window._prodsMesa.length) {
+                    box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Sin productos</p>';
+                    return;
+                }
+                renderTomarPedidoItems();
+            } catch (err) {
+                box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar</p>';
+            }
+        }
+
+        function renderTomarPedidoItems() {
+            const box = document.getElementById('tomarPedidoItems');
+            box.innerHTML = (window._prodsMesa || []).map(p => {
+                const it = pedidoMesa.items[p.id] || { qty: 0, notas: '' };
+                return `
+                <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 13px;">${p.nombre}</div>
+                            <div style="font-size: 11px; color: var(--accent); font-weight: 700;">$${p.precio_oferta || p.precio || 0}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button onclick="qtyTomarPedido('${p.id}', -1)" style="width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--red); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;">−</button>
+                            <span style="min-width: 20px; text-align: center; font-weight: 700;">${it.qty}</span>
+                            <button onclick="qtyTomarPedido('${p.id}', 1)" style="width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--green); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;">+</button>
+                        </div>
+                    </div>
+                    ${it.qty > 0 ? `<input placeholder="Variantes / notas (ej: sin cebolla)" value="${(it.notas || '').replace(/"/g, '&quot;')}" oninput="pedidoMesa.items['${p.id}'].notas = this.value" style="width: 100%; margin-top: 8px; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px;">` : ''}
+                </div>`;
+            }).join('');
+            const n = Object.values(pedidoMesa.items).reduce((a, i) => a + i.qty, 0);
+            document.getElementById('tomarPedidoCount').textContent = n + (n === 1 ? ' producto' : ' productos');
+        }
+
+        function qtyTomarPedido(prodId, delta) {
+            const p = (window._prodsMesa || []).find(x => String(x.id) === String(prodId));
+            if (!p) return;
+            const it = pedidoMesa.items[p.id] || { qty: 0, notas: '' };
+            it.qty = Math.max(0, it.qty + delta);
+            if (it.qty === 0) delete pedidoMesa.items[p.id];
+            else pedidoMesa.items[p.id] = it;
+            renderTomarPedidoItems();
+        }
+
+        function cerrarTomarPedido() {
+            document.getElementById('tomarPedidoOverlay').style.display = 'none';
+            pedidoMesa = { mesaId: null, mesaNumero: null, mesaToken: null, items: {} };
+        }
+
+        async function enviarPedidoMesa() {
+            const entries = Object.entries(pedidoMesa.items).filter(([_, i]) => i.qty > 0);
+            if (!entries.length) { alert('Agregá al menos un producto'); return; }
+            const items = entries.map(([pid, i]) => {
+                const p = (window._prodsMesa || []).find(x => String(x.id) === String(pid)) || {};
+                return {
+                    nombre: p.nombre || 'Producto',
+                    cantidad: i.qty,
+                    precio: p.precio_oferta || p.precio || 0,
+                    notas: i.notas || '',
+                    entregado: false
+                };
+            });
+            const total = items.reduce((a, i) => a + (i.precio * i.cantidad), 0);
+            try {
+                const { error } = await sb.from('pedidos').insert({
+                    empresa_id: currentUser.empresa_id,
+                    mesa_token: pedidoMesa.mesaToken || '',
+                    mesa_numero: pedidoMesa.mesaNumero || 0,
+                    cliente_nombre: 'Mesa #' + pedidoMesa.mesaNumero + ' (' + (currentUser.nombre || 'Camarero') + ')',
+                    cliente_token: 'camarero_' + currentUser.id + '_' + Date.now(),
+                    items: JSON.stringify(items),
+                    total: total,
+                    estado: 'recibido',
+                    tipo_entrega: 'Mesa',
+                    metodo_pago: 'efectivo',
+                    notas: 'Tomado por camarero ' + (currentUser.nombre || '')
+                });
+                if (error) throw error;
+                try { await sb.from('mesas').update({ estado: 'ocupada' }).eq('id', pedidoMesa.mesaId); } catch (_) {}
+                cerrarTomarPedido();
+                renderMesas();
+                loadPedidosFromDB();
+            } catch (err) {
+                alert('Error al enviar a cocina: ' + err.message);
             }
         }
 
