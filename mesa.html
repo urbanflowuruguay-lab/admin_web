@@ -503,9 +503,10 @@ let staffTimer = null;
 
 async function loadStaffCarta(empresaIdFinal) {
     try {
-        const emp = await sb.from("empresas").select("staff_activo,staff_musica").eq("id", empresaIdFinal).limit(1).maybeSingle();
+        const emp = await sb.from("empresas").select("staff_activo,staff_musica,staff_segundos").eq("id", empresaIdFinal).limit(1).maybeSingle();
         if (!emp.data || emp.data.staff_activo !== true) return;
         window._staffMusica = emp.data.staff_musica || null;
+        window._staffSeg = Math.min(10, Math.max(1, emp.data.staff_segundos || 1));
         const st = await sb.from("staff").select("*").eq("empresa_id", empresaIdFinal).eq("activo", true).order("created_at");
         staffData = (st.data || []).filter(s => s.foto1 || s.foto2 || s.foto3);
         if (staffData.length) document.getElementById("staffBtn").style.display = "block";
@@ -517,7 +518,18 @@ function openStaff() {
     const overlay = document.getElementById("staffOverlay");
     overlay.style.display = "flex";
     const audio = document.getElementById("staffAudio");
-    if (window._staffMusica) { audio.src = window._staffMusica; audio.play().catch(() => {}); }
+    if (window._staffMusica) {
+        audio.src = window._staffMusica;
+        audio.load();
+        const pr = audio.play();
+        if (pr) pr.catch(() => {
+            const btn = document.createElement("button");
+            btn.textContent = "🔊 Activar música";
+            btn.style.cssText = "margin-top:12px;padding:10px 20px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-weight:700;cursor:pointer";
+            btn.onclick = () => { audio.play().catch(() => {}); btn.remove(); };
+            overlay.appendChild(btn);
+        });
+    }
     let mi = 0, pi = 0;
     const show = () => {
         const m = staffData[mi];
@@ -533,6 +545,7 @@ function openStaff() {
     };
     show();
     clearInterval(staffTimer);
+    const segMs = (window._staffSeg || 1) * 1000;
     staffTimer = setInterval(() => {
         const fotos = [staffData[mi].foto1, staffData[mi].foto2, staffData[mi].foto3].filter(Boolean);
         pi++;
@@ -542,7 +555,7 @@ function openStaff() {
             if (mi >= staffData.length) { closeStaff(); return; }
         }
         show();
-    }, 1000);
+    }, segMs);
 }
 
 function closeStaff() {

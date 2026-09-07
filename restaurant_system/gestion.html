@@ -983,6 +983,16 @@
                             <p id="staffMusicaEstado" style="font-size: 12px; color: var(--text2); margin-top: 4px;"></p>
                         </div>
                         <button class="btn-primary" onclick="saveStaffMusica()" style="margin-bottom:16px;font-size:12px;padding:8px 14px"><i class="fas fa-music"></i> Guardar música</button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom:16px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>Segundos por foto</label>
+                                <input type="number" id="configStaffSegundos" value="1" min="1" max="10" step="1">
+                            </div>
+                            <div style="display: flex; align-items: flex-end;">
+                                <button class="btn-primary" onclick="saveStaffSegundos()" style="font-size:12px;padding:10px 14px"><i class="fas fa-save"></i> Guardar tiempo</button>
+                            </div>
+                        </div>
+                        <p style="font-size: 11px; color: var(--text2);" id="staffDuracion">Duración total: 0s</p>
                         <div id="staffList"></div>
                         <h4 style="margin: 12px 0 8px; font-size: 14px;">Agregar persona</h4>
                         <div class="form-group">
@@ -2328,10 +2338,11 @@
                 if (cur) sel.value = cur;
             } catch (_) {}
             try {
-                const emp = await sbService.from('empresas').select('staff_activo,staff_musica').eq('id', empresaId).limit(1).maybeSingle();
+                const emp = await sbService.from('empresas').select('staff_activo,staff_musica,staff_segundos').eq('id', empresaId).limit(1).maybeSingle();
                 if (emp.data) {
                     document.getElementById('configStaffActivo').checked = emp.data.staff_activo === true;
                     document.getElementById('configStaffMusica').value = emp.data.staff_musica || '';
+                    if (emp.data.staff_segundos) document.getElementById('configStaffSegundos').value = emp.data.staff_segundos;
                 }
             } catch (_) {}
             try {
@@ -2350,6 +2361,28 @@
             } catch (err) {
                 document.getElementById('staffList').innerHTML = '<p style="color: var(--text2); font-size: 13px;">Falta crear la tabla staff en Supabase.</p>';
             }
+            updateStaffDuracion();
+        }
+
+        async function saveStaffSegundos() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const seg = Math.min(10, Math.max(1, parseInt(document.getElementById('configStaffSegundos').value) || 1));
+            document.getElementById('configStaffSegundos').value = seg;
+            try {
+                const { error } = await sbService.from('empresas').update({ staff_segundos: seg }).eq('id', empresaId);
+                if (error) throw error;
+                updateStaffDuracion();
+                alert('Tiempo guardado: ' + seg + 's por foto');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function updateStaffDuracion() {
+            const seg = parseInt(document.getElementById('configStaffSegundos').value) || 1;
+            const n = document.querySelectorAll('#staffList > div').length;
+            document.getElementById('staffDuracion').textContent = 'Duración total: ' + (n * 3 * seg) + 's (' + n + ' personas × 3 fotos × ' + seg + 's)';
         }
 
         async function saveStaffActivo() {
@@ -2422,6 +2455,7 @@
                 document.getElementById('staffRol').value = '';
                 for (let i = 1; i <= 3; i++) document.getElementById('staffFoto' + i).value = '';
                 loadStaff();
+                updateStaffDuracion();
             } catch (err) {
                 alert('Error al guardar: ' + err.message);
             }
