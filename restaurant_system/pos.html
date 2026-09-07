@@ -574,7 +574,7 @@
             { id: "emp_001", nombre: "Carlos López", pin: "0000", roles: ["rol_dueno"], email: "carlos@laparrilla.com.uy" }
         ];
 
-        const categories = [
+        let categories = [
             { id: 'all', nombre: 'Todos', icono: '📋' },
             { id: 'cat_001', nombre: 'Entradas', icono: '🥗' },
             { id: 'cat_002', nombre: 'Parrilla', icono: '🥩' },
@@ -615,7 +615,17 @@
             try{
                 const { data: empProds } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
                 if(empProds && empProds.length){
-                    products = empProds.map(p=>({ id:p.id, nombre:p.nombre, precio: p.precio || 0, foto: '🍽', categorias:['cat_001'], variantes:[{nombre:'Único',precio:p.precio||0}], stock: 999, foto_url:p.foto_url }));
+                    const cats = [...new Set(empProds.map(p => (p.categoria || 'General').trim()).filter(Boolean))].sort();
+                    categories = [{ id: 'all', nombre: 'Todos', icono: '📋' },
+                        ...cats.map((c, i) => ({ id: 'dbcat_' + i, nombre: c, icono: '🍽' }))];
+                    const catIdOf = (nombre) => {
+                        const n = ((nombre || 'General').trim());
+                        const found = categories.find(c => c.id !== 'all' && c.nombre === n);
+                        return found ? found.id : 'all';
+                    };
+                    products = empProds.map(p=>({ id:p.id, nombre:p.nombre, precio: p.precio || 0, foto: '🍽', categorias:[catIdOf(p.categoria)], variantes:[{nombre:'Único',precio:p.precio||0}], stock: 999, foto_url:p.foto_url }));
+                    currentCategory = 'all';
+                    renderCategories();
                     renderProducts();
                 }
                 const { data: empMesas } = await sbPOS.from('mesas').select('*').eq('empresa_id', empresaIdPOS).order('numero');
