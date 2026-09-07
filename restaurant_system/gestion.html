@@ -2464,6 +2464,27 @@
             document.getElementById('prodFotoPlaceholder').style.display='none';
         });
         let editingProductoId = null;
+        // Reconstruye el desplegable: fijas + las que fuiste creando (ej. carnes)
+        function refreshCategoriaOptions(selected) {
+            const sel = document.getElementById('prodCategoria');
+            const fixed = [['cat_001','Entradas'],['cat_002','Parrilla'],['cat_003','Pizzas'],['cat_004','Pastas'],['cat_005','Bebidas'],['cat_006','Postres']];
+            const seen = new Set(fixed.map(f => f[1].toLowerCase()));
+            const extra = [];
+            const addName = (n) => {
+                n = String(n || '').trim();
+                if (n && !seen.has(n.toLowerCase())) { seen.add(n.toLowerCase()); extra.push(n); }
+            };
+            (localData.categorias || []).forEach(c => addName(c.nombre));
+            (localData.productos || []).forEach(p => addName(p.categoriaNombre || (p.categorias && p.categorias[0])));
+            sel.innerHTML = fixed.map(f => `<option value="${f[0]}">${f[1]}</option>`).join('')
+                + extra.map(n => `<option value="${n}">${n}</option>`).join('')
+                + `<option value="nueva">+ Nueva categoría...</option>`;
+            const opts = [...sel.options];
+            const match = selected ? (opts.find(o => o.value === selected) || opts.find(o => o.text === selected)) : null;
+            sel.value = match ? match.value : 'cat_001';
+            document.getElementById('catNuevaWrap').style.display = 'none';
+            document.getElementById('catNueva').value = '';
+        }
         function syncDescuentoFromPrecio() {
             const precio = parseFloat(document.getElementById('prodPrecio').value) || 0;
             const oferta = parseFloat(document.getElementById('prodPrecioOferta').value);
@@ -2497,7 +2518,7 @@
             document.getElementById('prodDescuento').value = (p.precio > 0 && p.precio_oferta > 0 && p.precio_oferta < p.precio) ? Math.round((1 - p.precio_oferta / p.precio) * 100) : '';
             document.getElementById('prodStock').value = p.stock || '';
             document.getElementById('prodDisponible').value = p.disponible || 'ambas';
-            if (p.categorias && p.categorias[0]) document.getElementById('prodCategoria').value = p.categorias[0];
+            refreshCategoriaOptions(p.categoriaNombre || (p.categorias && p.categorias[0]));
             if (p.foto_url) { document.getElementById('prodFotoPreview').src = p.foto_url; document.getElementById('prodFotoPreview').style.display='block'; document.getElementById('prodFotoPlaceholder').style.display='none'; }
             else { document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block'; }
             document.getElementById('modal-producto').classList.add('active');
@@ -2514,9 +2535,7 @@
             document.getElementById('prodFoto').value = '';
             document.getElementById('prodFotoPreview').style.display='none';
             document.getElementById('prodFotoPlaceholder').style.display='block';
-            document.getElementById('prodCategoria').value = 'cat_001';
-            document.getElementById('catNuevaWrap').style.display='none';
-            document.getElementById('catNueva').value = '';
+            refreshCategoriaOptions('cat_001');
             document.getElementById('prodDisponible').value = 'ambas';
             document.getElementById('modal-producto').classList.add('active');
         }
