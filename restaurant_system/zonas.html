@@ -87,6 +87,13 @@
                 </div>
             </div>
             <div id="zonasList"></div>
+            <div id="editBar" style="display:none;padding:12px 14px;border-top:2px solid var(--accent);background:var(--bg3)">
+                <p class="hint" style="margin-bottom:8px">Arrastrá los puntos blancos para achicar o deformar la zona (ej. recortar manzanas). Los puntos del medio agregan vértices.</p>
+                <div style="display:flex;gap:8px">
+                    <button style="flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer" onclick="guardarEdicion()">Guardar forma</button>
+                    <button style="flex:1;padding:10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer" onclick="cancelarEdicion()">Cancelar</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -241,6 +248,7 @@
                     <div class="zdata">Delivery <strong>$${z.precio}</strong> · Pedido mín. <strong>$${z.pedido_minimo || 0}</strong>${radioTxt}</div>
                     <div class="zbtns">
                         <button style="background:var(--bg);color:var(--text);border:1px solid var(--border)" onclick="zoomZona('${z.id}')">Ver</button>
+                        <button style="background:#2196f3;color:#fff" onclick="editarZona('${z.id}')">Editar</button>
                         <button style="background:${z.activo === false ? 'var(--green)' : '#6b7280'};color:#fff" onclick="toggleZona('${z.id}', ${z.activo === false})">${z.activo === false ? 'Activar' : 'Pausar'}</button>
                         <button style="background:var(--red);color:#fff" onclick="deleteZona('${z.id}')">Borrar</button>
                     </div>`;
@@ -280,6 +288,42 @@
         function zoomZona(id) {
             const z = zonas.find(x => x.id === id);
             if (z && z._poly) map.fitBounds(z._poly.getBounds());
+        }
+
+        let editingId = null;
+
+        function editarZona(id) {
+            if (editingId) cancelarEdicion(true);
+            const z = zonas.find(x => x.id === id);
+            if (!z || !z._poly) { alert('Zona sin forma para editar'); return; }
+            editingId = id;
+            if (tempLayer) { drawnItems.removeLayer(tempLayer); tempLayer = null; }
+            document.getElementById('zonaFormBox').style.display = 'none';
+            map.fitBounds(z._poly.getBounds());
+            if (z._poly.editing) z._poly.editing.enable();
+            document.getElementById('editBar').style.display = 'block';
+            document.getElementById('editBar').scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        async function guardarEdicion() {
+            const z = zonas.find(x => x.id === editingId);
+            if (!z || !z._poly) return;
+            const latlngs = z._poly.getLatLngs()[0].map(p => [p.lng, p.lat]);
+            latlngs.push(latlngs.slice()[0]);
+            const geo = { type: 'Feature', properties: { radio_m: null, deformada: true }, geometry: { type: 'Polygon', coordinates: [latlngs] } };
+            try {
+                const { error } = await sb.from('zonas_delivery').update({ poligono: geo }).eq('id', editingId);
+                if (error) throw error;
+                editingId = null;
+                document.getElementById('editBar').style.display = 'none';
+                loadZonas();
+            } catch (e) { alert('Error al guardar: ' + e.message); }
+        }
+
+        function cancelarEdicion(silent) {
+            editingId = null;
+            document.getElementById('editBar').style.display = 'none';
+            if (!silent) loadZonas();
         }
 
         async function toggleZona(id, activar) {
