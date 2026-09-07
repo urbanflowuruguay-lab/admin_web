@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow - Salón: Mesas y Camareros</title>
+    <link rel="icon" type="image/png" href="./servicio.png">
+    <link rel="apple-touch-icon" href="./servicio.png">
+    <meta name="theme-color" content="#0a0a0a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg: #0a0a0a; --bg2: #111111; --bg3: #1a1a1a;
+            --text: #ffffff; --text2: #a0a0a0;
+            --accent: #d4af37; --green: #4caf50; --red: #f44336; --blue: #2196f3; --border: #333333;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 40px; }
+        .top-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        .top-bar h2 { font-size: 16px; flex: 1; }
+        .nav-btn { background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+        h3.sec { font-size: 15px; margin: 18px 0 10px; }
+        p.hint { font-size: 12px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
+        .mozo-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+        .mozo-card .mhead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .mozo-card .mname { font-weight: 700; font-size: 15px; flex: 1; }
+        .mozo-card .mtables { font-size: 12px; color: var(--accent); font-weight: 700; }
+        .subrol { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 0; cursor: pointer; }
+        .subrol input { width: 16px; height: 16px; accent-color: var(--accent); }
+        .mesa-row { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .mesa-row .mnum { font-weight: 700; font-size: 15px; min-width: 70px; }
+        .mesa-row select { flex: 1; padding: 9px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+        .online-box { background: var(--bg2); border: 1px solid var(--accent); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <button class="nav-btn" onclick="goGestion()"><i class="fas fa-arrow-left"></i> Gestión</button>
+        <h2><i class="fas fa-concierge-bell"></i> Salón: mesas y camareros</h2>
+    </div>
+    <div class="wrap">
+        <h3 class="sec">Camareros y roles</h3>
+        <p class="hint">Marcá quién <strong>arma los pedidos online y llama al delivery</strong>. Puede atender mesas también, o dedicarse <strong>solo a eso</strong> (rol dentro del rol).</p>
+        <div id="mozosBox"><p class="hint">Cargando personal...</p></div>
+
+        <h3 class="sec">Mesas por camarero</h3>
+        <p class="hint">Asigná cada mesa a su camarero. Útil cuando hay muchas mesas y varios camareros.</p>
+        <div id="mesasBox"><p class="hint">Cargando mesas...</p></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const params = new URLSearchParams(window.location.search);
+        const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
+        if (empresaId) localStorage.setItem('urbanflow_empresa_id', empresaId);
+
+        let mozos = [];
+        let mesas = [];
+
+        function goGestion() {
+            window.location.href = '/restaurant_system/gestion.html' + (empresaId ? '?empresa=' + empresaId : '');
+        }
+
+        function subrolesDe(e) {
+            return ((e.subroles || '').split(',').map(s => s.trim()).filter(Boolean));
+        }
+
+        async function init() {
+            try {
+                const { data: emps, error: e1 } = await sb.from('empleados').select('*')
+                    .eq('empresa_id', empresaId).eq('activo', true).order('nombre');
+                if (e1) throw e1;
+                mozos = (emps || []).filter(e => ['camarero', 'mozo', 'encargado'].includes((e.rol || '').toLowerCase().replace('rol_', '')));
+            } catch (e) {
+                document.getElementById('mozosBox').innerHTML = '<p class="hint">Error al cargar personal.</p>';
+            }
+            try {
+                const { data: ms, error: e2 } = await sb.from('mesas').select('*').eq('empresa_id', empresaId).order('numero');
+                if (e2) throw e2;
+                mesas = ms || [];
+            } catch (e) {
+                document.getElementById('mesasBox').innerHTML = '<p class="hint">Error al cargar mesas.</p>';
+            }
+            renderMozos();
+            renderMesas();
+        }
+
+        function renderMozos() {
+            const box = document.getElementById('mozosBox');
+            if (!mozos.length) { box.innerHTML = '<p class="hint">Sin camareros activos. Crealos en Gestión → Personal.</p>'; return; }
+            box.innerHTML = mozos.map(m => {
+                const subs = subrolesDe(m);
+                const nMesas = mesas.filter(t => String(t.camarero_id || '') === String(m.id)).length;
+                return `
+                <div class="mozo-card">
+                    <div class="mhead">
+                        <div class="mname">${m.emoji || '👤'} ${m.nombre}</div>
+                        <div class="mtables">${nMesas} mesa${nMesas === 1 ? '' : 's'}</div>
+                    </div>
+                    <label class="subrol"><input type="checkbox" ${subs.includes('arma_online') ? 'checked' : ''} onchange="toggleSubrol('${m.id}', 'arma_online', this.checked)"> Arma pedidos online y llama al delivery</label>
+                    <label class="subrol"><input type="checkbox" ${subs.includes('solo_online') ? 'checked' : ''} onchange="toggleSubrol('${m.id}', 'solo_online', this.checked)"> Solo online (no atiende mesas)</label>
+                </div>`;
+            }).join('');
+        }
+
+        async function toggleSubrol(empId, sub, on) {
+            const m = mozos.find(x => String(x.id) === String(empId));
+            if (!m) return;
+            let subs = subrolesDe(m).filter(s => s !== sub);
+            if (on) subs.push(sub);
+            if (on && sub === 'solo_online' && !subs.includes('arma_online')) subs.push('arma_online');
+            try {
+                const { error } = await sb.from('empleados').update({ subroles: subs.join(',') }).eq('id', empId);
+                if (error) throw error;
+                m.subroles = subs.join(',');
+            } catch (e) {
+                alert('Error: ' + e.message + ' (falta columna subroles)');
+                renderMozos();
+            }
+        }
+
+        function renderMesas() {
+            const box = document.getElementById('mesasBox');
+            if (!mesas.length) { box.innerHTML = '<p class="hint">Sin mesas. Crealas en Gestión → Mesas.</p>'; return; }
+            const opts = '<option value="">— Sin asignar —</option>' + mozos.map(m =>
+                `<option value="${m.id}">${m.nombre}</option>`).join('');
+            box.innerHTML = mesas.map(t => `
+                <div class="mesa-row">
+                    <div class="mnum">Mesa ${t.numero}</div>
+                    <select data-mesa="${t.id}" onchange="asignarMesa('${t.id}', this.value)">
+                        ${opts.replace(`value="${t.camarero_id || ''}"`, `value="${t.camarero_id || ''}" selected`)}
+                    </select>
+                </div>`).join('');
+        }
+
+        async function asignarMesa(mesaId, empId) {
+            const m = mozos.find(x => String(x.id) === String(empId));
+            try {
+                const { error } = await sb.from('mesas').update({
+                    camarero_id: empId || null,
+                    camarero_nombre: m ? m.nombre : null
+                }).eq('id', mesaId);
+                if (error) throw error;
+                const t = mesas.find(x => String(x.id) === String(mesaId));
+                if (t) { t.camarero_id = empId || null; t.camarero_nombre = m ? m.nombre : null; }
+                renderMozos();
+            } catch (e) {
+                alert('Error: ' + e.message + ' (faltan columnas camarero_id/nombre)');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

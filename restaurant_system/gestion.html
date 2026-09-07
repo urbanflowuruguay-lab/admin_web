@@ -361,6 +361,9 @@
                 <div class="sidebar-item" onclick="openZonas()">
                     <i class="fas fa-map-marked-alt"></i><span>Zonas</span>
                 </div>
+                <div class="sidebar-item" onclick="openSalon()">
+                    <i class="fas fa-concierge-bell"></i><span>Salón</span>
+                </div>
                 <div class="sidebar-item" onclick="showSection('facturacion')">
                     <i class="fas fa-file-invoice-dollar"></i><span>Facturación</span>
                 </div>
@@ -1454,6 +1457,15 @@
                 window.open(`zonas.html?empresa=${empresaId}`, '_blank');
             } else {
                 window.open('zonas.html', '_blank');
+            }
+        }
+
+        function openSalon() {
+            const empresaId = localData.currentUser?.empresa_id || localStorage.getItem('urbanflow_empresa_id');
+            if (empresaId) {
+                window.open(`salon.html?empresa=${empresaId}`, '_blank');
+            } else {
+                window.open('salon.html', '_blank');
             }
         }
 

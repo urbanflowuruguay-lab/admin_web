@@ -1729,7 +1729,16 @@
                     (ab || []).forEach(p => { if (p.mesa_numero) abiertosPorMesa[p.mesa_numero] = p.id; });
                 } catch (_) {}
                 window._abiertosPorMesa = abiertosPorMesa;
+                if (esMozo && window._soloMisMesas) {
+                    const mias = mesas.filter(m => String(m.camarero_id || '') === String(currentUser.id));
+                    if (mias.length) mesas.splice(0, mesas.length, ...mias);
+                }
                 container.innerHTML = `
+                    ${esMozo ? `
+                    <button onclick="window._soloMisMesas = !window._soloMisMesas; renderMesas();"
+                        style="width: 100%; padding: 10px; margin-bottom: 12px; background: ${window._soloMisMesas ? 'var(--accent)' : 'var(--bg3)'}; color: ${window._soloMisMesas ? '#000' : 'var(--text)'}; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;">
+                        ${window._soloMisMesas ? '✓ Mis mesas' : 'Ver solo mis mesas'}
+                    </button>` : ''}
                     ${esMozo ? '' : `
                     <button onclick="document.getElementById('mesaFormApp').style.display = document.getElementById('mesaFormApp').style.display === 'none' ? 'block' : 'none'"
                         style="width: 100%; padding: 12px; margin-bottom: 12px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;">
@@ -1758,6 +1767,7 @@
                                     ${label}
                                 </div>
                                 ${m.capacidad ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${m.capacidad} personas</div>` : ''}
+                                ${m.camarero_nombre ? `<div style="font-size:11px;color:var(--accent);margin-top:2px">👤 ${m.camarero_nombre}</div>` : ''}
                                 ${esMozo && pedidoAbierto ? `
                                 <button onclick="event.stopPropagation();verPedidoMesa('${pedidoAbierto}')" style="width:100%;padding:10px;margin-top:10px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
                                     <i class="fas fa-receipt"></i> VER PEDIDO
