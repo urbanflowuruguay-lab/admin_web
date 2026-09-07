@@ -974,8 +974,13 @@
                             <span style="font-size: 14px; font-weight: 700;">Mostrar Staff en la carta</span>
                         </label>
                         <div class="form-group">
-                            <label>Música del video (URL mp3, opcional — súbela según la duración total)</label>
-                            <input type="text" id="configStaffMusica" placeholder="https://.../mi-musica.mp3">
+                            <label>Música del video (súbela según la duración total)</label>
+                            <input type="text" id="configStaffMusica" placeholder="https://.../mi-musica.mp3" style="margin-bottom:8px">
+                            <label style="display: block; font-size: 12px; color: var(--text2); cursor: pointer;">
+                                O elegí un mp3 de tu PC
+                                <input type="file" id="staffMusicaFile" accept="audio/mpeg,audio/mp3,audio/*" style="display: block; margin-top: 4px; font-size: 12px;">
+                            </label>
+                            <p id="staffMusicaEstado" style="font-size: 12px; color: var(--text2); margin-top: 4px;"></p>
                         </div>
                         <button class="btn-primary" onclick="saveStaffMusica()" style="margin-bottom:16px;font-size:12px;padding:8px 14px"><i class="fas fa-music"></i> Guardar música</button>
                         <div id="staffList"></div>
@@ -2363,12 +2368,25 @@
         async function saveStaffMusica() {
             const empresaId = localData.currentUser?.empresa_id;
             if (!empresaId) return;
-            const url = document.getElementById('configStaffMusica').value.trim();
+            let url = document.getElementById('configStaffMusica').value.trim();
+            const estado = document.getElementById('staffMusicaEstado');
             try {
+                const file = document.getElementById('staffMusicaFile').files[0];
+                if (file) {
+                    estado.textContent = 'Subiendo mp3...';
+                    const path = `empresa_${empresaId}/staff_musica.mp3`;
+                    const { error: upErr } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true, contentType: file.type || 'audio/mpeg' });
+                    if (upErr) throw upErr;
+                    const { data: urlData } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                    url = urlData.publicUrl;
+                    document.getElementById('configStaffMusica').value = url;
+                    document.getElementById('staffMusicaFile').value = '';
+                }
                 const { error } = await sbService.from('empresas').update({ staff_musica: url || null }).eq('id', empresaId);
                 if (error) throw error;
-                alert('Música guardada');
+                estado.textContent = url ? 'Música guardada ✓' : 'Música quitada.';
             } catch (err) {
+                estado.textContent = '';
                 alert('Error: ' + err.message);
             }
         }
