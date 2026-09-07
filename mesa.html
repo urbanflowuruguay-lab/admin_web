@@ -181,6 +181,7 @@
             <button onclick="cerrarMantenimiento()" style="padding:10px 24px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-weight:600;cursor:pointer">Aceptar</button>
         </div>
     </div>
+    <button id="cambiarPagoBtn" onclick="cambiarPagoMesa()" style="display:none;width:calc(100% - 32px);margin:8px 16px 0;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)"></button>
     <div class="categorias" id="categoriasBar"></div>
     <div class="productos-scroll" id="mainContent">
         <div class="empty" style="padding-top:80px">
@@ -440,12 +441,23 @@ function elegirPagoMesa(medio) {
     pagoMesa = medio;
     document.getElementById("pagoMesaModal").classList.remove("show");
     document.getElementById("portada").classList.remove("show");
+    pintarBotonPago();
     renderProductos();
     updateCarritoBar();
 }
 
 function cambiarPagoMesa() {
     document.getElementById("pagoMesaModal").classList.add("show");
+}
+
+function pintarBotonPago() {
+    const btn = document.getElementById("cambiarPagoBtn");
+    if (mesaToken && pagoMesa) {
+        btn.style.display = "block";
+        btn.innerHTML = pagoMesaLabel() + " · Cambiar forma de pago";
+    } else {
+        btn.style.display = "none";
+    }
 }
 
 function pagoMesaLabel() {
@@ -603,8 +615,7 @@ function renderProductos(filtro) {
     const cats = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
     document.getElementById("categoriasBar").innerHTML = `
         <button class="cat-btn ${!filtro ? 'active' : ''}" onclick="renderProductos()">Todos</button>
-        ${cats.map(c => `<button class="cat-btn ${filtro === c ? 'active' : ''}" onclick="renderProductos('${c}')">${c}</button>`).join("")}
-        ${mesaToken && pagoMesa ? `<button class="cat-btn" onclick="cambiarPagoMesa()" style="margin-left:auto">${pagoMesaLabel()} ▾</button>` : ''}`;
+        ${cats.map(c => `<button class="cat-btn ${filtro === c ? 'active' : ''}" onclick="renderProductos('${c}')">${c}</button>`).join("")}`;
     if (filtrados.length === 0) {
         document.getElementById("mainContent").innerHTML = '<div class="empty"><p>Sin productos disponibles</p></div>';
         return;
