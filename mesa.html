@@ -188,7 +188,10 @@
     <div id="staffOverlay" style="display:none;position:fixed;inset:0;background:#000;z-index:600;flex-direction:column;align-items:center;justify-content:center">
         <button onclick="closeStaff()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:18px;cursor:pointer;z-index:2">✕</button>
         <div style="font-size:12px;letter-spacing:3px;color:rgba(255,255,255,0.6);margin-bottom:12px">NUESTRO STAFF</div>
-        <img id="staffPhoto" style="width:min(78vw,340px);height:min(78vw,340px);object-fit:cover;border-radius:16px;transition:opacity .25s">
+        <div style="position:relative;width:min(78vw,340px);height:min(58vh,460px);border-radius:16px;overflow:hidden;background:#000">
+            <img id="staffPhotoA" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:1;transition:opacity .6s">
+            <img id="staffPhotoB" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .6s">
+        </div>
         <div id="staffCaption" style="margin-top:16px;font-size:20px;font-weight:700;color:#fff;text-align:center;padding:0 24px"></div>
         <div id="staffProgress" style="margin-top:12px;font-size:12px;color:rgba(255,255,255,0.6)"></div>
         <audio id="staffAudio" preload="auto"></audio>
@@ -530,16 +533,25 @@ function openStaff() {
             overlay.appendChild(btn);
         });
     }
-    let mi = 0, pi = 0;
+    let mi = 0, pi = 0, frontA = true, firstShow = true;
     const show = () => {
         const m = staffData[mi];
         const fotos = [m.foto1, m.foto2, m.foto3].filter(Boolean);
-        const img = document.getElementById("staffPhoto");
-        img.style.opacity = 0;
-        setTimeout(() => {
-            img.src = fotos[pi % fotos.length];
-            img.style.opacity = 1;
-        }, 200);
+        const src = fotos[pi % fotos.length];
+        const imgIn = document.getElementById(frontA ? "staffPhotoB" : "staffPhotoA");
+        const imgOut = document.getElementById(frontA ? "staffPhotoA" : "staffPhotoB");
+        if (firstShow) {
+            firstShow = false;
+            imgOut.src = src;
+            imgOut.style.opacity = 1;
+            imgIn.style.opacity = 0;
+        } else {
+            imgIn.src = src;
+            void imgIn.offsetWidth;
+            imgIn.style.opacity = 1;
+            imgOut.style.opacity = 0;
+            frontA = !frontA;
+        }
         document.getElementById("staffCaption").textContent = (m.nombre || '') + (m.rol ? ' · ' + m.rol : '');
         document.getElementById("staffProgress").textContent = (mi + 1) + ' / ' + staffData.length;
     };
