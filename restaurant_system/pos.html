@@ -711,7 +711,7 @@
 
             document.getElementById('productsGrid').innerHTML = filtered.map(p => `
                 <div class="product-card ${p.stock < 10 ? 'low-stock' : ''}" onclick="selectProduct('${p.id}')">
-                    <div class="product-img">${p.foto}</div>
+                    <div class="product-img">${p.foto_url ? `<img src="${p.foto_url}" alt="${p.nombre}" onerror="this.remove()">` : (p.foto || '🍽')}</div>
                     <div class="product-name">${p.nombre}</div>
                     <div class="product-price">$${p.precio}</div>
                 </div>
