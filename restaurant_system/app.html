@@ -395,9 +395,14 @@
             <p id="tomarPedidoCount" style="color:var(--text2);font-size:12px;margin-bottom:8px">0 productos</p>
             <div id="tomarPedidoCats" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px"></div>
             <div id="tomarPedidoItems" style="overflow-y:auto;flex:1;margin-bottom:12px"></div>
-            <div style="display:flex;gap:8px">
+            <div id="tomarPedidoReview" style="display:none;overflow-y:auto;flex:1;margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px" id="tomarPedidoBtns1">
                 <button onclick="cerrarTomarPedido()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">Cancelar</button>
-                <button onclick="enviarPedidoMesa()" style="flex:2;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer"><i class="fas fa-fire-burner"></i> Enviar a cocina</button>
+                <button onclick="revisarPedidoMesa()" style="flex:2;padding:12px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer"><i class="fas fa-clipboard-check"></i> Revisar pedido</button>
+            </div>
+            <div style="display:none;gap:8px" id="tomarPedidoBtns2">
+                <button onclick="volverAProductos()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">← Volver</button>
+                <button onclick="enviarPedidoMesa()" style="flex:2;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer"><i class="fas fa-fire-burner"></i> Confirmar y enviar</button>
             </div>
         </div>
     </div>
@@ -1743,6 +1748,7 @@
         async function tomarPedidoMesa(mesaId, mesaNumero, mesaToken) {
             pedidoMesa = { mesaId, mesaNumero, mesaToken, items: {} };
             tomarPedidoCat = '';
+            volverAProductos();
             document.getElementById('tomarPedidoTitle').textContent = 'Tomar pedido · Mesa ' + mesaNumero;
             document.getElementById('tomarPedidoOverlay').style.display = 'flex';
             const box = document.getElementById('tomarPedidoItems');
@@ -1819,6 +1825,43 @@
         function cerrarTomarPedido() {
             document.getElementById('tomarPedidoOverlay').style.display = 'none';
             pedidoMesa = { mesaId: null, mesaNumero: null, mesaToken: null, items: {} };
+            volverAProductos();
+        }
+
+        function volverAProductos() {
+            document.getElementById('tomarPedidoReview').style.display = 'none';
+            document.getElementById('tomarPedidoItems').style.display = 'block';
+            document.getElementById('tomarPedidoCats').style.display = 'flex';
+            document.getElementById('tomarPedidoBtns1').style.display = 'flex';
+            document.getElementById('tomarPedidoBtns2').style.display = 'none';
+        }
+
+        function revisarPedidoMesa() {
+            const entries = Object.entries(pedidoMesa.items).filter(([_, i]) => i.qty > 0);
+            if (!entries.length) { alert('Agregá al menos un producto'); return; }
+            let total = 0;
+            const rows = entries.map(([pid, i]) => {
+                const p = (window._prodsMesa || []).find(x => String(x.id) === String(pid)) || {};
+                const precio = p.precio_oferta || p.precio || 0;
+                total += precio * i.qty;
+                const esCocina = !((p.categoria || '').toLowerCase().includes('bebida'));
+                return `
+                <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-weight: 600; font-size: 13px;">${p.nombre || 'Producto'} x${i.qty}</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--accent);">$${precio * i.qty}</div>
+                    </div>
+                    ${i.notas ? `<div style="font-size: 11px; color: var(--text2); font-style: italic; margin-top: 4px;">${i.notas}</div>` : ''}
+                    <div style="margin-top: 6px;"><span style="font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: ${esCocina ? 'var(--orange)' : 'var(--green)'}; color: #fff;">${esCocina ? '🍳 VA A COCINA' : '🥤 ENTREGÁS VOS'}</span></div>
+                </div>`;
+            }).join('');
+            document.getElementById('tomarPedidoReview').innerHTML = rows + `
+                <div style="text-align: right; font-size: 16px; font-weight: 700; padding: 10px 4px;">Total: <span style="color: var(--accent);">$${total}</span></div>`;
+            document.getElementById('tomarPedidoItems').style.display = 'none';
+            document.getElementById('tomarPedidoCats').style.display = 'none';
+            document.getElementById('tomarPedidoReview').style.display = 'block';
+            document.getElementById('tomarPedidoBtns1').style.display = 'none';
+            document.getElementById('tomarPedidoBtns2').style.display = 'flex';
         }
 
         async function enviarPedidoMesa() {
