@@ -2471,8 +2471,8 @@
                             ${items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.cantidad || i.qty || 1}</span></div>`).join('')}
                         </div>
                         ${data.estado === 'en_camino' ? `<div style="font-size:12px;color:var(--text2);margin:8px 0">🔑 Pedí la palabra secreta al entregar</div>` : ''}
-                        <div id="repartoMap" style="height:220px;border-radius:12px;border:1px solid var(--border);margin:8px 0"></div>
-                        <div class="order-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+                        <div id="repartoMap" style="height:38vh;min-height:300px;border-radius:12px;border:1px solid var(--border);margin:8px 0"></div>
+                        <div class="order-actions" style="display:flex;gap:8px;flex-wrap:wrap;padding-bottom:calc(16px + env(safe-area-inset-bottom))">
                             ${data.estado !== 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${data.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
                             ${data.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${data.id}')">ENTREGADO ✓</button>` : ''}
                             ${data.estado === 'en_camino' && !data.llego ? `<button class="order-btn btn-primary" style="background:var(--blue);color:#fff" onclick="marcarLlegue('${data.id}')">📍 LLEGUÉ</button>` : ''}
