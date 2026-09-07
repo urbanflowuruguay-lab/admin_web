@@ -372,18 +372,6 @@
             </button>
         </header>
 
-        <!-- CLOCK -->
-        <div class="clock-section">
-            <div class="clock-time" id="clockTime">12:00</div>
-            <div class="clock-date" id="clockDate">Lunes 1 de Septiembre</div>
-            <button class="clock-btn entry" id="clockBtn" onclick="toggleClock()">
-                <i class="fas fa-sign-in-alt"></i> MARCAR ENTRADA
-            </button>
-            <div class="clock-status inactive" id="clockStatus">
-                <i class="fas fa-clock"></i> Fuera de turno
-            </div>
-        </div>
-
         <!-- CONTENT -->
         <div class="content" id="contentContainer"></div>
     </div>
@@ -1303,7 +1291,7 @@
             presenceInterval = setInterval(()=> updatePresence(true), 3000);
         }
         async function updatePresence(online){
-            const estado = online ? (isClocked ? 'trabajando' : 'espera') : 'descanso';
+            const estado = online ? 'trabajando' : 'descanso';
             try{ await sbSvc.from('empleados').update({ is_online: online, last_seen: new Date().toISOString(), estado: estado }).eq('id', currentUser.id); }catch(e){}
         }
 
@@ -1369,45 +1357,9 @@
             setTimeout(()=>t.remove(), 4000);
         }
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clockTime').textContent = now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('clockDate').textContent = now.toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long' });
-            
-            if (isClocked && clockInTime) {
-                const elapsed = Math.floor((now - clockInTime) / 1000 / 60);
-                const hours = Math.floor(elapsed / 60);
-                const mins = elapsed % 60;
-                document.getElementById('statHoras').textContent = `${hours}h ${mins}m`;
-            }
-        }
-
-        function toggleClock() {
-            const btn = document.getElementById('clockBtn');
-            const status = document.getElementById('clockStatus');
-            
-            if (!isClocked) {
-                isClocked = true;
-                clockInTime = new Date();
-                btn.className = 'clock-btn exit';
-                btn.innerHTML = '<i class="fas fa-sign-out-alt"></i> MARCAR SALIDA';
-                status.className = 'clock-status active';
-                status.innerHTML = '<i class="fas fa-check-circle"></i> En turno desde ' + clockInTime.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
-                // Actualizar estado a trabajando
-                updatePresence(true);
-                registrarFichaje(currentUser, 'entrada');
-            } else {
-                isClocked = false;
-                btn.className = 'clock-btn entry';
-                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> MARCAR ENTRADA';
-                status.className = 'clock-status inactive';
-                status.innerHTML = '<i class="fas fa-clock"></i> Fuera de turno';
-                clockInTime = null;
-                // Actualizar estado a espera
-                updatePresence(true);
-                registrarFichaje(currentUser, 'salida');
-            }
-        }
+        // Sin reloj: al abrir la app ya estás activo y trabajando
+        function updateClock() {}
+        function toggleClock() {}
 
         // =============================================
         // ABIERTO / CERRADO (dueño, encargado, cajero)
@@ -2471,7 +2423,7 @@
                             ${items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.cantidad || i.qty || 1}</span></div>`).join('')}
                         </div>
                         ${data.estado === 'en_camino' ? `<div style="font-size:12px;color:var(--text2);margin:8px 0">🔑 Pedí la palabra secreta al entregar</div>` : ''}
-                        <div id="repartoMap" style="height:38vh;min-height:300px;border-radius:12px;border:1px solid var(--border);margin:8px 0"></div>
+                        <div id="repartoMap" style="height:55vh;min-height:380px;border-radius:12px;border:1px solid var(--border);margin:8px 0"></div>
                         <div class="order-actions" style="display:flex;gap:8px;flex-wrap:wrap;padding-bottom:calc(16px + env(safe-area-inset-bottom))">
                             ${data.estado !== 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${data.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
                             ${data.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${data.id}')">ENTREGADO ✓</button>` : ''}
