@@ -388,6 +388,19 @@
         <div class="content" id="contentContainer"></div>
     </div>
 
+    <!-- VER PEDIDO DE MESA (mozo: entregar + agregar) -->
+    <div id="verPedidoOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarVerPedido()">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:480px;width:92%;max-height:88vh;display:flex;flex-direction:column">
+            <h3 id="verPedidoTitle" style="margin-bottom:4px">Pedido</h3>
+            <p id="verPedidoEstado" style="color:var(--text2);font-size:12px;margin-bottom:12px"></p>
+            <div id="verPedidoItems" style="overflow-y:auto;flex:1;margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px">
+                <button onclick="cerrarVerPedido()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">Cerrar</button>
+                <button id="verPedidoAgregarBtn" onclick="" style="flex:2;padding:12px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">＋ Agregar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOMAR PEDIDO EN MESA (camarero) -->
     <div id="tomarPedidoOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarTomarPedido()">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:480px;width:92%;max-height:88vh;display:flex;flex-direction:column">
@@ -1544,9 +1557,15 @@
         }
 
         async function entregarItem(pedidoId, itemIdx) {
-            const pedido = pedidos.find(p => p.id === pedidoId);
-            if (!pedido) return;
-            const items = Array.isArray(pedido.items) ? [...pedido.items] : [];
+            let pedido = pedidos.find(p => p.id === pedidoId);
+            let items = pedido && Array.isArray(pedido.items) ? [...pedido.items] : null;
+            if (!items) {
+                try {
+                    const { data } = await sbSvc.from('pedidos').select('items').eq('id', pedidoId).limit(1).maybeSingle();
+                    items = JSON.parse(data?.items || '[]');
+                    if (!Array.isArray(items)) return;
+                } catch (e) { return; }
+            }
             if (!items[itemIdx]) return;
             items[itemIdx].entregado = true;
             try {
@@ -1554,7 +1573,7 @@
                     .update({ items: JSON.stringify(items) })
                     .eq('id', pedidoId);
                 if (error) throw error;
-                pedido.items = items;
+                if (pedido) pedido.items = items;
                 renderPedidos();
             } catch(e) {
                 console.error('Error entregando item:', e);
@@ -1690,15 +1709,25 @@
                 return;
             }
             container.innerHTML = '<div class="empty"><p>Cargando mesas...</p></div>';
+            const esMozo = ['camarero', 'mozo'].includes((currentUser.rol || '').toLowerCase().replace('rol_', ''));
             try {
                 const { data, error } = await sb.from('mesas').select('*').eq('empresa_id', currentUser.empresa_id).order('numero');
                 if (error) throw error;
                 const mesas = data || [];
+                // Pedidos abiertos por mesa para mostrar "pedido tomado"
+                let abiertosPorMesa = {};
+                try {
+                    const { data: ab } = await sb.from('pedidos').select('id,mesa_numero')
+                        .eq('empresa_id', currentUser.empresa_id).in('estado', ['recibido', 'preparando', 'listo']);
+                    (ab || []).forEach(p => { if (p.mesa_numero) abiertosPorMesa[p.mesa_numero] = p.id; });
+                } catch (_) {}
+                window._abiertosPorMesa = abiertosPorMesa;
                 container.innerHTML = `
+                    ${esMozo ? '' : `
                     <button onclick="document.getElementById('mesaFormApp').style.display = document.getElementById('mesaFormApp').style.display === 'none' ? 'block' : 'none'"
                         style="width: 100%; padding: 12px; margin-bottom: 12px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;">
                         <i class="fas fa-plus"></i> Crear mesa
-                    </button>
+                    </button>`}
                     <div id="mesaFormApp" style="display: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
                         <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                             <input id="mesaNumeroApp" type="number" placeholder="Número" style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
@@ -1711,19 +1740,25 @@
                         ${mesas.map(m => {
                             const estado = m.estado || 'libre';
                             const token = m.mesa_token || m.id;
-                            const color = estado==='libre'?'var(--green)': estado==='ocupada'?'var(--orange)': estado==='mantenimiento'?'var(--text2)':'var(--blue)';
-                            const label = estado==='libre'?'Libre': estado==='ocupada'?'Ocupada': estado==='mantenimiento'?'Mantenimiento':'Reservada';
+                            const pedidoAbierto = (window._abiertosPorMesa || {})[m.numero];
+                            const color = pedidoAbierto ? 'var(--accent)' : estado==='libre'?'var(--green)': estado==='ocupada'?'var(--orange)': estado==='mantenimiento'?'var(--text2)':'var(--blue)';
+                            const label = pedidoAbierto ? '🔵 PEDIDO TOMADO' : estado==='libre'?'Libre': estado==='ocupada'?'Ocupada': estado==='mantenimiento'?'Mantenimiento':'Reservada';
                             return `
-                            <div style="background: var(--bg2); border: 2px solid ${color}; border-radius: 12px; padding: 15px; text-align: center;">
+                            <div onclick="${esMozo && pedidoAbierto ? `verPedidoMesa('${pedidoAbierto}')` : ''}" style="background: var(--bg2); border: 2px solid ${color}; border-radius: 12px; padding: 15px; text-align: center; ${esMozo && pedidoAbierto ? 'cursor:pointer;' : ''}">
                                 <div style="font-size: 32px; margin-bottom: 5px;">🪑</div>
                                 <div style="font-weight: 700; font-size: 16px;">Mesa ${m.numero}</div>
                                 <div style="font-size: 11px; color: ${color}; margin-top: 4px; text-transform: uppercase; font-weight: 600;">
                                     ${label}
                                 </div>
                                 ${m.capacidad ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${m.capacidad} personas</div>` : ''}
+                                ${esMozo && pedidoAbierto ? `
+                                <button onclick="event.stopPropagation();verPedidoMesa('${pedidoAbierto}')" style="width:100%;padding:10px;margin-top:10px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                                    <i class="fas fa-receipt"></i> VER PEDIDO
+                                </button>` : `
                                 <button onclick="tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" style="width:100%;padding:10px;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
-                                        <i class="fas fa-pencil"></i> TOMAR PEDIDO
-                                    </button>
+                                    <i class="fas fa-pencil"></i> TOMAR PEDIDO
+                                </button>`}
+                                ${esMozo ? '' : `
                                 <div style="display:flex;gap:4px;margin-top:8px;justify-content:center;flex-wrap:wrap">
                                     <button class="btn-primary" style="padding:5px 8px;font-size:11px;border:none;border-radius:4px;cursor:pointer" onclick="toggleMesaApp('${m.id}', '${estado}')">
                                         ${estado === 'libre' ? 'Ocupar' : estado === 'mantenimiento' ? 'Habilitar' : 'Liberar'}
@@ -1734,7 +1769,7 @@
                                     <button style="padding:5px 10px;font-size:11px;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer" onclick="deleteMesaApp('${m.id}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
-                                </div>
+                                </div>`}
                             </div>
                         `}).join('')}
                     </div>`}
@@ -1899,6 +1934,48 @@
             } catch (err) {
                 box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar</p>';
             }
+        }
+
+        async function verPedidoMesa(pedidoId) {
+            document.getElementById('verPedidoOverlay').style.display = 'flex';
+            const box = document.getElementById('verPedidoItems');
+            box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Cargando...</p>';
+            try {
+                const { data: p, error } = await sb.from('pedidos').select('*').eq('id', pedidoId).limit(1).maybeSingle();
+                if (error || !p) throw error || new Error('no encontrado');
+                let items = [];
+                try { items = JSON.parse(p.items || '[]'); } catch (e) {}
+                if (!Array.isArray(items)) items = [];
+                const total = items.reduce((a, i) => a + ((i.precio || 0) * (i.cantidad || i.qty || 0)), 0);
+                document.getElementById('verPedidoTitle').textContent = 'Mesa ' + (p.mesa_numero || '?') + ' · $' + Math.round(total);
+                document.getElementById('verPedidoEstado').textContent = 'Estado: ' + (p.estado || '').toUpperCase() + (p.cliente_nombre ? ' · ' + p.cliente_nombre : '');
+                box.innerHTML = items.map((i, idx) => `
+                    <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px; ${i.entregado ? 'opacity:0.55' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 13px;">${i.nombre} x${i.cantidad || i.qty || 1}</div>
+                                ${i.notas ? `<div style="font-size:10px;color:var(--text2);font-style:italic">${i.notas}</div>` : ''}
+                            </div>
+                            ${i.entregado
+                                ? '<span style="color:#22c55e;font-size:11px;font-weight:700">✓ ENTREGADO</span>'
+                                : `<span style="display:flex;gap:6px;align-items:center"><span style="color:#22c55e;font-size:10px;font-weight:700">PENDIENTE</span><button onclick="entregarItemVer('${p.id}', ${idx})" style="padding:5px 10px;font-size:11px;border-radius:6px;border:none;background:var(--green);color:#fff;font-weight:700;cursor:pointer">Entregado</button></span>`}
+                        </div>
+                    </div>`).join('') || '<p style="color:var(--text2);font-size:13px;text-align:center">Sin items</p>';
+                document.getElementById('verPedidoAgregarBtn').onclick = () => { cerrarVerPedido(); agregarAPedido(p.id, p.mesa_numero || 0); };
+            } catch (err) {
+                box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar el pedido</p>';
+            }
+        }
+
+        async function entregarItemVer(pedidoId, idx) {
+            await entregarItem(pedidoId, idx);
+            verPedidoMesa(pedidoId);
+            renderMesas();
+        }
+
+        function cerrarVerPedido() {
+            document.getElementById('verPedidoOverlay').style.display = 'none';
+            renderMesas();
         }
 
         async function enviarPedidoMesa() {
