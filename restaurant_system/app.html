@@ -2469,15 +2469,64 @@
                             ${items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.cantidad || i.qty || 1}</span></div>`).join('')}
                         </div>
                         ${data.estado === 'en_camino' ? `<div style="font-size:12px;color:var(--text2);margin:8px 0">🔑 Pedí la palabra secreta al entregar</div>` : ''}
+                        <div id="repartoMap" style="height:220px;border-radius:12px;border:1px solid var(--border);margin:8px 0"></div>
                         <div class="order-actions" style="display:flex;gap:8px;flex-wrap:wrap">
                             ${data.estado !== 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${data.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
-                            <button class="order-btn btn-primary" onclick="verRecorrido('${data.id}')">🗺 VER RECORRIDO</button>
                             ${data.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${data.id}')">ENTREGADO ✓</button>` : ''}
                         </div>
                     </div>`;
+                initRepartoMap(data);
             } catch (e) {
                 container.innerHTML = '<div class="empty"><p>Error al cargar</p></div>';
             }
+        }
+
+        let repartoMap = null;
+
+        async function initRepartoMap(p) {
+            const el = document.getElementById('repartoMap');
+            if (!el || typeof L === 'undefined') return;
+            try {
+                if (repartoMap) { repartoMap.remove(); repartoMap = null; }
+                repartoMap = L.map('repartoMap', { zoomControl: true }).setView([-34.9011, -56.1645], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap', maxZoom: 19
+                }).addTo(repartoMap);
+                setTimeout(() => repartoMap.invalidateSize(), 300);
+                let dest = (p.lat_entrega && p.lon_entrega) ? { lat: p.lat_entrega, lon: p.lon_entrega } : null;
+                if (!dest && p.direccion_entrega) dest = await geocodeDir(p.direccion_entrega + ', Uruguay');
+                const pos = await new Promise(res => {
+                    if (!navigator.geolocation) return res(null);
+                    navigator.geolocation.getCurrentPosition(
+                        x => res({ lat: x.coords.latitude, lon: x.coords.longitude }),
+                        () => res(null), { timeout: 8000 });
+                });
+                const mk = (lat, lon, html) => L.marker([lat, lon], {
+                    icon: L.divIcon({ className: '', html, iconSize: [30, 30], iconAnchor: [15, 15] })
+                }).addTo(repartoMap);
+                if (dest) {
+                    mk(dest.lat, dest.lon, '<div style="background:#f44336;color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid #fff">📍</div>');
+                }
+                if (pos) {
+                    mk(pos.lat, pos.lon, '<div style="background:#22c55e;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff">🛵</div>');
+                }
+                if (dest && pos) {
+                    try {
+                        const rr = await fetch(`https://router.project-osrm.org/route/v1/driving/${pos.lon},${pos.lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson`);
+                        const rj = await rr.json();
+                        const coords = rj?.routes?.[0]?.geometry?.coordinates?.map(c => [c[1], c[0]]) || [];
+                        if (coords.length) {
+                            const line = L.polyline(coords, { color: '#d4af37', weight: 5 }).addTo(repartoMap);
+                            repartoMap.fitBounds(line.getBounds());
+                            const mins = Math.round((rj.routes[0].duration || 0) / 60);
+                            showToast('Recorrido: ~' + mins + ' min hasta el cliente');
+                            return;
+                        }
+                    } catch (e) {}
+                }
+                if (dest) repartoMap.setView([dest.lat, dest.lon], 15);
+                else if (pos) repartoMap.setView([pos.lat, pos.lon], 15);
+            } catch (e) {}
         }
 
         async function renderEntregados() {
