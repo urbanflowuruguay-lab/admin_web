@@ -612,6 +612,8 @@
 
         async function loadPOSData(){
             if(!empresaIdPOS) return;
+            // Con empresa real se descartan los empleados demo del código
+            employees = [];
             try{
                 const { data: empProds } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
                 if(empProds && empProds.length){
@@ -636,6 +638,9 @@
                 const { data: empEmpleados } = await sbPOS.from('empleados').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
                 if(empEmpleados && empEmpleados.length){
                     employees = empEmpleados.map(e=>({ id:e.id, nombre:e.nombre, pin:e.pin, roles:[e.rol||'rol_cajero'], email:e.email||'' }));
+                }
+                if (employees.length === 0) {
+                    document.getElementById('pinError').textContent = 'Sin personal activo: activalos en Gestión → Personal';
                 }
                 // Dueño: entra a caja con su PIN y opera como cajero
                 try {
