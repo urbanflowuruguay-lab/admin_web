@@ -2438,9 +2438,9 @@
                 if (file) {
                     estado.textContent = 'Subiendo mp3...';
                     const path = `empresa_${empresaId}/staff_musica.mp3`;
-                    const { error: upErr } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true, contentType: file.type || 'audio/mpeg' });
+                    const { error: upErr } = await sbService.storage.from('ocio_fotos').upload(path, file, { upsert: true, contentType: file.type || 'audio/mpeg' });
                     if (upErr) throw upErr;
-                    const { data: urlData } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                    const { data: urlData } = sbService.storage.from('ocio_fotos').getPublicUrl(path);
                     url = urlData.publicUrl;
                     document.getElementById('configStaffMusica').value = url;
                     document.getElementById('staffMusicaFile').value = '';
