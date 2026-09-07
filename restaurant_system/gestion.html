@@ -938,6 +938,20 @@
                     </div>
 
                     <div class="card" style="margin-top: 20px;">
+                        <h3 class="card-title" style="margin-bottom: 12px;">💾 Espacio en el servidor</h3>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                            <span id="storageUsoTxt" style="color: var(--text2);">Midiendo...</span>
+                            <span id="storagePctTxt" style="font-weight: 700;"></span>
+                        </div>
+                        <div style="height: 12px; background: var(--bg3); border-radius: 6px; overflow: hidden; margin-bottom: 12px;">
+                            <div id="storageBar" style="height: 100%; width: 0%; background: var(--green); transition: width .3s;"></div>
+                        </div>
+                        <p style="font-size: 11px; color: var(--text2); margin-bottom: 10px;">Podés borrar archivos viejos (fotos que ya no usás) para liberar lugar.</p>
+                        <div id="storageFiles" style="max-height: 220px; overflow-y: auto; margin-bottom: 12px;"></div>
+                        <button class="btn-primary" onclick="ampliarStorage()" style="font-size: 12px; padding: 8px 14px;"><i class="fas fa-plus"></i> Ampliar +500 MB</button>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
                         <h3 class="card-title" style="margin-bottom: 20px;">Almacenamiento</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                             <div style="padding: 20px; background: var(--bg3); border-radius: 8px;">
@@ -1408,6 +1422,7 @@
             if (section === 'config') {
                 loadPermisos();
                 loadStaff();
+                loadStorageInfo();
                 setTimeout(() => initRestaurantMap(), 150);
             }
         }
@@ -1677,6 +1692,7 @@
         // Logo y portada upload
         document.getElementById('logoFile')?.addEventListener('change', async function() {
             const file = this.files[0]; if (!file) return;
+            if (!(await checkStorageOrAlert(file.size))) { this.value = ''; return; }
             const empresaId = localData.currentUser?.empresa_id; if (!empresaId) return;
             document.getElementById('logoPreview').src = URL.createObjectURL(file);
             document.getElementById('logoPreview').style.display='block'; document.getElementById('logoPlaceholder').style.display='none';
@@ -1689,6 +1705,7 @@
         });
         document.getElementById('portadaFile')?.addEventListener('change', async function() {
             const file = this.files[0]; if (!file) return;
+            if (!(await checkStorageOrAlert(file.size))) { this.value = ''; return; }
             const empresaId = localData.currentUser?.empresa_id; if (!empresaId) return;
             document.getElementById('portadaPreview').src = URL.createObjectURL(file);
             document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none';
@@ -2436,6 +2453,7 @@
             try {
                 const file = document.getElementById('staffMusicaFile').files[0];
                 if (file) {
+                    if (!(await checkStorageOrAlert(file.size))) { document.getElementById('staffMusicaFile').value = ''; estado.textContent = ''; return; }
                     estado.textContent = 'Subiendo mp3...';
                     const path = `empresa_${empresaId}/staff_musica.mp3`;
                     const { error: upErr } = await sbService.storage.from('ocio_fotos').upload(path, file, { upsert: true, contentType: file.type || 'audio/mpeg' });
@@ -2467,6 +2485,7 @@
                 for (let i = 1; i <= 3; i++) {
                     const file = document.getElementById('staffFoto' + i).files[0];
                     if (file) {
+                        if (!(await checkStorageOrAlert(file.size))) return;
                         const path = `empresa_${empresaId}/staff_${Date.now()}_${i}.jpg`;
                         const { error: upErr } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
                         if (upErr) throw upErr;
@@ -2497,6 +2516,86 @@
                 const { error } = await sbService.from('staff').delete().eq('id', id);
                 if (error) throw error;
                 loadStaff();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        // =============================================
+        // CUOTA DE ESPACIO POR EMPRESA
+        // =============================================
+        async function getStorageUsage() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return { mb: 0, files: [] };
+            const { data, error } = await sbService.storage.from('ocio_fotos').list(`empresa_${empresaId}`, { limit: 1000 });
+            if (error) throw error;
+            const files = (data || []).filter(f => f.metadata && f.metadata.size);
+            const bytes = files.reduce((a, f) => a + (f.metadata.size || 0), 0);
+            return { mb: bytes / 1048576, files };
+        }
+
+        async function getStorageQuota() {
+            try {
+                const { data } = await sbService.from('empresas').select('storage_mb').eq('id', localData.currentUser.empresa_id).limit(1).maybeSingle();
+                return (data && data.storage_mb) || 100;
+            } catch (_) { return 100; }
+        }
+
+        async function checkStorageOrAlert(extraBytes) {
+            try {
+                const [u, q] = await Promise.all([getStorageUsage(), getStorageQuota()]);
+                if ((u.mb * 1048576 + (extraBytes || 0)) > q * 1048576) {
+                    alert('⛔ Te quedaste sin espacio en el servidor (' + u.mb.toFixed(1) + ' MB de ' + q + ' MB).\nVe a Configuración → Espacio en el servidor y activá más espacio, o borrá archivos viejos.');
+                    return false;
+                }
+                return true;
+            } catch (e) { return true; }
+        }
+
+        async function loadStorageInfo() {
+            try {
+                const [u, q] = await Promise.all([getStorageUsage(), getStorageQuota()]);
+                const pct = Math.min(100, Math.round(u.mb / q * 100));
+                document.getElementById('storageUsoTxt').textContent = u.mb.toFixed(1) + ' MB de ' + q + ' MB usados';
+                document.getElementById('storagePctTxt').textContent = pct + '%';
+                const bar = document.getElementById('storageBar');
+                bar.style.width = pct + '%';
+                bar.style.background = pct >= 100 ? 'var(--danger)' : pct >= 80 ? 'var(--orange)' : 'var(--green)';
+                document.getElementById('storageFiles').innerHTML = u.files.length ? u.files.map(f => `
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--border); font-size: 12px;">
+                        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.name}</span>
+                        <span style="color: var(--text2);">${((f.metadata.size || 0) / 1048576).toFixed(2)} MB</span>
+                        <button onclick="deleteStorageFile('${f.name}')" style="padding: 4px 8px; background: var(--danger); color: #fff; border: none; border-radius: 5px; font-size: 11px; cursor: pointer;"><i class="fas fa-trash"></i></button>
+                    </div>`).join('')
+                    : '<p style="font-size: 12px; color: var(--text2);">Sin archivos.</p>';
+            } catch (err) {
+                document.getElementById('storageUsoTxt').textContent = 'No se pudo medir el uso.';
+            }
+        }
+
+        async function deleteStorageFile(name) {
+            if (!confirm('¿Borrar ' + name + ' para liberar espacio?')) return;
+            try {
+                const empresaId = localData.currentUser?.empresa_id;
+                const { error } = await sbService.storage.from('ocio_fotos').remove([`empresa_${empresaId}/${name}`]);
+                if (error) throw error;
+                loadStorageInfo();
+            } catch (err) {
+                alert('Error al borrar: ' + err.message);
+            }
+        }
+
+        async function ampliarStorage() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            if (!confirm('Ampliar +500 MB de espacio en el servidor?')) return;
+            try {
+                const q = await getStorageQuota();
+                const { error } = await sbService.from('empresas').update({ storage_mb: q + 500 }).eq('id', empresaId);
+                if (error) throw error;
+                logAccion('storage_ampliado', 'configuracion', { anterior: q, nuevo: q + 500 });
+                alert('Espacio ampliado a ' + (q + 500) + ' MB.');
+                loadStorageInfo();
             } catch (err) {
                 alert('Error: ' + err.message);
             }
@@ -2879,6 +2978,7 @@
             let fotoUrl = null;
             const file = document.getElementById('prodFoto').files[0];
             if (file) {
+                if (!(await checkStorageOrAlert(file.size))) { document.getElementById('prodFoto').value = ''; return; }
                 const empresaId = localData.currentUser?.empresa_id;
                 const path = `empresa_${empresaId}/prod_${Date.now()}.jpg`;
                 const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
