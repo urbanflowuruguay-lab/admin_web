@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>UrbanFlow Delivery - Seguimiento y Chat</title>
     <link rel="icon" type="image/png" href="./servicio.png">
     <link rel="apple-touch-icon" href="./servicio.png">
@@ -20,7 +20,7 @@
             --purple: #9c27b0; --border: #333333;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
         .top-bar {
             display: flex; align-items: center; gap: 10px;
             padding: 10px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
@@ -52,7 +52,7 @@
         .msg.local { align-self: flex-end; background: var(--accent); color: #000; }
         .msg.delivery { align-self: flex-start; background: var(--bg3); border: 1px solid var(--border); }
         .msg.cliente { align-self: flex-start; background: #1a2a1a; border: 1px solid var(--green); }
-        .chat-input { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
+        .chat-input { display: flex; gap: 8px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
         .chat-input input {
             flex: 1; padding: 10px; background: var(--bg3); color: var(--text);
             border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
