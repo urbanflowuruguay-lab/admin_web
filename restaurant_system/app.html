@@ -426,6 +426,20 @@
         </div>
     </div>
 
+    <!-- PALABRA SECRETA AL ENTREGAR -->
+    <div id="palabraOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarPalabra()">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:360px;width:90%;text-align:center">
+            <div style="font-size:44px;margin-bottom:8px">🔑</div>
+            <h3 style="margin-bottom:6px">Palabra secreta</h3>
+            <p style="color:var(--text2);font-size:13px;margin-bottom:14px">Que el cliente te diga la palabra. Si coincide, se entrega y se cobra.</p>
+            <input id="palabraInput" placeholder="Ej: MATE-37" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:12px">
+            <div style="display:flex;gap:8px">
+                <button onclick="cerrarPalabra()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer">Volver</button>
+                <button onclick="confirmarPalabra()" style="flex:1;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOMAR PEDIDO EN MESA (camarero) -->
     <div id="tomarPedidoOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)cerrarTomarPedido()">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:480px;width:92%;max-height:88vh;display:flex;flex-direction:column">
@@ -523,6 +537,7 @@
                         chofer_id: p.chofer_id || null,
                         delivery_nombre: p.delivery_nombre || null,
                         direccion_entrega: p.direccion_entrega || '',
+                        palabra_secreta: p.palabra_secreta || null,
                         notas: p.notas
                     };
                 });
@@ -1456,7 +1471,17 @@
             startDeliveryGPS();
             // Load pending deliveries
             loadDeliveryOrders();
-        }
+            // Si tengo un delivery en camino, trazar recorrido automáticamente
+            try {
+                const { data: mio } = await sbSvc.from('pedidos').select('id')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .eq('chofer_id', currentUser.id)
+                    .eq('estado', 'en_camino')
+                    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+                if (mio && mio.id) {
+                    setTimeout(() => verRecorrido(mio.id), 2000);
+                }
+            } catch (e) {}
 
         function startDeliveryGPS() {
             if (!navigator.geolocation) return;
@@ -1508,10 +1533,25 @@
             } catch(e) { console.log('Error loading deliveries:', e.message); }
         }
 
+        const PALABRAS = ['TIGRE','LUNA','MATE','SOL','RIO','GATO','FLOR','PAN','DULCE','VERDE','ROJO','AZUL','NORTE','SUR','PLAYA','CERRO','RAMBLA','FARO','PUERTO','BOSQUE'];
+        function genPalabra() {
+            return PALABRAS[Math.floor(Math.random() * PALABRAS.length)] + '-' + Math.floor(10 + Math.random() * 90);
+        }
+        async function asegurarPalabra(pedidoId) {
+            try {
+                const { data } = await sbSvc.from('pedidos').select('palabra_secreta').eq('id', pedidoId).limit(1).maybeSingle();
+                if (data && data.palabra_secreta) return data.palabra_secreta;
+                const palabra = genPalabra();
+                await sbSvc.from('pedidos').update({ palabra_secreta: palabra }).eq('id', pedidoId);
+                return palabra;
+            } catch (e) { return null; }
+        }
+
         async function takeDelivery(pedidoId) {
             try {
                 await sbSvc.from('pedidos').update({ estado: 'en_camino' }).eq('id', pedidoId);
-                alert('Pedido tomado. Dirigite al destino.');
+                const palabra = await asegurarPalabra(pedidoId);
+                alert('Pedido tomado. Dirigite al destino.' + (palabra ? '\n🔑 Palabra secreta: ' + palabra : ''));
                 loadDeliveryOrders();
             } catch(e) { alert('Error: ' + e.message); }
         }
@@ -1571,7 +1611,8 @@
             if (!id) return;
             try {
                 await sbSvc.from('pedidos').update({ estado: 'en_camino' }).eq('id', id);
-                showToast('Pedido aceptado. ¡En camino!');
+                const palabra = await asegurarPalabra(id);
+                showToast('Pedido aceptado. ¡En camino!' + (palabra ? ' 🔑 ' + palabra : ''));
                 loadPedidosFromDB();
             } catch (e) { alert('Error: ' + e.message); }
         }
@@ -2349,10 +2390,10 @@
                     <div class="order-items">
                         ${d.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
                     </div>
+                    ${d.estado === 'en_camino' && d.palabra_secreta ? `<div style="font-size:13px;font-weight:700;color:var(--accent);margin:6px 0">🔑 Palabra: ${d.palabra_secreta} <span style="font-weight:400;color:var(--text2);font-size:11px">(pedila al entregar)</span></div>` : ''}
                     <div class="order-actions">
                         ${d.estado === 'listo' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
-                        ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="verRecorrido('${d.id}')">🗺 VER RECORRIDO</button>` : ''}
-                        ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'entregado')">ENTREGADO ✓</button>` : ''}
+                        ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${d.id}', '${d.palabra_secreta || ''}')">ENTREGADO ✓</button>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -2360,11 +2401,15 @@
 
         async function updateDelivery(deliveryId, nuevoEstado) {
             try {
-                const { error } = await sbSvc.from('pedidos')
-                    .update({ estado: nuevoEstado })
-                    .eq('id', deliveryId);
-
-                if (error) throw error;
+                if (nuevoEstado === 'en_camino') {
+                    const { error } = await sbSvc.from('pedidos').update({ estado: 'en_camino' }).eq('id', deliveryId);
+                    if (error) throw error;
+                    const palabra = await asegurarPalabra(deliveryId);
+                    alert('En camino.' + (palabra ? '\n🔑 Palabra secreta: ' + palabra + '\nPedila al entregar.' : ''));
+                } else {
+                    const { error } = await sbSvc.from('pedidos').update({ estado: nuevoEstado }).eq('id', deliveryId);
+                    if (error) throw error;
+                }
 
                 const delivery = deliveries.find(d => d.id === deliveryId);
                 if (delivery) {
@@ -2374,6 +2419,43 @@
             } catch (err) {
                 console.error('Error updating delivery:', err);
                 alert('Error al actualizar');
+            }
+        }
+
+        let palabraPedidoId = null;
+
+        function abrirPalabra(pedidoId, palabra) {
+            palabraPedidoId = { id: pedidoId, palabra: palabra };
+            document.getElementById('palabraInput').value = '';
+            document.getElementById('palabraOverlay').style.display = 'flex';
+            setTimeout(() => document.getElementById('palabraInput').focus(), 100);
+        }
+
+        function cerrarPalabra() {
+            palabraPedidoId = null;
+            document.getElementById('palabraOverlay').style.display = 'none';
+        }
+
+        async function confirmarPalabra() {
+            if (!palabraPedidoId) return;
+            const escrito = (document.getElementById('palabraInput').value || '').trim().toUpperCase();
+            if (escrito !== String(palabraPedidoId.palabra || '').toUpperCase()) {
+                alert('Palabra incorrecta. Pedile al cliente que te la diga.');
+                return;
+            }
+            try {
+                const { error } = await sbSvc.from('pedidos').update({
+                    estado: 'entregado',
+                    metodo_pago_estado: 'pagado',
+                    delivered_at: new Date().toISOString(),
+                    entregado_por_nombre: currentUser?.nombre || null
+                }).eq('id', palabraPedidoId.id);
+                if (error) throw error;
+                cerrarPalabra();
+                showToast('Entregado y cobrado ✓ ¡Tema terminado!');
+                loadPedidosFromDB();
+            } catch (e) {
+                alert('Error: ' + e.message);
             }
         }
 
