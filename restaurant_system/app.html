@@ -567,7 +567,10 @@
                 </div>
             `).join('');
 
-            allowedSections.forEach(s => renderSection(s));
+            allowedSections.forEach(s => {
+                try { renderSection(s); }
+                catch (err) { console.error('Error renderizando sección ' + s + ':', err); }
+            });
         }
 
         function renderSection(section) {
