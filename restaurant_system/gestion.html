@@ -980,6 +980,19 @@
                         <button class="btn-primary" onclick="saveStaffMusica()" style="margin-bottom:16px;font-size:12px;padding:8px 14px"><i class="fas fa-music"></i> Guardar música</button>
                         <div id="staffList"></div>
                         <h4 style="margin: 12px 0 8px; font-size: 14px;">Agregar persona</h4>
+                        <div class="form-group">
+                            <label>Elegir del personal registrado</label>
+                            <select id="staffEmpleado" onchange="staffEmpleadoElegido()">
+                                <option value="">— Escribir manual —</option>
+                            </select>
+                        </div>
+                        <div id="staffPerfilBox" style="display: none; align-items: center; gap: 10px; margin-bottom: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;">
+                            <img id="staffPerfilPreview" src="" style="width: 44px; height: 44px; object-fit: cover; border-radius: 50%; display: none;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; flex: 1;">
+                                <input type="checkbox" id="staffUsarPerfil" checked style="width: 16px; height: 16px; accent-color: var(--accent);">
+                                Usar su foto de perfil
+                            </label>
+                        </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
                             <input type="text" id="staffNombre" placeholder="Nombre (Ej: Juan)" style="padding: 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
                             <input type="text" id="staffRol" placeholder="Rol (Ej: cocinero)" style="padding: 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text);">
@@ -2279,9 +2292,36 @@
         // =============================================
         // STAFF (película en la carta, se activa desde config)
         // =============================================
+        function staffEmpleadoElegido() {
+            const id = document.getElementById('staffEmpleado').value;
+            const emp = (window._staffEmpleados || []).find(e => String(e.id) === String(id));
+            const box = document.getElementById('staffPerfilBox');
+            if (emp) {
+                document.getElementById('staffNombre').value = emp.nombre || '';
+                document.getElementById('staffRol').value = (emp.rol || '').replace('rol_', '');
+                const prev = document.getElementById('staffPerfilPreview');
+                if (emp.foto_url) { prev.src = emp.foto_url; prev.style.display = 'block'; }
+                else prev.style.display = 'none';
+                document.getElementById('staffUsarPerfil').checked = !!emp.foto_url;
+                box.style.display = 'flex';
+            } else {
+                box.style.display = 'none';
+            }
+        }
+
         async function loadStaff() {
             const empresaId = localData.currentUser?.empresa_id;
             if (!empresaId) return;
+            try {
+                const { data: emps } = await sbService.from('empleados')
+                    .select('id,nombre,rol,foto_url').eq('empresa_id', empresaId).eq('activo', true).order('nombre');
+                window._staffEmpleados = emps || [];
+                const sel = document.getElementById('staffEmpleado');
+                const cur = sel.value;
+                sel.innerHTML = '<option value="">— Escribir manual —</option>' +
+                    (emps || []).map(e => `<option value="${e.id}">${e.nombre}${e.rol ? ' · ' + String(e.rol).replace('rol_', '') : ''}</option>`).join('');
+                if (cur) sel.value = cur;
+            } catch (_) {}
             try {
                 const emp = await sbService.from('empresas').select('staff_activo,staff_musica').eq('id', empresaId).limit(1).maybeSingle();
                 if (emp.data) {
@@ -2340,6 +2380,8 @@
             const rol = document.getElementById('staffRol').value.trim();
             if (!nombre) { alert('Poné el nombre'); return; }
             try {
+                const empSel = (window._staffEmpleados || []).find(e => String(e.id) === String(document.getElementById('staffEmpleado').value));
+                const usarPerfil = document.getElementById('staffUsarPerfil').checked && empSel && empSel.foto_url;
                 const fotos = [];
                 for (let i = 1; i <= 3; i++) {
                     const file = document.getElementById('staffFoto' + i).files[0];
@@ -2349,6 +2391,8 @@
                         if (upErr) throw upErr;
                         const { data: urlData } = sb.storage.from('ocio_fotos').getPublicUrl(path);
                         fotos.push(urlData.publicUrl);
+                    } else if (i === 1 && usarPerfil) {
+                        fotos.push(empSel.foto_url);
                     } else fotos.push(null);
                 }
                 const { error } = await sbService.from('staff').insert({
