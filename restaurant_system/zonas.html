@@ -67,6 +67,10 @@
             <div class="side-section">
                 <h4>Cómo marcar</h4>
                 <p class="hint">Usá el <strong>polígono</strong> o el <strong>círculo</strong> de la barra del mapa para dibujar zonas (podés hacer radios concéntricos con distinto precio). Al terminar poné nombre, precio del delivery y pedido mínimo. Solo los usuarios dentro del rango verán tu restaurante.</p>
+                <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;cursor:pointer">
+                    <input type="checkbox" id="chkCentroLocal" checked style="width:16px;height:16px;accent-color:#d4af37">
+                    Círculos con centro en mi local
+                </label>
             </div>
             <div class="side-section" id="zonaFormBox" style="display:none">
                 <h4>Nueva zona</h4>
@@ -98,6 +102,7 @@
         let drawnItems = null;
         let tempLayer = null;
         let tempRadiusM = null;
+        let tempCentro = null;
         let setLocMode = false;
         let localMarker = null;
         let zonas = [];
@@ -169,9 +174,15 @@
                 if (tempLayer) drawnItems.removeLayer(tempLayer);
                 let layer = e.layer;
                 tempRadiusM = null;
+                tempCentro = null;
                 if (e.layerType === 'circle') {
-                    const c = layer.getLatLng(), r = layer.getRadius();
+                    let c = layer.getLatLng();
+                    const r = layer.getRadius();
+                    if (document.getElementById('chkCentroLocal').checked && localMarker) {
+                        c = localMarker.getLatLng();
+                    }
                     tempRadiusM = Math.round(r);
+                    tempCentro = { lat: c.lat, lon: c.lng };
                     layer = L.polygon(circleToPolygon(c, r), { color: '#d4af37' });
                     document.getElementById('zonaNombre').value = '';
                     document.getElementById('zonaNombre').placeholder = 'Nombre (Ej: Radio ' + (r >= 1000 ? (r/1000).toFixed(1) + ' km' : Math.round(r) + ' m') + ')';
@@ -222,11 +233,12 @@
                         z._poly = poly;
                     }
                 } catch (e) {}
+                const radioTxt = z.poligono?.properties?.radio_m ? ' · Radio ' + (z.poligono.properties.radio_m >= 1000 ? (z.poligono.properties.radio_m/1000).toFixed(1) + ' km' : z.poligono.properties.radio_m + ' m') : '';
                 const div = document.createElement('div');
                 div.className = 'zona-row' + (z.activo === false ? ' inactive' : '');
                 div.innerHTML = `
                     <div class="znombre">${z.nombre} ${z.activo === false ? '(inactiva)' : ''}</div>
-                    <div class="zdata">Delivery <strong>$${z.precio}</strong> · Pedido mín. <strong>$${z.pedido_minimo || 0}</strong></div>
+                    <div class="zdata">Delivery <strong>$${z.precio}</strong> · Pedido mín. <strong>$${z.pedido_minimo || 0}</strong>${radioTxt}</div>
                     <div class="zbtns">
                         <button style="background:var(--bg);color:var(--text);border:1px solid var(--border)" onclick="zoomZona('${z.id}')">Ver</button>
                         <button style="background:${z.activo === false ? 'var(--green)' : '#6b7280'};color:#fff" onclick="toggleZona('${z.id}', ${z.activo === false})">${z.activo === false ? 'Activar' : 'Pausar'}</button>
@@ -243,7 +255,7 @@
             if (!nombre || !tempLayer) { alert('Dibujá la zona y poné nombre y precio'); return; }
             const latlngs = tempLayer.getLatLngs()[0].map(p => [p.lng, p.lat]);
             latlngs.push(latlngs[0]);
-            const geo = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [latlngs] } };
+            const geo = { type: 'Feature', properties: { radio_m: tempRadiusM, centro: tempCentro }, geometry: { type: 'Polygon', coordinates: [latlngs] } };
             try {
                 const { error } = await sb.from('zonas_delivery').insert({
                     empresa_id: empresaId, nombre, precio: precio, pedido_minimo: minimo,
