@@ -1734,7 +1734,11 @@
                         </span>
                     </div>
                     <div class="order-items">
-                        ${items.map((i, idx) => `
+                        ${items.map((i, idx) => {
+                            const esOnline = !p.mesa;
+                            const rolQ = (currentUser.rol || '').toLowerCase().replace('rol_', '');
+                            const puedeEntregar = !esOnline || ['delivery', 'dueño', 'dueno', 'encargado'].includes(rolQ);
+                            return `
                             <div class="order-item-row" style="${i.entregado ? 'opacity:0.5;text-decoration:line-through' : ''}">
                                 <div style="flex:1">
                                     <span>${i.nombre}</span>
@@ -1743,11 +1747,13 @@
                                 <span style="display:flex;align-items:center;gap:6px">
                                     x${i.qty || i.cantidad || 1}
                                     ${!i.entregado
-                                        ? `<span style="color:#22c55e;font-size:10px;font-weight:700;">PENDIENTE</span><button class="btn-success" style="padding:3px 8px;font-size:10px;border-radius:4px;border:none;cursor:pointer;color:#fff" onclick="event.stopPropagation();entregarItem('${p.id}', ${idx})">Entregado</button>`
+                                        ? (puedeEntregar
+                                            ? `<span style="color:#22c55e;font-size:10px;font-weight:700;">PENDIENTE</span><button class="btn-success" style="padding:3px 8px;font-size:10px;border-radius:4px;border:none;cursor:pointer;color:#fff" onclick="event.stopPropagation();entregarItem('${p.id}', ${idx})">Entregado</button>`
+                                            : `<span style="font-size:10px;color:var(--text2);">lo entrega el delivery</span>`)
                                         : '<span style="color:#22c55e;font-size:11px">✓ ENTREGADO</span>'}
                                 </span>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                     <div class="pedido-detail-app" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;font-size:12px;color:var(--text2)">
                         <div><i class="fas fa-user"></i> ${p.cliente_nombre || 'Cliente'}</div>
@@ -1755,10 +1761,10 @@
                         <div style="margin-top:4px">📅 ${p.fecha || ''} · ${p.tipo_entrega === 'online' ? 'Pedido Online' : p.mesa ? 'Mesa ' + p.mesa : ''}</div>
                         ${p.notas ? `<div style="margin-top:4px">📝 ${p.notas}</div>` : ''}
                     </div>
-                    ${!p.mesa && p.estado === 'listo' && puedeLlamarDelivery() ? (p.delivery_nombre
+                    ${!p.mesa && ['recibido', 'preparando', 'listo'].includes(p.estado) && puedeLlamarDelivery() ? (p.delivery_nombre
                         ? `<div style="font-size:12px;color:var(--accent);margin-top:8px;font-weight:700">🛵 ${p.delivery_nombre} avisado</div>`
                         : `<button style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--accent)" onclick="event.stopPropagation();abrirLlamarDelivery('${p.id}')"><i class="fas fa-motorcycle"></i> LLAMAR DELIVERY</button>`) : ''}
-                    ${todosEntregados && p.estado !== 'entregado' ? `<button class="btn-success" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff" onclick="event.stopPropagation();completarEntrega('${p.id}')"><i class="fas fa-check-double"></i> ENTREGA COMPLETA</button>` : ''}
+                    ${todosEntregados && p.estado !== 'entregado' && (p.mesa || ['delivery', 'dueño', 'dueno', 'encargado'].includes((currentUser.rol || '').toLowerCase().replace('rol_', ''))) ? `<button class="btn-success" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;color:#fff" onclick="event.stopPropagation();completarEntrega('${p.id}')"><i class="fas fa-check-double"></i> ENTREGA COMPLETA</button>` : ''}
                     <div class="order-time"><i class="fas fa-clock"></i> ${p.time}</div>
                 </div>`;
             }).join('');
