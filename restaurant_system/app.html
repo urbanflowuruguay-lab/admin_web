@@ -1582,8 +1582,8 @@
         async function takeDelivery(pedidoId) {
             try {
                 await sbSvc.from('pedidos').update({ estado: 'en_camino' }).eq('id', pedidoId);
-                const palabra = await asegurarPalabra(pedidoId);
-                alert('Pedido tomado. Dirigite al destino.' + (palabra ? '\n🔑 Palabra secreta: ' + palabra : ''));
+                await asegurarPalabra(pedidoId);
+                alert('Pedido tomado. Dirigite al destino.\nAl entregar, pedí la palabra secreta al cliente.');
                 loadDeliveryOrders();
             } catch(e) { alert('Error: ' + e.message); }
         }
@@ -1643,8 +1643,8 @@
             if (!id) return;
             try {
                 await sbSvc.from('pedidos').update({ estado: 'en_camino' }).eq('id', id);
-                const palabra = await asegurarPalabra(id);
-                showToast('Pedido aceptado. ¡En camino!' + (palabra ? ' 🔑 ' + palabra : ''));
+                await asegurarPalabra(id);
+                showToast('Pedido aceptado. ¡En camino! Pedí la palabra al entregar.');
                 loadPedidosFromDB();
             } catch (e) { alert('Error: ' + e.message); }
         }
@@ -2422,10 +2422,10 @@
                     <div class="order-items">
                         ${d.items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.qty || i.cantidad || 1}</span></div>`).join('')}
                     </div>
-                    ${d.estado === 'en_camino' && d.palabra_secreta ? `<div style="font-size:13px;font-weight:700;color:var(--accent);margin:6px 0">🔑 Palabra: ${d.palabra_secreta} <span style="font-weight:400;color:var(--text2);font-size:11px">(pedila al entregar)</span></div>` : ''}
+                    ${d.estado === 'en_camino' ? `<div style="font-size:12px;color:var(--text2);margin:6px 0">🔑 Pedí la palabra secreta al entregar</div>` : ''}
                     <div class="order-actions">
                         ${d.estado === 'listo' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${d.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
-                        ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${d.id}', '${d.palabra_secreta || ''}')">ENTREGADO ✓</button>` : ''}
+                        ${d.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${d.id}')">ENTREGADO ✓</button>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -2468,11 +2468,11 @@
                         <div class="order-items">
                             ${items.map(i => `<div class="order-item-row"><span>${i.nombre}</span><span>x${i.cantidad || i.qty || 1}</span></div>`).join('')}
                         </div>
-                        ${data.estado === 'en_camino' && data.palabra_secreta ? `<div style="font-size:14px;font-weight:700;color:var(--accent);margin:8px 0">🔑 Palabra: ${data.palabra_secreta}</div>` : ''}
+                        ${data.estado === 'en_camino' ? `<div style="font-size:12px;color:var(--text2);margin:8px 0">🔑 Pedí la palabra secreta al entregar</div>` : ''}
                         <div class="order-actions" style="display:flex;gap:8px;flex-wrap:wrap">
                             ${data.estado !== 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${data.id}', 'en_camino')">RECOGER PEDIDO</button>` : ''}
                             <button class="order-btn btn-primary" onclick="verRecorrido('${data.id}')">🗺 VER RECORRIDO</button>
-                            ${data.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${data.id}', '${data.palabra_secreta || ''}')">ENTREGADO ✓</button>` : ''}
+                            ${data.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${data.id}')">ENTREGADO ✓</button>` : ''}
                         </div>
                     </div>`;
             } catch (e) {
@@ -2516,8 +2516,8 @@
                 if (nuevoEstado === 'en_camino') {
                     const { error } = await sbSvc.from('pedidos').update({ estado: 'en_camino' }).eq('id', deliveryId);
                     if (error) throw error;
-                    const palabra = await asegurarPalabra(deliveryId);
-                    alert('En camino.' + (palabra ? '\n🔑 Palabra secreta: ' + palabra + '\nPedila al entregar.' : ''));
+                    await asegurarPalabra(deliveryId);
+                    alert('En camino. Al entregar, pedí la palabra secreta al cliente.');
                 } else {
                     const { error } = await sbSvc.from('pedidos').update({ estado: nuevoEstado }).eq('id', deliveryId);
                     if (error) throw error;
@@ -2536,8 +2536,8 @@
 
         let palabraPedidoId = null;
 
-        function abrirPalabra(pedidoId, palabra) {
-            palabraPedidoId = { id: pedidoId, palabra: palabra };
+        function abrirPalabra(pedidoId) {
+            palabraPedidoId = pedidoId;
             document.getElementById('palabraInput').value = '';
             document.getElementById('palabraOverlay').style.display = 'flex';
             setTimeout(() => document.getElementById('palabraInput').focus(), 100);
@@ -2551,7 +2551,13 @@
         async function confirmarPalabra() {
             if (!palabraPedidoId) return;
             const escrito = (document.getElementById('palabraInput').value || '').trim().toUpperCase();
-            if (escrito !== String(palabraPedidoId.palabra || '').toUpperCase()) {
+            if (!escrito) { alert('Escribí la palabra que te diga el cliente.'); return; }
+            let real = '';
+            try {
+                const { data } = await sbSvc.from('pedidos').select('palabra_secreta').eq('id', palabraPedidoId).limit(1).maybeSingle();
+                real = String(data?.palabra_secreta || '').toUpperCase();
+            } catch (e) {}
+            if (!real || escrito !== real) {
                 alert('Palabra incorrecta. Pedile al cliente que te la diga.');
                 return;
             }
@@ -2561,7 +2567,7 @@
                     metodo_pago_estado: 'pagado',
                     delivered_at: new Date().toISOString(),
                     entregado_por_nombre: currentUser?.nombre || null
-                }).eq('id', palabraPedidoId.id);
+                }).eq('id', palabraPedidoId);
                 if (error) throw error;
                 cerrarPalabra();
                 showToast('Entregado y cobrado ✓ ¡Tema terminado!');
