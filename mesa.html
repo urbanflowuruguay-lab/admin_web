@@ -558,6 +558,9 @@ function openStaff() {
     show();
     clearInterval(staffTimer);
     const segMs = (window._staffSeg || 1) * 1000;
+    const fadeMs = Math.max(600, Math.min(2000, Math.round(segMs * 0.5)));
+    document.getElementById("staffPhotoA").style.transition = `opacity ${fadeMs}ms ease-in-out`;
+    document.getElementById("staffPhotoB").style.transition = `opacity ${fadeMs}ms ease-in-out`;
     staffTimer = setInterval(() => {
         const fotos = [staffData[mi].foto1, staffData[mi].foto2, staffData[mi].foto3].filter(Boolean);
         pi++;
