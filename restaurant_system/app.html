@@ -1500,7 +1500,7 @@
                     <div class="order-header">
                         <span class="order-number">#${p.numero} ${p.mesa ? '• 🪑 Mesa ' + p.mesa : '• 📱 Online'}</span>
                         <span style="display:flex;gap:6px;align-items:center">
-                            ${p.estado !== 'entregado' ? `<button style="padding:4px 10px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;cursor:pointer" onclick="event.stopPropagation();agregarAPedido('${p.id}', ${p.mesa || 0})">＋ Agregar</button>` : ''}
+                            ${(p.estado !== 'entregado' && ['camarero', 'mozo'].includes((currentUser.rol || '').toLowerCase().replace('rol_', ''))) ? `<button style="padding:4px 10px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;cursor:pointer" onclick="event.stopPropagation();agregarAPedido('${p.id}', ${p.mesa || 0})">＋ Agregar</button>` : ''}
                             <span class="order-badge badge-${todosEntregados ? 'listo' : esListo ? 'listo' : 'preparando'}">
                                 ${todosEntregados ? '✅ TODO ENTREGADO' : esListo ? '✅ LISTO PARA RETIRAR' : p.estado.toUpperCase()}
                             </span>
@@ -1590,12 +1590,16 @@
                 return;
             }
 
+            const esBebida = (nombre) => {
+                    const n = (nombre || '').toLowerCase();
+                    return /bebida|gaseosa|cerveza|pilsen|patricia|vino|agua|coca|pepsi|sprite|fanta|jugo|refresco|fernet|ron|vodka|whisky|caipiri|mojito|limonada|licuado|cerveza|drink|cola\b/.test(n);
+                };
             container.innerHTML = pedidosCocina.map(p => {
                 let items=[]; try{ items = typeof p.items==='string' ? JSON.parse(p.items) : p.items; }catch(e){ items=p.items||[]; }
-                // Filtrar solo platos (no bebidas)
+                // Filtrar solo platos (no bebidas): por categoría y por nombre
                 const cocinaItems = items.filter(i => {
                     const cat = categoriasMap[i.nombre] || '';
-                    return !cat.includes('bebida') && !cat.includes('drink');
+                    return !cat.includes('bebida') && !cat.includes('drink') && !esBebida(i.nombre);
                 });
                 if (cocinaItems.length === 0) return '';
                 const mesa = p.mesa ? `Mesa ${p.mesa}` : 'Delivery';
