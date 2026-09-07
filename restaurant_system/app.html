@@ -526,7 +526,9 @@
         };
 
         async function buildUI() {
-            const rolKey = (currentUser.rol || '').replace('rol_', '');
+            let rolKey = (currentUser.rol || '').replace('rol_', '');
+            // Alias: mozo trabaja como camarero (mesas + pedidos)
+            if (rolKey === 'mozo') rolKey = 'camarero';
             const defaultConfig = ROLE_CONFIGS[rolKey] || ROLE_CONFIGS['cajero'];
             let allowedSections = defaultConfig.sections;
             // intentar leer permisos de Supabase
