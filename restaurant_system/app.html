@@ -2425,7 +2425,7 @@
                 container.innerHTML = `
                     <div style="position:relative;height:calc(100dvh - 170px);min-height:420px;border-radius:12px;overflow:hidden;border:2px solid var(--accent)">
                         <div id="repartoMap" style="position:absolute;inset:0"></div>
-                        <div style="position:absolute;top:10px;left:10px;right:10px;background:rgba(10,10,10,0.92);border:1px solid var(--border);border-radius:12px;padding:12px;max-height:46%;overflow-y:auto">
+                        <div style="position:absolute;top:10px;left:10px;right:10px;z-index:500;background:rgba(10,10,10,0.92);border:1px solid var(--border);border-radius:12px;padding:12px;max-height:46%;overflow-y:auto">
                             <div class="order-header">
                                 <span class="order-number">Pedido #${data.numero || String(data.id).substring(0, 4)}</span>
                                 <span class="order-badge badge-preparando">${(data.estado || '').toUpperCase()}</span>
@@ -2437,7 +2437,7 @@
                             </div>
                             ${data.estado === 'en_camino' ? `<div style="font-size:12px;color:var(--text2);margin:8px 0">🔑 Pedí la palabra secreta al entregar</div>` : ''}
                         </div>
-                        <div class="order-actions" style="position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;flex-wrap:wrap">
+                        <div class="order-actions" style="position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:1000;display:flex;gap:8px;flex-wrap:wrap">
                             ${data.estado !== 'en_camino' ? `<button class="order-btn btn-primary" onclick="updateDelivery('${data.id}', 'en_camino')" style="flex:1">RECOGER PEDIDO</button>` : ''}
                             ${data.estado === 'en_camino' && !data.llego ? `<button class="order-btn btn-primary" style="flex:1;background:var(--blue);color:#fff" onclick="marcarLlegue('${data.id}')">📍 LLEGUÉ</button>` : ''}
                             ${data.estado === 'en_camino' ? `<button class="order-btn btn-primary" onclick="abrirPalabra('${data.id}')" style="flex:1">ENTREGADO ✓</button>` : ''}
