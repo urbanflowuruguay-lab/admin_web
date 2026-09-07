@@ -496,6 +496,7 @@
                 <h3><i class="fas fa-receipt"></i> Pedido</h3>
                 <div class="order-mesa" id="orderMesa">Sin mesa</div>
             </div>
+            <div id="cuentaMesaBox"></div>
 
             <div class="order-items" id="orderItems">
                 <div class="order-empty">
@@ -553,6 +554,50 @@
 
         function mesaKey() {
             return selectedMesa ? String(selectedMesa.id) : 'mostrador';
+        }
+
+        // Cuenta abierta de la mesa (pedidos del mozo + QR sin cobrar)
+        let mesaCuenta = { pedidos: [], items: [], total: 0 };
+
+        async function loadCuentaMesa() {
+            mesaCuenta = { pedidos: [], items: [], total: 0 };
+            if (!selectedMesa || !empresaIdPOS) { renderCuentaMesa(); return; }
+            try {
+                const { data } = await sbPOS.from('pedidos').select('id,items,total,cliente_nombre,metodo_pago_estado,estado')
+                    .eq('empresa_id', empresaIdPOS).eq('mesa_numero', selectedMesa.numero)
+                    .neq('estado', 'entregado').neq('estado', 'cancelado');
+                const open = (data || []).filter(p => p.metodo_pago_estado !== 'pagado');
+                let total = 0;
+                const items = [];
+                open.forEach(p => {
+                    let its = [];
+                    try { its = JSON.parse(p.items || '[]'); } catch (e) {}
+                    if (!Array.isArray(its)) its = [];
+                    its.forEach(i => items.push({ nombre: i.nombre, cantidad: i.cantidad || i.qty || 1, precio: i.precio || 0 }));
+                    total += (p.total || 0);
+                });
+                mesaCuenta = { pedidos: open.map(p => p.id), items, total };
+            } catch (e) { console.log('cuenta mesa', e.message); }
+            renderCuentaMesa();
+        }
+
+        function renderCuentaMesa() {
+            const box = document.getElementById('cuentaMesaBox');
+            if (!box) return;
+            if (!selectedMesa || !mesaCuenta.items.length) { box.innerHTML = ''; return; }
+            const r2 = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
+            box.innerHTML = `
+                <div style="background: var(--bg3); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; margin: 0 12px 10px;">
+                    <div style="font-size: 12px; font-weight: 700; margin-bottom: 6px;">🧾 Cuenta de la mesa (mozo/QR)</div>
+                    ${mesaCuenta.items.map(i => `
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0;">
+                            <span>${i.nombre} x${i.cantidad}</span>
+                            <span>${r2(i.precio * i.cantidad)}</span>
+                        </div>`).join('')}
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px;">
+                        <span>A cobrar</span><span style="color: var(--accent);">${r2(mesaCuenta.total)}</span>
+                    </div>
+                </div>`;
         }
 
         let employees = [
@@ -899,6 +944,7 @@
             document.getElementById('mesaBtn').classList.add('active');
             paintOrderMesa();
             renderOrder();
+            loadCuentaMesa();
             showProductsView();
         }
 
@@ -909,6 +955,7 @@
             document.getElementById('mesaBtn').classList.remove('active');
             paintOrderMesa();
             renderOrder();
+            loadCuentaMesa();
             showProductsView();
         }
 
@@ -922,16 +969,18 @@
         // PAYMENT
         // =============================================
         async function payOrder(method) {
-            if (currentOrder.length === 0) {
+            const cuentaExtra = mesaCuenta.total || 0;
+            if (currentOrder.length === 0 && cuentaExtra <= 0) {
                 alert('Agregá productos al pedido');
                 return;
             }
 
             // Caja mostrador: precios directos del sistema, sin recargos ni tipeo.
+            // Si la mesa tiene cuenta abierta (mozo/QR), se cobra todo junto.
             const r2 = n => Math.round(n * 100) / 100;
             const subtotal = r2(currentOrder.reduce((a, item) => a + (item.precio * item.qty), 0));
-            const totalCliente = subtotal;
-            const totalRecibido = subtotal;
+            const totalCliente = r2(subtotal + cuentaExtra);
+            const totalRecibido = totalCliente;
 
             const pedido = {
                 id: 'ped_' + Date.now(),
@@ -944,7 +993,12 @@
                     cantidad: o.qty,
                     precio_unitario: o.precio,
                     subtotal: o.precio * o.qty
-                })),
+                })).concat(mesaCuenta.items.map(i => ({
+                    nombre: i.nombre + ' (cuenta mesa)',
+                    cantidad: i.cantidad,
+                    precio_unitario: i.precio,
+                    subtotal: i.precio * i.cantidad
+                }))),
                 subtotal: subtotal,
                 uf_fee_ui: 0,
                 uf_fee_monto: 0,
@@ -983,6 +1037,12 @@
                             }).eq('id', insData[0].id);
                         }
                     } catch (_) {}
+                    // Marcar como cobrada la cuenta abierta de la mesa
+                    if (mesaCuenta.pedidos.length) {
+                        try {
+                            await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado' }).in('id', mesaCuenta.pedidos);
+                        } catch (_) {}
+                    }
                 }catch(e){ console.log('POS insert error', e.message); }
             }
             // Save to localStorage (fallback)
@@ -1003,7 +1063,7 @@
             });
 
             // Show confirmation
-            alert(`Pedido #${pedido.numero} creado\nTotal: $${pedido.total_cliente}\nMétodo: ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}`);
+            alert(`Pedido #${pedido.numero} creado\nCaja: $${subtotal}${cuentaExtra > 0 ? `\nCuenta mesa: $${cuentaExtra}` : ''}\nTotal: $${pedido.total_cliente}\nMétodo: ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}`);
 
             // Reset only the charged table's order (others keep theirs)
             ordersByMesa[mesaKey()] = [];
@@ -1011,6 +1071,7 @@
             renderOrder();
             renderProducts();
             renderTables();
+            loadCuentaMesa();
         }
 
         // =============================================

@@ -398,7 +398,7 @@
             <div id="tomarPedidoReview" style="display:none;overflow-y:auto;flex:1;margin-bottom:12px"></div>
             <div style="display:flex;gap:8px" id="tomarPedidoBtns1">
                 <button onclick="cerrarTomarPedido()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">Cancelar</button>
-                <button onclick="revisarPedidoMesa()" style="flex:2;padding:12px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer"><i class="fas fa-clipboard-check"></i> Revisar pedido</button>
+                <button onclick="revisarPedidoMesa()" style="flex:2;padding:12px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer"><i class="fas fa-clipboard-check"></i> Ver pedido</button>
             </div>
             <div style="display:none;gap:8px" id="tomarPedidoBtns2">
                 <button onclick="volverAProductos()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">← Volver</button>
@@ -1499,8 +1499,11 @@
                 <div class="order-card" style="${esListo ? 'border:2px solid #22c55e;box-shadow:0 0 12px rgba(34,197,94,0.3)' : ''};cursor:pointer" onclick="this.querySelector('.pedido-detail-app').style.display = this.querySelector('.pedido-detail-app').style.display === 'none' ? 'block' : 'none'">
                     <div class="order-header">
                         <span class="order-number">#${p.numero} ${p.mesa ? '• 🪑 Mesa ' + p.mesa : '• 📱 Online'}</span>
-                        <span class="order-badge badge-${todosEntregados ? 'listo' : esListo ? 'listo' : 'preparando'}">
-                            ${todosEntregados ? '✅ TODO ENTREGADO' : esListo ? '✅ LISTO PARA RETIRAR' : p.estado.toUpperCase()}
+                        <span style="display:flex;gap:6px;align-items:center">
+                            ${p.estado !== 'entregado' ? `<button style="padding:4px 10px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;cursor:pointer" onclick="event.stopPropagation();agregarAPedido('${p.id}', ${p.mesa || 0})">＋ Agregar</button>` : ''}
+                            <span class="order-badge badge-${todosEntregados ? 'listo' : esListo ? 'listo' : 'preparando'}">
+                                ${todosEntregados ? '✅ TODO ENTREGADO' : esListo ? '✅ LISTO PARA RETIRAR' : p.estado.toUpperCase()}
+                            </span>
                         </span>
                     </div>
                     <div class="order-items">
@@ -1864,6 +1867,26 @@
             document.getElementById('tomarPedidoBtns2').style.display = 'flex';
         }
 
+        async function agregarAPedido(pedidoId, mesaNumero) {
+            pedidoMesa = { mesaId: null, mesaNumero: mesaNumero || 0, mesaToken: null, items: {}, pedidoExistenteId: pedidoId };
+            tomarPedidoCat = '';
+            document.getElementById('tomarPedidoTitle').textContent = 'Agregar · Mesa ' + (mesaNumero || '?');
+            document.getElementById('tomarPedidoOverlay').style.display = 'flex';
+            volverAProductos();
+            const box = document.getElementById('tomarPedidoItems');
+            box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Cargando productos...</p>';
+            try {
+                const { data, error } = await sb.from('productos_empresa')
+                    .select('*').eq('empresa_id', currentUser.empresa_id).eq('activo', true).order('categoria');
+                if (error) throw error;
+                window._prodsMesa = data || [];
+                renderTomarPedidoCats();
+                renderTomarPedidoItems();
+            } catch (err) {
+                box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar</p>';
+            }
+        }
+
         async function enviarPedidoMesa() {
             const entries = Object.entries(pedidoMesa.items).filter(([_, i]) => i.qty > 0);
             if (!entries.length) { alert('Agregá al menos un producto'); return; }
@@ -1879,6 +1902,24 @@
             });
             const total = items.reduce((a, i) => a + (i.precio * i.cantidad), 0);
             try {
+                // Si es un agregado posterior, se suma al pedido existente
+                if (pedidoMesa.pedidoExistenteId) {
+                    const { data: cur } = await sbSvc.from('pedidos').select('items,total').eq('id', pedidoMesa.pedidoExistenteId).limit(1).maybeSingle();
+                    let curItems = [];
+                    try { curItems = JSON.parse(cur?.items || '[]'); } catch (e) {}
+                    if (!Array.isArray(curItems)) curItems = [];
+                    items.forEach(ni => {
+                        const f = curItems.find(c => c.nombre === ni.nombre && (c.notas || '') === (ni.notas || '') && (c.precio || 0) === (ni.precio || 0) && !c.entregado);
+                        if (f) f.cantidad = (f.cantidad || f.qty || 0) + ni.cantidad;
+                        else curItems.push(ni);
+                    });
+                    const newTotal = curItems.reduce((a, i) => a + ((i.precio || 0) * (i.cantidad || i.qty || 0)), 0);
+                    const { error } = await sbSvc.from('pedidos').update({ items: JSON.stringify(curItems), total: newTotal }).eq('id', pedidoMesa.pedidoExistenteId);
+                    if (error) throw error;
+                    cerrarTomarPedido();
+                    loadPedidosFromDB();
+                    return;
+                }
                 const { error } = await sb.from('pedidos').insert({
                     empresa_id: currentUser.empresa_id,
                     mesa_token: pedidoMesa.mesaToken || '',
