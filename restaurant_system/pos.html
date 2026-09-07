@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             --bg: #0a0a0a;
@@ -693,9 +694,16 @@
                 }
                 // Dueño: entra a caja con su PIN y opera como cajero
                 try {
-                    const empRes = await sbPOS.from('empresas').select('nombre,pin_dueno').eq('id', empresaIdPOS).limit(1).maybeSingle();
-                    if (empRes.data && empRes.data.pin_dueno) {
-                        window._duenoPOS = { pin: empRes.data.pin_dueno, nombre: empRes.data.nombre || 'Dueño' };
+                    const empRes = await sbPOS.from('empresas').select('nombre,pin_dueno,rut,direccion,telefono').eq('id', empresaIdPOS).limit(1).maybeSingle();
+                    if (empRes.data) {
+                        if (empRes.data.pin_dueno) window._duenoPOS = { pin: empRes.data.pin_dueno, nombre: empRes.data.nombre || 'Dueño' };
+                        window._fiscalPOS = {
+                            nombre: empRes.data.nombre || 'UrbanFlow',
+                            rut: empRes.data.rut || '',
+                            direccion: empRes.data.direccion || '',
+                            telefono: empRes.data.telefono || ''
+                        };
+                        if (window._fiscalPOS.nombre) document.getElementById('posRestaurantName').textContent = window._fiscalPOS.nombre;
                     }
                 } catch (_) {}
             }catch(e){ console.log('POS load error', e.message); }
@@ -757,7 +765,8 @@
             const r2 = n => (Math.round(n * 100) / 100).toFixed(2);
             const now = new Date();
             const fecha = now.toLocaleDateString('es-UY') + ' ' + now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
-            const nombre = (document.getElementById('posRestaurantName').textContent || 'UrbanFlow').trim() || 'UrbanFlow';
+            const F = window._fiscalPOS || {};
+            const nombre = F.nombre || (document.getElementById('posRestaurantName').textContent || 'UrbanFlow').trim() || 'UrbanFlow';
             const cajero = (document.getElementById('cashierName').textContent || '').trim();
             const mesaTxt = selectedMesa ? 'Mesa #' + selectedMesa.numero : 'Mostrador';
             const lineas = [];
@@ -765,8 +774,15 @@
             (mesaCuenta.items || []).forEach(i => lineas.push({ nombre: i.nombre + ' (mesa)', cant: i.cantidad, precio: i.precio }));
             if (!lineas.length) { alert('Nada para imprimir'); return; }
             const total = lineas.reduce((a, i) => a + (i.precio * i.cant), 0);
+            const qrTexto = `${nombre}${F.rut ? ' · RUT ' + F.rut : ''}\n${fecha} · ${mesaTxt}\n` +
+                lineas.map(i => `${i.nombre} x${i.cant} $${r2(i.precio * i.cant)}`).join('\n') +
+                `\nTOTAL $${r2(total)}`;
             document.getElementById('ticketPrint').innerHTML = `
                 <h2>${nombre}</h2>
+                ${F.rut ? `<div class="t-center">RUT ${F.rut}</div>` : ''}
+                ${F.direccion ? `<div class="t-center">${F.direccion}</div>` : ''}
+                ${F.telefono ? `<div class="t-center">Tel: ${F.telefono}</div>` : ''}
+                <hr>
                 <div class="t-center">${fecha} · ${mesaTxt}</div>
                 <div class="t-center">Atiende: ${cajero}</div>
                 <hr>
@@ -775,8 +791,13 @@
                 `).join('')}
                 <hr>
                 <div class="t-row t-total"><span>TOTAL</span><span>$${r2(total)}</span></div>
-                <div class="t-center">Gracias por su visita</div>`;
-            window.print();
+                <div class="t-center">Gracias por su visita</div>
+                <div class="t-center" style="margin-top:8px"><div id="ticketQR" style="display:inline-block;background:#fff;padding:6px"></div></div>
+                <div class="t-center" style="font-size:10px">Escaneá para ver tu ticket</div>`;
+            try {
+                new QRCode(document.getElementById('ticketQR'), { text: qrTexto, width: 110, height: 110, correctLevel: QRCode.CorrectLevel.M });
+            } catch (e) {}
+            setTimeout(() => window.print(), 350);
         }
 
         function logoutPOS() {

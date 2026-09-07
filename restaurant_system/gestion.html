@@ -857,6 +857,10 @@
                             <input type="text" id="configDireccion" value="">
                         </div>
                         <div class="form-group">
+                            <label>RUT (sale en el ticket)</label>
+                            <input type="text" id="configRUT" value="" placeholder="Ej: 214567890012">
+                        </div>
+                        <div class="form-group">
                             <label>Costo POS (% de tu terminal física, se suma en mesa con POS)</label>
                             <input type="number" id="configPosPct" value="3" step="0.1" min="0">
                         </div>
@@ -1540,6 +1544,7 @@
                 document.getElementById('configTelefono').value = emp.telefono || '';
                 document.getElementById('configEmail').value = emp.email || '';
                 document.getElementById('configDireccion').value = emp.direccion || '';
+                if (emp.rut != null) document.getElementById('configRUT').value = emp.rut;
                 document.getElementById('configCodigo').value = emp.codigo_interno || '';
                 if (emp.pos_pct != null) document.getElementById('configPosPct').value = emp.pos_pct;
                 selectedTemplate = emp.carta_template || 'dark_elegance';
@@ -2966,6 +2971,10 @@
                     const posPct = parseFloat(document.getElementById('configPosPct').value);
                     if (!isNaN(posPct)) await sb.from('empresas').update({ pos_pct: posPct }).eq('id', empresaId);
                 } catch (_) { /* columna pos_pct aún no creada */ }
+                try {
+                    const rut = document.getElementById('configRUT').value.trim();
+                    await sb.from('empresas').update({ rut: rut || null }).eq('id', empresaId);
+                } catch (_) { /* columna rut aún no creada */ }
                 alert('Configuración guardada');
                 logAccion('config_modificada', 'configuracion', updates);
             } catch (err) {
