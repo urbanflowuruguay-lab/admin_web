@@ -30,7 +30,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow: hidden; }
-        .app-container.active { display: flex; flex-direction: column; height: 100%; }
         .header { flex-shrink: 0; }
         
         .login-container {
@@ -83,7 +82,7 @@
         }
 
         .app-container { display: none; }
-        .app-container.active { display: block; }
+        .app-container.active { display: flex; flex-direction: column; height: 100%; }
 
         .header {
             display: flex;
