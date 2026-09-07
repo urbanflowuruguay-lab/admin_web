@@ -439,6 +439,13 @@
                 <button class="pin-btn enter" onclick="enterPin()">INGRESAR</button>
             </div>
             <div class="pin-error" id="pinError"></div>
+            <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+                <p style="color: var(--text2); font-size: 12px; margin-bottom: 8px;">¿Contraseña con letras? Escríbela aquí</p>
+                <div style="display: flex; gap: 8px;">
+                    <input type="password" id="passInput" placeholder="Tu contraseña" style="flex: 1; padding: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;">
+                    <button class="pin-btn enter" style="grid-column: auto; padding: 12px 20px;" onclick="enterPass()">ENTRAR</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -669,10 +676,20 @@
             document.getElementById('pinDisplay').textContent = pinInput;
         }
 
+        function enterPass() {
+            const secret = document.getElementById('passInput').value;
+            doLogin(secret);
+            document.getElementById('passInput').value = '';
+        }
+
         function enterPin() {
-            const emp = employees.find(e => e.pin === pinInput && e.activo !== false)
-                || (window._duenoPOS && window._duenoPOS.pin === pinInput
-                    ? { id: 'dueno', nombre: window._duenoPOS.nombre + ' (Dueño)', pin: pinInput, roles: ['rol_dueno', 'rol_cajero'], email: '' }
+            doLogin(pinInput);
+        }
+
+        function doLogin(secret) {
+            const emp = employees.find(e => e.pin === secret && e.activo !== false)
+                || (window._duenoPOS && window._duenoPOS.pin === secret
+                    ? { id: 'dueno', nombre: window._duenoPOS.nombre + ' (Dueño)', pin: secret, roles: ['rol_dueno', 'rol_cajero'], email: '' }
                     : null);
             if (emp) {
                 currentUser = emp;
