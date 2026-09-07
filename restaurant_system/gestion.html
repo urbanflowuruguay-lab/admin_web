@@ -1190,8 +1190,16 @@
                 <select id="prodDisponible">
                     <option value="ambas">Ambas (Mesa y Online)</option>
                     <option value="mesa">Solo Mesa (carta QR)</option>
-                    <option value="online">Solo Online (delivery/retiro)</option>
+                    <option value="online">Solo Online</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label>Se muestra a (roles)</label>
+                <div style="display: flex; gap: 12px; font-size: 13px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" id="visCocina" checked style="accent-color: var(--accent); width: 16px; height: 16px;"> Cocina</label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" id="visMozo" checked style="accent-color: var(--accent); width: 16px; height: 16px;"> Mozo</label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" id="visCaja" checked style="accent-color: var(--accent); width: 16px; height: 16px;"> Caja</label>
+                </div>
             </div>
             <div class="form-group">
                 <label>Stock Inicial</label>
@@ -1698,6 +1706,7 @@
                             activo: r.activo,
                             foto_url: r.foto_url,
                             disponible: r.disponible || 'ambas',
+                            visible_para: r.visible_para || 'cocina,camarero,cajero',
                             created_at: r.created_at
                         }));
                     }
@@ -1711,7 +1720,7 @@
                 <tr>
                     <td><strong>${p.nombre}</strong></td>
                     <td>${p.categoriaNombre || localData.categorias.find(c => c.id === p.categorias[0])?.nombre || p.categorias[0] || ''}</td>
-                    <td>$${p.precio}${p.precio_oferta ? `<br><span class="badge badge-success">Oferta $${p.precio_oferta}</span>` : ''}</td>
+                    <td>$${p.precio}${p.precio_oferta ? `<br><span class="badge badge-success">Oferta $${p.precio_oferta}</span>` : ''}<br><span style="font-size:10px;color:var(--text2)">${(p.visible_para || 'cocina,camarero,cajero').split(',').map(v => v.trim() === 'camarero' ? 'mozo' : v.trim()).join(' · ')}</span></td>
                     <td>${p.stock}</td>
                     <td><span class="badge ${p.activo ? 'badge-success' : 'badge-danger'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
                     <td>
@@ -2778,6 +2787,10 @@
             document.getElementById('prodDescuento').value = (p.precio > 0 && p.precio_oferta > 0 && p.precio_oferta < p.precio) ? Math.round((1 - p.precio_oferta / p.precio) * 100) : '';
             document.getElementById('prodStock').value = p.stock || '';
             document.getElementById('prodDisponible').value = p.disponible || 'ambas';
+            const vis = (p.visible_para || 'cocina,camarero,cajero').split(',').map(v => v.trim());
+            document.getElementById('visCocina').checked = vis.includes('cocina');
+            document.getElementById('visMozo').checked = vis.includes('camarero');
+            document.getElementById('visCaja').checked = vis.includes('cajero');
             refreshCategoriaOptions(p.categoriaNombre || (p.categorias && p.categorias[0]));
             if (p.foto_url) { document.getElementById('prodFotoPreview').src = p.foto_url; document.getElementById('prodFotoPreview').style.display='block'; document.getElementById('prodFotoPlaceholder').style.display='none'; }
             else { document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block'; }
@@ -2797,6 +2810,9 @@
             document.getElementById('prodFotoPlaceholder').style.display='block';
             refreshCategoriaOptions('cat_001');
             document.getElementById('prodDisponible').value = 'ambas';
+            document.getElementById('visCocina').checked = true;
+            document.getElementById('visMozo').checked = true;
+            document.getElementById('visCaja').checked = true;
             document.getElementById('modal-producto').classList.add('active');
         }
         function elegirFotoProducto() {
@@ -2840,6 +2856,11 @@
                 }
             }
             const disponible = document.getElementById('prodDisponible').value;
+            const visRoles = [];
+            if (document.getElementById('visCocina').checked) visRoles.push('cocina');
+            if (document.getElementById('visMozo').checked) visRoles.push('camarero');
+            if (document.getElementById('visCaja').checked) visRoles.push('cajero');
+            const visiblePara = visRoles.length ? visRoles.join(',') : 'cocina,camarero,cajero';
             const ofertaVal = parseFloat(document.getElementById('prodPrecioOferta').value);
             const precioBase = parseFloat(document.getElementById('prodPrecio').value);
             const precioOferta = (ofertaVal > 0 && ofertaVal < precioBase) ? ofertaVal : null;
@@ -2867,7 +2888,8 @@
                         categoria: catNombre,
                         stock: parseInt(document.getElementById('prodStock').value),
                         foto_url: fotoUrl || old.foto_url,
-                        disponible: disponible
+                        disponible: disponible,
+                        visible_para: visiblePara
                     };
                     // Supabase
                     if (empresaId && !String(editingProductoId).startsWith('prod_')) {
@@ -2890,6 +2912,7 @@
                     categoria: catNombre,
                     stock: parseInt(document.getElementById('prodStock').value),
                     foto_url: fotoUrl,
+                    visible_para: visiblePara,
                     activo: true
                 };
                 let newId = 'prod_' + Date.now();

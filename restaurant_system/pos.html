@@ -665,7 +665,8 @@
             // Con empresa real se descartan los empleados demo del código
             employees = [];
             try{
-                const { data: empProds } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
+                const { data: empProdsAll } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
+                const empProds = (empProdsAll || []).filter(p => !p.visible_para || p.visible_para.split(',').map(s => s.trim()).includes('cajero'));
                 if(empProds && empProds.length){
                     const cats = [...new Set(empProds.map(p => (p.categoria || 'General').trim()).filter(Boolean))].sort();
                     categories = [{ id: 'all', nombre: 'Todos', icono: '📋' },

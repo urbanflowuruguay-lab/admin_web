@@ -428,13 +428,22 @@
         let deliveries = [];
         let categoriasMap = {}; // nombre -> categoria
 
+        let visibleMap = {}; // nombre -> "cocina,camarero,cajero"
         async function loadCategoriasMap() {
             try {
                 const { data } = await sbSvc.from('productos_empresa')
-                    .select('nombre,categoria')
+                    .select('nombre,categoria,visible_para')
                     .eq('empresa_id', currentUser.empresa_id);
-                if (data) data.forEach(p => categoriasMap[p.nombre] = (p.categoria || '').toLowerCase());
+                if (data) data.forEach(p => {
+                    categoriasMap[p.nombre] = (p.categoria || '').toLowerCase();
+                    if (p.visible_para) visibleMap[p.nombre] = p.visible_para;
+                });
             } catch(e) {}
+        }
+        function visiblePara(nombre, rol) {
+            const v = visibleMap[nombre];
+            if (!v) return true; // sin marca: se muestra en todos lados
+            return v.split(',').map(s => s.trim()).includes(rol);
         }
 
         // =============================================
@@ -1596,8 +1605,9 @@
                 };
             container.innerHTML = pedidosCocina.map(p => {
                 let items=[]; try{ items = typeof p.items==='string' ? JSON.parse(p.items) : p.items; }catch(e){ items=p.items||[]; }
-                // Filtrar solo platos (no bebidas): por categoría y por nombre
+                // Solo lo marcado para cocina (con fallback anti-bebidas si no tiene marca)
                 const cocinaItems = items.filter(i => {
+                    if (visibleMap[i.nombre]) return visiblePara(i.nombre, 'cocina');
                     const cat = categoriasMap[i.nombre] || '';
                     return !cat.includes('bebida') && !cat.includes('drink') && !esBebida(i.nombre);
                 });
