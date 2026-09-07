@@ -423,6 +423,7 @@ function fmt2(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
 function entrarCarta() {
     // En mesa QR primero se elige forma de pago para saber qué precio mostrar
     if (mesaToken && !pagoMesa) {
+        document.getElementById("portada").classList.remove("show");
         document.getElementById("pagoMesaModal").classList.add("show");
         return;
     }
