@@ -420,7 +420,7 @@
             <div style="font-size:44px;margin-bottom:8px">🔑</div>
             <h3 style="margin-bottom:6px">Palabra secreta</h3>
             <p style="color:var(--text2);font-size:13px;margin-bottom:14px">Que el cliente te diga la palabra. Si coincide, se entrega y se cobra.</p>
-            <input id="palabraInput" placeholder="Ej: MATE-37" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:12px">
+            <input id="palabraInput" placeholder="Ej: TIGRE" maxlength="5" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;font-weight:700;text-align:center;text-transform:uppercase;margin-bottom:12px">
             <div style="display:flex;gap:8px">
                 <button onclick="cerrarPalabra()" style="flex:1;padding:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;cursor:pointer">Volver</button>
                 <button onclick="confirmarPalabra()" style="flex:1;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Confirmar</button>
@@ -1437,7 +1437,7 @@
             `;
             // Init map
             deliveryMap = L.map('deliveryMapEl').setView([-34.9011, -56.1645], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap', maxZoom: 19
             }).addTo(deliveryMap);
             // Load restaurant position
@@ -1518,9 +1518,9 @@
             } catch(e) { console.log('Error loading deliveries:', e.message); }
         }
 
-        const PALABRAS = ['TIGRE','LUNA','MATE','SOL','RIO','GATO','FLOR','PAN','DULCE','VERDE','ROJO','AZUL','NORTE','SUR','PLAYA','CERRO','RAMBLA','FARO','PUERTO','BOSQUE'];
+        const PALABRAS = ['TIGRE','PERRO','VERDE','NEGRO','PLAYA','CERRO','FAROL','MANGO','DULCE','NUBES','LLAVE','TORTA','QUESO','SALSA','FUEGO','MANDO','RUEDA','CALLE','BARCO','TRENES'];
         function genPalabra() {
-            return PALABRAS[Math.floor(Math.random() * PALABRAS.length)] + '-' + Math.floor(10 + Math.random() * 90);
+            return PALABRAS[Math.floor(Math.random() * PALABRAS.length)];
         }
         async function asegurarPalabra(pedidoId) {
             try {
@@ -2470,7 +2470,7 @@
             try {
                 if (repartoMap) { repartoMap.remove(); repartoMap = null; }
                 repartoMap = L.map('repartoMap', { zoomControl: true }).setView([-34.9011, -56.1645], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap', maxZoom: 19
                 }).addTo(repartoMap);
                 setTimeout(() => repartoMap.invalidateSize(), 300);
