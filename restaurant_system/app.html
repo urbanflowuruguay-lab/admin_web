@@ -1900,11 +1900,24 @@
 
         window.addEventListener('error', (e) => {
             try {
+                const det = 'Error: ' + (e.message || 'desconocido') + (e.filename ? ' @ ' + String(e.filename).split('/').pop() + ':' + (e.lineno || '?') : '');
+                console.error('[APP-ERROR]', det, e.error && e.error.stack);
                 const t = document.createElement('div');
                 t.style.cssText = 'position:fixed;bottom:20px;left:10px;right:10px;background:#7f1d1d;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999';
-                t.textContent = 'Error: ' + (e.message || 'desconocido');
+                t.textContent = det;
                 document.body.appendChild(t);
-                setTimeout(() => t.remove(), 6000);
+                setTimeout(() => t.remove(), 8000);
+            } catch (_) {}
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            try {
+                const det = 'Error async: ' + ((e.reason && (e.reason.message || e.reason)) || 'desconocido');
+                console.error('[APP-REJECT]', det, e.reason && e.reason.stack);
+                const t = document.createElement('div');
+                t.style.cssText = 'position:fixed;bottom:20px;left:10px;right:10px;background:#7f1d1d;color:#fff;padding:12px;border-radius:10px;font-size:12px;z-index:99999';
+                t.textContent = det;
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), 8000);
             } catch (_) {}
         });
 
