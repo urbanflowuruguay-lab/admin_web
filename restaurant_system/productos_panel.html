@@ -246,6 +246,12 @@
         }
 
         async function saveProducto() {
+            const nombre = document.getElementById('prodNombre').value.trim();
+            const precioBase = parseFloat(document.getElementById('prodPrecio').value);
+            if (!nombre) { alert('Poné nombre del producto'); return; }
+            if (isNaN(precioBase) || precioBase < 0) { alert('Poné un precio válido'); return; }
+            if (!empresaId) { alert('Error: sin empresa'); return; }
+
             let catVal = document.getElementById('prodCategoria').value;
             let catNombre = document.getElementById('prodCategoria').selectedOptions[0]?.textContent || catVal;
             if (catVal === 'nueva') {
@@ -267,8 +273,9 @@
             if (document.getElementById('visCaja').checked) visRoles.push('caja');
             const visiblePara = visRoles.length ? visRoles.join(',') : 'cocina,camarero,caja';
             const ofertaVal = parseFloat(document.getElementById('prodPrecioOferta').value);
-            const precioBase = parseFloat(document.getElementById('prodPrecio').value);
             const precioOferta = (ofertaVal > 0 && ofertaVal < precioBase) ? ofertaVal : null;
+            const stockVal = document.getElementById('prodStock').value;
+            const stock = stockVal !== '' ? parseInt(stockVal) : 0;
             let fotoUrl = null;
             const file = document.getElementById('prodFoto').files[0];
             if (file) {
@@ -277,18 +284,20 @@
                 if (!error) { const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path); fotoUrl = data?.publicUrl; }
             }
             const prodDB = {
-                nombre: document.getElementById('prodNombre').value,
+                nombre: nombre,
                 descripcion: document.getElementById('prodDescripcion').value,
                 precio: precioBase, precio_oferta: precioOferta,
-                categoria: catNombre, stock: parseInt(document.getElementById('prodStock').value),
+                categoria: catNombre, stock: stock,
                 disponible: disponible, visible_para: visiblePara
             };
             if (editingId) {
                 if (fotoUrl) prodDB.foto_url = fotoUrl;
-                await sb.from('productos_empresa').update(prodDB).eq('id', editingId);
+                const { error } = await sb.from('productos_empresa').update(prodDB).eq('id', editingId);
+                if (error) { alert('Error al editar: ' + error.message); return; }
             } else {
                 prodDB.empresa_id = empresaId; prodDB.foto_url = fotoUrl; prodDB.activo = true;
-                await sb.from('productos_empresa').insert(prodDB);
+                const { error } = await sb.from('productos_empresa').insert(prodDB);
+                if (error) { alert('Error al crear: ' + error.message); return; }
             }
             closeModal();
             loadProductos();
