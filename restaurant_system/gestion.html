@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --bg: #0a0a0a;
@@ -22,6 +23,7 @@
             --accent2: #b8962e;
             --green: #4caf50;
             --red: #f44336;
+            --danger: #f44336;
             --blue: #2196f3;
             --orange: #ff9800;
             --purple: #9c27b0;
@@ -144,9 +146,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
             margin-bottom: 25px;
         }
+        .section-header > div { flex-wrap: wrap; }
         .section-title { font-size: 22px; font-weight: 700; }
+        .html-debug-toggle { background:none;border:1px solid var(--border);color:var(--text2);font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-left:8px;opacity:.5; }
+        .html-debug-toggle:hover { opacity:1;border-color:var(--accent);color:var(--accent); }
+        .html-debug-box { display:none;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;margin:8px 0 16px 0;max-height:220px;overflow:auto;position:relative; }
+        .html-debug-box pre { margin:0;font-size:11px;color:var(--text2);white-space:pre-wrap;word-break:break-all;font-family:monospace; }
+        .html-debug-box .copy-btn { position:absolute;top:6px;right:6px;background:var(--accent);color:var(--bg);border:none;padding:3px 10px;border-radius:4px;font-size:10px;cursor:pointer; }
         .btn-primary {
             background: var(--accent);
             color: var(--bg);
@@ -327,9 +337,8 @@
                             <input type="checkbox" id="sndPedidoNuevo" onchange="saveSoundPrefs()" style="accent-color:var(--accent)"> Entrada de pedidos
                         </label>
                     </div>
+                    </div>
                 </div>
-                <button class="btn-logout" onclick="logout()">Salir</button>
-            </div>
         </header>
 
         <div class="main-layout">
@@ -367,6 +376,9 @@
                 <div class="sidebar-item" onclick="showSection('facturacion')">
                     <i class="fas fa-file-invoice-dollar"></i><span>Facturación</span>
                 </div>
+                <div class="sidebar-item" onclick="showSection('ventas')">
+                    <i class="fas fa-chart-line"></i><span>Ventas</span>
+                </div>
                 <div class="sidebar-item" onclick="showSection('historial')">
                     <i class="fas fa-clipboard-list"></i><span>Historial del día</span>
                 </div>
@@ -384,6 +396,12 @@
                 </div>
                 <div class="sidebar-item" onclick="openTerminal()">
                     <i class="fas fa-qrcode"></i><span>Terminal QR</span>
+                </div>
+                <div class="sidebar-item" onclick="showSection('appdelivery')">
+                    <i class="fas fa-mobile-alt"></i><span>App Delivery</span>
+                </div>
+                <div class="sidebar-item" onclick="showSection('vinculo-motos')">
+                    <i class="fas fa-link"></i><span>Vínculo Motos</span>
                 </div>
             </nav>
             <div id="sidebarOverlay" class="sidebar-overlay" onclick="document.querySelector('.sidebar').classList.remove('open');this.classList.remove('show')"></div>
@@ -469,6 +487,7 @@
                             <button class="btn-primary" style="padding:4px 10px;font-size:11px" onclick="filtrarPedidos('todos')" id="fPedTodos">Todos</button>
                             <button style="padding:4px 10px;font-size:11px;background:var(--green);color:white;border:none;border-radius:4px;cursor:pointer" onclick="filtrarPedidos('mesa')" id="fPedMesa">Mesas</button>
                             <button style="padding:4px 10px;font-size:11px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer" onclick="filtrarPedidos('online')" id="fPedOnline">Online</button>
+                            <button class="btn-primary" style="padding:4px 10px;font-size:11px;background:var(--danger);margin-left:12px" onclick="borrarPedidosTodo()">🗑 Todo</button>
                         </div>
                     </div>
                     <div class="card">
@@ -505,6 +524,16 @@
                         </div>
                     </div>
                     <div id="mesasGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;"></div>
+                    <div id="camareroMesaOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+                        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:90%;text-align:center">
+                            <h3 style="margin-bottom:12px">Asignar camarero</h3>
+                            <select id="camareroMesaSelect" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px"></select>
+                            <div style="display:flex;gap:8px;justify-content:center">
+                                <button class="btn-primary" style="background:var(--green)" onclick="saveCamareroMesa()">Guardar</button>
+                                <button class="btn-primary" style="background:var(--bg3)" onclick="document.getElementById('camareroMesaOverlay').style.display='none'">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- INVENTARIO -->
@@ -687,6 +716,73 @@
                 </div>
 
                 <!-- HISTORIAL DEL DÍA -->
+                <!-- VENTAS -->
+                <div class="section" id="section-ventas">
+                    <div class="section-header">
+                        <h2 class="section-title">Ventas</h2>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <select id="ventasModo" onchange="cambiaModoVentas()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                                <option value="dia">Por día</option>
+                                <option value="mes">Por mes</option>
+                            </select>
+                            <input type="date" id="ventasDia" onchange="loadVentas()" style="padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                            <input type="month" id="ventasMes" onchange="loadVentas()" style="display:none;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                            <select id="ventasCanal" onchange="loadVentas()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                                <option value="todos">Todos los canales</option>
+                                <option value="mostrador">Mostrador</option>
+                                <option value="online">Online</option>
+                                <option value="salon">Salón</option>
+                            </select>
+                            <select id="ventasPago" onchange="loadVentas()" style="padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+                                <option value="todos">Todos los pagos</option>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="pos">POS</option>
+                                <option value="tarjeta">Tarjeta UF</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="stat-value" id="venTotal">$0</div>
+                            <div class="stat-label">Total vendido</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                            <div class="stat-value" id="venCount">0</div>
+                            <div class="stat-label">Pedidos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-ticket"></i></div>
+                            <div class="stat-value" id="venTicket">$0</div>
+                            <div class="stat-label">Ticket promedio</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title" style="margin-bottom:12px" id="venTiempoTitulo">Ventas por hora</h3>
+                        <div style="height:260px"><canvas id="chTiempo"></canvas></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:20px">
+                        <div class="card" style="margin:0">
+                            <h3 class="card-title" style="margin-bottom:12px">Por canal</h3>
+                            <div style="height:240px"><canvas id="chCanal"></canvas></div>
+                        </div>
+                        <div class="card" style="margin:0">
+                            <h3 class="card-title" style="margin-bottom:12px">Por medio de pago</h3>
+                            <div style="height:240px"><canvas id="chPago"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Detalle</h3></div>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>Fecha</th><th>Cliente</th><th>Canal</th><th>Pago</th><th>Total</th><th>Estado</th></tr></thead>
+                                <tbody id="venTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="section" id="section-historial">
                     <div class="section-header">
                         <h2 class="section-title">Historial del día</h2>
@@ -839,6 +935,48 @@
                     </div>
                 </div>
 
+                <!-- APP DELIVERY -->
+                <div class="section" id="section-appdelivery">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="fas fa-mobile-alt"></i> App de Delivery</h2>
+                    </div>
+                    <div class="card" style="max-width:500px">
+                        <h3 class="card-title" style="margin-bottom:16px;color:var(--accent)">Descargá la App</h3>
+                        <p style="color:var(--text2);font-size:14px;margin-bottom:20px">
+                            Escaneá este QR con la cámara de tu celular para descargar la app de delivery.
+                            <br><br>
+                            La app permite que los deliverys compartan su ubicación GPS en tiempo real para que el cliente vea por dónde viene su pedido.
+                        </p>
+                        <div id="qrAppDelivery" style="background:white;padding:20px;border-radius:12px;display:inline-block;margin-bottom:16px"></div>
+                        <p style="color:var(--text2);font-size:12px;margin-bottom:16px">📱 Funciona en Android 8.0 o superior</p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <button class="btn-primary" onclick="printQRApp()" style="font-size:13px;padding:10px 16px">
+                                <i class="fas fa-print"></i> Imprimir QR
+                            </button>
+                            <button class="btn-primary" onclick="window.open(getAppUrl(), '_blank')" style="font-size:13px;padding:10px 16px;background:var(--green)">
+                                <i class="fas fa-external-link-alt"></i> Ver página de descarga
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VÍNCULO MOTOS -->
+                <div class="section" id="section-vinculo-motos">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="fas fa-link"></i> Vínculo con Motos</h2>
+                    </div>
+                    <div class="card" style="max-width:600px">
+                        <h3 class="card-title" style="margin-bottom:12px;color:var(--accent)">Solicitudes pendientes</h3>
+                        <p style="color:var(--text2);font-size:13px;margin-bottom:16px">
+                            Los deliverys te buscan por nombre desde su app. Verificá cada solicitud para darles contrato directo.
+                        </p>
+                        <div id="solicitudesVinculo" style="margin-bottom:20px;color:var(--text2);font-size:13px">Cargando...</div>
+
+                        <h3 class="card-title" style="margin-bottom:12px;color:var(--accent)">Motos Vinculadas</h3>
+                        <div id="motosVinculadas" style="color:var(--text2);font-size:13px">Cargando...</div>
+                    </div>
+                </div>
+
                 <!-- CONFIGURACIÓN -->
                 <div class="section" id="section-config">
                     <div class="section-header">
@@ -894,6 +1032,18 @@
                                     <span id="portadaPlaceholder" style="color:var(--text2);font-size:12px">Click para subir portada</span>
                                 </div>
                                 <input type="file" id="portadaFile" accept="image/*" style="display:none">
+                            </div>
+                        </div>
+                        <div style="margin-top:16px">
+                            <label style="font-size:12px;color:var(--text2)">Fondo del Chat (se ve en el chat del pedido)</label>
+                            <div onclick="document.getElementById('chatFondoFile').click()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
+                                <img id="chatFondoPreview" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+                                <span id="chatFondoPlaceholder" style="color:var(--text2);font-size:12px">Click para subir fondo del chat</span>
+                            </div>
+                            <input type="file" id="chatFondoFile" accept="image/*" style="display:none">
+                            <div style="display:flex;gap:8px;margin-top:8px">
+                                <button class="btn-primary" onclick="saveChatFondo()" style="font-size:12px;padding:6px 12px"><i class="fas fa-save"></i> Guardar Fondo</button>
+                                <button class="btn-danger" onclick="removeChatFondo()" id="btnRemoveChatFondo" style="font-size:12px;padding:6px 12px;display:none"><i class="fas fa-trash"></i> Quitar</button>
                             </div>
                         </div>
                         <button class="btn-primary" onclick="saveConfig()" style="margin-top:16px">
@@ -1378,6 +1528,9 @@
         async function logout() {
             localData.currentUser = null;
             localStorage.removeItem('urbanflow_empresa_id');
+            localStorage.removeItem('urbanflow_employee_role');
+            localStorage.removeItem('urbanflow_employee_name');
+            localStorage.removeItem('urbanflow_employee');
             await sb.auth.signOut();
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('appContainer').classList.remove('active');
@@ -1404,10 +1557,13 @@
             if (section === 'empleados') loadEmpleados();
             if (section === 'zonas') loadZonas();
             if (section === 'facturacion') loadFacturacion();
+            if (section === 'ventas') loadVentas();
             if (section === 'historial') loadHistorial();
             if (section === 'simulador') { loadSimUI(); simCargarProductos(); simModalidadCambio(); }
             if (section === 'auditoria') loadAuditoria();
             if (section === 'propinas') loadPropinas();
+            if (section === 'appdelivery') initQRAppDelivery();
+            if (section === 'vinculo-motos') initVinculoMotos();
             if (section === 'config') {
                 loadPermisos();
                 loadStaff();
@@ -1416,10 +1572,128 @@
             }
         }
 
+        // =============================================
+        // VENTAS (lee siempre de DB: borrar pedidos lo actualiza solo)
+        // =============================================
+        let ventasCharts = {};
+        function canalDeVenta(p) {
+            if ((p.tipo_entrega || '').toLowerCase() === 'mostrador') return 'mostrador';
+            if (p.mesa_numero) return 'salon';
+            return 'online';
+        }
+        function pagoDeVenta(p) {
+            const m = (p.metodo_pago || '').toLowerCase();
+            if (m.includes('efectivo')) return 'efectivo';
+            if (m.includes('mercado') || m.includes('pos') || m === 'mp') return 'pos';
+            if (m.includes('tarjeta')) return 'tarjeta';
+            return 'otro';
+        }
+        function cambiaModoVentas() {
+            const modo = document.getElementById('ventasModo').value;
+            document.getElementById('ventasDia').style.display = modo === 'dia' ? '' : 'none';
+            document.getElementById('ventasMes').style.display = modo === 'mes' ? '' : 'none';
+            loadVentas();
+        }
+        async function loadVentas() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            const hoy = new Date();
+            const hoyStr = hoy.toISOString().slice(0, 10);
+            const modoEl = document.getElementById('ventasModo');
+            if (!modoEl.value) modoEl.value = 'dia';
+            const modo = modoEl.value;
+            const diaEl = document.getElementById('ventasDia');
+            const mesEl = document.getElementById('ventasMes');
+            if (!diaEl.value) diaEl.value = hoyStr;
+            if (!mesEl.value) mesEl.value = hoyStr.slice(0, 7);
+            diaEl.style.display = modo === 'dia' ? '' : 'none';
+            mesEl.style.display = modo === 'mes' ? '' : 'none';
+            let desde, hasta;
+            if (modo === 'dia') {
+                desde = diaEl.value + 'T00:00:00';
+                hasta = diaEl.value + 'T23:59:59';
+                document.getElementById('venTiempoTitulo').textContent = 'Ventas por hora';
+            } else {
+                const [y, m] = mesEl.value.split('-').map(Number);
+                const last = new Date(y, m, 0).getDate();
+                desde = `${mesEl.value}-01T00:00:00`;
+                hasta = `${mesEl.value}-${String(last).padStart(2, '0')}T23:59:59`;
+                document.getElementById('venTiempoTitulo').textContent = 'Ventas por día';
+            }
+            const fCanal = document.getElementById('ventasCanal').value || 'todos';
+            const fPago = document.getElementById('ventasPago').value || 'todos';
+            let lista = [];
+            try {
+                const { data, error } = await sbService.from('pedidos')
+                    .select('id,numero,cliente_nombre,total,estado,metodo_pago,tipo_entrega,mesa_numero,created_at')
+                    .eq('empresa_id', empresaId)
+                    .neq('estado', 'cancelado')
+                    .gte('created_at', desde).lte('created_at', hasta)
+                    .order('created_at', { ascending: true }).limit(2000);
+                if (error) throw error;
+                lista = (data || []).filter(p => (fCanal === 'todos' || canalDeVenta(p) === fCanal) && (fPago === 'todos' || pagoDeVenta(p) === fPago));
+            } catch (err) {
+                console.error('Ventas:', err.message);
+                lista = [];
+            }
+            const total = lista.reduce((a, p) => a + (Number(p.total) || 0), 0);
+            document.getElementById('venTotal').textContent = '$' + Math.round(total).toLocaleString();
+            document.getElementById('venCount').textContent = lista.length;
+            document.getElementById('venTicket').textContent = '$' + (lista.length ? Math.round(total / lista.length).toLocaleString() : 0);
+            Object.values(ventasCharts).forEach(c => { try { c.destroy(); } catch (_) {} });
+            ventasCharts = {};
+            if (typeof Chart === 'undefined') return;
+            const gridC = 'rgba(255,255,255,0.06)', tickC = '#a0a0a0';
+            const sum = {};
+            lista.forEach(p => {
+                let k;
+                if (modo === 'dia') k = (p.created_at || '').slice(11, 13) + 'h';
+                else k = (p.created_at || '').slice(8, 10) + '/' + (p.created_at || '').slice(5, 7);
+                sum[k] = (sum[k] || 0) + (Number(p.total) || 0);
+            });
+            let labels = Object.keys(sum).sort();
+            if (modo === 'dia') {
+                const full = [];
+                for (let h = 0; h < 24; h++) full.push(String(h).padStart(2, '0') + 'h');
+                labels = full;
+            }
+            ventasCharts.tiempo = new Chart(document.getElementById('chTiempo'), {
+                type: 'bar',
+                data: { labels, datasets: [{ data: labels.map(l => Math.round(sum[l] || 0)), backgroundColor: '#d4af37', borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: tickC, maxTicksLimit: 12 }, grid: { display: false } }, y: { ticks: { color: tickC }, grid: { color: gridC }, beginAtZero: true } } }
+            });
+            const canales = ['mostrador', 'online', 'salon'];
+            const colC = ['#ff9800', '#3b82f6', '#4caf50'];
+            ventasCharts.canal = new Chart(document.getElementById('chCanal'), {
+                type: 'doughnut',
+                data: { labels: ['Mostrador', 'Online', 'Salón'], datasets: [{ data: canales.map(c => Math.round(lista.filter(p => canalDeVenta(p) === c).reduce((a, p) => a + (Number(p.total) || 0), 0))), backgroundColor: colC }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: tickC } } } }
+            });
+            const pagos = ['efectivo', 'pos', 'tarjeta', 'otro'];
+            ventasCharts.pago = new Chart(document.getElementById('chPago'), {
+                type: 'doughnut',
+                data: { labels: ['Efectivo', 'POS', 'Tarjeta UF', 'Otro'], datasets: [{ data: pagos.map(c => Math.round(lista.filter(p => pagoDeVenta(p) === c).reduce((a, p) => a + (Number(p.total) || 0), 0))), backgroundColor: ['#4caf50', '#3b82f6', '#d4af37', '#888'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: tickC } } } }
+            });
+            const badgeC = c => c === 'mostrador' ? '#ff9800' : c === 'online' ? '#3b82f6' : '#4caf50';
+            document.getElementById('venTable').innerHTML = [...lista].reverse().slice(0, 200).map(p => {
+                const c = canalDeVenta(p);
+                return `<tr>
+                    <td style="font-size:12px">${(p.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+                    <td>${p.cliente_nombre || '-'}</td>
+                    <td><span style="background:${badgeC(c)};color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">${c.toUpperCase()}</span></td>
+                    <td style="font-size:12px">${(p.metodo_pago || '-').toUpperCase()}</td>
+                    <td><strong>$${Math.round(p.total || 0).toLocaleString()}</strong></td>
+                    <td style="font-size:12px">${p.estado || ''}</td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2)">Sin ventas en este período</td></tr>';
+        }
+
         async function filterSidebar() {
             const empresaId = localData.currentUser?.empresa_id;
             const rol = (localData.currentUser?.rol || '').replace('rol_', '');
             if (!empresaId || !rol) return;
+            if (rol === 'dueno') return;
             try {
                 const { data } = await sb.from('permisos_roles')
                     .select('modulo,activo')
@@ -1428,19 +1702,32 @@
                 if (!data || data.length === 0) return;
                 const permMap = {};
                 data.forEach(p => permMap[p.modulo] = p.activo);
-                // mapeo sidebar-item a modulo
                 const sidebarModMap = {
                     'section-dashboard':'dashboard','section-productos':'productos','section-pedidos':'pedidos',
                     'section-mesas':'mesas','section-inventario':'inventario','section-clientes':'clientes',
                     'section-empleados':'empleados','section-zonas':'zonas','section-facturacion':'facturacion',
-                    'section-auditoria':'auditoria','section-config':'config','section-propinas':'propinas'
+                    'section-ventas':'ventas',
+                    'section-historial':'historial','section-simulador':'simulador','section-auditoria':'auditoria',
+                    'section-config':'config','section-propinas':'propinas',
+                    'section-appdelivery':'appdelivery','section-vinculo-motos':'vinculo-motos'
                 };
                 document.querySelectorAll('.sidebar-item').forEach(item => {
                     const onclick = item.getAttribute('onclick') || '';
+                    let mod = null;
                     const match = onclick.match(/showSection\('(\w+)'\)/);
                     if (match) {
-                        const mod = sidebarModMap['section-' + match[1]];
-                        if (mod && permMap[mod] === false) item.style.display = 'none';
+                        mod = sidebarModMap['section-' + match[1]];
+                    } else if (onclick.includes('openPOS')) {
+                        mod = 'cajero';
+                    } else if (onclick.includes('openZonas')) {
+                        mod = 'zonas';
+                    } else if (onclick.includes('openSalon')) {
+                        mod = 'salon';
+                    } else if (onclick.includes('openTerminal')) {
+                        mod = 'propinas';
+                    }
+                    if (mod && permMap[mod] === false) {
+                        item.style.display = 'none';
                     }
                 });
             } catch(e) { console.log('Filter sidebar error:', e.message); }
@@ -1502,6 +1789,7 @@
                             <div style="font-weight:700;font-size:16px">Mesa ${m.numero}</div>
                             <div style="font-size:11px;color:${color};margin:4px 0;font-weight:600">${label}</div>
                             ${m.capacidad ? `<div style="font-size:11px;color:var(--text2)">${m.capacidad} personas</div>` : ''}
+                            ${m.camarero_nombre ? `<div style="font-size:11px;color:var(--accent)">👤 ${m.camarero_nombre}</div>` : ''}
                             <div style="display:flex;gap:4px;margin-top:10px;justify-content:center;flex-wrap:wrap">
                                 <button class="btn-primary" style="padding:5px 8px;font-size:11px" onclick="toggleMesa('${m.id}', '${estado}')">
                                     ${estado === 'libre' ? 'Ocupar' : estado === 'mantenimiento' ? 'Habilitar' : 'Liberar'}
@@ -1510,6 +1798,9 @@
                                 
                                 <button class="btn-primary" style="padding:5px 10px;font-size:11px;background:var(--accent2)" onclick="showQR('${token}', ${m.numero})">
                                     <i class="fas fa-qrcode"></i> QR
+                                </button>
+                                <button class="btn-primary" style="padding:5px 10px;font-size:11px;background:#0ea5e9" onclick="openCamareroMesa('${m.id}', '${m.camarero_id || ''}')" title="Asignar o cambiar camarero">
+                                    <i class="fas fa-user"></i> Camarero
                                 </button>
                                 <button style="padding:5px 10px;font-size:11px;background:var(--danger);color:white;border:none;border-radius:4px;cursor:pointer" onclick="deleteMesa('${m.id}')">
                                     <i class="fas fa-trash"></i>
@@ -1534,12 +1825,62 @@
                 loadMesas();
             } catch (err) { console.error('Error updating mesa:', err); }
         }
+        async function borrarPedidosTodo() {
+            if (!confirm('¿Borrar TODOS los pedidos? Se borran en todas las vistas.')) return;
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            try {
+                const { error } = await sbService.from('pedidos').delete().eq('empresa_id', empresaId);
+                if (error) throw error;
+                loadPedidos();
+            } catch (err) { alert('Error: ' + err.message); }
+        }
         async function setMantenimiento(id) {
             try {
                 const { error } = await sb.from('mesas').update({ estado: 'mantenimiento' }).eq('id', id);
                 if (error) throw error;
                 loadMesas();
             } catch (err) { console.error(err); }
+        }
+        async function openCamareroMesa(mesaId, currentCamId) {
+            window._camareroMesaId = mesaId;
+            const empresaId = localData.currentUser?.empresa_id;
+            const sel = document.getElementById('camareroMesaSelect');
+            sel.innerHTML = '<option value="">Cargando...</option>';
+            document.getElementById('camareroMesaOverlay').style.display = 'flex';
+            const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            try {
+                let cams = [];
+                try {
+                    const r = await sb.from('empleados').select('id,nombre,rol').eq('empresa_id', empresaId).eq('activo', true).order('nombre');
+                    if (r.error) throw r.error;
+                    cams = r.data || [];
+                } catch (_) {
+                    const r2 = await sb.from('empleados').select('id,nombre,rol').eq('empresa_id', empresaId).order('nombre');
+                    if (r2.error) throw r2.error;
+                    cams = r2.data || [];
+                }
+                cams = cams.filter(e => ['camarero', 'mozo'].includes((e.rol || '').toLowerCase().replace('rol_', '')));
+                if (!cams.length) { sel.innerHTML = '<option value="">No hay camareros activos</option>'; return; }
+                sel.innerHTML = '<option value="">— Sin asignar —</option>' + cams.map(c =>
+                    `<option value="${c.id}" ${String(c.id) === String(currentCamId || '') ? 'selected' : ''}>${esc(c.nombre)}</option>`
+                ).join('');
+            } catch (err) {
+                sel.innerHTML = '<option value="">Error al cargar</option>';
+            }
+        }
+        async function saveCamareroMesa() {
+            const mesaId = window._camareroMesaId;
+            const sel = document.getElementById('camareroMesaSelect');
+            if (!mesaId || !sel) return;
+            const camId = sel.value || null;
+            const camNombre = camId ? sel.options[sel.selectedIndex].text : null;
+            try {
+                const { error } = await sb.from('mesas').update({ camarero_id: camId, camarero_nombre: camNombre }).eq('id', mesaId);
+                if (error) throw error;
+                document.getElementById('camareroMesaOverlay').style.display = 'none';
+                loadMesas();
+            } catch (err) { alert('Error: ' + err.message); }
         }
 
         function openTerminal() {
@@ -1549,6 +1890,137 @@
             } else {
                 window.open('terminal.html', '_blank');
             }
+        }
+
+        function getAppUrl() {
+            return window.location.origin + '/descargar_app.html';
+        }
+
+        function initQRAppDelivery() {
+            const container = document.getElementById('qrAppDelivery');
+            if (!container) return;
+            const url = getAppUrl();
+            container.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(container, {
+                    text: url,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#0a0a0a',
+                    colorLight: '#ffffff'
+                });
+            } else {
+                container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" style="width:200px;height:200px">`;
+            }
+        }
+
+        function printQRApp() {
+            const url = getAppUrl();
+            const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(url)}`;
+            const printWin = window.open("", "_blank");
+            printWin.document.write(`<html><head><title>Descargar App Delivery</title><style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;text-align:center}h1{margin-bottom:20px;font-size:24px}img{max-width:400px}p{margin-top:16px;font-size:14px;color:#666}</style></head><body><h1>📱 Descargá la App de Delivery</h1><img src="${qrImg}"><p>Escaneá con la cámara de tu celular</p><p style="font-size:12px;color:#999">UrbanFlow - Seguí tu delivery en tiempo real</p></body></html>`);
+            printWin.document.close();
+            setTimeout(() => printWin.print(), 500);
+        }
+
+        // VÍNCULO MOTOS
+        async function initVinculoMotos() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            loadSolicitudesVinculo(empresaId);
+            loadMotosVinculadas(empresaId);
+        }
+
+        async function loadSolicitudesVinculo(empresaId) {
+            const el = document.getElementById('solicitudesVinculo');
+            if (!el) return;
+            try {
+                const { data, error } = await sb.from('perfiles').select('id,full_name,phone,marca,modelo,matricula').eq('empresa_vinculada_id', empresaId).eq('modalidad', 'pendiente');
+                if (error) throw error;
+                window._solMotos = data || [];
+                if (!window._solMotos.length) { el.innerHTML = '<p style="color:var(--text2);">Sin solicitudes pendientes.</p>'; return; }
+                el.innerHTML = window._solMotos.map((m, i) => `
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:1px solid var(--accent);border-radius:8px;margin-bottom:8px;">
+                        <div>
+                            <b>${m.full_name || 'Sin nombre'}</b><br>
+                            <span style="color:var(--text2);font-size:12px;">${m.marca || ''} ${m.modelo || ''} · ${m.matricula || ''}</span><br>
+                            <span style="color:var(--text2);font-size:11px;">📞 ${m.phone || ''}</span>
+                        </div>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn-primary" style="background:var(--green);font-size:11px;padding:6px 12px;" onclick="aprobarVinculo(${i})">✓ Aprobar</button>
+                            <button class="btn-primary" style="background:var(--danger);font-size:11px;padding:6px 12px;" onclick="rechazarVinculo(${i})">✕</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                el.innerHTML = '<p style="color:var(--danger);">Error al cargar solicitudes.</p>';
+            }
+        }
+
+        async function aprobarVinculo(i) {
+            const m = (window._solMotos || [])[i];
+            if (!m) return;
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!confirm(`Aprobar a ${m.full_name || 'moto'} con contrato directo?`)) return;
+            try {
+                const { error } = await sbService.from('perfiles').update({ modalidad: 'contrato' }).eq('id', m.id);
+                if (error) throw error;
+                try {
+                    await sbService.from('vinculos_delivery').upsert({ driver_id: m.id, empresa_id: empresaId, estado: 'aprobado' }, { onConflict: 'driver_id,empresa_id' });
+                } catch (_) {}
+                try {
+                    const pinRandom = String(Math.floor(10000000 + Math.random() * 90000000));
+                    const { error: eUp } = await sbService.from('empleados').upsert({ id: m.id, empresa_id: empresaId, nombre: m.full_name || 'Delivery', pin: pinRandom, rol: 'delivery', activo: true }, { onConflict: 'id' });
+                    if (eUp) throw eUp;
+                } catch (e2) { alert('Aprobado, pero no entró en empleados: ' + e2.message); }
+                loadSolicitudesVinculo(empresaId);
+                loadMotosVinculadas(empresaId);
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function rechazarVinculo(i) {
+            const m = (window._solMotos || [])[i];
+            if (!m) return;
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!confirm(`Rechazar a ${m.full_name || 'moto'}?`)) return;
+            try {
+                const { error } = await sbService.from('perfiles').update({ modalidad: 'libre', empresa_vinculada_id: null }).eq('id', m.id);
+                if (error) throw error;
+                try {
+                    await sbService.from('vinculos_delivery').upsert({ driver_id: m.id, empresa_id: empresaId, estado: 'rechazado' }, { onConflict: 'driver_id,empresa_id' });
+                } catch (_) {}
+                loadSolicitudesVinculo(empresaId);
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function loadMotosVinculadas(empresaId) {
+            const el = document.getElementById('motosVinculadas');
+            if (!el) return;
+            const { data } = await sb.from('perfiles').select('id,full_name,phone,matricula,marca,modelo').eq('empresa_vinculada_id', empresaId).eq('modalidad', 'contrato').eq('status', 'aprobado');
+            if (!data || data.length === 0) { el.innerHTML = '<p style="color:#8b949e;">No hay motos vinculadas actualmente.</p>'; return; }
+            el.innerHTML = data.map(m => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid #30363d;border-radius:8px;margin-bottom:8px;">
+                    <div>
+                        <b>${m.full_name || 'Sin nombre'}</b><br>
+                        <span style="color:#8b949e;font-size:12px;">${m.marca || ''} ${m.modelo || ''} · ${m.matricula || ''}</span><br>
+                        <span style="color:#8b949e;font-size:11px;">📞 ${m.phone || ''}</span>
+                    </div>
+                    <button class="btn" style="background:#da3633;color:white;font-size:11px;padding:6px 12px;" onclick="desvincularMoto('${m.id}')">Desvincular</button>
+                </div>
+            `).join('');
+        }
+
+        async function desvincularMoto(motoId) {
+            if (!confirm('¿Desvincular esta moto del negocio?')) return;
+            const empresaId = localData.currentUser?.empresa_id;
+            await sbService.from('perfiles').update({ modalidad: 'libre', empresa_vinculada_id: null }).eq('id', motoId);
+            try {
+                await sbService.from('vinculos_delivery').upsert({ driver_id: motoId, empresa_id: empresaId, estado: 'inactivo' }, { onConflict: 'driver_id,empresa_id' });
+            } catch (_) {}
+            try {
+                await sbService.from('empleados').update({ activo: false }).eq('id', motoId).eq('empresa_id', empresaId);
+            } catch (_) {}
+            loadMotosVinculadas(empresaId);
         }
 
         // =============================================
@@ -1637,6 +2109,7 @@
                 if (emp.logo_url) { document.getElementById('logoPreview').src = emp.logo_url; document.getElementById('logoPreview').style.display='block'; document.getElementById('logoPlaceholder').style.display='none'; }
                 if (emp.portada_url) { document.getElementById('portadaPreview').src = emp.portada_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
                 if (emp.foto_url) { document.getElementById('portadaPreview').src = emp.foto_url; document.getElementById('portadaPreview').style.display='block'; document.getElementById('portadaPlaceholder').style.display='none'; }
+                if (emp.chat_fondo_url) { document.getElementById('chatFondoPreview').src = emp.chat_fondo_url; document.getElementById('chatFondoPreview').style.display='block'; document.getElementById('chatFondoPlaceholder').style.display='none'; document.getElementById('btnRemoveChatFondo').style.display='inline-block'; }
                 if (emp.lat) document.getElementById('configLat').value = emp.lat;
                 if (emp.lng) document.getElementById('configLng').value = emp.lng;
                 if (emp.abierto !== false) {
@@ -1677,6 +2150,37 @@
                 await sb.from('empresas').update({ portada_url: data.publicUrl, foto_url: data.publicUrl }).eq('id', empresaId);
             } else alert('Error portada: '+error.message);
         });
+        document.getElementById('chatFondoFile')?.addEventListener('change', async function() {
+            const file = this.files[0]; if (!file) return;
+            const empresaId = localData.currentUser?.empresa_id; if (!empresaId) return;
+            document.getElementById('chatFondoPreview').src = URL.createObjectURL(file);
+            document.getElementById('chatFondoPreview').style.display='block';
+            document.getElementById('chatFondoPlaceholder').style.display='none';
+            document.getElementById('btnRemoveChatFondo').style.display='inline-block';
+        });
+
+        async function saveChatFondo() {
+            const fileInput = document.getElementById('chatFondoFile');
+            const file = fileInput.files[0];
+            if (!file) { alert('Seleccioná una imagen primero'); return; }
+            const empresaId = localData.currentUser?.empresa_id; if (!empresaId) return;
+            const path = `empresa_${empresaId}/chat_fondo_${Date.now()}.jpg`;
+            const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+            if (!error) {
+                const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path);
+                await sb.from('empresas').update({ chat_fondo_url: data.publicUrl }).eq('id', empresaId);
+                alert('Fondo del chat guardado');
+            } else alert('Error: ' + error.message);
+        }
+
+        async function removeChatFondo() {
+            const empresaId = localData.currentUser?.empresa_id; if (!empresaId) return;
+            await sb.from('empresas').update({ chat_fondo_url: '' }).eq('id', empresaId);
+            document.getElementById('chatFondoPreview').style.display='none';
+            document.getElementById('chatFondoPlaceholder').style.display='';
+            document.getElementById('btnRemoveChatFondo').style.display='none';
+            document.getElementById('chatFondoFile').value='';
+        }
 
         async function loadProductos() {
             const empresaId = localData.currentUser?.empresa_id;
@@ -3401,8 +3905,36 @@
             }
         }
 
-        const MODULOS = ['dashboard','productos','pedidos','cocina','mesas','inventario','clientes','empleados','zonas','facturacion','auditoria','config','propinas'];
-        const MODULOS_LABELS = {dashboard:'Dashboard',productos:'Productos',pedidos:'Pedidos',cocina:'Cocina',mesas:'Mesas',inventario:'Inventario',clientes:'Clientes',empleados:'Personal',zonas:'Zonas',facturacion:'Facturación',auditoria:'Auditoría',config:'Configuración',propinas:'Propinas'};
+        const MODULOS = ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','mapa','reparto','entregados','clientes','zonas','facturacion','ventas','auditoria','config','propinas','misdatos','salon','historial','simulador','appdelivery','vinculo-motos','terminal'];
+        const MODULOS_LABELS = {dashboard:'Dashboard',productos:'Productos',pedidos:'Pedidos',delivery:'Delivery',caja:'Caja',mesas:'Mesas',cocina:'Cocina',inventario:'Inventario',empleados:'Personal',mapa:'Mi Mapa',reparto:'En curso',entregados:'Entregados',clientes:'Clientes',zonas:'Zonas',facturacion:'Facturación',auditoria:'Auditoría',config:'Configuración',ventas:'Ventas',propinas:'Propinas',misdatos:'Yo',salon:'Salón',historial:'Historial',simulador:'Precios',appdelivery:'App Delivery','vinculo-motos':'Vínculo Motos',terminal:'Terminal QR'};
+        const MODULOS_DESC = {
+            dashboard:'Resumen de ventas, pedidos y estado del local en tiempo real',
+            productos:'Alta, edición, precios y categorías del menú',
+            pedidos:'Gestión de pedidos de salón, QR y online: preparar, listo, cancelar y llamar delivery',
+            delivery:'Solicitar repartidor y seguir envíos en curso',
+            caja:'Apertura/cierre de turno, cobros y POS — abre la caja registradora (pos.html)',
+            mesas:'Mapa de mesas, estados, asignación de mozos y comandas por mesa',
+            cocina:'Vista de comandas para cocina (KDS) — solo lo que debe preparar cocina',
+            inventario:'Stock, ingredientes y control de existencias',
+            empleados:'Altas, roles, subroles y datos del personal',
+            mapa:'Mapa del local y posición de repartidores en vivo',
+            reparto:'Pedidos en curso y seguimiento de repartos activos',
+            entregados:'Historial de pedidos ya entregados',
+            clientes:'Base de clientes y registro de visitas',
+            zonas:'Zonas de reparto y costos de envío por barrio',
+            facturacion:'Comprobantes, cierres y reportes de venta',
+            ventas:'Ventas por canal, fecha y medio de pago con gráficas',
+            auditoria:'Historial y trazabilidad de todas las acciones del sistema',
+            config:'Configuración general del local: datos, horarios, impuestos y más',
+            propinas:'Gestión y reparto de propinas del personal',
+            misdatos:'Perfil personal del empleado: sus datos y contraseña',
+            salon:'Asignación de mesas a mozos y subroles del personal de sala',
+            historial:'Historial completo de pedidos pasados con filtros',
+            simulador:'Constructor de precios y simulador de márgenes',
+            appdelivery:'QR para que los deliverys descarguen la app',
+            'vinculo-motos':'Vincular motos/vehículos a repartidores en contrato',
+            terminal:'Pantalla QR para que los empleados escaneen y entren a la app'
+        };
         const ROLES = ['cajero','cocinero','camarero','delivery','vendedor','encargado'];
         let permisosData = {};
 
@@ -3434,7 +3966,8 @@
             });
             html += '</tr></thead><tbody>';
             MODULOS.forEach(m => {
-                html += `<tr><td style="padding:8px;border-bottom:1px solid var(--border);font-size:13px">${MODULOS_LABELS[m]||m}</td>`;
+                const desc = (MODULOS_DESC[m]||'').replace(/'/g, "\\'");
+                html += `<tr><td style="padding:8px;border-bottom:1px solid var(--border);font-size:13px"><span style="display:inline-flex;align-items:center;gap:6px">${MODULOS_LABELS[m]||m}<span onclick="showModTip(event,'${m}')" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);font-size:11px;color:var(--text2);cursor:pointer;user-select:none" title="${MODULOS_DESC[m]||''}">?</span></span></td>`;
                 ROLES.forEach(r => {
                     const checked = permisosData[r] && permisosData[r][m] === true;
                     html += `<td style="text-align:center;padding:8px;border-bottom:1px solid var(--border)"><input type="checkbox" ${checked?'checked':''} onchange="togglePermiso('${r}','${m}',this.checked)" style="accent-color:var(--accent)"></td>`;
@@ -3443,6 +3976,23 @@
             });
             html += '</tbody></table>';
             grid.innerHTML = html;
+        }
+        function showModTip(ev, mod) {
+            ev.stopPropagation();
+            let tip = document.getElementById('modTipFloat');
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.id = 'modTipFloat';
+                tip.style.cssText = 'position:fixed;z-index:9999;max-width:280px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;line-height:1.4;box-shadow:0 8px 30px rgba(0,0,0,0.4);display:none';
+                document.body.appendChild(tip);
+                document.addEventListener('click', () => { if(tip) tip.style.display='none'; });
+            }
+            const rect = ev.currentTarget.getBoundingClientRect();
+            tip.textContent = MODULOS_DESC[mod] || MODULOS_LABELS[mod] || mod;
+            tip.style.display = 'block';
+            tip.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
+            tip.style.top = (rect.bottom + 8) + 'px';
+            if (parseInt(tip.style.top) + 100 > window.innerHeight) tip.style.top = (rect.top - 90) + 'px';
         }
 
         function togglePermiso(rol, modulo, activo) {
@@ -3517,7 +4067,7 @@
         let pedidoDetalleId = null;
         function verPedidoDetalle(id) {
             const p = localData.pedidos.find(x=>x.id===id);
-            if (!p) return;
+            if (!p) { localData.pedidos = localData.pedidos.filter(x=>x.id!==id); try{loadPedidos();}catch(_){} alert('Ese pedido ya fue borrado'); return; }
             pedidoDetalleId = id;
             let items=[]; try{items=JSON.parse(p.items||'[]')}catch(e){}
             const propinaInfo = p.metodo_pago==='tarjeta_app' ? '<br>Propina: ver en Propinas (si dejó con tarjeta)' : '';
@@ -3553,7 +4103,8 @@
         }
         async function borrarTodo() {
             if (!confirm('⚠️ BORRAR TODO: pedidos, productos, mesas, empleados, facturación? Esta acción no se puede deshacer. ¿Confirmás?')) return;
-            if (!confirm('Segunda confirmación: ¿Seguro que querés borrar TODO y empezar de cero?')) return;
+            const t = prompt('Escribí BORRAR (en mayúsculas) para confirmar el borrado total:');
+            if (t !== 'BORRAR') { alert('Cancelado. No se borró nada.'); return; }
             const empresaId = localData.currentUser?.empresa_id;
             if (!empresaId) return alert('Sin empresa');
             try {
@@ -3692,7 +4243,7 @@
             const empId = localStorage.getItem('urbanflow_empresa_id');
             if (!empId) {
                 document.getElementById('loadingMsg').textContent = 'Sin sesión. Redirigiendo...';
-                setTimeout(() => window.location.href = '/login.html', 500);
+                setTimeout(() => window.location.href = 'login.html', 500);
                 return;
             }
 
@@ -3704,34 +4255,124 @@
                 if (error || !emp || emp.length === 0) {
                     document.getElementById('loadingMsg').textContent = 'Empresa no encontrada. Redirigiendo...';
                     localStorage.removeItem('urbanflow_empresa_id');
-                    setTimeout(() => window.location.href = '/login.html', 500);
+                    setTimeout(() => window.location.href = 'login.html', 500);
                     return;
                 }
 
                 const e = emp[0];
+                // Verificar si es empleado (no dueño)
+                const employeeRole = localStorage.getItem('urbanflow_employee_role');
+                const employeeName = localStorage.getItem('urbanflow_employee_name');
+                const isEmployee = employeeRole && employeeRole !== 'rol_dueno';
+
                 localData.currentUser = {
                     id: e.id,
                     empresa_id: e.id,
-                    nombre: e.nombre,
-                    rol: 'rol_dueno',
+                    nombre: isEmployee ? (employeeName || e.nombre) : e.nombre,
+                    rol: isEmployee ? employeeRole : 'rol_dueno',
                     activo: true
                 };
 
                 document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('appContainer').classList.add('active');
-                document.getElementById('userName').textContent = e.nombre;
-                document.getElementById('userRole').textContent = 'DUEÑO';
-                document.getElementById('userAvatar').textContent = e.nombre.substring(0, 2).toUpperCase();
+                document.getElementById('userName').textContent = localData.currentUser.nombre;
+                document.getElementById('userRole').textContent = isEmployee ? employeeRole.replace('rol_', '').toUpperCase() : 'DUEÑO';
+                document.getElementById('userAvatar').textContent = localData.currentUser.nombre.substring(0, 2).toUpperCase();
                 document.getElementById('headerRestaurantName').textContent = e.nombre;
+
+                // Si es empleado, filtrar sidebar por permisos
+                if (isEmployee) {
+                    const rolKey = employeeRole.replace('rol_', '');
+                    try {
+                        const { data: permisos } = await sbService.from('permisos_roles')
+                            .select('modulo,activo')
+                            .eq('empresa_id', empId)
+                            .eq('rol', rolKey);
+                        
+                        const permMap = {};
+                        if (permisos && permisos.length > 0) permisos.forEach(p => permMap[p.modulo] = p.activo);
+                        
+                        document.querySelectorAll('.sidebar-item').forEach(item => {
+                            const onclick = item.getAttribute('onclick') || '';
+                            let mod = null;
+                            const match = onclick.match(/showSection\('([^']+)'\)/);
+                            if (match) {
+                                mod = match[1];
+                            } else if (onclick.includes('openPOS')) {
+                                mod = 'cajero';
+                            } else if (onclick.includes('openZonas')) {
+                                mod = 'zonas';
+                            } else if (onclick.includes('openSalon')) {
+                                mod = 'salon';
+                            } else if (onclick.includes('openTerminal')) {
+                                mod = 'propinas';
+                            }
+                            if (mod && (permMap[mod] === undefined || permMap[mod] === false)) {
+                                item.style.display = 'none';
+                            }
+                        });
+                        
+                        if (permMap['config'] === false || permMap['config'] === undefined) {
+                            document.querySelectorAll('[onclick*="borrarDemo"], [onclick*="borrarTodo"], [onclick*="borrarPedidosTodo"]').forEach(btn => {
+                                btn.style.display = 'none';
+                            });
+                        }
+                    } catch(err) {
+                        console.error('Error loading permisos:', err);
+                    }
+                    // Si es cajero, mover la opción Caja arriba del todo de la botonera
+                    if (employeeRole.replace('rol_', '') === 'cajero') {
+                        const nav = document.querySelector('.sidebar');
+                        const cajaItem = nav && nav.querySelector('[onclick*="openPOS"]');
+                        if (nav && cajaItem && nav.firstElementChild !== cajaItem) {
+                            nav.insertBefore(cajaItem, nav.firstElementChild);
+                        }
+                    }
+                }
 
                 loadDashboard();
                 filterSidebar();
+                try {
+                    const secParam = new URLSearchParams(window.location.search).get('section');
+                    const okSec = secParam && document.getElementById('section-' + secParam) &&
+                        [...document.querySelectorAll('.sidebar-item')].some(i => (i.getAttribute('onclick') || '').includes(`'${secParam}'`) && i.style.display !== 'none');
+                    if (okSec) showSection(secParam);
+                } catch (_) {}
             } catch(err) {
                 console.error('Auto-login error:', err);
                 document.getElementById('loadingMsg').textContent = 'Error. Redirigiendo...';
-                setTimeout(() => window.location.href = '/login.html', 500);
+                setTimeout(() => window.location.href = 'login.html', 500);
             }
         })();
+    </script>
+    <script>
+        // Debug: mostrar HTML real de cada sección
+        document.querySelectorAll('.section').forEach(sec => {
+            const hdr = sec.querySelector('.section-header');
+            if (!hdr) return;
+            const title = sec.id.replace('section-', '');
+            const btn = document.createElement('button');
+            btn.className = 'html-debug-toggle';
+            btn.textContent = '</> HTML';
+            btn.onclick = function() {
+                const box = sec.querySelector('.html-debug-box');
+                if (box) {
+                    const show = box.style.display === 'block';
+                    box.style.display = show ? 'none' : 'block';
+                    if (!show && !box.dataset.loaded) {
+                        const clone = sec.cloneNode(true);
+                        clone.querySelectorAll('.html-debug-box, .html-debug-toggle').forEach(el => el.remove());
+                        box.querySelector('pre').textContent = clone.innerHTML.trim();
+                        box.dataset.loaded = '1';
+                    }
+                }
+            };
+            hdr.appendChild(btn);
+            const box = document.createElement('div');
+            box.className = 'html-debug-box';
+            box.innerHTML = '<button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextElementSibling.textContent);this.textContent=\'Copiado!\'">Copiar</button><pre></pre>';
+            sec.insertBefore(box, hdr.nextSibling);
+        });
     </script>
 </body>
 </html>

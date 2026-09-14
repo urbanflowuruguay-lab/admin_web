@@ -592,26 +592,18 @@
         }
 
         // =============================================
-        // ROLE CONFIGS - What each role sees
+        // ROLE CONFIGS - Todos los roles entran igual, los módulos los configura el dueño desde gestión
         // =============================================
         const ROLE_CONFIGS = {
-            'Dueño':        { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados'], icon: 'fa-crown', color: '#d4af37' },
-            'Encargado':    { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados'], icon: 'fa-user-tie', color: '#2196f3' },
-            'Cajero':       { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados'], icon: 'fa-cash-register', color: '#4caf50', hideUser: true, hideAbierto: true },
-            'Camarero':     { sections: ['pedidos','mesas','misdatos'], icon: 'fa-concierge-bell', color: '#ff9800' },
-            'Cocinero':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
-            'Cocinera':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
-            'Delivery':     { sections: ['delivery','misdatos'], icon: 'fa-motorcycle', color: '#9c27b0' },
-            'Vendedor':     { sections: ['pedidos','misdatos'], icon: 'fa-store', color: '#00bcd4' },
-            // Lowercase versions for matching
-            'dueño':        { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados'], icon: 'fa-crown', color: '#d4af37' },
-            'encargado':    { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados'], icon: 'fa-user-tie', color: '#2196f3' },
-            'cajero':       { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados'], icon: 'fa-cash-register', color: '#4caf50', hideUser: true, hideAbierto: true },
-            'camarero':     { sections: ['pedidos','mesas','misdatos'], icon: 'fa-concierge-bell', color: '#ff9800' },
-            'cocinero':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
-            'cocinera':     { sections: ['cocina','misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
-            'delivery':     { sections: ['delivery','misdatos'], icon: 'fa-motorcycle', color: '#9c27b0' },
-            'vendedor':     { sections: ['pedidos','misdatos'], icon: 'fa-store', color: '#00bcd4' }
+            '_default':     { sections: ['misdatos'], icon: 'fa-user', color: '#8b949e' },
+            'dueño':        { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas','historial','simulador','appdelivery','vinculo-motos','terminal','salon'], icon: 'fa-crown', color: '#d4af37' },
+            'encargado':    { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas','historial','simulador','appdelivery','vinculo-motos','terminal','salon'], icon: 'fa-user-tie', color: '#2196f3' },
+            'cajero':       { sections: ['misdatos'], icon: 'fa-cash-register', color: '#4caf50' },
+            'camarero':     { sections: ['misdatos'], icon: 'fa-concierge-bell', color: '#ff9800' },
+            'cocinero':     { sections: ['misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
+            'cocinera':     { sections: ['misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
+            'delivery':     { sections: ['misdatos'], icon: 'fa-motorcycle', color: '#9c27b0' },
+            'vendedor':     { sections: ['misdatos'], icon: 'fa-store', color: '#00bcd4' }
         };
 
         // =============================================
@@ -648,37 +640,29 @@
 
         async function buildUI() {
             let rolKey = (currentUser.rol || '').replace('rol_', '').toLowerCase();
-            // Alias: mozo trabaja como camarero (mesas + pedidos)
             if (rolKey === 'mozo') rolKey = 'camarero';
-            // Delivery: vista mínima (esperando + entregados), sin importar permisos
-            if (rolKey === 'delivery') {
-                buildDeliveryUI();
-                return;
-            }
-            const defaultConfig = ROLE_CONFIGS[rolKey] || ROLE_CONFIGS['cajero'];
+            const isDueno = ['dueño', 'dueno', 'encargado'].includes(rolKey);
+            const defaultConfig = ROLE_CONFIGS[rolKey] || ROLE_CONFIGS['_default'];
             let allowedSections = defaultConfig.sections;
-            // Dueño y encargado siempre tienen acceso total — ignorar DB permisos
-            if (!['dueño', 'dueno', 'encargado'].includes(rolKey)) {
-                try {
-                    const { data } = await sb.from('permisos_roles')
-                        .select('modulo,activo')
-                        .eq('empresa_id', currentUser.empresa_id)
-                        .eq('rol', rolKey);
-                    if (data && data.length > 0) {
-                        const permMap = {};
-                        data.forEach(p => permMap[p.modulo] = p.activo);
-                        // Universo = etiquetas conocidas + todo lo marcado en DB (lo nuevo aparece solo)
-                        const allModules = [...new Set([...Object.keys(sectionLabels), ...Object.keys(permMap)])];
-                        // sin variables: lo que marcás en gestion.html es lo que ve. Si el módulo es nuevo y aún no está en DB, usa el default del rol (cajero/encargado = todo)
-                        allowedSections = allModules.filter(s => {
-                            if (s === 'misdatos') return true;
-                            if (permMap[s] === true) return true;
-                            if (permMap[s] === false) return false;
-                            return defaultConfig.sections.includes(s);
-                        });
-                    }
-                } catch(e) { console.log('Usando permisos default:', e.message); }
-            }
+            // Todos consultan permisos en DB. Dueño/encargado siempre obtienen todo.
+            try {
+                const { data } = await sb.from('permisos_roles')
+                    .select('modulo,activo')
+                    .eq('empresa_id', currentUser.empresa_id)
+                    .eq('rol', rolKey);
+                if (data && data.length > 0) {
+                    const permMap = {};
+                    data.forEach(p => permMap[p.modulo] = p.activo);
+                    const allModules = [...new Set([...Object.keys(sectionLabels), ...Object.keys(permMap)])];
+                    allowedSections = allModules.filter(s => {
+                        if (s === 'misdatos') return true;
+                        if (isDueno) return permMap[s] !== false;
+                        if (permMap[s] === true) return true;
+                        if (permMap[s] === false) return false;
+                        return defaultConfig.sections.includes(s);
+                    });
+                }
+            } catch(e) { console.log('Usando permisos default:', e.message); }
             if (allowedSections.length === 0) allowedSections = ['misdatos'];
             // Sidebar items
             const sidebarItems = document.getElementById('sidebarItems');
@@ -739,26 +723,6 @@
                 try { renderSection(s); }
                 catch (err) { console.error('Error renderizando sección ' + s + ':', err); }
             });
-        }
-
-        // Delivery: esperando + entregados + Yo (para salir)
-        function buildDeliveryUI() {
-            const allowedSections = ['reparto', 'entregados', 'misdatos'];
-            document.getElementById('sidebarName').textContent = currentUser.nombre || '';
-            document.getElementById('sidebarRole').textContent = 'Delivery';
-            document.getElementById('sidebarAvatar').textContent = currentUser.emoji || '🛵';
-            document.getElementById('sidebarItems').innerHTML = allowedSections.map((s, i) => `
-                <div class="sidebar-item ${i === 0 ? 'active' : ''}" onclick="showTab('${s}')">
-                    <i class="fas ${sectionLabels[s]?.icon||'fa-circle'}"></i>
-                    <span>${sectionLabels[s]?.label||s}</span>
-                </div>
-            `).join('');
-            document.getElementById('contentContainer').innerHTML = allowedSections.map((s, i) => `
-                <div class="section ${i === 0 ? 'active' : ''}" id="section-${s}">
-                    <div id="content-${s}"></div>
-                </div>
-            `).join('');
-            allowedSections.forEach(s => renderSection(s));
         }
 
         function renderSection(section) {

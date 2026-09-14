@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow - Acceso Gestión</title>
+    <link rel="icon" type="image/png" href="./servicio.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg: #0a0a0a; --bg2: #111; --bg3: #1a1a1a; --accent: #d4af37; --green: #4caf50; --red: #f44336; --text: #fff; --text2: #888; --border: #333; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-container { width: 100%; max-width: 400px; padding: 20px; }
+        .login-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 40px 30px; text-align: center; }
+        .login-card h1 { font-size: 24px; margin-bottom: 8px; }
+        .login-card h1 i { color: var(--accent); }
+        .login-card .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 30px; }
+        .form-group { margin-bottom: 16px; text-align: left; }
+        .form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 12px 16px; font-size: 15px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg3); color: var(--text); outline: none; transition: border-color 0.2s; }
+        .form-group input:focus { border-color: var(--accent); }
+        .btn-login { width: 100%; padding: 14px; font-size: 16px; font-weight: 700; border: none; border-radius: 8px; background: var(--accent); color: #000; cursor: pointer; transition: opacity 0.2s; }
+        .btn-login:hover { opacity: 0.9; }
+        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error-msg { color: var(--red); font-size: 13px; margin-top: 12px; display: none; }
+        .back-link { margin-top: 20px; font-size: 13px; }
+        .back-link a { color: var(--text2); text-decoration: none; }
+        .back-link a:hover { color: var(--accent); }
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h1><i class="fas fa-utensils"></i> UrbanFlow</h1>
+            <p class="subtitle">Acceso al panel de gestión</p>
+
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" id="loginNombre" placeholder="Tu nombre" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="loginPin" placeholder="Tu contraseña" autocomplete="current-password">
+            </div>
+
+            <button class="btn-login" id="btnLogin" onclick="doLogin()">
+                <i class="fas fa-sign-in-alt"></i> ENTRAR
+            </button>
+
+            <p class="error-msg" id="errorMsg"></p>
+
+            <div class="back-link">
+                <a href="app.html"><i class="fas fa-arrow-left"></i> Volver a la app de empleados</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const sbSvc = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function toggleLoading(loading) {
+            const btn = document.getElementById('btnLogin');
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span> Entrando...';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ENTRAR';
+            }
+        }
+
+        async function doLogin() {
+            const nombre = document.getElementById('loginNombre').value.trim();
+            const pin = document.getElementById('loginPin').value;
+
+            if (!nombre) { showError('Ingresá tu nombre'); return; }
+            if (!pin) { showError('Ingresá tu contraseña'); return; }
+
+            document.getElementById('errorMsg').style.display = 'none';
+            toggleLoading(true);
+
+            try {
+                const { data, error } = await sbSvc.from('empleados')
+                    .select('*')
+                    .eq('nombre', nombre)
+                    .eq('pin', pin)
+                    .eq('activo', true)
+                    .limit(5);
+
+                if (error) { showError('Error de conexión'); toggleLoading(false); return; }
+                if (!data || data.length === 0) { showError('Usuario o contraseña incorrectos'); toggleLoading(false); return; }
+
+                const emp = data[0];
+
+                localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
+                localStorage.setItem('urbanflow_employee', JSON.stringify({
+                    id: emp.id,
+                    nombre: emp.nombre,
+                    pin: emp.pin,
+                    rol: emp.rol,
+                    emoji: emp.emoji || '👤',
+                    empresa_id: emp.empresa_id,
+                    foto_url: emp.foto_url || ''
+                }));
+                localStorage.setItem('urbanflow_employee_role', emp.rol);
+                localStorage.setItem('urbanflow_employee_name', emp.nombre);
+
+                window.location.href = 'gestion.html';
+            } catch(e) {
+                showError('Error inesperado: ' + e.message);
+                toggleLoading(false);
+            }
+        }
+
+        document.getElementById('loginPin').addEventListener('keydown', e => {
+            if (e.key === 'Enter') doLogin();
+        });
+        document.getElementById('loginNombre').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('loginPin').focus();
+        });
+    </script>
+</body>
+</html>
