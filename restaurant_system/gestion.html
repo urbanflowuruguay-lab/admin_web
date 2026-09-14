@@ -1549,7 +1549,7 @@
             document.querySelector('.sidebar')?.classList.remove('open');
             document.getElementById('sidebarOverlay')?.classList.remove('show');
             
-            if (section === 'productos') loadProductos();
+            if (section === 'productos') { loadProductos(); migrarVisibilidadCajero(); }
             if (section === 'pedidos') loadPedidos();
             if (section === 'mesas') loadMesas();
             if (section === 'inventario') loadInventario();
@@ -2180,6 +2180,21 @@
             document.getElementById('chatFondoPlaceholder').style.display='';
             document.getElementById('btnRemoveChatFondo').style.display='none';
             document.getElementById('chatFondoFile').value='';
+        }
+
+        async function migrarVisibilidadCajero() {
+            const empresaId = localData.currentUser?.empresa_id;
+            if (!empresaId) return;
+            try {
+                const { data } = await sbService.from('productos_empresa').select('id,visible_para').eq('empresa_id', empresaId);
+                if (!data) return;
+                for (const p of data) {
+                    if (p.visible_para && p.visible_para.includes('cajero')) {
+                        const nuevo = p.visible_para.replace(/cajero/g, 'caja');
+                        await sbService.from('productos_empresa').update({ visible_para: nuevo }).eq('id', p.id);
+                    }
+                }
+            } catch(e) { console.log('Migración visibilidad:', e.message); }
         }
 
         async function loadProductos() {
@@ -3366,7 +3381,7 @@
             const vis = (p.visible_para || 'cocina,camarero,caja').split(',').map(v => v.trim());
             document.getElementById('visCocina').checked = vis.includes('cocina');
             document.getElementById('visMozo').checked = vis.includes('camarero');
-            document.getElementById('visCaja').checked = vis.includes('caja');
+            document.getElementById('visCaja').checked = vis.includes('caja') || vis.includes('cajero');
             refreshCategoriaOptions(p.categoriaNombre || (p.categorias && p.categorias[0]));
             if (p.foto_url) { document.getElementById('prodFotoPreview').src = p.foto_url; document.getElementById('prodFotoPreview').style.display='block'; document.getElementById('prodFotoPlaceholder').style.display='none'; }
             else { document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block'; }
