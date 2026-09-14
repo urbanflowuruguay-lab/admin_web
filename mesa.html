@@ -330,6 +330,11 @@
         <div class="atencion-estado-valor" id="atencionEstadoValor">Recibido</div>
         <div class="atencion-estado-items" id="atencionEstadoItems"></div>
     </div>
+    <div class="atencion-estado" id="atencionPago" style="margin-bottom:16px">
+        <div class="atencion-estado-label">Pago</div>
+        <div class="atencion-estado-valor" id="atencionPagoValor" style="color:var(--accent)">Pendiente de pago</div>
+        <div id="atencionTotal" style="color:#fff;font-size:20px;font-weight:700;margin-top:6px"></div>
+    </div>
     <button class="atencion-btn atencion-btn-agregar" onclick="abrirCartaAgregar()">➕ Agregar algo más</button>
     <button class="atencion-btn atencion-btn-llamar" onclick="llamarDesdeAtencion()">🔔 Llamar a la camarera</button>
     <div class="atencion-footer">UrbanFlow</div>
@@ -362,7 +367,7 @@
 </div>
 
 <div class="nombre-input" id="ratingScreen">
-    <div class="nombre-box" style="max-width:400px">
+    <div class="nombre-box" style="max-width:400px;max-height:90vh;overflow-y:auto">
         <h3>⭐ ¿Cómo fue tu experiencia?</h3>
         <p id="ratingPedidoInfo" style="color:var(--text2);font-size:12px;margin-bottom:16px;text-align:center"></p>
         
@@ -378,6 +383,11 @@
         </div>
 
         <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:600;margin-bottom:8px;text-align:center;color:var(--text2)">Calificá por categoría</div>
+            <div id="subRatingsContainer"></div>
+        </div>
+
+        <div style="margin-bottom:16px">
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">¿Querés dejar propina?</div>
             <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
                 <button class="propina-btn" onclick="setPropina(0)" id="propina0">$0</button>
@@ -389,12 +399,6 @@
                 <input type="number" id="propinaCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaCustom()">
             </div>
             <div id="propinaInfo" style="font-size:11px;color:var(--text2);text-align:center;margin-top:6px"></div>
-        </div>
-
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('servicio', 5)"> Servicio ⭐</button>
-            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('comida', 5)"> Comida ⭐</button>
-            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('rapidez', 5)"> Rapidez ⭐</button>
         </div>
 
         <textarea id="ratingComentario" placeholder="Comentario opcional..." style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin-bottom:12px;resize:none;height:60px;font-family:var(--font)"></textarea>
@@ -882,7 +886,26 @@ let selectedPago = null;
 let currentPedidoId = null;
 let currentRating = 0;
 let currentPropina = 0;
-let subRatings = { servicio: 0, comida: 0, rapidez: 0 };
+let subRatings = { atencion: 0, comida: 0, rapidez: 0, ambiente: 0, precio: 0 };
+const SUB_RATINGS_CONFIG = [
+    { key: 'atencion', label: 'Atención', icon: '🤝' },
+    { key: 'comida', label: 'Comida', icon: '🍽️' },
+    { key: 'rapidez', label: 'Rapidez', icon: '⏱️' },
+    { key: 'ambiente', label: 'Ambiente', icon: '🎵' },
+    { key: 'precio', label: 'Precio', icon: '💰' }
+];
+
+function renderSubRatings() {
+    const container = document.getElementById('subRatingsContainer');
+    if (!container) return;
+    container.innerHTML = SUB_RATINGS_CONFIG.map(cat => {
+        const val = subRatings[cat.key] || 0;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+            <span style="font-size:13px;color:var(--text)">${cat.icon} ${cat.label}</span>
+            <div style="display:flex;gap:2px;cursor:pointer">${[1,2,3,4,5].map(n => `<span onclick="setSubRating('${cat.key}',${n})" style="font-size:18px;color:${n <= val ? 'var(--accent)' : 'var(--muted)'};cursor:pointer">${n <= val ? '★' : '☆'}</span>`).join('')}</div>
+        </div>`;
+    }).join('');
+}
 
 function showNombreInput() {
     document.getElementById("nombreInput").classList.add("show");
@@ -1052,11 +1075,14 @@ async function confirmarPedido() {
 function showRatingScreen() {
     currentRating = 0;
     currentPropina = 0;
-    subRatings = { servicio: 0, comida: 0, rapidez: 0 };
+    subRatings = { atencion: 0, comida: 0, rapidez: 0, ambiente: 0, precio: 0 };
     document.getElementById("ratingPedidoInfo").textContent = `Mesa #${mesaData ? mesaData.numero : '?'} — Gracias por tu visita`;
     updateStars();
     updatePropinaButtons();
+    renderSubRatings();
     document.getElementById("ratingScreen").classList.add("show");
+    // Vibrar para avisar al cliente
+    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
 }
 
 function setRating(n) {
@@ -1103,42 +1129,42 @@ function updatePropinaButtons() {
 
 function setSubRating(campo, val) {
     subRatings[campo] = subRatings[campo] === val ? 0 : val;
+    renderSubRatings();
 }
 
 async function enviarRating() {
     try {
-        // Save calificación
         if (currentRating > 0) {
             await sb.from("calificaciones").insert({
                 empresa_id: empresaId,
                 pedido_id: currentPedidoId,
                 mesa_token: mesaToken,
                 mesa_numero: mesaData ? mesaData.numero : 0,
-                cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
+                cliente_nombre: window._ultimoNombreMesa || "Cliente",
                 cliente_token: clienteToken,
                 estrellas: currentRating,
-                servicio: subRatings.servicio || null,
+                atencion: subRatings.atencion || null,
+                servicio: subRatings.atencion || null,
                 comida: subRatings.comida || null,
                 rapidez: subRatings.rapidez || null,
+                ambiente: subRatings.ambiente || null,
+                precio: subRatings.precio || null,
                 comentario: document.getElementById("ratingComentario").value.trim() || null
             });
         }
-
-        // Save propina
         if (currentPropina > 0) {
             await sb.from("propinas").insert({
                 empresa_id: empresaId,
                 pedido_id: currentPedidoId,
                 mesa_token: mesaToken,
                 mesa_numero: mesaData ? mesaData.numero : 0,
-                cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
+                cliente_nombre: window._ultimoNombreMesa || "Cliente",
                 cliente_token: clienteToken,
                 monto: currentPropina,
                 metodo_pago: selectedPago || "efectivo",
                 reparto: "individual"
             });
         }
-
         document.getElementById("ratingScreen").classList.remove("show");
         showGraciasFinal();
     } catch (e) {
@@ -1269,7 +1295,7 @@ function mostrarPantallaAtencion(mozoNombre, pedidoId) {
 
 function actualizarEstadoAtencion() {
     if (!currentPedidoId) return;
-    sb.from("pedidos").select("estado,items,entregado_por_nombre").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
+    sb.from("pedidos").select("estado,items,metodo_pago_estado,total").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
         if (!data) return;
         const estados = { recibido: "Recibido ✅", preparando: "En preparación 👨‍🍳", listo: "Listo 🔔", en_camino: "En camino 🛵", entregado: "Entregado 🎉" };
         document.getElementById("atencionEstadoValor").textContent = estados[data.estado] || data.estado;
@@ -1277,9 +1303,38 @@ function actualizarEstadoAtencion() {
             const items = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
             document.getElementById("atencionEstadoItems").textContent = items.map(i => i.cantidad + "x " + i.nombre).join(", ");
         } catch (_) {}
+        // Total
+        if (data.total) document.getElementById("atencionTotal").textContent = "$" + Math.round(data.total);
+        // Estado del pago
+        const pagoEl = document.getElementById("atencionPagoValor");
+        const anterior = window._ultimoPagoEstado;
+        if (data.metodo_pago_estado === "pagado") {
+            pagoEl.textContent = "✅ Pagado";
+            pagoEl.style.color = "#22c55e";
+            if (anterior !== "pagado") {
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+                // Sonido de confirmación
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+                    osc.connect(ctx.destination);
+                    osc.start(); osc.stop(ctx.currentTime + 0.3);
+                } catch (_) {}
+            }
+        } else if (data.metodo_pago_estado === "por_confirmar") {
+            pagoEl.textContent = "⏳ Pago registrado — esperando confirmación";
+            pagoEl.style.color = "#f59e0b";
+        } else {
+            pagoEl.textContent = "💵 Pendiente de pago";
+            pagoEl.style.color = "var(--accent)";
+        }
+        window._ultimoPagoEstado = data.metodo_pago_estado;
         if (data.estado === "entregado") {
             stopAtencionPoll();
-            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 3000);
+            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 2000);
         }
     });
 }
