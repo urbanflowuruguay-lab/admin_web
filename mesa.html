@@ -1313,17 +1313,21 @@ function llamarDesdeAtencion() {
 async function agregarAlPedidoExistente() {
     if (!currentPedidoId || carrito.length === 0) return;
     try {
-        const { data: pedidoActual } = await sb.from("pedidos").select("items,total").eq("id", currentPedidoId).maybeSingle();
+        const { data: pedidoActual } = await sb.from("pedidos").select("items,total,estado").eq("id", currentPedidoId).maybeSingle();
         const itemsExistentes = typeof pedidoActual?.items === "string" ? JSON.parse(pedidoActual.items) : (pedidoActual?.items || []);
-        const nuevosItems = carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio }));
+        const nuevosItems = carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio, entregado: false }));
         const merged = [...itemsExistentes];
         for (const ni of nuevosItems) {
-            const existente = merged.find(e => e.nombre === ni.nombre && e.precio === ni.precio);
-            if (existente) existente.cantidad += ni.cantidad;
+            const existente = merged.find(e => e.nombre === ni.nombre && (e.precio || 0) === (ni.precio || 0) && !e.entregado);
+            if (existente) existente.cantidad = (existente.cantidad || 0) + ni.cantidad;
             else merged.push(ni);
         }
         const nuevoTotal = merged.reduce((s, i) => s + (i.precio || 0) * (i.cantidad || 1), 0);
-        await sb.from("pedidos").update({ items: JSON.stringify(merged), total: nuevoTotal }).eq("id", currentPedidoId);
+        const upd = { items: JSON.stringify(merged), total: nuevoTotal };
+        // Si se agregó comida (no bebida), volver a 'recibido' para que cocina lo vea
+        const esComida = n => !/bebida|gaseosa|cerveza|pilsen|patricia|vino|agua|coca|pepsi|sprite|fanta|jugo|refresco|fernet|ron|vodka|whisky|caipiri|mojito|limonada|licuado|drink|cola\b/.test((n || '').toLowerCase());
+        if (nuevosItems.some(ni => esComida(ni.nombre))) upd.estado = 'recibido';
+        await sb.from("pedidos").update(upd).eq("id", currentPedidoId);
         carrito = [];
         esModoAgregar = false;
         document.getElementById("btnPedir").textContent = "Pedir";
