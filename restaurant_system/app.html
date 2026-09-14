@@ -658,6 +658,10 @@
                 }
             } catch(e) { console.log('Usando permisos default:', e.message); }
             if (allowedSections.length === 0) allowedSections = ['misdatos'];
+            // Asegurar que la sección principal del rol siempre exista
+            const primaryByRole = { cocinero:'cocina', cocinera:'cocina', camarero:'mesas', mozo:'mesas', caja:'pedidos', delivery:'delivery' };
+            const primarySection = primaryByRole[rolKey];
+            if (primarySection && !allowedSections.includes(primarySection)) allowedSections.push(primarySection);
             // Sidebar items
             const sidebarItems = document.getElementById('sidebarItems');
             const prettyMod = s => s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ');
