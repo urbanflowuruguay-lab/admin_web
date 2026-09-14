@@ -1165,6 +1165,11 @@ function showGraciasFinal() {
     document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que la hayas pasado bien.<br>¡Volvé pronto!";
     document.getElementById("pedidoIdDisplay").textContent = "";
     document.getElementById("estadoPedido").classList.add("show");
+    setTimeout(() => {
+        if (window.AndroidBridge && window.AndroidBridge.navigateHome) {
+            try { window.AndroidBridge.navigateHome(); } catch (_) {}
+        }
+    }, 3000);
 }
 
 let customerMap = null;
