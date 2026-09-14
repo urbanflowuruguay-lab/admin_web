@@ -1424,6 +1424,8 @@
             // Llamadas al delivery cada 10 segundos
             checkLlamadas();
             llamadaInterval = setInterval(checkLlamadas, 10000);
+            // Campana de mesa (QR) -> timbre del mozo
+            try { startLlamadosMozo(); } catch (_) {}
 
             // Realtime: notificar cuando un pedido cambia de estado
             sbSvc.channel('pedidos-changes').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, (payload) => {
@@ -1564,12 +1566,119 @@
                 nota(784, t + 0.6, 0.9);
             }catch(e){}
         }
-        function showToast(msg){
+        function showToast(msg, durationMs){
             const t = document.createElement('div');
-            t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;z-index:99999;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeIn 0.3s';
+            t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;z-index:99999;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeIn 0.3s;display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:4px;max-width:90vw;text-align:center';
             t.textContent = msg;
             document.body.appendChild(t);
-            setTimeout(()=>t.remove(), 4000);
+            setTimeout(()=>t.remove(), durationMs || 4000);
+        }
+
+        // Timbre FUERTE para campana de mesa: 3 repeticiones + agudo + vibración
+        function vibrarPatron(patron) {
+            try {
+                if (navigator.vibrate) navigator.vibrate(patron);
+                else if (navigator.webkitVibrate) navigator.webkitVibrate(patron);
+            } catch (_) {}
+        }
+        function playTimbreSynthFuerte(repeticiones) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (ctx.state === 'suspended') { try { ctx.resume(); } catch (_) {} }
+                const nota = (freq, t0, dur, vol) => {
+                    const o = ctx.createOscillator(); const g = ctx.createGain();
+                    o.connect(g); g.connect(ctx.destination);
+                    o.type = 'square'; o.frequency.value = freq;
+                    g.gain.setValueAtTime(0.0001, t0);
+                    g.gain.exponentialRampToValueAtTime(vol || 0.5, t0 + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+                    o.start(t0); o.stop(t0 + dur + 0.05);
+                };
+                let t = ctx.currentTime + 0.05;
+                for (let r = 0; r < (repeticiones || 3); r++) {
+                    nota(1568, t, 0.3, 0.5);
+                    nota(1175, t + 0.35, 0.45, 0.5);
+                    t += 1.0;
+                }
+            } catch (e) {}
+        }
+        function playTimbreFuerte() {
+            if (!soundOnApp('timbre_mozo')) return;
+            vibrarPatron([500, 200, 500, 200, 800]);
+            try {
+                let n = 0;
+                const sonar = () => {
+                    try {
+                        const a = new Audio('timbre.wav');
+                        a.volume = 1.0;
+                        const pr = a.play();
+                        if (pr && typeof pr.catch === 'function') pr.catch(() => {});
+                    } catch (_) {}
+                    if (++n < 3) setTimeout(sonar, 900);
+                };
+                sonar();
+            } catch (_) {}
+            playTimbreSynthFuerte(3);
+        }
+
+        // =============================================
+        // CAMPANA DE MESA (QR) -> avisa al mozo con timbre
+        // =============================================
+        window._llamadosVistos = window._llamadosVistos || {};
+        function motivoLlamadoTxt(m) {
+            if (m === 'pagar') return 'pide la cuenta 💵';
+            if (m === 'agregar') return 'quiere agregar más cosas ➕';
+            return 'llama a la camarera 🛎️';
+        }
+        function debeOirCampana() {
+            const rol = (currentUser?.rol || '').toLowerCase().replace('rol_', '');
+            return ['camarero', 'mozo', 'encargado', 'dueno', 'dueño', 'admin'].includes(rol);
+        }
+        function avisarLlamadoMozo(ll) {
+            if (!ll || window._llamadosVistos[ll.id]) return;
+            window._llamadosVistos[ll.id] = true;
+            if (ll.empresa_id && ll.empresa_id !== currentUser?.empresa_id) return;
+            if (!debeOirCampana()) return;
+            playTimbreFuerte();
+            const nombreCamarero = currentUser?.nombre || 'Camarero';
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;z-index:99999;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeIn 0.3s;display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:8px;max-width:90vw;text-align:center';
+            const msg = document.createElement('span');
+            msg.textContent = `🔔 Mesa ${ll.mesa_numero || '?'} ${motivoLlamadoTxt(ll.motivo)}${ll.cliente_nombre ? ' · ' + ll.cliente_nombre : ''}`;
+            t.appendChild(msg);
+            const toastBtn = document.createElement('button');
+            toastBtn.textContent = 'Atender';
+            toastBtn.style.cssText = 'padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px';
+            toastBtn.onclick = async () => {
+                try { await sbSvc.from('llamados_mozo').update({ estado: 'atendido' }).eq('id', ll.id); } catch (_) {}
+                try { await sbSvc.from('llamados_mozo').update({ mozo_nombre: nombreCamarero }).eq('id', ll.id); } catch (_) {}
+                t.remove();
+            };
+            t.appendChild(toastBtn);
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 10000);
+            try { if (typeof loadMesasSalon === 'function') loadMesasSalon(); } catch (_) {}
+        }
+        function startLlamadosMozo() {
+            try {
+                if (!currentUser?.empresa_id) return;
+                sbSvc.channel('llamados-mozo').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'llamados_mozo' }, (payload) => {
+                    avisarLlamadoMozo(payload.new || {});
+                }).subscribe();
+            } catch (_) {}
+            setInterval(async () => {
+                try {
+                    if (!currentUser?.empresa_id || !debeOirCampana()) return;
+                    const desde = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+                    const { data } = await sbSvc.from('llamados_mozo').select('id,empresa_id,mesa_numero,cliente_nombre,motivo,estado')
+                        .eq('empresa_id', currentUser.empresa_id).eq('estado', 'pendiente').gte('created_at', desde)
+                        .order('created_at', { ascending: false }).limit(10);
+                    for (const ll of (data || [])) avisarLlamadoMozo(ll);
+                } catch (_) {}
+            }, 10000);
+        }
+        async function atenderLlamadoMozo(id) {
+            try { await sbSvc.from('llamados_mozo').update({ estado: 'atendido' }).eq('id', id); } catch (_) {}
         }
 
         // Sin reloj: al abrir la app ya estás activo y trabajando

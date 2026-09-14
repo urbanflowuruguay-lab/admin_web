@@ -130,6 +130,21 @@
         #starRating span { cursor: pointer; transition: transform 0.1s; }
         #starRating span:hover { transform: scale(1.2); }
 
+        /* PANTALLA DE ATENCION */
+        .atencion-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 400; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px; }
+        .atencion-screen.show { display: flex; }
+        .atencion-logo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .atencion-title { color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .atencion-subtitle { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+        .atencion-estado { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 16px; width: 100%; max-width: 340px; margin-bottom: 24px; }
+        .atencion-estado-label { color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .atencion-estado-valor { color: #fff; font-size: 16px; font-weight: 600; }
+        .atencion-estado-items { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 6px; }
+        .atencion-btn { width: 100%; max-width: 340px; padding: 14px; border-radius: 10px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font); margin-bottom: 10px; }
+        .atencion-btn-agregar { background: var(--accent); color: #fff; }
+        .atencion-btn-llamar { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .atencion-footer { color: rgba(255,255,255,0.3); font-size: 11px; margin-top: 16px; }
+
         .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
         .precio-original { text-decoration: line-through; color: var(--muted); font-size: 12px; margin-right: 4px; }
 
@@ -306,6 +321,20 @@
     </div>
 </div>
 
+<div class="atencion-screen" id="atencionScreen">
+    <img id="atencionLogo" class="atencion-logo" src="" style="display:none">
+    <div class="atencion-title" id="atencionTitle">Estás siendo atendido</div>
+    <div class="atencion-subtitle" id="atencionSubtitle"></div>
+    <div class="atencion-estado" id="atencionEstado">
+        <div class="atencion-estado-label">Estado del pedido</div>
+        <div class="atencion-estado-valor" id="atencionEstadoValor">Recibido</div>
+        <div class="atencion-estado-items" id="atencionEstadoItems"></div>
+    </div>
+    <button class="atencion-btn atencion-btn-agregar" onclick="abrirCartaAgregar()">➕ Agregar algo más</button>
+    <button class="atencion-btn atencion-btn-llamar" onclick="llamarDesdeAtencion()">🔔 Llamar a la camarera</button>
+    <div class="atencion-footer">UrbanFlow</div>
+</div>
+
 <div class="estado-pedido" id="estadoPedido">
     <div class="icon">🍳</div>
     <h2>Tu pedido está en proceso</h2>
@@ -317,6 +346,19 @@
     </div>
     <button class="volver" onclick="volverCarta()">Volver a la carta</button>
     <button class="volver" id="btnAceptarPedido" style="display:none;background:var(--accent);color:var(--bg);margin-top:8px" onclick="aceptarPedidoRecibido()">Aceptar</button>
+</div>
+
+<button id="btnCampana" onclick="abrirCampana()" style="display:none;position:fixed;bottom:90px;right:16px;width:56px;height:56px;border-radius:50%;border:none;background:var(--accent);color:var(--bg);font-size:26px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:999">🔔</button>
+
+<div class="nombre-input" id="campanaModal" style="display:none">
+    <div class="nombre-box" style="max-width:340px;text-align:center">
+        <h3>🔔 ¿En qué te ayudamos?</h3>
+        <p id="campanaMozo" style="color:var(--text2);font-size:12px;margin-bottom:12px"></p>
+        <button onclick="llamarMozo('agregar')" style="width:100%;padding:12px;margin-bottom:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;font-weight:700;cursor:pointer">➕ Agregar más cosas</button>
+        <button onclick="llamarMozo('pagar')" style="width:100%;padding:12px;margin-bottom:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;font-weight:700;cursor:pointer">💵 Pedir la cuenta / Pagar</button>
+        <button onclick="llamarMozo('llamar')" style="width:100%;padding:12px;margin-bottom:8px;border-radius:8px;border:none;background:var(--accent);color:var(--bg);font-size:14px;font-weight:700;cursor:pointer">🛎️ Llamar a la camarera</button>
+        <button onclick="document.getElementById('campanaModal').style.display='none'" style="width:100%;padding:8px;border:none;background:none;color:var(--text2);font-size:12px;cursor:pointer">Cerrar</button>
+    </div>
 </div>
 
 <div class="nombre-input" id="ratingScreen">
@@ -684,6 +726,7 @@ async function init() {
         }
         renderProductos();
         loadStaffCarta(empresaIdFinal);
+        if (mesaData && mesaToken) document.getElementById("btnCampana").style.display = "block";
         if (preloadedCart && preloadedCart.length) {
             preloadedCart.forEach(item => {
                 const prod = productos.find(p => p.id === item.id) || { id: item.id, nombre: item.nombre, precio: item.precio, foto_url: item.foto };
@@ -700,6 +743,20 @@ async function init() {
                 addToCart(preProd.id);
                 setTimeout(() => { renderCarritoItems(); updateCarritoBar(); toggleCarritoPanel(); }, 500);
             }
+        }
+        // Suscribirse a cambios en llamados_mozo para detectar cuando la camarera atiende
+        if (mesaToken) {
+            try {
+                sb.channel('carta-llamados-' + mesaToken)
+                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'llamados_mozo' }, (payload) => {
+                        const ll = payload.new;
+                        if (ll && ll.mesa_token === mesaToken && ll.estado === 'atendido') {
+                            const mozo = ll.mozo_nombre || mesaData?.camarero_nombre || "nuestro personal";
+                            setMozoAtendiendo(mozo);
+                            mostrarPantallaAtencion(mozo, currentPedidoId);
+                        }
+                    }).subscribe();
+            } catch (_) {}
         }
     } catch (e) {
         console.error("init error", e);
@@ -811,7 +868,10 @@ function updateCarritoBar() {
     document.getElementById("carritoTotal").textContent = fmt2(totalPrecio);
     const btn = document.getElementById("btnPedir");
     btn.disabled = totalItems === 0 || window.isMantenimiento || window.negocioCerrado;
-    if (window.negocioCerrado && totalItems>0) { btn.textContent = 'Cerrado'; btn.style.opacity='0.6'; }
+    if (esModoAgregar) {
+        btn.textContent = 'Agregar al pedido';
+        btn.style.opacity = '1';
+    } else if (window.negocioCerrado && totalItems>0) { btn.textContent = 'Cerrado'; btn.style.opacity='0.6'; }
     else if (window.isMantenimiento && totalItems>0) { btn.textContent = 'Mesa en mantenimiento'; btn.style.opacity='0.6'; }
     else { btn.textContent = 'Pedir'; btn.style.opacity='1'; }
     document.getElementById("carritoBar").style.display = totalItems > 0 ? "" : "none";
@@ -859,11 +919,44 @@ function selectPago(metodo) {
     document.getElementById("btnConfirmarPago").disabled = false;
 }
 
+function abrirCampana() {
+    const mozo = (mesaData && mesaData.camarero_nombre) ? mesaData.camarero_nombre : null;
+    document.getElementById("campanaMozo").textContent = mozo ? `${mozo} te está atendiendo 😊` : "";
+    document.getElementById("campanaModal").style.display = "flex";
+}
+async function llamarMozo(motivo) {
+    try {
+        if (motivo === "agregar") {
+            document.getElementById("campanaModal").style.display = "none";
+            if (currentPedidoId) {
+                abrirCartaAgregar();
+            } else {
+                try { volverCarta(); } catch (_) {}
+            }
+            return;
+        }
+        const nombre = (window._ultimoNombreMesa || document.getElementById("clienteNombre")?.value?.trim()) || "Cliente";
+        const { data: newLlamado } = await sb.from("llamados_mozo").insert({
+            empresa_id: empresaId || (empresaData && empresaData.id) || null,
+            mesa_token: mesaToken || "",
+            mesa_numero: mesaData ? mesaData.numero : 0,
+            cliente_nombre: nombre,
+            motivo: motivo,
+            estado: "pendiente"
+        }).select().maybeSingle();
+        if (newLlamado) window._ultimoLlamadoId = newLlamado.id;
+        const mozo = (mesaData && mesaData.camarero_nombre) ? mesaData.camarero_nombre : "La camarera";
+        document.getElementById("campanaModal").style.display = "none";
+        alert(`¡${mozo} ya fue avisada! Va en camino 🛎️`);
+    } catch (e) { alert("No se pudo avisar: " + e.message); }
+}
 async function confirmarPedido() {
     if (window.negocioCerrado) { alert('El local está cerrado en este momento.'); return; }
     const nombre = document.getElementById("clienteNombre").value.trim() || "Cliente";
     hidePago();
     const total = carrito.reduce((s, c) => s + c.precio * c.qty, 0);
+    window._ultimoTotalMesa = total;
+    window._ultimoNombreMesa = nombre;
     try {
         const { data, error } = await sb.from("pedidos").insert({
             empresa_id: empresaId,
@@ -887,33 +980,40 @@ async function confirmarPedido() {
         updateCarritoBar();
         carritoPanelOpen = false;
         document.getElementById("carritoPanel").classList.remove("show");
-        document.getElementById("pedidoIdDisplay").textContent = `Pedido de ${nombre}`;
-        document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido ha sido recibido!";
-        document.getElementById("estadoPedido").querySelector(".icon").textContent = "✅";
-        document.getElementById("estadoPedido").querySelector("p").innerHTML = "Te avisaremos cuando esté listo y en camino.";
-        document.getElementById("estadoPedido").classList.add("show");
-        document.getElementById("btnAceptarPedido").style.display = "block";
-        document.querySelector("#estadoPedido .volver").style.display = "none";
+        if (mesaToken) {
+            mostrarPantallaAtencion(mesaData?.camarero_nombre, currentPedidoId);
+        } else {
+            document.getElementById("pedidoIdDisplay").textContent = `Pedido de ${nombre}`;
+            document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido ha sido recibido!";
+            document.getElementById("estadoPedido").querySelector(".icon").textContent = "✅";
+            document.getElementById("estadoPedido").querySelector("p").innerHTML = "Te avisaremos cuando esté listo y en camino.";
+            document.getElementById("estadoPedido").classList.add("show");
+            document.getElementById("btnAceptarPedido").style.display = "block";
+            document.querySelector("#estadoPedido .volver").style.display = "none";
+        }
         if (window.AndroidBridge && window.AndroidBridge.pedidoRecibido && currentPedidoId) {
-            try { window.AndroidBridge.pedidoRecibido(currentPedidoId, empresaId || empresaData?.id || "", empresaData?.nombre || "Restaurante"); } catch(e){}
+            try { window.AndroidBridge.pedidoRecibido(currentPedidoId, empresaId || empresaData?.id || "", empresaData?.nombre || "Restaurante", mesaToken || "", mesaData?.numero || 0, window._ultimoTotalMesa || 0); } catch(e){}
         }
         // Poll estado: listo -> avisar que en breve se lleva a la mesa, entregado -> rating
         if (currentPedidoId) {
             let avisoListo = false;
             let avisoLlego = false;
+            const mozoMesa = (mesaData && mesaData.camarero_nombre) ? mesaData.camarero_nombre : null;
             const poll = setInterval(async () => {
-                const { data: ped } = await sb.from("pedidos").select("estado,palabra_secreta,llego").eq("id", currentPedidoId).maybeSingle();
+                const { data: ped } = await sb.from("pedidos").select("estado,palabra_secreta,llego,cocinero_nombre,entregado_por_nombre").eq("id", currentPedidoId).maybeSingle();
                 if (!ped) return;
+                const coc = ped.cocinero_nombre || "nuestro cocinero";
+                const quienTrae = ped.entregado_por_nombre || mozoMesa || "nuestro mozo";
                 if (ped.estado === "preparando" && !avisoListo) {
-                    document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido se está preparando";
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido se está preparando 👨‍🍳";
                     document.getElementById("estadoPedido").querySelector(".icon").textContent = "👨‍🍳";
-                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "El cocinero está trabajando en tu pedido.";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = `${coc} lo está preparando con mucho cariño para vos.`;
                 }
                 if (ped.estado === "listo" && !avisoListo) {
                     avisoListo = true;
-                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido ya está listo!";
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Tu pedido ya está listo! 🔔";
                     document.getElementById("estadoPedido").querySelector(".icon").textContent = "🔔";
-                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "En breve se te llevará a la mesa.";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = `${coc} ya terminó de preparar tu pedido${mozoMesa ? `, y próximamente <strong>${mozoMesa}</strong> te lo llevará a la mesa` : `, y enseguida te lo llevan a la mesa`} 🍽️`;
                 }
                 if (ped.estado === "en_camino") {
                     document.getElementById("estadoPedido").querySelector("h2").textContent = "Tu pedido va en camino";
@@ -1136,6 +1236,107 @@ function volverCarta() {
     document.getElementById("estadoPedido").querySelector(".icon").textContent = "🍳";
     document.getElementById("estadoPedido").querySelector("p").innerHTML = "Ya lo llevaremos a tu mesa.<br>Mientras tanto, podes seguir pidiendo o relajarte.";
     renderProductos(getCurrentFilter());
+}
+
+// =============================================
+// PANTALLA DE ATENCION
+// =============================================
+let atencionPoll = null;
+let esModoAgregar = false;
+
+function mostrarPantallaAtencion(mozoNombre, pedidoId) {
+    document.getElementById("portada").classList.remove("show");
+    document.getElementById("pagoMesaModal").classList.remove("show");
+    document.getElementById("estadoPedido").classList.remove("show");
+    document.getElementById("atencionScreen").classList.add("show");
+    document.getElementById("btnCampana").style.display = "none";
+    document.getElementById("carritoBar").style.display = "none";
+    document.getElementById("negocioHeader").style.display = "none";
+    document.getElementById("categoriasBar").style.display = "none";
+
+    if (empresaData && empresaData.logo_url) {
+        const logo = document.getElementById("atencionLogo");
+        logo.src = empresaData.logo_url;
+        logo.style.display = "block";
+    }
+    document.getElementById("atencionTitle").textContent = "Estás siendo atendido por " + (mozoNombre || "nuestro personal");
+    document.getElementById("atencionSubtitle").textContent = "¿Necesitás algo? Estamos para ayudarte.";
+
+    if (pedidoId) currentPedidoId = pedidoId;
+    actualizarEstadoAtencion();
+    startAtencionPoll();
+}
+
+function actualizarEstadoAtencion() {
+    if (!currentPedidoId) return;
+    sb.from("pedidos").select("estado,items,entregado_por_nombre").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
+        if (!data) return;
+        const estados = { recibido: "Recibido ✅", preparando: "En preparación 👨‍🍳", listo: "Listo 🔔", en_camino: "En camino 🛵", entregado: "Entregado 🎉" };
+        document.getElementById("atencionEstadoValor").textContent = estados[data.estado] || data.estado;
+        try {
+            const items = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
+            document.getElementById("atencionEstadoItems").textContent = items.map(i => i.cantidad + "x " + i.nombre).join(", ");
+        } catch (_) {}
+        if (data.estado === "entregado") {
+            stopAtencionPoll();
+            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 3000);
+        }
+    });
+}
+
+function startAtencionPoll() {
+    stopAtencionPoll();
+    atencionPoll = setInterval(actualizarEstadoAtencion, 4000);
+}
+
+function stopAtencionPoll() {
+    if (atencionPoll) { clearInterval(atencionPoll); atencionPoll = null; }
+}
+
+function abrirCartaAgregar() {
+    esModoAgregar = true;
+    document.getElementById("atencionScreen").classList.remove("show");
+    document.getElementById("negocioHeader").style.display = "flex";
+    document.getElementById("categoriasBar").style.display = "flex";
+    document.getElementById("carritoBar").style.display = "none";
+    carrito = [];
+    renderProductos();
+    document.getElementById("btnPedir").textContent = "Agregar al pedido";
+    document.getElementById("btnPedir").onclick = function() { agregarAlPedidoExistente(); };
+    document.getElementById("btnPedir").disabled = false;
+}
+
+function llamarDesdeAtencion() {
+    llamarMozo("llamar");
+}
+
+async function agregarAlPedidoExistente() {
+    if (!currentPedidoId || carrito.length === 0) return;
+    try {
+        const { data: pedidoActual } = await sb.from("pedidos").select("items,total").eq("id", currentPedidoId).maybeSingle();
+        const itemsExistentes = typeof pedidoActual?.items === "string" ? JSON.parse(pedidoActual.items) : (pedidoActual?.items || []);
+        const nuevosItems = carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio }));
+        const merged = [...itemsExistentes];
+        for (const ni of nuevosItems) {
+            const existente = merged.find(e => e.nombre === ni.nombre && e.precio === ni.precio);
+            if (existente) existente.cantidad += ni.cantidad;
+            else merged.push(ni);
+        }
+        const nuevoTotal = merged.reduce((s, i) => s + (i.precio || 0) * (i.cantidad || 1), 0);
+        await sb.from("pedidos").update({ items: JSON.stringify(merged), total: nuevoTotal }).eq("id", currentPedidoId);
+        carrito = [];
+        esModoAgregar = false;
+        document.getElementById("btnPedir").textContent = "Pedir";
+        document.getElementById("btnPedir").onclick = function() { showNombreInput(); };
+        mostrarPantallaAtencion(mesaData?. camarero_nombre, currentPedidoId);
+    } catch (e) {
+        alert("Error al agregar: " + e.message);
+    }
+}
+
+// Guardar nombre del ultimo mozo que atendio
+function setMozoAtendiendo(nombre) {
+    if (nombre) window._mozoAtendiendo = nombre;
 }
 
 init();
