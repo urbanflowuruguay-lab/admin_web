@@ -1385,7 +1385,7 @@
                 if (ctx.state === 'suspended') ctx.resume();
             } catch (_) {}
             try { _llamadaAudioEl = new Audio('llamada.mp3'); _llamadaAudioEl.preload = 'auto'; _llamadaAudioEl.load(); } catch (_) {}
-            try { _timbreEl = new Audio('timbre.wav'); _timbreEl.preload = 'auto'; _timbreEl.load(); } catch (_) {}
+            try { _timbreEl = new Audio('llamada.mp3'); _timbreEl.preload = 'auto'; _timbreEl.load(); } catch (_) {}
             document.removeEventListener('click', unlockAudio);
             document.removeEventListener('touchstart', unlockAudio);
         }
@@ -1418,7 +1418,7 @@
         function playTimbre(){
             if (!soundOnApp('timbre_mozo')) return;
             try{
-                if (!_timbreEl) { _timbreEl = new Audio('timbre.wav'); _timbreEl.preload = 'auto'; }
+                if (!_timbreEl) { _timbreEl = new Audio('llamada.mp3'); _timbreEl.preload = 'auto'; }
                 _timbreEl.currentTime = 0;
                 const pr = _timbreEl.play();
                 if (pr && typeof pr.catch === 'function') pr.catch(()=>playTimbreSynth());
