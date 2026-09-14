@@ -1716,15 +1716,13 @@
         let llamadaInterval = null;
         let llamadaAudioTimer = null;
 
+        let _llamadaAudioEl = null;
         function ringLlamada() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                [660, 880, 660].forEach((f, i) => {
-                    const o = ctx.createOscillator(), g = ctx.createGain();
-                    o.connect(g); g.connect(ctx.destination);
-                    o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.5;
-                    o.start(ctx.currentTime + i * 0.3); o.stop(ctx.currentTime + i * 0.3 + 0.25);
-                });
+                if (!_llamadaAudioEl) { _llamadaAudioEl = new Audio('llamada.mp3'); _llamadaAudioEl.preload = 'auto'; }
+                _llamadaAudioEl.currentTime = 0;
+                const pr = _llamadaAudioEl.play();
+                if (pr && typeof pr.catch === 'function') pr.catch(() => {});
             } catch (e) {}
         }
 
