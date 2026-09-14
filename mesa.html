@@ -335,6 +335,22 @@
         <div class="atencion-estado-valor" id="atencionPagoValor" style="color:var(--accent)">Pendiente de pago</div>
         <div id="atencionTotal" style="color:#fff;font-size:20px;font-weight:700;margin-top:6px"></div>
     </div>
+
+    <div id="propinaSection" style="display:none;width:100%;max-width:350px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-size:14px;font-weight:600;color:var(--text);text-align:center;margin-bottom:10px">¿Querés dejar propina?</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px" id="propinaBtnsAtencion">
+            <button class="propina-btn" onclick="setPropinaAtencion(0)" id="propinaAt0">$0</button>
+            <button class="propina-btn" onclick="setPropinaAtencion(50)" id="propinaAt50">$50</button>
+            <button class="propina-btn" onclick="setPropinaAtencion(100)" id="propinaAt100">$100</button>
+            <button class="propina-btn" onclick="setPropinaAtencion(200)" id="propinaAt200">$200</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:8px">
+            <input type="number" id="propinaAtCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaAtencionCustom()">
+        </div>
+        <div id="propinaAtInfo" style="font-size:11px;color:var(--text2);text-align:center"></div>
+        <div id="propinaAtTotal" style="font-size:13px;color:var(--accent);text-align:center;margin-top:6px;font-weight:600"></div>
+    </div>
+
     <button class="atencion-btn atencion-btn-agregar" onclick="abrirCartaAgregar()">➕ Agregar algo más</button>
     <button class="atencion-btn atencion-btn-llamar" onclick="llamarDesdeAtencion()">🔔 Llamar a la camarera</button>
     <div class="atencion-footer">UrbanFlow</div>
@@ -385,20 +401,6 @@
         <div style="margin-bottom:16px">
             <div style="font-size:12px;font-weight:600;margin-bottom:8px;text-align:center;color:var(--text2)">Calificá por categoría</div>
             <div id="subRatingsContainer"></div>
-        </div>
-
-        <div style="margin-bottom:16px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">¿Querés dejar propina?</div>
-            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
-                <button class="propina-btn" onclick="setPropina(0)" id="propina0">$0</button>
-                <button class="propina-btn" onclick="setPropina(50)" id="propina50">$50</button>
-                <button class="propina-btn" onclick="setPropina(100)" id="propina100">$100</button>
-                <button class="propina-btn" onclick="setPropina(200)" id="propina200">$200</button>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;justify-content:center">
-                <input type="number" id="propinaCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaCustom()">
-            </div>
-            <div id="propinaInfo" style="font-size:11px;color:var(--text2);text-align:center;margin-top:6px"></div>
         </div>
 
         <textarea id="ratingComentario" placeholder="Comentario opcional..." style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin-bottom:12px;resize:none;height:60px;font-family:var(--font)"></textarea>
@@ -1127,6 +1129,54 @@ function updatePropinaButtons() {
     }
 }
 
+// --- Propina en pantalla de atención (antes de cobrar) ---
+let propinaAtencion = 0;
+let pedidoBaseTotal = 0;
+
+function setPropinaAtencion(monto) {
+    propinaAtencion = monto;
+    document.getElementById("propinaAtCustom").value = "";
+    updatePropinaAtencionUI();
+}
+
+function setPropinaAtencionCustom() {
+    const val = parseInt(document.getElementById("propinaAtCustom").value) || 0;
+    propinaAtencion = val;
+    updatePropinaAtencionUI();
+}
+
+function updatePropinaAtencionUI() {
+    [0, 50, 100, 200].forEach(v => {
+        const btn = document.getElementById("propinaAt" + v);
+        if (btn) btn.classList.toggle("selected", propinaAtencion === v && v > 0);
+    });
+    const info = document.getElementById("propinaAtInfo");
+    const totalEl = document.getElementById("propinaAtTotal");
+    if (propinaAtencion > 0) {
+        info.textContent = `Propina: $${propinaAtencion}`;
+        totalEl.textContent = `Total con propina: $${Math.round(pedidoBaseTotal + propinaAtencion)}`;
+    } else {
+        info.textContent = "";
+        totalEl.textContent = "";
+    }
+}
+
+async function aplicarPropinaAlPedido() {
+    if (!currentPedidoId || propinaAtencion <= 0) return;
+    const nuevoTotal = pedidoBaseTotal + propinaAtencion;
+    const { error } = await sb.from("pedidos").update({ total: nuevoTotal, notas: (await _getPedidoNotas()) + ` · Propina $${propinaAtencion}` }).eq("id", currentPedidoId);
+    if (error) console.error("Error guardando propina:", error);
+    else {
+        document.getElementById("atencionTotal").textContent = "$" + Math.round(nuevoTotal);
+        showToast("Propina aplicada ✓");
+    }
+}
+
+async function _getPedidoNotas() {
+    const { data } = await sb.from("pedidos").select("notas").eq("id", currentPedidoId).maybeSingle();
+    return data?.notas || "";
+}
+
 function setSubRating(campo, val) {
     subRatings[campo] = subRatings[campo] === val ? 0 : val;
     renderSubRatings();
@@ -1150,19 +1200,6 @@ async function enviarRating() {
                 ambiente: subRatings.ambiente || null,
                 precio: subRatings.precio || null,
                 comentario: document.getElementById("ratingComentario").value.trim() || null
-            });
-        }
-        if (currentPropina > 0) {
-            await sb.from("propinas").insert({
-                empresa_id: empresaId,
-                pedido_id: currentPedidoId,
-                mesa_token: mesaToken,
-                mesa_numero: mesaData ? mesaData.numero : 0,
-                cliente_nombre: window._ultimoNombreMesa || "Cliente",
-                cliente_token: clienteToken,
-                monto: currentPropina,
-                metodo_pago: selectedPago || "efectivo",
-                reparto: "individual"
             });
         }
         document.getElementById("ratingScreen").classList.remove("show");
@@ -1303,17 +1340,18 @@ function actualizarEstadoAtencion() {
             const items = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
             document.getElementById("atencionEstadoItems").textContent = items.map(i => i.cantidad + "x " + i.nombre).join(", ");
         } catch (_) {}
-        // Total
-        if (data.total) document.getElementById("atencionTotal").textContent = "$" + Math.round(data.total);
-        // Estado del pago
+        pedidoBaseTotal = data.total || 0;
+        const totalMostrar = propinaAtencion > 0 ? pedidoBaseTotal + propinaAtencion : pedidoBaseTotal;
+        document.getElementById("atencionTotal").textContent = "$" + Math.round(totalMostrar);
         const pagoEl = document.getElementById("atencionPagoValor");
+        const propinaSection = document.getElementById("propinaSection");
         const anterior = window._ultimoPagoEstado;
         if (data.metodo_pago_estado === "pagado") {
             pagoEl.textContent = "✅ Pagado";
             pagoEl.style.color = "#22c55e";
+            propinaSection.style.display = "none";
             if (anterior !== "pagado") {
                 if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
-                // Sonido de confirmación
                 try {
                     const ctx = new (window.AudioContext || window.webkitAudioContext)();
                     const osc = ctx.createOscillator();
@@ -1323,16 +1361,21 @@ function actualizarEstadoAtencion() {
                     osc.connect(ctx.destination);
                     osc.start(); osc.stop(ctx.currentTime + 0.3);
                 } catch (_) {}
+                stopAtencionPoll();
+                setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 2000);
             }
         } else if (data.metodo_pago_estado === "por_confirmar") {
             pagoEl.textContent = "⏳ Pago registrado — esperando confirmación";
             pagoEl.style.color = "#f59e0b";
+            propinaSection.style.display = "block";
+            updatePropinaAtencionUI();
         } else {
             pagoEl.textContent = "💵 Pendiente de pago";
             pagoEl.style.color = "var(--accent)";
+            propinaSection.style.display = "none";
         }
         window._ultimoPagoEstado = data.metodo_pago_estado;
-        if (data.estado === "entregado") {
+        if (data.estado === "entregado" && data.metodo_pago_estado !== "pagado") {
             stopAtencionPoll();
             setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 2000);
         }
