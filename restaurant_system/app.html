@@ -1226,12 +1226,18 @@
                 foto_url: emp.foto_url || ''
             };
             
-            // Guardar datos del empleado y redirigir a gestión.html (misma web que dueño)
+            // Guardar datos del empleado
             localStorage.setItem('urbanflow_employee', JSON.stringify(currentUser));
             localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
             localStorage.setItem('urbanflow_employee_role', emp.rol);
             localStorage.setItem('urbanflow_employee_name', emp.nombre);
-            window.location.href = 'gestion.html';
+            // Dueño/encargado van a gestión, el resto se queda en app
+            const rol = (emp.rol || '').replace('rol_', '').toLowerCase();
+            if (['dueño', 'dueno', 'encargado'].includes(rol)) {
+                window.location.href = 'gestion.html';
+            } else {
+                initApp();
+            }
         }
 
         function loginError(msg) {
