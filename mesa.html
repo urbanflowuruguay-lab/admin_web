@@ -1285,7 +1285,10 @@ function actualizarEstadoAtencion() {
         } catch (_) {}
         if (data.estado === "entregado") {
             stopAtencionPoll();
-            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 3000);
+            document.getElementById("atencionTitle").textContent = "¡Buen provecho! 🍽️";
+            document.getElementById("atencionSubtitle").textContent = "Esperamos que disfrutes de tu elección.\nNo te olvides de dejarnos tu opinión sobre nuestro servicio.";
+            document.getElementById("atencionEstado").style.display = "none";
+            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 4000);
         }
     });
 }
