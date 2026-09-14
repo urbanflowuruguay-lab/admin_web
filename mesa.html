@@ -325,30 +325,11 @@
     <img id="atencionLogo" class="atencion-logo" src="" style="display:none">
     <div class="atencion-title" id="atencionTitle">Estás siendo atendido</div>
     <div class="atencion-subtitle" id="atencionSubtitle"></div>
-
-    <div class="atencion-estado" id="atencionPago" style="margin-bottom:12px">
-        <div id="atencionTotal" style="color:#fff;font-size:22px;font-weight:700"></div>
-        <div class="atencion-estado-valor" id="atencionPagoValor" style="color:var(--accent);font-size:13px;margin-top:4px">Pendiente de pago</div>
+    <div class="atencion-estado" id="atencionEstado">
+        <div class="atencion-estado-label">Estado del pedido</div>
+        <div class="atencion-estado-valor" id="atencionEstadoValor">Recibido</div>
+        <div class="atencion-estado-items" id="atencionEstadoItems"></div>
     </div>
-
-    <div id="atencionDetalleItems" style="width:100%;max-width:350px;margin-bottom:12px"></div>
-
-    <div id="propinaSection" style="display:none;width:100%;max-width:350px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">
-        <div style="font-size:14px;font-weight:600;color:var(--text);text-align:center;margin-bottom:10px">¿Querés dejar propina?</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px" id="propinaBtnsAtencion">
-            <button class="propina-btn" onclick="setPropinaAtencion(0)" id="propinaAt0">$0</button>
-            <button class="propina-btn" onclick="setPropinaAtencion(50)" id="propinaAt50">$50</button>
-            <button class="propina-btn" onclick="setPropinaAtencion(100)" id="propinaAt100">$100</button>
-            <button class="propina-btn" onclick="setPropinaAtencion(200)" id="propinaAt200">$200</button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:8px">
-            <input type="number" id="propinaAtCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaAtencionCustom()">
-        </div>
-        <div id="propinaAtInfo" style="font-size:11px;color:var(--text2);text-align:center"></div>
-        <div id="propinaAtTotal" style="font-size:13px;color:var(--accent);text-align:center;margin-top:6px;font-weight:600"></div>
-        <button onclick="aplicarPropinaAlPedido()" style="width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;background:var(--accent);color:var(--bg);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font)">Aplicar propina</button>
-    </div>
-
     <button class="atencion-btn atencion-btn-agregar" onclick="abrirCartaAgregar()">➕ Agregar algo más</button>
     <button class="atencion-btn atencion-btn-llamar" onclick="llamarDesdeAtencion()">🔔 Llamar a la camarera</button>
     <div class="atencion-footer">UrbanFlow</div>
@@ -381,7 +362,7 @@
 </div>
 
 <div class="nombre-input" id="ratingScreen">
-    <div class="nombre-box" style="max-width:400px;max-height:90vh;overflow-y:auto">
+    <div class="nombre-box" style="max-width:400px">
         <h3>⭐ ¿Cómo fue tu experiencia?</h3>
         <p id="ratingPedidoInfo" style="color:var(--text2);font-size:12px;margin-bottom:16px;text-align:center"></p>
         
@@ -397,8 +378,23 @@
         </div>
 
         <div style="margin-bottom:16px">
-            <div style="font-size:12px;font-weight:600;margin-bottom:8px;text-align:center;color:var(--text2)">Calificá por categoría</div>
-            <div id="subRatingsContainer"></div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">¿Querés dejar propina?</div>
+            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+                <button class="propina-btn" onclick="setPropina(0)" id="propina0">$0</button>
+                <button class="propina-btn" onclick="setPropina(50)" id="propina50">$50</button>
+                <button class="propina-btn" onclick="setPropina(100)" id="propina100">$100</button>
+                <button class="propina-btn" onclick="setPropina(200)" id="propina200">$200</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;justify-content:center">
+                <input type="number" id="propinaCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaCustom()">
+            </div>
+            <div id="propinaInfo" style="font-size:11px;color:var(--text2);text-align:center;margin-top:6px"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('servicio', 5)"> Servicio ⭐</button>
+            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('comida', 5)"> Comida ⭐</button>
+            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('rapidez', 5)"> Rapidez ⭐</button>
         </div>
 
         <textarea id="ratingComentario" placeholder="Comentario opcional..." style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin-bottom:12px;resize:none;height:60px;font-family:var(--font)"></textarea>
@@ -886,26 +882,7 @@ let selectedPago = null;
 let currentPedidoId = null;
 let currentRating = 0;
 let currentPropina = 0;
-let subRatings = { atencion: 0, comida: 0, rapidez: 0, ambiente: 0, precio: 0 };
-const SUB_RATINGS_CONFIG = [
-    { key: 'atencion', label: 'Atención', icon: '🤝' },
-    { key: 'comida', label: 'Comida', icon: '🍽️' },
-    { key: 'rapidez', label: 'Rapidez', icon: '⏱️' },
-    { key: 'ambiente', label: 'Ambiente', icon: '🎵' },
-    { key: 'precio', label: 'Precio', icon: '💰' }
-];
-
-function renderSubRatings() {
-    const container = document.getElementById('subRatingsContainer');
-    if (!container) return;
-    container.innerHTML = SUB_RATINGS_CONFIG.map(cat => {
-        const val = subRatings[cat.key] || 0;
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
-            <span style="font-size:13px;color:var(--text)">${cat.icon} ${cat.label}</span>
-            <div style="display:flex;gap:2px;cursor:pointer">${[1,2,3,4,5].map(n => `<span onclick="setSubRating('${cat.key}',${n})" style="font-size:18px;color:${n <= val ? 'var(--accent)' : 'var(--muted)'};cursor:pointer">${n <= val ? '★' : '☆'}</span>`).join('')}</div>
-        </div>`;
-    }).join('');
-}
+let subRatings = { servicio: 0, comida: 0, rapidez: 0 };
 
 function showNombreInput() {
     document.getElementById("nombreInput").classList.add("show");
@@ -1075,14 +1052,11 @@ async function confirmarPedido() {
 function showRatingScreen() {
     currentRating = 0;
     currentPropina = 0;
-    subRatings = { atencion: 0, comida: 0, rapidez: 0, ambiente: 0, precio: 0 };
+    subRatings = { servicio: 0, comida: 0, rapidez: 0 };
     document.getElementById("ratingPedidoInfo").textContent = `Mesa #${mesaData ? mesaData.numero : '?'} — Gracias por tu visita`;
     updateStars();
     updatePropinaButtons();
-    renderSubRatings();
     document.getElementById("ratingScreen").classList.add("show");
-    // Vibrar para avisar al cliente
-    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
 }
 
 function setRating(n) {
@@ -1127,84 +1101,44 @@ function updatePropinaButtons() {
     }
 }
 
-// --- Propina en pantalla de atención (antes de cobrar) ---
-let propinaAtencion = 0;
-let pedidoBaseTotal = 0;
-
-function setPropinaAtencion(monto) {
-    propinaAtencion = monto;
-    document.getElementById("propinaAtCustom").value = "";
-    updatePropinaAtencionUI();
-}
-
-function setPropinaAtencionCustom() {
-    const val = parseInt(document.getElementById("propinaAtCustom").value) || 0;
-    propinaAtencion = val;
-    updatePropinaAtencionUI();
-}
-
-function updatePropinaAtencionUI() {
-    [0, 50, 100, 200].forEach(v => {
-        const btn = document.getElementById("propinaAt" + v);
-        if (btn) btn.classList.toggle("selected", propinaAtencion === v && v > 0);
-    });
-    const info = document.getElementById("propinaAtInfo");
-    const totalEl = document.getElementById("propinaAtTotal");
-    if (propinaAtencion > 0) {
-        info.textContent = `Propina: $${propinaAtencion}`;
-        totalEl.textContent = `Total con propina: $${Math.round(pedidoBaseTotal + propinaAtencion)}`;
-    } else {
-        info.textContent = "";
-        totalEl.textContent = "";
-    }
-}
-
-async function aplicarPropinaAlPedido() {
-    if (!currentPedidoId || propinaAtencion <= 0) return;
-    const nuevoTotal = pedidoBaseTotal + propinaAtencion;
-    // 1. Actualizar total del pedido (para que caja vea el total con propina)
-    await sb.from("pedidos").update({ total: nuevoTotal }).eq("id", currentPedidoId);
-    // 2. Guardar en tabla propinas (para que aparezca en la sección Propinas del restaurant)
-    await sb.from("propinas").insert({
-        empresa_id: empresaId,
-        pedido_id: currentPedidoId,
-        mesa_token: mesaToken,
-        mesa_numero: mesaData ? mesaData.numero : 0,
-        cliente_nombre: window._ultimoNombreMesa || "Cliente",
-        cliente_token: clienteToken,
-        monto: propinaAtencion,
-        metodo_pago: "efectivo",
-        reparto: "individual"
-    });
-    document.getElementById("atencionTotal").textContent = "$" + Math.round(nuevoTotal);
-    showToast("Propina aplicada ✓");
-}
-
 function setSubRating(campo, val) {
     subRatings[campo] = subRatings[campo] === val ? 0 : val;
-    renderSubRatings();
 }
 
 async function enviarRating() {
     try {
+        // Save calificación
         if (currentRating > 0) {
             await sb.from("calificaciones").insert({
                 empresa_id: empresaId,
                 pedido_id: currentPedidoId,
                 mesa_token: mesaToken,
                 mesa_numero: mesaData ? mesaData.numero : 0,
-                cliente_nombre: window._ultimoNombreMesa || "Cliente",
+                cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
                 cliente_token: clienteToken,
                 estrellas: currentRating,
-                atencion: subRatings.atencion || null,
-                servicio: subRatings.atencion || null,
+                servicio: subRatings.servicio || null,
                 comida: subRatings.comida || null,
                 rapidez: subRatings.rapidez || null,
-                ambiente: subRatings.ambiente || null,
-                precio: subRatings.precio || null,
                 comentario: document.getElementById("ratingComentario").value.trim() || null
             });
         }
+
+        // Save propina
+        if (currentPropina > 0) {
+            await sb.from("propinas").insert({
+                empresa_id: empresaId,
+                pedido_id: currentPedidoId,
+                mesa_token: mesaToken,
+                mesa_numero: mesaData ? mesaData.numero : 0,
+                cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
+                cliente_token: clienteToken,
+                monto: currentPropina,
+                metodo_pago: selectedPago || "efectivo",
+                reparto: "individual"
+            });
+        }
+
         document.getElementById("ratingScreen").classList.remove("show");
         showGraciasFinal();
     } catch (e) {
@@ -1335,70 +1269,17 @@ function mostrarPantallaAtencion(mozoNombre, pedidoId) {
 
 function actualizarEstadoAtencion() {
     if (!currentPedidoId) return;
-    sb.from("pedidos").select("estado,items,metodo_pago_estado,total,notas").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
+    sb.from("pedidos").select("estado,items,entregado_por_nombre").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
         if (!data) return;
-        const estadoIcon = { recibido: "⏳", preparando: "👨‍🍳", listo: "🔔", entregado: "🎉" };
-        const estadoLabel = { recibido: "Recibido", preparando: "En cocina", listo: "Listo para servir", entregado: "Entregado" };
-        const icon = estadoIcon[data.estado] || "⏳";
-        const label = estadoLabel[data.estado] || data.estado;
-        // Render items individuales
+        const estados = { recibido: "Recibido ✅", preparando: "En preparación 👨‍🍳", listo: "Listo 🔔", en_camino: "En camino 🛵", entregado: "Entregado 🎉" };
+        document.getElementById("atencionEstadoValor").textContent = estados[data.estado] || data.estado;
         try {
             const items = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
-            const container = document.getElementById("atencionDetalleItems");
-            container.innerHTML = items.map(it => {
-                const precio = it.precio ? `$${Math.round(it.precio * it.cantidad)}` : '';
-                return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
-                    <div style="display:flex;align-items:center;gap:10px;flex:1">
-                        <span style="font-size:18px">${icon}</span>
-                        <div>
-                            <div style="font-size:13px;color:var(--text);font-weight:600">${it.cantidad}x ${it.nombre}</div>
-                            <div style="font-size:11px;color:var(--accent)">${label}</div>
-                        </div>
-                    </div>
-                    <span style="font-size:13px;color:var(--text2);font-weight:600">${precio}</span>
-                </div>`;
-            }).join("");
+            document.getElementById("atencionEstadoItems").textContent = items.map(i => i.cantidad + "x " + i.nombre).join(", ");
         } catch (_) {}
-        // Total
-        pedidoBaseTotal = data.total || 0;
-        const totalConPropina = pedidoBaseTotal + propinaAtencion;
-        document.getElementById("atencionTotal").textContent = "$" + Math.round(propinaAtencion > 0 ? totalConPropina : pedidoBaseTotal);
-        // Estado del pago
-        const pagoEl = document.getElementById("atencionPagoValor");
-        const propinaSection = document.getElementById("propinaSection");
-        const anterior = window._ultimoPagoEstado;
-        if (data.metodo_pago_estado === "pagado") {
-            pagoEl.textContent = "✅ Pagado";
-            pagoEl.style.color = "#22c55e";
-            propinaSection.style.display = "none";
-            if (anterior !== "pagado") {
-                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    osc.type = "sine";
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
-                    osc.connect(ctx.destination);
-                    osc.start(); osc.stop(ctx.currentTime + 0.3);
-                } catch (_) {}
-                stopAtencionPoll();
-                setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 2000);
-            }
-        } else if (data.metodo_pago_estado === "por_confirmar") {
-            pagoEl.textContent = "⏳ Pago registrado — esperando confirmación de caja";
-            pagoEl.style.color = "#f59e0b";
-            propinaSection.style.display = "block";
-            updatePropinaAtencionUI();
-        } else {
-            pagoEl.textContent = "💵 Pendiente de pago";
-            pagoEl.style.color = "var(--accent)";
-            propinaSection.style.display = "none";
-        }
-        window._ultimoPagoEstado = data.metodo_pago_estado;
-        if (data.estado === "entregado" && data.metodo_pago_estado !== "pagado") {
+        if (data.estado === "entregado") {
             stopAtencionPoll();
-            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 2000);
+            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 3000);
         }
     });
 }
@@ -1432,22 +1313,17 @@ function llamarDesdeAtencion() {
 async function agregarAlPedidoExistente() {
     if (!currentPedidoId || carrito.length === 0) return;
     try {
-        const { data: pedidoActual } = await sb.from("pedidos").select("items,total,estado").eq("id", currentPedidoId).maybeSingle();
+        const { data: pedidoActual } = await sb.from("pedidos").select("items,total").eq("id", currentPedidoId).maybeSingle();
         const itemsExistentes = typeof pedidoActual?.items === "string" ? JSON.parse(pedidoActual.items) : (pedidoActual?.items || []);
-        const nuevosItems = carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio, entregado: false }));
+        const nuevosItems = carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio }));
         const merged = [...itemsExistentes];
         for (const ni of nuevosItems) {
-            const existente = merged.find(e => e.nombre === ni.nombre && (e.precio || 0) === (ni.precio || 0) && !e.entregado);
-            if (existente) existente.cantidad = (existente.cantidad || 0) + ni.cantidad;
+            const existente = merged.find(e => e.nombre === ni.nombre && e.precio === ni.precio);
+            if (existente) existente.cantidad += ni.cantidad;
             else merged.push(ni);
         }
         const nuevoTotal = merged.reduce((s, i) => s + (i.precio || 0) * (i.cantidad || 1), 0);
-        const upd = { items: JSON.stringify(merged), total: nuevoTotal };
-        // Si se agregó comida (no bebida), volver a 'recibido' para que cocina lo vea
-        const esComida = n => !/bebida|gaseosa|cerveza|pilsen|patricia|vino|agua|coca|pepsi|sprite|fanta|jugo|refresco|fernet|ron|vodka|whisky|caipiri|mojito|limonada|licuado|drink|cola\b/.test((n || '').toLowerCase());
-        if (nuevosItems.some(ni => esComida(ni.nombre))) upd.estado = 'recibido';
-        const { error: updErr } = await sb.from("pedidos").update(upd).eq("id", currentPedidoId);
-        if (updErr) console.error("Error update pedido:", updErr);
+        await sb.from("pedidos").update({ items: JSON.stringify(merged), total: nuevoTotal }).eq("id", currentPedidoId);
         carrito = [];
         esModoAgregar = false;
         document.getElementById("btnPedir").textContent = "Pedir";
