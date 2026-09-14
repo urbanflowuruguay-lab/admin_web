@@ -2365,6 +2365,24 @@
                 await loadPedidosFromDB();
             } catch (e) { alert('Error: ' + e.message); }
         };
+
+        window.borrarMovimientos = async function(){
+            const rk = (currentUser?.rol || '').toLowerCase().replace('rol_', '');
+            if (!['dueño','dueno','encargado'].includes(rk)) { alert('Solo dueño o encargado'); return; }
+            if (!confirm('⚠️ ¿Borrar TODOS los movimientos?\n\nSe borrarán: pedidos, propinas, calificaciones, fichajes, chats, llamados, reservas, delivery_chat.\n\nNO se borran: productos, empleados, mesas, zonas, config.')) return;
+            if (!confirm('¿Confirmás? Esta acción no se puede deshacer.')) return;
+            const eid = currentUser.empresa_id;
+            const tables = ['pedidos','pedido_detalle','propinas','calificaciones','fichajes_historial','llamados_mozo','delivery_chat','trip_chats','reservas','complementos','notificaciones'];
+            let ok = 0, fail = 0;
+            for (const t of tables) {
+                try {
+                    const { error } = await sbSvc.from(t).delete().eq('empresa_id', eid);
+                    if (error) { console.error(t, error.message); fail++; }
+                    else ok++;
+                } catch(e) { console.error(t, e.message); fail++; }
+            }
+            alert(`Movimientos borrados: ${ok} tablas OK, ${fail} errores.\nRecargá la página para ver los cambios.`);
+        };
         window.cambiarEstadoApp = async function(){ const v=document.getElementById('pedidoAppEstado').value; if(!window._pedidoAppId||!v) return; try{ const {error}=await sbSvc.from('pedidos').update({estado:v}).eq('id', window._pedidoAppId); if(error) throw error; document.getElementById('modal-pedido-app').style.display='none'; loadPedidosFromDB(); }catch(e){ alert('Error: '+e.message); } };
 
         async function entregarItem(pedidoId, itemIdx) {
@@ -3698,6 +3716,11 @@
                         #124 - Delivery - $1,200 - hace 12 min<br>
                         #123 - Mesa 5 - $650 - hace 18 min
                     </div>
+                </div>
+                <div style="margin-top: 15px; background: var(--bg2); border: 1px solid var(--red); border-radius: 10px; padding: 14px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: var(--red);">⚠️ Zona de peligro</div>
+                    <button onclick="borrarMovimientos()" style="padding: 10px 16px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">🗑 Borrar todos los movimientos</button>
+                    <div style="font-size: 11px; color: var(--text2); margin-top: 6px;">Borra pedidos, propinas, calificaciones, fichajes, chats y llamados. NO borra productos, empleados ni configuración.</div>
                 </div>
             `;
         }
