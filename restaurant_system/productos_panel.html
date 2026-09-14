@@ -97,11 +97,9 @@
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
-        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
-        const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW0LdGOHmCk";
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-        const sbSvc = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
+        const API = 'https://eyfgkopaamnkprzpwocz.supabase.co';
+        const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const HDRS = { 'Content-Type': 'application/json', 'apikey': KEY, 'Authorization': 'Bearer ' + KEY };
 
         const params = new URLSearchParams(window.location.search);
         const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
@@ -125,8 +123,8 @@
         async function loadProductos() {
             if (!empresaId) return;
             try {
-                const { data, error } = await sb.from('productos_empresa').select('*').eq('empresa_id', empresaId).order('created_at', {ascending:false});
-                if (error) throw error;
+                const r = await fetch(`${API}/rest/v1/productos_empresa?empresa_id=eq.${empresaId}&order=created_at.desc`, { headers: HDRS });
+                const data = await r.json();
                 productos = (data || []).map(r => ({
                     id: r.id, nombre: r.nombre, descripcion: r.descripcion,
                     precio: parseFloat(r.precio), precio_oferta: r.precio_oferta ? parseFloat(r.precio_oferta) : null,
@@ -247,6 +245,20 @@
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
         }
 
+        async function apiPost(table, body) {
+            const r = await fetch(`${API}/rest/v1/${table}`, { method:'POST', headers:{...HDRS,'Prefer':'return=representation'}, body:JSON.stringify(body) });
+            const d = await r.json();
+            return { error: r.ok ? null : { message: d.message || d.hint || 'Error' }, data: d };
+        }
+        async function apiPatch(table, body, eqCol, eqVal) {
+            const r = await fetch(`${API}/rest/v1/${table}?${eqCol}=eq.${eqVal}`, { method:'PATCH', headers:HDRS, body:JSON.stringify(body) });
+            return { error: r.ok ? null : { message: 'Error' } };
+        }
+        async function apiUpload(path, file) {
+            const r = await fetch(`${API}/storage/v1/object/ocio_fotos/${path}`, { method:'POST', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'x-upsert':'true'}, body:file });
+            return { error: r.ok ? null : { message: 'Upload failed' } };
+        }
+
         async function saveProducto() {
             const nombre = document.getElementById('prodNombre').value.trim();
             const precioBase = parseFloat(document.getElementById('prodPrecio').value);
@@ -282,8 +294,8 @@
             const file = document.getElementById('prodFoto').files[0];
             if (file) {
                 const path = `empresa_${empresaId}/prod_${Date.now()}.jpg`;
-                const { error } = await sbSvc.storage.from('ocio_fotos').upload(path, file, { upsert: true });
-                if (!error) { const { data } = sbSvc.storage.from('ocio_fotos').getPublicUrl(path); fotoUrl = data?.publicUrl; }
+                const up = await apiUpload(path, file);
+                if (!up.error) fotoUrl = `${API}/storage/v1/object/public/ocio_fotos/${path}`;
             }
             const prodDB = {
                 nombre: nombre,
@@ -294,11 +306,11 @@
             };
             if (editingId) {
                 if (fotoUrl) prodDB.foto_url = fotoUrl;
-                const { error } = await sbSvc.from('productos_empresa').update(prodDB).eq('id', editingId);
+                const { error } = await apiPatch('productos_empresa', prodDB, 'id', editingId);
                 if (error) { alert('Error al editar: ' + error.message); return; }
             } else {
                 prodDB.empresa_id = empresaId; prodDB.foto_url = fotoUrl; prodDB.activo = true;
-                const { error } = await sbSvc.from('productos_empresa').insert(prodDB);
+                const { error } = await apiPost('productos_empresa', prodDB);
                 if (error) { alert('Error al crear: ' + error.message); return; }
             }
             closeModal();
@@ -306,7 +318,7 @@
         }
 
         async function toggleActivo(id, currentActivo) {
-            await sbSvc.from('productos_empresa').update({ activo: !currentActivo }).eq('id', id);
+            await apiPatch('productos_empresa', { activo: !currentActivo }, 'id', id);
             loadProductos();
         }
 
