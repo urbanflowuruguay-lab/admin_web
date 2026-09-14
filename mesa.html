@@ -1179,8 +1179,10 @@ function showGraciasFinal() {
     document.getElementById("estadoPedido").classList.add("show");
     setTimeout(() => {
         if (window.AndroidBridge && window.AndroidBridge.navigateHome) {
-            try { window.AndroidBridge.navigateHome(); } catch (_) {}
+            try { window.AndroidBridge.navigateHome(); return; } catch (_) {}
         }
+        // Sin app: recargar la carta desde cero
+        window.location.href = window.location.pathname + "?mesa=" + mesaToken + "&empresa=" + empresaId;
     }, 3000);
 }
 
