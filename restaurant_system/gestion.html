@@ -1549,7 +1549,7 @@
             document.querySelector('.sidebar')?.classList.remove('open');
             document.getElementById('sidebarOverlay')?.classList.remove('show');
             
-            if (section === 'productos') { loadProductos(); migrarVisibilidadCajero(); }
+            if (section === 'productos') loadProductos();
             if (section === 'pedidos') loadPedidos();
             if (section === 'mesas') loadMesas();
             if (section === 'inventario') loadInventario();
@@ -1693,7 +1693,7 @@
             const empresaId = localData.currentUser?.empresa_id;
             const rol = (localData.currentUser?.rol || '').replace('rol_', '');
             if (!empresaId || !rol) return;
-            if (rol === 'dueno') return;
+            if (rol === 'dueno' || rol === 'dueño' || rol === 'encargado') return;
             try {
                 const { data } = await sb.from('permisos_roles')
                     .select('modulo,activo')
@@ -4278,7 +4278,7 @@
                 // Verificar si es empleado (no dueño)
                 const employeeRole = localStorage.getItem('urbanflow_employee_role');
                 const employeeName = localStorage.getItem('urbanflow_employee_name');
-                const isEmployee = employeeRole && employeeRole !== 'rol_dueno';
+                const isEmployee = employeeRole && !['rol_dueno', 'rol_dueño', 'rol_encargado'].includes(employeeRole);
 
                 localData.currentUser = {
                     id: e.id,
