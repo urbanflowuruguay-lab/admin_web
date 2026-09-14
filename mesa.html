@@ -325,16 +325,13 @@
     <img id="atencionLogo" class="atencion-logo" src="" style="display:none">
     <div class="atencion-title" id="atencionTitle">Estás siendo atendido</div>
     <div class="atencion-subtitle" id="atencionSubtitle"></div>
-    <div class="atencion-estado" id="atencionEstado">
-        <div class="atencion-estado-label">Estado del pedido</div>
-        <div class="atencion-estado-valor" id="atencionEstadoValor">Recibido</div>
-        <div class="atencion-estado-items" id="atencionEstadoItems"></div>
+
+    <div class="atencion-estado" id="atencionPago" style="margin-bottom:12px">
+        <div id="atencionTotal" style="color:#fff;font-size:22px;font-weight:700"></div>
+        <div class="atencion-estado-valor" id="atencionPagoValor" style="color:var(--accent);font-size:13px;margin-top:4px">Pendiente de pago</div>
     </div>
-    <div class="atencion-estado" id="atencionPago" style="margin-bottom:16px">
-        <div class="atencion-estado-label">Pago</div>
-        <div class="atencion-estado-valor" id="atencionPagoValor" style="color:var(--accent)">Pendiente de pago</div>
-        <div id="atencionTotal" style="color:#fff;font-size:20px;font-weight:700;margin-top:6px"></div>
-    </div>
+
+    <div id="atencionDetalleItems" style="width:100%;max-width:350px;margin-bottom:12px"></div>
 
     <div id="propinaSection" style="display:none;width:100%;max-width:350px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">
         <div style="font-size:14px;font-weight:600;color:var(--text);text-align:center;margin-bottom:10px">¿Querés dejar propina?</div>
@@ -1332,17 +1329,35 @@ function mostrarPantallaAtencion(mozoNombre, pedidoId) {
 
 function actualizarEstadoAtencion() {
     if (!currentPedidoId) return;
-    sb.from("pedidos").select("estado,items,metodo_pago_estado,total").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
+    sb.from("pedidos").select("estado,items,metodo_pago_estado,total,notas").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
         if (!data) return;
-        const estados = { recibido: "Recibido ✅", preparando: "En preparación 👨‍🍳", listo: "Listo 🔔", en_camino: "En camino 🛵", entregado: "Entregado 🎉" };
-        document.getElementById("atencionEstadoValor").textContent = estados[data.estado] || data.estado;
+        const estadoIcon = { recibido: "⏳", preparando: "👨‍🍳", listo: "🔔", entregado: "🎉" };
+        const estadoLabel = { recibido: "Recibido", preparando: "En cocina", listo: "Listo para servir", entregado: "Entregado" };
+        const icon = estadoIcon[data.estado] || "⏳";
+        const label = estadoLabel[data.estado] || data.estado;
+        // Render items individuales
         try {
             const items = typeof data.items === "string" ? JSON.parse(data.items) : data.items;
-            document.getElementById("atencionEstadoItems").textContent = items.map(i => i.cantidad + "x " + i.nombre).join(", ");
+            const container = document.getElementById("atencionDetalleItems");
+            container.innerHTML = items.map(it => {
+                const precio = it.precio ? `$${Math.round(it.precio * it.cantidad)}` : '';
+                return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+                    <div style="display:flex;align-items:center;gap:10px;flex:1">
+                        <span style="font-size:18px">${icon}</span>
+                        <div>
+                            <div style="font-size:13px;color:var(--text);font-weight:600">${it.cantidad}x ${it.nombre}</div>
+                            <div style="font-size:11px;color:var(--accent)">${label}</div>
+                        </div>
+                    </div>
+                    <span style="font-size:13px;color:var(--text2);font-weight:600">${precio}</span>
+                </div>`;
+            }).join("");
         } catch (_) {}
+        // Total
         pedidoBaseTotal = data.total || 0;
-        const totalMostrar = propinaAtencion > 0 ? pedidoBaseTotal + propinaAtencion : pedidoBaseTotal;
-        document.getElementById("atencionTotal").textContent = "$" + Math.round(totalMostrar);
+        const totalConPropina = pedidoBaseTotal + propinaAtencion;
+        document.getElementById("atencionTotal").textContent = "$" + Math.round(propinaAtencion > 0 ? totalConPropina : pedidoBaseTotal);
+        // Estado del pago
         const pagoEl = document.getElementById("atencionPagoValor");
         const propinaSection = document.getElementById("propinaSection");
         const anterior = window._ultimoPagoEstado;
@@ -1365,7 +1380,7 @@ function actualizarEstadoAtencion() {
                 setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 2000);
             }
         } else if (data.metodo_pago_estado === "por_confirmar") {
-            pagoEl.textContent = "⏳ Pago registrado — esperando confirmación";
+            pagoEl.textContent = "⏳ Pago registrado — esperando confirmación de caja";
             pagoEl.style.color = "#f59e0b";
             propinaSection.style.display = "block";
             updatePropinaAtencionUI();
