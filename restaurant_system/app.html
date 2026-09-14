@@ -3703,6 +3703,11 @@
             if (!container) return;
 
             container.innerHTML = `
+                <div style="margin-bottom: 15px; background: rgba(239, 68, 68, 0.15); border: 2px solid var(--red); border-radius: 10px; padding: 16px; text-align: center;">
+                    <div style="font-weight: 700; margin-bottom: 10px; color: var(--red); font-size: 15px;">⚠️ Zona de peligro</div>
+                    <button onclick="borrarMovimientos()" style="padding: 14px 24px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;">🗑 BORRAR TODOS LOS MOVIMIENTOS</button>
+                    <div style="font-size: 11px; color: var(--text2); margin-top: 8px;">Borra pedidos, propinas, calificaciones, fichajes, chats y llamados. NO borra productos, empleados ni configuración.</div>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-box"><div class="stat-value">8</div><div class="stat-label">Pedidos Hoy</div></div>
                     <div class="stat-box"><div class="stat-value" style="color: var(--green);">$4,250</div><div class="stat-label">Facturación</div></div>
@@ -3716,11 +3721,6 @@
                         #124 - Delivery - $1,200 - hace 12 min<br>
                         #123 - Mesa 5 - $650 - hace 18 min
                     </div>
-                </div>
-                <div style="margin-top: 15px; background: var(--bg2); border: 1px solid var(--red); border-radius: 10px; padding: 14px;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: var(--red);">⚠️ Zona de peligro</div>
-                    <button onclick="borrarMovimientos()" style="padding: 10px 16px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">🗑 Borrar todos los movimientos</button>
-                    <div style="font-size: 11px; color: var(--text2); margin-top: 6px;">Borra pedidos, propinas, calificaciones, fichajes, chats y llamados. NO borra productos, empleados ni configuración.</div>
                 </div>
             `;
         }
