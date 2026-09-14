@@ -573,7 +573,9 @@
                         direccion_entrega: p.direccion_entrega || '',
                         palabra_secreta: p.palabra_secreta || null,
                         llego: p.llego || false,
-                        notas: p.notas
+                        notas: p.notas,
+                        cocinero_nombre: p.cocinero_nombre || null,
+                        entregado_por_nombre: p.entregado_por_nombre || null
                     };
                 });
 
@@ -2448,6 +2450,8 @@
                         </span>
                     </div>
                     <div style="font-size:12px;color:var(--text2);margin:6px 0"><i class="fas fa-user"></i> ${p.cliente_nombre||'Cliente'}</div>
+                    ${p.cocinero_nombre ? `<div style="font-size:11px;color:var(--accent);margin:2px 0">👨‍🍳 ${p.cocinero_nombre}</div>` : ''}
+                    ${p.entregado_por_nombre ? `<div style="font-size:11px;color:var(--green);margin:2px 0">✅ Entregado por ${p.entregado_por_nombre}</div>` : ''}
                     ${soloBebidas ? `<div style="font-size:11px;font-weight:700;color:#22c55e;margin:4px 0">🥤 SOLO BEBIDAS — entrega el camarero</div>` : ''}
                     <div class="order-detail" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
                         <div class="order-items">
@@ -3052,7 +3056,7 @@
             try {
                 const { data: ab, error: qErr } = await sb.from('pedidos').select('id,notas,metodo_pago_estado')
                     .eq('empresa_id', currentUser.empresa_id).eq('mesa_numero', mesaNumero)
-                    .neq('estado', 'entregado').neq('estado', 'cancelado');
+                    .neq('estado', 'cancelado');
                 if (qErr) throw qErr;
                 const rows = (ab || []).filter(p => p.metodo_pago_estado !== 'pagado' && p.metodo_pago_estado !== 'por_confirmar');
                 if (!rows.length) { alert('No hay nada pendiente de cobro'); return; }
@@ -3075,7 +3079,7 @@
             try {
                 const { data: ab, error } = await sb.from('pedidos').select('id,total,metodo_pago_estado')
                     .eq('empresa_id', currentUser.empresa_id).eq('mesa_numero', mesaNumero)
-                    .neq('estado', 'entregado').neq('estado', 'cancelado');
+                    .neq('estado', 'cancelado');
                 if (error) throw error;
                 const pend = (ab || []).filter(p => p.metodo_pago_estado !== 'pagado' && p.metodo_pago_estado !== 'por_confirmar');
                 if (!pend.length) { alert('No hay nada pendiente de cobro'); return; }
