@@ -2062,7 +2062,7 @@
                 container.style.display = 'block';
                 const lista = [...pedidos];
                 if (lista.length === 0) { container.innerHTML = '<div class="empty"><p>Sin pedidos</p></div>'; return; }
-                const getEstadoColor = s => s==='entregado'?'success': s==='cancelado'?'danger': s==='en_camino'?'info':'warning';
+                const getEstadoColor = s => s==='pagado'?'success': s==='entregado'?'success': s==='cancelado'?'danger': s==='en_camino'?'info':'warning';
                 const puedeBorrarTodo = ['dueño','dueno','encargado'].includes(rolKeyPed);
                 const parts = lista.map(p=>{
                     let items=[]; try{ items=typeof p.items==='string'?JSON.parse(p.items):(Array.isArray(p.items)?p.items:[]);}catch(e){items=[];}
@@ -2198,7 +2198,7 @@
                         <div id="pedidoAppBody" style="font-size:13px;line-height:1.6"></div>
                         <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
                             <button style="background:#c62828;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer" onclick="borrarPedidoApp()"><i class="fas fa-trash"></i> Borrar pedido</button>
-                            <select id="pedidoAppEstado" style="flex:1;padding:8px;border-radius:6px;background:#2a2a2a;color:#fff;border:1px solid #333"><option value="recibido">Recibido</option><option value="preparando">Preparando</option><option value="listo">Listo</option><option value="en_camino">En camino</option><option value="en_uso">En uso (mesa)</option><option value="entregado">Entregado</option><option value="cancelado">Cancelado</option></select>
+                            <select id="pedidoAppEstado" style="flex:1;padding:8px;border-radius:6px;background:#2a2a2a;color:#fff;border:1px solid #333"><option value="recibido">Recibido</option><option value="preparando">Preparando</option><option value="listo">Listo</option><option value="en_camino">En camino</option><option value="entregado">Entregado</option><option value="pagado">Pagado</option><option value="cancelado">Cancelado</option></select>
                             <button style="background:#d4af37;color:#000;border:none;padding:8px 16px;border-radius:6px;font-weight:700;cursor:pointer" onclick="cambiarEstadoApp()">Cambiar estado</button>
                         </div>
                     </div>`;
@@ -2589,7 +2589,7 @@
                 let pagoPorMesa = {};
                 try {
                     const { data: ab } = await sb.from('pedidos').select('id,mesa_numero,estado,metodo_pago_estado,created_at')
-                        .eq('empresa_id', currentUser.empresa_id).in('estado', ['recibido', 'preparando', 'listo', 'en_uso']);
+                        .eq('empresa_id', currentUser.empresa_id).in('estado', ['recibido', 'preparando', 'listo', 'entregado']);
                     (ab || []).forEach(p => { if (p.mesa_numero && p.metodo_pago_estado !== 'pagado') { abiertosPorMesa[p.mesa_numero] = p.id; estadoPorMesa[p.mesa_numero] = p.estado; creadoPorMesa[p.mesa_numero] = p.created_at; if (p.metodo_pago_estado === 'por_confirmar') pagoPorMesa[p.mesa_numero] = true; } });
                 } catch (_) {}
                 window._abiertosPorMesa = abiertosPorMesa;
@@ -2653,7 +2653,7 @@
                         ${mesas.map(m => {
                             const abId = (window._abiertosPorMesa || {})[m.numero];
                             const est = (window._estadoPorMesa || {})[m.numero] || '';
-                            const dot = est === 'listo' ? '#22c55e' : est === 'en_uso' ? '#ff9800' : abId ? '#f44336' : ((m.estado || 'libre') === 'libre' ? '#4caf50' : '#888');
+                            const dot = est === 'listo' ? '#22c55e' : est === 'entregado' ? '#ff9800' : abId ? '#f44336' : ((m.estado || 'libre') === 'libre' ? '#4caf50' : '#888');
                             const on = tabSel && String(tabSel) === String(m.numero);
                             const blink = (window._blinkMesa || {})[m.numero] ? ' tab-blink' : '';
                             return `<button onclick="window.verMesaTab(${m.numero})" class="mesa-tab${blink}" style="flex-shrink:0;padding:10px 14px;border-radius:10px;border:1px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'var(--accent)' : 'var(--bg3)'};color:${on ? '#000' : 'var(--text)'};font-size:14px;font-weight:700;cursor:pointer"><span style="color:${on ? '#000' : dot}">●</span> ${m.numero}</button>`;
@@ -2667,9 +2667,9 @@
                             const pedidoAbierto = (window._abiertosPorMesa || {})[m.numero];
                             const estadoMesa = (window._estadoPorMesa || {})[m.numero] || '';
                             const estaListo = estadoMesa === 'listo';
-                            const enUso = estadoMesa === 'en_uso';
+                            const enUso = estadoMesa === 'entregado';
                             const color = estaListo ? '#22c55e' : enUso ? 'var(--orange)' : pedidoAbierto ? 'var(--red)' : estado==='libre'?'var(--green)': estado==='ocupada'?'var(--orange)': estado==='mantenimiento'?'var(--text2)':'var(--blue)';
-                            const label = estaListo ? '🔔 LISTO — IR A COCINA' : enUso ? '🟠 EN USO' : pedidoAbierto ? '🔴 PEDIDO TOMADO' : estado==='libre'?'Libre': estado==='ocupada'?'Ocupada': estado==='mantenimiento'?'Mantenimiento':'Reservada';
+                            const label = estaListo ? '🔔 LISTO — IR A COCINA' : enUso ? '🟠 ENTREGADO' : pedidoAbierto ? '🔴 PEDIDO TOMADO' : estado==='libre'?'Libre': estado==='ocupada'?'Ocupada': estado==='mantenimiento'?'Mantenimiento':'Reservada';
                             const labelFinal = (pedidoAbierto && (window._pagoPorMesa || {})[m.numero]) ? label + ' · ⏳ EN CAJA' : label;
                             const ped = pedidoAbierto ? pedidos.find(x => x.id === pedidoAbierto) : null;
                             const pedItems = ped && Array.isArray(ped.items) ? ped.items : [];

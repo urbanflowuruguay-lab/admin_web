@@ -694,7 +694,7 @@
             try {
                 const { data } = await sbPOS.from('pedidos').select('id,items,total,cliente_nombre,metodo_pago_estado,estado')
                     .eq('empresa_id', empresaIdPOS).eq('mesa_numero', selectedMesa.numero)
-                    .neq('estado', 'entregado').neq('estado', 'cancelado');
+                    .neq('estado', 'cancelado');
                 const open = (data || []).filter(p => p.metodo_pago_estado !== 'pagado' && p.metodo_pago_estado !== 'por_confirmar');
                 let total = 0;
                 const items = [];
@@ -734,7 +734,7 @@
             if (!empresaIdPOS) return;
             try {
                 const { data, error } = await sbPOS.from('pedidos').select('mesa_numero,estado,metodo_pago_estado')
-                    .eq('empresa_id', empresaIdPOS).in('estado', ['recibido', 'preparando', 'listo', 'en_uso']);
+                    .eq('empresa_id', empresaIdPOS).in('estado', ['recibido', 'preparando', 'listo', 'entregado']);
                 if (error) throw error;
                 const m = {};
                 (data || []).forEach(p => {
@@ -1143,7 +1143,7 @@
                     const tot = mesaTotal(t.id);
                     const isSel = selectedMesa && String(selectedMesa.id) === String(t.id);
                     const est = (window._mapaAbiertos || {})[t.numero] || '';
-                    const dot = est === 'listo' ? '#22c55e' : est === 'en_uso' ? '#ff9800' : est ? '#f44336' : (t.estado === 'disponible' ? '#4caf50' : (t.estado === 'ocupada' ? '#ff9800' : '#888'));
+                    const dot = est === 'listo' ? '#22c55e' : est === 'entregado' ? '#ff9800' : est ? '#f44336' : (t.estado === 'disponible' ? '#4caf50' : (t.estado === 'ocupada' ? '#ff9800' : '#888'));
                     const blink = est === 'listo' ? ' tab-blink' : '';
                     return `
                     <div class="table-cell${blink} ${t.estado}" onclick="selectTable('${t.id}')" style="${isSel ? 'border-color: var(--accent); box-shadow: 0 0 10px rgba(212,175,55,0.4);' : ''}">
@@ -1162,7 +1162,7 @@
             if (!el) return;
             el.innerHTML = tables.map(t => {
                 const est = (window._mapaAbiertos || {})[t.numero] || '';
-                const led = est === 'listo' ? '#22c55e' : est === 'en_uso' ? '#ff9800' : est ? '#f44336' : (t.estado === 'disponible' ? '#4caf50' : (t.estado === 'ocupada' ? '#ff9800' : '#888'));
+                const led = est === 'listo' ? '#22c55e' : est === 'entregado' ? '#ff9800' : est ? '#f44336' : (t.estado === 'disponible' ? '#4caf50' : (t.estado === 'ocupada' ? '#ff9800' : '#888'));
                 const blink = est === 'listo' ? ' tab-blink' : '';
                 const isSel = selectedMesa && String(selectedMesa.id) === String(t.id);
                 const tot = mesaTotal(t.id);
@@ -1520,7 +1520,7 @@
                 cliente_nombre: selectedMesa ? 'Mesa #' + selectedMesa.numero : 'Counter',
                 tipo: selectedMesa ? 'local' : 'counter',
                 // Si la mesa ya tiene cuenta abierta, esto es solo recibo (no va a cocina)
-                estado: (selectedMesa && mesaCuenta.pedidos.length) ? 'entregado' : 'recibido',
+                estado: 'pagado',
                 items: currentOrder.map(o => ({
                     nombre: o.nombre + ' - ' + o.variantName,
                     cantidad: o.qty,
@@ -1575,13 +1575,13 @@
                     // Marcar como cobrada la cuenta abierta de la mesa
                     if (mesaCuenta.pedidos.length) {
                         try {
-                            await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado' }).in('id', mesaCuenta.pedidos);
+                            await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado', estado: 'pagado' }).in('id', mesaCuenta.pedidos);
                         } catch (_) {}
                     }
                     // Confirmar lo que el mozo ya cobró (no se duplica)
                     if (porConfirmarIds.length) {
                         try {
-                            await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado' }).in('id', porConfirmarIds);
+                            await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado', estado: 'pagado' }).in('id', porConfirmarIds);
                         } catch (_) {}
                     }
                     // Cerrar mesa: se cobró todo, pasa a mantenimiento hasta habilitar
@@ -1710,7 +1710,7 @@
 
         async function cobrarMostrador(id, method) {
             try {
-                const { error } = await sbPOS.from('pedidos').update({ metodo_pago: method, metodo_pago_estado: 'pagado' }).eq('id', id);
+                const { error } = await sbPOS.from('pedidos').update({ metodo_pago: method, metodo_pago_estado: 'pagado', estado: 'pagado' }).eq('id', id);
                 if (error) throw error;
                 loadMostradorPend();
                 loadCobrosMozo();
@@ -1766,7 +1766,7 @@
                 if (error) throw error;
                 const ids = (data || []).map(p => p.id);
                 if (!ids.length) { loadCobrosMozo(); return; }
-                const { error: uErr } = await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado' }).in('id', ids);
+                const { error: uErr } = await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado', estado: 'pagado' }).in('id', ids);
                 if (uErr) throw uErr;
                 if (mesaNumero) {
                     const t = tables.find(t => String(t.numero) === String(mesaNumero));
