@@ -680,16 +680,11 @@
                 } catch(e) { console.log('Usando permisos default:', e.message); }
             }
             if (allowedSections.length === 0) allowedSections = ['misdatos'];
-            // Cajera: Caja arriba del todo y abierta al entrar
-            if (rolKey === 'cajero' && allowedSections.includes('caja')) {
-                allowedSections = ['caja', ...allowedSections.filter(s => s !== 'caja')];
-            }
-
             // Sidebar items
             const sidebarItems = document.getElementById('sidebarItems');
             const prettyMod = s => s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ');
             sidebarItems.innerHTML = allowedSections.map((s, i) => `
-                <div class="sidebar-item ${i === 0 ? 'active' : ''}" onclick="showTab('${s}')">
+                <div class="sidebar-item" onclick="showTab('${s}')">
                     <i class="fas ${sectionLabels[s]?.icon||'fa-circle'}"></i>
                     <span>${sectionLabels[s]?.label||prettyMod(s)}</span>
                 </div>
@@ -718,11 +713,27 @@
 
             // Content
             const contentContainer = document.getElementById('contentContainer');
-            contentContainer.innerHTML = allowedSections.map((s, i) => `
-                <div class="section ${i === 0 ? 'active' : ''}" id="section-${s}">
-                    <div id="content-${s}"></div>
+            const homeBtns = allowedSections.map(s => {
+                const lbl = sectionLabels[s]?.label || s;
+                const icon = sectionLabels[s]?.icon || 'fa-circle';
+                const colors = { caja:'#da3633', pedidos:'#f0883e', productos:'#238636', misdatos:'#58a6ff', cocina:'#f44336', delivery:'#9c27b0', mesas:'#ff9800' };
+                const c = colors[s] || '#8b949e';
+                return `<button onclick="showTab('${s}')" style="padding:20px;border:2px solid ${c}33;border-radius:12px;background:${c}11;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+                    <i class="fas ${icon}" style="font-size:24px;color:${c}"></i>
+                    <span style="font-size:13px;font-weight:600">${lbl}</span>
+                </button>`;
+            }).join('');
+            contentContainer.innerHTML = `
+                <div class="section active" id="section-home" style="padding:16px">
+                    <h3 style="margin-bottom:16px;color:var(--text)">Hola, ${currentUser?.nombre || ''} 👋</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${homeBtns}</div>
                 </div>
-            `).join('');
+                ${allowedSections.map(s => `
+                    <div class="section" id="section-${s}">
+                        <div id="content-${s}"></div>
+                    </div>
+                `).join('')}
+            `;
 
             allowedSections.forEach(s => {
                 try { renderSection(s); }
@@ -1733,8 +1744,8 @@
             document.querySelectorAll('.sidebar-item').forEach(el => {
                 if (el.getAttribute('onclick')?.includes(`'${tab}'`)) el.classList.add('active');
             });
-            document.getElementById('section-' + tab).classList.add('active');
-            // Auditoría siempre fresca (lo borrado en la web desaparece acá también)
+            const sec = document.getElementById('section-' + tab);
+            if (sec) sec.classList.add('active');
             if (tab === 'auditoria') { try { renderAuditoriaApp(); } catch (_) {} }
             toggleSidebar();
         }
