@@ -335,6 +335,11 @@
     </div>
     <button class="atencion-btn atencion-btn-agregar" onclick="abrirCartaAgregar()">➕ Agregar algo más</button>
     <button class="atencion-btn atencion-btn-llamar" onclick="llamarDesdeAtencion()">🔔 Llamar a la camarera</button>
+    <div id="atencionOpciones" style="display:none;flex-direction:column;gap:10px;width:100%;max-width:300px;margin-top:12px">
+        <button class="atencion-btn" onclick="abrirCartaAgregar()" style="background:var(--accent);color:var(--bg)">➕ Seguir pidiendo</button>
+        <button class="atencion-btn" onclick="llamarDesdeAtencion()" style="background:var(--bg3);color:var(--text)">🔔 Llamar a la camarera</button>
+        <button class="atencion-btn" onclick="irARating()" style="background:var(--green);color:#fff">👋 Salir y calificar</button>
+    </div>
     <div class="atencion-footer">UrbanFlow</div>
 </div>
 
@@ -1298,9 +1303,10 @@ function actualizarEstadoAtencion() {
         if (data.estado === "entregado") {
             stopAtencionPoll();
             document.getElementById("atencionTitle").textContent = "¡Buen provecho! 🍽️";
-            document.getElementById("atencionSubtitle").textContent = "Esperamos que disfrutes de tu elección.\nNo te olvides de dejarnos tu opinión sobre nuestro servicio.";
+            document.getElementById("atencionSubtitle").textContent = "Esperamos que disfrutes de tu elección.";
             document.getElementById("atencionEstado").style.display = "none";
-            setTimeout(() => { document.getElementById("atencionScreen").classList.remove("show"); showRatingScreen(); }, 4000);
+            // Mostrar opciones para cuando termine de comer
+            document.getElementById("atencionOpciones").style.display = "flex";
         }
     });
 }
@@ -1312,6 +1318,11 @@ function startAtencionPoll() {
 
 function stopAtencionPoll() {
     if (atencionPoll) { clearInterval(atencionPoll); atencionPoll = null; }
+}
+
+function irARating() {
+    document.getElementById("atencionScreen").classList.remove("show");
+    showRatingScreen();
 }
 
 function abrirCartaAgregar() {
