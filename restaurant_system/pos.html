@@ -672,7 +672,7 @@
         const _urlParamsPOS = new URLSearchParams(window.location.search);
         const isFromApp = _urlParamsPOS.get('fromApp') === '1';
         const fromAppUser = _urlParamsPOS.get('user') ? decodeURIComponent(_urlParamsPOS.get('user')) : '';
-        const fromAppRol = _urlParamsPOS.get('rol') || 'cajero';
+        const fromAppRol = _urlParamsPOS.get('rol') || 'caja';
 
         let currentUser = null;
         let selectedMesa = null;
@@ -747,7 +747,7 @@
         }
 
         let employees = [
-            { id: "emp_002", nombre: "María García", pin: "1234", roles: ["rol_cajero"], email: "maria@laparrilla.com.uy" },
+            { id: "emp_002", nombre: "María García", pin: "1234", roles: ["rol_caja"], email: "maria@laparrilla.com.uy" },
             { id: "emp_003", nombre: "Pedro Martínez", pin: "5678", roles: ["rol_cocinero"], email: "pedro@laparrilla.com.uy" },
             { id: "emp_001", nombre: "Carlos López", pin: "0000", roles: ["rol_dueno"], email: "carlos@laparrilla.com.uy" }
         ];
@@ -794,7 +794,7 @@
             employees = [];
             try{
                 const { data: empProdsAll } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
-                const empProds = (empProdsAll || []).filter(p => !p.visible_para || p.visible_para.split(',').map(s => s.trim()).includes('cajero'));
+                const empProds = (empProdsAll || []).filter(p => !p.visible_para || p.visible_para.split(',').map(s => s.trim()).includes('caja'));
                 if(empProds && empProds.length){
                     const cats = [...new Set(empProds.map(p => (p.categoria || 'General').trim()).filter(Boolean))].sort();
                     categories = [{ id: 'all', nombre: 'Todos', icono: '📋' },
@@ -816,12 +816,12 @@
                 }
                 const { data: empEmpleados } = await sbPOS.from('empleados').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
                 if(empEmpleados && empEmpleados.length){
-                    employees = empEmpleados.map(e=>({ id:e.id, nombre:e.nombre, pin:e.pin, roles:[e.rol||'rol_cajero'], email:e.email||'' }));
+                    employees = empEmpleados.map(e=>({ id:e.id, nombre:e.nombre, pin:e.pin, roles:[e.rol||'rol_caja'], email:e.email||'' }));
                 }
                 if (employees.length === 0) {
                     document.getElementById('pinError').textContent = 'Sin personal activo: activalos en Gestión → Personal';
                 }
-                // Dueño: entra a caja con su PIN y opera como cajero
+                // Dueño: entra a caja con su PIN y opera como caja
                 try {
                     const empRes = await sbPOS.from('empresas').select('nombre,pin_dueno,rut,direccion,telefono').eq('id', empresaIdPOS).limit(1).maybeSingle();
                     if (empRes.data) {
@@ -839,7 +839,7 @@
         }
         // Sesión de caja: si ya entró (PIN, app o delivery), no pide código de nuevo
         function savePosSession(nombre, rol) {
-            try { localStorage.setItem('urbanflow_pos_user', JSON.stringify({ nombre, rol: rol || 'rol_cajero', empresa_id: empresaIdPOS || '' })); } catch (_) {}
+            try { localStorage.setItem('urbanflow_pos_user', JSON.stringify({ nombre, rol: rol || 'rol_caja', empresa_id: empresaIdPOS || '' })); } catch (_) {}
         }
         function enterPOSApp(nombre, rolMostrar) {
             const loginScreen = document.getElementById('loginScreen');
@@ -860,7 +860,7 @@
                 try {
                     const su = JSON.parse(localStorage.getItem('urbanflow_pos_user') || 'null');
                     if (su && su.nombre && (!empresaIdPOS || !su.empresa_id || su.empresa_id === empresaIdPOS)) {
-                        currentUser = { id: su.id || ('pos_' + Date.now()), nombre: su.nombre, roles: [su.rol || 'rol_cajero'], email: '' };
+                        currentUser = { id: su.id || ('pos_' + Date.now()), nombre: su.nombre, roles: [su.rol || 'rol_caja'], email: '' };
                         enterPOSApp(su.nombre);
                     }
                 } catch (_) {}
@@ -897,7 +897,7 @@
         function doLogin(secret) {
             const emp = employees.find(e => e.pin === secret && e.activo !== false)
                 || (window._duenoPOS && window._duenoPOS.pin === secret
-                    ? { id: 'dueno', nombre: window._duenoPOS.nombre + ' (Dueño)', pin: secret, roles: ['rol_dueno', 'rol_cajero'], email: '' }
+                    ? { id: 'dueno', nombre: window._duenoPOS.nombre + ' (Dueño)', pin: secret, roles: ['rol_dueno', 'rol_caja'], email: '' }
                     : null);
             if (emp) {
                 currentUser = emp;
@@ -924,7 +924,7 @@
             const fecha = now.toLocaleDateString('es-UY') + ' ' + now.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
             const F = window._fiscalPOS || {};
             const nombre = F.nombre || (document.getElementById('posRestaurantName').textContent || 'UrbanFlow').trim() || 'UrbanFlow';
-            const cajero = (document.getElementById('cashierName').textContent || '').trim();
+            const operador = (document.getElementById('cashierName').textContent || '').trim();
             const mesaTxt = selectedMesa ? 'Mesa #' + selectedMesa.numero : 'Mostrador';
             const lineas = [];
             currentOrder.forEach(o => lineas.push({ nombre: o.nombre, cant: o.qty, precio: o.precio }));
@@ -941,7 +941,7 @@
                 ${F.telefono ? `<div class="t-center">Tel: ${F.telefono}</div>` : ''}
                 <hr>
                 <div class="t-center">${fecha} · ${mesaTxt}</div>
-                <div class="t-center">Atiende: ${cajero}</div>
+                <div class="t-center">Atiende: ${operador}</div>
                 <hr>
                 ${lineas.map(i => `
                     <div class="t-row"><span>${i.nombre} x${i.cant}</span><span>$${r2(i.precio * i.cant)}</span></div>

@@ -509,7 +509,7 @@
         let deliveries = [];
         let categoriasMap = {}; // nombre -> categoria
 
-        let visibleMap = {}; // nombre -> "cocina,camarero,cajero"
+        let visibleMap = {}; // nombre -> "cocina,camarero,caja"
         async function loadCategoriasMap() {
             try {
                 const { data } = await sbSvc.from('productos_empresa')
@@ -598,7 +598,7 @@
             '_default':     { sections: ['misdatos'], icon: 'fa-user', color: '#8b949e' },
             'dueño':        { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas','historial','simulador','appdelivery','vinculo-motos','terminal','salon'], icon: 'fa-crown', color: '#d4af37' },
             'encargado':    { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas','historial','simulador','appdelivery','vinculo-motos','terminal','salon'], icon: 'fa-user-tie', color: '#2196f3' },
-            'cajero':       { sections: ['misdatos'], icon: 'fa-cash-register', color: '#4caf50' },
+            'caja':         { sections: ['misdatos'], icon: 'fa-cash-register', color: '#4caf50' },
             'camarero':     { sections: ['misdatos'], icon: 'fa-concierge-bell', color: '#ff9800' },
             'cocinero':     { sections: ['misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
             'cocinera':     { sections: ['misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
@@ -775,7 +775,7 @@
             const container = document.getElementById('content-caja');
             if (!container) return;
             const empresaId = currentUser?.empresa_id || '';
-            const rol = (currentUser?.rol||'').replace('rol_','') || 'cajero';
+            const rol = (currentUser?.rol||'').replace('rol_','') || 'caja';
             const userName = encodeURIComponent(currentUser?.nombre||'Cajero');
             const src = `pos.html?empresa=${empresaId}&fromApp=1&user=${userName}&rol=${rol}`;
             container.innerHTML = `
@@ -1376,7 +1376,7 @@
                         document.getElementById('restaurantName').textContent = data[0].nombre;
                         const rol = (currentUser.rol || '').toLowerCase().replace('rol_', '');
                         console.log('abierto toggle: rol=', currentUser.rol, 'normalizado=', rol);
-                        if (['dueño', 'dueno', 'encargado', 'cajero', 'administrador', 'admin'].includes(rol)) {
+                        if (['dueño', 'dueno', 'encargado', 'caja', 'administrador', 'admin'].includes(rol)) {
                             window._abiertoActual = data[0].abierto !== false;
                             paintAbiertoApp();
                             document.getElementById('abiertoBoxApp').style.display = 'block';
@@ -1667,7 +1667,7 @@
         function toggleClock() {}
 
         // =============================================
-        // ABIERTO / CERRADO (dueño, encargado, cajero)
+        // ABIERTO / CERRADO (dueño, encargado, caja)
         // =============================================
         function paintAbiertoApp() {
             const abierto = window._abiertoActual !== false;
@@ -1925,7 +1925,7 @@
 
         function puedeLlamarDelivery() {
             const rol = (currentUser?.rol || '').toLowerCase().replace('rol_', '');
-            if (['dueño', 'dueno', 'encargado', 'cajero'].includes(rol)) return true;
+            if (['dueño', 'dueno', 'encargado', 'caja'].includes(rol)) return true;
             return ((currentUser?.subroles || '').split(',').map(s => s.trim()).includes('arma_online'));
         }
 
@@ -2166,7 +2166,7 @@
             const container = document.getElementById('content-pedidos');
             if (!container) return;
             const rolKeyPed = (currentUser.rol||'').replace('rol_','').toLowerCase();
-            const esCajeroFull = ['cajero','dueño','dueno','encargado'].includes(rolKeyPed);
+            const esCajeroFull = ['caja','dueño','dueno','encargado'].includes(rolKeyPed);
             // Cajero = EXACTO gestion.html — mismo código
             if (esCajeroFull) {
                 container.style.display = 'block';
@@ -2292,7 +2292,7 @@
                 </div>`;
             }).join('');
         }
-        // Modal pedido detalle para cajero — copia exacta gestion.html
+        // Modal pedido detalle para caja — copia exacta gestion.html
         window.verPedidoApp = function(id) {
             const p = pedidos.find(x=>x.id===id);
             if(!p) { pedidos = pedidos.filter(x=>x.id!==id); try{renderPedidos();}catch(_){} showToast('Ese pedido ya no existe'); return; }
@@ -2452,7 +2452,7 @@
         }
 
         // =============================================
-        // VENTAS (cajero/encargado con permiso)
+        // VENTAS (caja/encargado con permiso)
         // =============================================
         async function renderVentasApp() {
             const container = document.getElementById('content-ventas');
@@ -3154,7 +3154,7 @@
             }
         }
 
-        // Mozo/cajero registra el cobro en sitio: queda por confirmar en Caja (no libera)
+        // Mozo/caja registra el cobro en sitio: queda por confirmar en Caja (no libera)
         async function cobrarMesaApp(mesaId, mesaNumero, method) {
             if (method === 'efectivo') { openMozoCash(mesaId, mesaNumero); return; }
             if (!confirm(`Registrar cobro mesa ${mesaNumero} (POS)?`)) return;
