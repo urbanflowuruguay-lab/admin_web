@@ -87,44 +87,60 @@
             const nombre = document.getElementById('loginNombre').value.trim();
             const pin = document.getElementById('loginPin').value;
 
-            if (!nombre) { showError('Ingresá tu nombre'); return; }
+            if (!nombre) { showError('Ingresá tu nombre o email'); return; }
             if (!pin) { showError('Ingresá tu contraseña'); return; }
 
             document.getElementById('errorMsg').style.display = 'none';
             toggleLoading(true);
 
             try {
-                const { data, error } = await sbSvc.from('empleados')
+                // 1) Buscar en empleados
+                let { data, error } = await sbSvc.from('empleados')
                     .select('*')
                     .eq('nombre', nombre)
                     .eq('pin', pin)
                     .eq('activo', true)
                     .limit(5);
 
-                if (error) { showError('Error de conexión'); toggleLoading(false); return; }
-                if (!data || data.length === 0) { showError('Usuario o contraseña incorrectos'); toggleLoading(false); return; }
-
-                const emp = data[0];
-
-                localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
-                localStorage.setItem('urbanflow_employee', JSON.stringify({
-                    id: emp.id,
-                    nombre: emp.nombre,
-                    pin: emp.pin,
-                    rol: emp.rol,
-                    emoji: emp.emoji || '👤',
-                    empresa_id: emp.empresa_id,
-                    foto_url: emp.foto_url || ''
-                }));
-                localStorage.setItem('urbanflow_employee_role', emp.rol);
-                localStorage.setItem('urbanflow_employee_name', emp.nombre);
-
-                const rol = (emp.rol || '').replace('rol_', '').toLowerCase();
-                if (['dueño', 'dueno', 'encargado'].includes(rol)) {
-                    window.location.href = 'gestion.html';
-                } else {
-                    window.location.href = 'app.html';
+                if (!error && data && data.length > 0) {
+                    const emp = data[0];
+                    localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
+                    localStorage.setItem('urbanflow_employee', JSON.stringify({
+                        id: emp.id, nombre: emp.nombre, pin: emp.pin,
+                        rol: emp.rol, emoji: emp.emoji || '👤',
+                        empresa_id: emp.empresa_id, foto_url: emp.foto_url || ''
+                    }));
+                    localStorage.setItem('urbanflow_employee_role', emp.rol);
+                    localStorage.setItem('urbanflow_employee_name', emp.nombre);
+                    const rol = (emp.rol || '').replace('rol_', '').toLowerCase();
+                    if (['dueño', 'dueno', 'encargado'].includes(rol)) {
+                        window.location.href = 'gestion.html';
+                    } else {
+                        window.location.href = 'app.html';
+                    }
+                    return;
                 }
+
+                // 2) Buscar en empresas (dueño por email + pin_dueno)
+                const { data: empresas } = await sbSvc.from('empresas')
+                    .select('*')
+                    .eq('email', nombre)
+                    .eq('pin_dueno', pin)
+                    .eq('activo', true)
+                    .limit(1);
+
+                if (empresas && empresas.length > 0) {
+                    const e = empresas[0];
+                    localStorage.setItem('urbanflow_empresa_id', e.id);
+                    localStorage.removeItem('urbanflow_employee');
+                    localStorage.setItem('urbanflow_employee_role', 'rol_dueno');
+                    localStorage.setItem('urbanflow_employee_name', e.nombre);
+                    window.location.href = 'gestion.html';
+                    return;
+                }
+
+                showError('Usuario o contraseña incorrectos');
+                toggleLoading(false);
             } catch(e) {
                 showError('Error inesperado: ' + e.message);
                 toggleLoading(false);
