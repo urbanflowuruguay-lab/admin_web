@@ -788,23 +788,35 @@
             { id: 8, numero: 8, estado: 'disponible', capacidad: 2 }
         ];
 
+        const CAT_ICONS = {
+            'bebidas':'🍺','pizzas':'🍕','parrilla':'🥩','entradas':'🥗','pastas':'🍝','postres':'🍰',
+            'hamburguesas':'🍔','papas':'🍟','milanesas':'🥩','empanadas':'🥟','sushis':'🍣',
+            'sopas':'🍲','ensaladas':'🥗','cafeteria':'☕','vinos':'🍷','tragos':'🍹',
+            'cervezas':'🍺','helados':'🍦','carnes':'🥩','pollo':'🍗','mariscos':'🦐',
+            'pescados':'🐟','panaderia':'🍞','lacteos':'🧀','verduras':'🥬','frutas':'🍎',
+            'snacks':'🍿','dulces':'🍬','congelados':'🧊','general':'🍽'
+        };
+        function catIcon(nombre) {
+            const n = (nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+            for (const [k, v] of Object.entries(CAT_ICONS)) { if (n.includes(k)) return v; }
+            return '🍽';
+        }
+
         async function loadPOSData(){
             if(!empresaIdPOS) return;
-            // Con empresa real se descartan los empleados demo del código
             employees = [];
             try{
-                const { data: empProdsAll } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
-                const empProds = (empProdsAll || []).filter(p => !p.visible_para || p.visible_para.split(',').map(s => s.trim()).includes('caja') || p.visible_para.split(',').map(s => s.trim()).includes('cajero'));
+                const { data: empProds } = await sbPOS.from('productos_empresa').select('*').eq('empresa_id', empresaIdPOS).eq('activo', true);
                 if(empProds && empProds.length){
                     const cats = [...new Set(empProds.map(p => (p.categoria || 'General').trim()).filter(Boolean))].sort();
                     categories = [{ id: 'all', nombre: 'Todos', icono: '📋' },
-                        ...cats.map((c, i) => ({ id: 'dbcat_' + i, nombre: c, icono: '🍽' }))];
+                        ...cats.map((c, i) => ({ id: 'dbcat_' + i, nombre: c, icono: catIcon(c) }))];
                     const catIdOf = (nombre) => {
                         const n = ((nombre || 'General').trim());
                         const found = categories.find(c => c.id !== 'all' && c.nombre === n);
                         return found ? found.id : 'all';
                     };
-                    products = empProds.map(p=>({ id:p.id, nombre:p.nombre, precio: p.precio || 0, foto: '🍽', categorias:[catIdOf(p.categoria)], variantes:[{nombre:'Único',precio:p.precio||0}], stock: 999, foto_url:p.foto_url }));
+                    products = empProds.map(p=>({ id:p.id, nombre:p.nombre, precio: p.precio || 0, foto: catIcon(p.categoria), categorias:[catIdOf(p.categoria)], variantes:[{nombre:'Único',precio:p.precio||0}], stock: 999, foto_url:p.foto_url }));
                     currentCategory = 'all';
                     renderCategories();
                     renderProducts();
