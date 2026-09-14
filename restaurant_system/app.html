@@ -596,8 +596,8 @@
         // =============================================
         const ROLE_CONFIGS = {
             '_default':     { sections: ['misdatos'], icon: 'fa-user', color: '#8b949e' },
-            'dueño':        { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas','historial','simulador','appdelivery','vinculo-motos','terminal','salon'], icon: 'fa-crown', color: '#d4af37' },
-            'encargado':    { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas','historial','simulador','appdelivery','vinculo-motos','terminal','salon'], icon: 'fa-user-tie', color: '#2196f3' },
+            'dueño':        { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas'], icon: 'fa-crown', color: '#d4af37' },
+            'encargado':    { sections: ['dashboard','productos','pedidos','delivery','caja','mesas','cocina','inventario','empleados','misdatos','config','clientes','zonas','facturacion','auditoria','propinas','mapa','reparto','entregados','ventas'], icon: 'fa-user-tie', color: '#2196f3' },
             'caja':         { sections: ['misdatos'], icon: 'fa-cash-register', color: '#4caf50' },
             'camarero':     { sections: ['misdatos'], icon: 'fa-concierge-bell', color: '#ff9800' },
             'cocinero':     { sections: ['misdatos'], icon: 'fa-fire-burner', color: '#f44336' },
@@ -630,12 +630,6 @@
             propinas:  { icon: 'fa-hand-holding-dollar', label: 'Propinas' },
             misdatos:  { icon: 'fa-user', label: 'Yo' },
             ventas:    { icon: 'fa-chart-line', label: 'Ventas' },
-            salon:     { icon: 'fa-concierge-bell', label: 'Salón' },
-            historial: { icon: 'fa-clipboard-list', label: 'Historial' },
-            simulador: { icon: 'fa-calculator', label: 'Precios' },
-            appdelivery: { icon: 'fa-mobile-alt', label: 'App Delivery' },
-            'vinculo-motos': { icon: 'fa-link', label: 'Vínculo Motos' },
-            terminal:  { icon: 'fa-qrcode', label: 'Terminal QR' }
         };
 
         async function buildUI() {
