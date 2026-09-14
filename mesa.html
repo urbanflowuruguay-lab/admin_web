@@ -346,6 +346,7 @@
         </div>
         <div id="propinaAtInfo" style="font-size:11px;color:var(--text2);text-align:center"></div>
         <div id="propinaAtTotal" style="font-size:13px;color:var(--accent);text-align:center;margin-top:6px;font-weight:600"></div>
+        <button onclick="aplicarPropinaAlPedido()" style="width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;background:var(--accent);color:var(--bg);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font)">Aplicar propina</button>
     </div>
 
     <button class="atencion-btn atencion-btn-agregar" onclick="abrirCartaAgregar()">➕ Agregar algo más</button>
@@ -1161,17 +1162,22 @@ function updatePropinaAtencionUI() {
 async function aplicarPropinaAlPedido() {
     if (!currentPedidoId || propinaAtencion <= 0) return;
     const nuevoTotal = pedidoBaseTotal + propinaAtencion;
-    const { error } = await sb.from("pedidos").update({ total: nuevoTotal, notas: (await _getPedidoNotas()) + ` · Propina $${propinaAtencion}` }).eq("id", currentPedidoId);
-    if (error) console.error("Error guardando propina:", error);
-    else {
-        document.getElementById("atencionTotal").textContent = "$" + Math.round(nuevoTotal);
-        showToast("Propina aplicada ✓");
-    }
-}
-
-async function _getPedidoNotas() {
-    const { data } = await sb.from("pedidos").select("notas").eq("id", currentPedidoId).maybeSingle();
-    return data?.notas || "";
+    // 1. Actualizar total del pedido (para que caja vea el total con propina)
+    await sb.from("pedidos").update({ total: nuevoTotal }).eq("id", currentPedidoId);
+    // 2. Guardar en tabla propinas (para que aparezca en la sección Propinas del restaurant)
+    await sb.from("propinas").insert({
+        empresa_id: empresaId,
+        pedido_id: currentPedidoId,
+        mesa_token: mesaToken,
+        mesa_numero: mesaData ? mesaData.numero : 0,
+        cliente_nombre: window._ultimoNombreMesa || "Cliente",
+        cliente_token: clienteToken,
+        monto: propinaAtencion,
+        metodo_pago: "efectivo",
+        reparto: "individual"
+    });
+    document.getElementById("atencionTotal").textContent = "$" + Math.round(nuevoTotal);
+    showToast("Propina aplicada ✓");
 }
 
 function setSubRating(campo, val) {
