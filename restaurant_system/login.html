@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UrbanFlow - Acceso Gestión</title>
+    <title>UrbanFlow - Acceso</title>
     <link rel="icon" type="image/png" href="./servicio.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -25,26 +25,30 @@
         .btn-login:hover { opacity: 0.9; }
         .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
         .error-msg { color: var(--red); font-size: 13px; margin-top: 12px; display: none; }
-        .back-link { margin-top: 20px; font-size: 13px; }
-        .back-link a { color: var(--text2); text-decoration: none; }
-        .back-link a:hover { color: var(--accent); }
+        .links { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .links a { color: var(--text2); text-decoration: none; font-size: 13px; }
+        .links a:hover { color: var(--accent); }
         .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+        .hint { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
             <h1><i class="fas fa-utensils"></i> UrbanFlow</h1>
-            <p class="subtitle">Acceso al panel de gestión</p>
+            <p class="subtitle">Acceso al sistema</p>
+
+            <p class="hint">Dueño: usá tu email y contraseña.<br>Empleado: usá tu nombre y PIN.</p>
 
             <div class="form-group">
-                <label>Nombre</label>
-                <input type="text" id="loginNombre" placeholder="Tu nombre" autocomplete="username">
+                <label>Email (dueño) o Nombre (empleado)</label>
+                <input type="text" id="loginUser" placeholder="Tu email o nombre" autocomplete="username">
             </div>
             <div class="form-group">
                 <label>Contraseña</label>
-                <input type="password" id="loginPin" placeholder="Tu contraseña" autocomplete="current-password">
+                <input type="password" id="loginPass" placeholder="Tu contraseña" autocomplete="current-password">
             </div>
 
             <button class="btn-login" id="btnLogin" onclick="doLogin()">
@@ -53,7 +57,7 @@
 
             <p class="error-msg" id="errorMsg"></p>
 
-            <div class="back-link">
+            <div class="links">
                 <a href="app.html"><i class="fas fa-arrow-left"></i> Volver a la app de empleados</a>
             </div>
         </div>
@@ -84,26 +88,26 @@
         }
 
         async function doLogin() {
-            const nombre = document.getElementById('loginNombre').value.trim();
-            const pin = document.getElementById('loginPin').value;
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value;
 
-            if (!nombre) { showError('Ingresá tu nombre o email'); return; }
-            if (!pin) { showError('Ingresá tu contraseña'); return; }
+            if (!user) { showError('Ingresá tu email o nombre'); return; }
+            if (!pass) { showError('Ingresá tu contraseña'); return; }
 
             document.getElementById('errorMsg').style.display = 'none';
             toggleLoading(true);
 
             try {
-                // 1) Buscar en empleados
-                let { data, error } = await sbSvc.from('empleados')
+                // 1) Buscar empleado por nombre + pin
+                const { data: emps } = await sbSvc.from('empleados')
                     .select('*')
-                    .eq('nombre', nombre)
-                    .eq('pin', pin)
+                    .eq('nombre', user)
+                    .eq('pin', pass)
                     .eq('activo', true)
                     .limit(5);
 
-                if (!error && data && data.length > 0) {
-                    const emp = data[0];
+                if (emps && emps.length > 0) {
+                    const emp = emps[0];
                     localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
                     localStorage.setItem('urbanflow_employee', JSON.stringify({
                         id: emp.id, nombre: emp.nombre, pin: emp.pin,
@@ -121,11 +125,11 @@
                     return;
                 }
 
-                // 2) Buscar en empresas (dueño por email + pin_dueno)
+                // 2) Buscar dueño en empresas por email + pin_dueno
                 const { data: empresas } = await sbSvc.from('empresas')
                     .select('*')
-                    .eq('email', nombre)
-                    .eq('pin_dueno', pin)
+                    .eq('email', user)
+                    .eq('pin_dueno', pass)
                     .eq('activo', true)
                     .limit(1);
 
@@ -139,6 +143,30 @@
                     return;
                 }
 
+                // 3) Supabase Auth (login original del dueño con email + password)
+                const { data: authData, error: authError } = await sb.auth.signInWithPassword({
+                    email: user,
+                    password: pass
+                });
+
+                if (!authError && authData?.user) {
+                    const userId = authData.user.id;
+                    const { data: empresas2 } = await sbSvc.from('empresas')
+                        .select('*')
+                        .eq('usuario_id', userId)
+                        .limit(1);
+
+                    if (empresas2 && empresas2.length > 0) {
+                        const e = empresas2[0];
+                        localStorage.setItem('urbanflow_empresa_id', e.id);
+                        localStorage.removeItem('urbanflow_employee');
+                        localStorage.setItem('urbanflow_employee_role', 'rol_dueno');
+                        localStorage.setItem('urbanflow_employee_name', e.nombre);
+                        window.location.href = 'gestion.html';
+                        return;
+                    }
+                }
+
                 showError('Usuario o contraseña incorrectos');
                 toggleLoading(false);
             } catch(e) {
@@ -147,11 +175,11 @@
             }
         }
 
-        document.getElementById('loginPin').addEventListener('keydown', e => {
+        document.getElementById('loginPass').addEventListener('keydown', e => {
             if (e.key === 'Enter') doLogin();
         });
-        document.getElementById('loginNombre').addEventListener('keydown', e => {
-            if (e.key === 'Enter') document.getElementById('loginPin').focus();
+        document.getElementById('loginUser').addEventListener('keydown', e => {
+            if (e.key === 'Enter') document.getElementById('loginPass').focus();
         });
     </script>
 </body>
