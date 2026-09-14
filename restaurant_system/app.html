@@ -1355,8 +1355,28 @@
             if (icon) icon.className = soundOnApp('pedido_listo') ? 'fas fa-volume-up' : 'fas fa-volume-mute';
         }
 
+        let _audioUnlocked = false;
+        function unlockAudio() {
+            if (_audioUnlocked) return;
+            _audioUnlocked = true;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const buf = ctx.createBuffer(1, 1, 22050);
+                const src = ctx.createBufferSource();
+                src.buffer = buf; src.connect(ctx.destination);
+                src.start(0);
+                if (ctx.state === 'suspended') ctx.resume();
+            } catch (_) {}
+            try { _llamadaAudioEl = new Audio('llamada.mp3'); _llamadaAudioEl.preload = 'auto'; _llamadaAudioEl.load(); } catch (_) {}
+            try { _timbreEl = new Audio('timbre.wav'); _timbreEl.preload = 'auto'; _timbreEl.load(); } catch (_) {}
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             paintSoundBtnApp();
+            document.addEventListener('click', unlockAudio);
+            document.addEventListener('touchstart', unlockAudio);
             document.addEventListener('click', (e) => {
                 const panel = document.getElementById('soundPanelApp');
                 if (panel && panel.style.display === 'block' && !panel.contains(e.target)) panel.style.display = 'none';
