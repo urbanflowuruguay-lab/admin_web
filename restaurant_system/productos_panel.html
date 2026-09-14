@@ -99,7 +99,9 @@
     <script>
         const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
         const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW0LdGOHmCk";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        const sbSvc = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
 
         const params = new URLSearchParams(window.location.search);
         const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
@@ -280,8 +282,8 @@
             const file = document.getElementById('prodFoto').files[0];
             if (file) {
                 const path = `empresa_${empresaId}/prod_${Date.now()}.jpg`;
-                const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
-                if (!error) { const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path); fotoUrl = data?.publicUrl; }
+                const { error } = await sbSvc.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+                if (!error) { const { data } = sbSvc.storage.from('ocio_fotos').getPublicUrl(path); fotoUrl = data?.publicUrl; }
             }
             const prodDB = {
                 nombre: nombre,
@@ -292,11 +294,11 @@
             };
             if (editingId) {
                 if (fotoUrl) prodDB.foto_url = fotoUrl;
-                const { error } = await sb.from('productos_empresa').update(prodDB).eq('id', editingId);
+                const { error } = await sbSvc.from('productos_empresa').update(prodDB).eq('id', editingId);
                 if (error) { alert('Error al editar: ' + error.message); return; }
             } else {
                 prodDB.empresa_id = empresaId; prodDB.foto_url = fotoUrl; prodDB.activo = true;
-                const { error } = await sb.from('productos_empresa').insert(prodDB);
+                const { error } = await sbSvc.from('productos_empresa').insert(prodDB);
                 if (error) { alert('Error al crear: ' + error.message); return; }
             }
             closeModal();
@@ -304,7 +306,7 @@
         }
 
         async function toggleActivo(id, currentActivo) {
-            await sb.from('productos_empresa').update({ activo: !currentActivo }).eq('id', id);
+            await sbSvc.from('productos_empresa').update({ activo: !currentActivo }).eq('id', id);
             loadProductos();
         }
 
