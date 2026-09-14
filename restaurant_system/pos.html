@@ -724,9 +724,28 @@
                             <span>${r2(i.precio * i.cantidad)}</span>
                         </div>`).join('')}
                     <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px;">
-                        <span>A cobrar</span><span style="color: var(--accent);">${r2(mesaCuenta.total)}</span>
+                        <span>Total</span><span style="color: var(--accent);">${r2(mesaCuenta.total)}</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-top: 8px;">
+                        <button onclick="cobrarMesaDirecto('efectivo')" style="flex:1;padding:8px;border:none;border-radius:6px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer">💵 Efectivo</button>
+                        <button onclick="cobrarMesaDirecto('mercado_pago')" style="flex:1;padding:8px;border:none;border-radius:6px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer">💳 MP</button>
                     </div>
                 </div>`;
+        }
+
+        async function cobrarMesaDirecto(method) {
+            if (!mesaCuenta.pedidos.length) return;
+            if (!confirm(`Cobrar $${Math.round(mesaCuenta.total)} con ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}?`)) return;
+            try {
+                await sbPOS.from('pedidos').update({ metodo_pago: method, metodo_pago_estado: 'pagado', estado: 'pagado' }).in('id', mesaCuenta.pedidos);
+                const t = tables.find(t => selectedMesa && String(t.id) === String(selectedMesa.id));
+                if (t) { t.estado = 'disponible'; try { await sbPOS.from('mesas').update({ estado: 'libre' }).eq('id', t.id); } catch(_) {} }
+                selectedMesa.estado = 'disponible';
+                mesaCuenta = { pedidos: [], items: [], total: 0 };
+                renderCuentaMesa();
+                renderTables();
+                showToast('Cobrado con ' + (method === 'efectivo' ? 'Efectivo' : 'MercadoPago'));
+            } catch (e) { alert('Error al cobrar: ' + e.message); }
         }
 
         // Abiertos por mesa para los puntos del mapa (igual que app del mozo)
