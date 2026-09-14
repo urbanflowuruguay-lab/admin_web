@@ -799,34 +799,21 @@
         async function renderCaja() {
             const container = document.getElementById('content-caja');
             if (!container) return;
-            const empresaId = currentUser?.empresa_id || '';
-            const rol = (currentUser?.rol||'').replace('rol_','') || 'cajero';
-            const userName = encodeURIComponent(currentUser?.nombre||'Cajero');
-            const src = `pos.html?empresa=${empresaId}&fromApp=1&user=${userName}&rol=${rol}`;
             container.innerHTML = `
-                <div style="display:flex;flex-direction:column;gap:8px;height:100%">
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-                        <h3 style="margin:0;font-size:16px"><i class="fas fa-cash-register"></i> Caja — ${(currentUser?.nombre||'Cajero')} (${rol})</h3>
-                        <div style="display:flex;gap:8px;align-items:center">
-                            <button id="fsBtn" onclick="fsCajaToggle()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#000;font-size:12px;font-weight:700;cursor:pointer"><i class="fas fa-expand"></i> Pantalla completa</button>
-                            <button id="exitFsBtn" onclick="document.exitFullscreen()" style="display:none;padding:6px 12px;border-radius:6px;border:1px solid var(--red);background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer"><i class="fas fa-compress"></i> Salir</button>
-                            <span style="background:#4caf50;color:#fff;font-size:11px;padding:4px 8px;border-radius:20px"><i class="fas fa-check"></i> Sin código</span>
-                        </div>
+                <div style="display:flex;flex-direction:column;gap:12px;padding:12px">
+                    <h3 style="margin:0;font-size:16px"><i class="fas fa-cash-register"></i> Caja — ${(currentUser?.nombre||'Cajera')}</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                        <button onclick="showTab('pedidos')" style="padding:24px;border:1px solid var(--border);border-radius:12px;background:var(--bg2);color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px">
+                            <i class="fas fa-receipt" style="font-size:28px;color:var(--accent)"></i>
+                            <span style="font-size:14px;font-weight:600">Pedidos</span>
+                        </button>
+                        <button onclick="showTab('productos')" style="padding:24px;border:1px solid var(--border);border-radius:12px;background:var(--bg2);color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px">
+                            <i class="fas fa-burger" style="font-size:28px;color:var(--accent)"></i>
+                            <span style="font-size:14px;font-weight:600">Productos</span>
+                        </button>
                     </div>
-                    <iframe id="cajaFrame" src="${src}" style="width:100%;height:75vh;min-height:600px;border:1px solid var(--border);border-radius:12px;background:#0a0a0a" allow="fullscreen"></iframe>
-                    <div style="font-size:11px;color:var(--text2);text-align:center">Misma caja que ve el dueño — botones con imágenes, mesas y cobros. Si el modal sale a la izq, tocá <b>Pantalla completa</b> para ver de lado a lado como en pos.html. <a href="${src}" target="_blank" style="color:var(--accent)">Abrir en pestaña</a> · <a href="#" onclick="document.getElementById('cajaFrame').src=document.getElementById('cajaFrame').src;return false" style="color:var(--accent)">recargar</a></div>
                 </div>
             `;
-            if (!window._fsListener) {
-                window._fsListener = true;
-                document.addEventListener('fullscreenchange', () => {
-                    const on = !!document.fullscreenElement;
-                    const b = document.getElementById('exitFsBtn');
-                    const f = document.getElementById('fsBtn');
-                    if (b) b.style.display = on ? '' : 'none';
-                    if (f) f.style.display = on ? 'none' : '';
-                });
-            }
         }
 
         // =============================================
