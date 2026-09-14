@@ -311,19 +311,6 @@
         .pw-wrap input { width:100%; box-sizing:border-box; padding-right:40px; }
         .pw-toggle { position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; color:var(--text2); font-size:13px; background:none; border:none; padding:2px; }
     </style>
-    <style>
-        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
-        .modal.active, .modal[style*="display: flex"], .modal[style*="display:flex"] { display:flex; }
-        .modal-content { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:24px; width:90%; max-width:500px; max-height:90vh; overflow-y:auto; }
-        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-        .modal-header h3 { margin:0; font-size:18px; }
-        .modal-close { background:none; border:none; color:var(--text2); font-size:24px; cursor:pointer; padding:0 4px; }
-        .form-group { margin-bottom:14px; }
-        .form-group label { display:block; font-size:13px; color:var(--text2); margin-bottom:5px; }
-        .form-group input, .form-group textarea, .form-group select { width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; box-sizing:border-box; }
-        .form-group textarea { min-height:60px; resize:vertical; }
-        .btn-primary { padding:10px 18px; background:var(--accent); color:#000; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
-    </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -721,7 +708,7 @@
                 </div>
                 ${allowedSections.map(s => `
                     <div class="section" id="section-${s}">
-                        <div id="content-${s}"></div>
+                        ${s === 'productos' ? `<iframe id="productosFrameApp" src="" style="width:100%;height:80vh;min-height:600px;border:1px solid var(--border);border-radius:12px;background:#0a0a0a" allow="fullscreen"></iframe>` : `<div id="content-${s}"></div>`}
                     </div>
                 `).join('')}
             `;
@@ -746,7 +733,11 @@
                 case 'caja':      renderCaja(); break;
                 case 'mapa':      renderDeliveryMap(); break;
                 case 'misdatos':  renderMisDatos(); break;
-                case 'productos': renderProductosApp(); break;
+                case 'productos': {
+                    const f = document.getElementById('productosFrameApp');
+                    if (f && !f.src.includes('productos_panel')) f.src = 'productos_panel.html?empresa=' + (currentUser?.empresa_id || '');
+                    break;
+                }
                 case 'clientes':  renderClientesApp(); break;
                 case 'zonas':     renderZonasApp(); break;
                 case 'facturacion': renderFacturacionApp(); break;
@@ -814,209 +805,6 @@
         // =============================================
         // RENDER MODULOS EXTRA (solo lectura, permisos del dueño)
         // =============================================
-        let editingProductoAppId = null;
-        let _appProductos = [];
-        let _appCategorias = [];
-
-        function closeModalApp(type) {
-            const m = document.getElementById('modal-app-' + type);
-            if (m) m.classList.remove('active');
-        }
-
-        function refreshCategoriaOptionsApp(selected) {
-            const sel = document.getElementById('prodCategoriaApp');
-            if (!sel) return;
-            const fixed = [['cat_001','Entradas'],['cat_002','Parrilla'],['cat_003','Pizzas'],['cat_004','Pastas'],['cat_005','Bebidas'],['cat_006','Postres']];
-            const seen = new Set(fixed.map(f => f[1].toLowerCase()));
-            const extra = [];
-            const addName = (n) => { n = String(n || '').trim(); if (n && !seen.has(n.toLowerCase())) { seen.add(n.toLowerCase()); extra.push(n); } };
-            (_appCategorias || []).forEach(c => addName(c.nombre));
-            (_appProductos || []).forEach(p => addName(p.categoriaNombre || (p.categorias && p.categorias[0])));
-            sel.innerHTML = fixed.map(f => `<option value="${f[0]}">${f[1]}</option>`).join('')
-                + extra.map(n => `<option value="${n}">${n}</option>`).join('')
-                + `<option value="nueva">+ Nueva categoría...</option>`;
-            if (selected) {
-                const opts = [...sel.options];
-                const match = opts.find(o => o.value === selected) || opts.find(o => o.text === selected);
-                if (match) sel.value = match.value;
-            }
-            const wrap = document.getElementById('catNuevaWrapApp');
-            if (wrap) { wrap.style.display = 'none'; const inp = document.getElementById('catNuevaApp'); if (inp) inp.value = ''; }
-        }
-
-        function syncDescuentoFromPrecioApp() {
-            const precio = parseFloat(document.getElementById('prodPrecioApp')?.value) || 0;
-            const oferta = parseFloat(document.getElementById('prodPrecioOfertaApp')?.value);
-            const desc = document.getElementById('prodDescuentoApp');
-            if (desc && precio > 0 && oferta > 0 && oferta < precio) desc.value = Math.round((1 - oferta / precio) * 100);
-            else if (desc) desc.value = '';
-        }
-
-        function syncDescuentoFromPctApp() {
-            const precio = parseFloat(document.getElementById('prodPrecioApp')?.value) || 0;
-            const pct = parseFloat(document.getElementById('prodDescuentoApp')?.value) || 0;
-            const oferta = document.getElementById('prodPrecioOfertaApp');
-            if (oferta && precio > 0 && pct > 0 && pct < 100) oferta.value = Math.round(precio * (1 - pct / 100));
-            else if (oferta) oferta.value = '';
-        }
-
-        async function renderProductosApp() {
-            editingProductoAppId = null;
-            const container = document.getElementById('content-productos');
-            if (!container || !currentUser?.empresa_id) return;
-            container.innerHTML = '<div class="empty"><p>Cargando productos...</p></div>';
-            try {
-                const { data, error } = await sb.from('productos_empresa')
-                    .select('*').eq('empresa_id', currentUser.empresa_id).order('created_at', {ascending:false});
-                if (error) throw error;
-                _appProductos = (data || []).map(r => ({
-                    id: r.id, nombre: r.nombre, descripcion: r.descripcion,
-                    precio: parseFloat(r.precio), precio_oferta: r.precio_oferta ? parseFloat(r.precio_oferta) : null,
-                    categorias: [r.categoria || 'general'], categoriaNombre: r.categoria,
-                    stock: r.stock, activo: r.activo, foto_url: r.foto_url,
-                    disponible: r.disponible || 'ambas', visible_para: r.visible_para || 'cocina,camarero,caja',
-                    created_at: r.created_at
-                }));
-                if (_appCategorias.length === 0) {
-                    const cats = [...new Set(_appProductos.map(p => p.categoriaNombre || (p.categorias && p.categorias[0])).filter(Boolean))];
-                    cats.forEach(c => { if (!_appCategorias.find(x => x.nombre === c)) _appCategorias.push({ id: 'cat_' + c, nombre: c }); });
-                }
-                container.innerHTML = `
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                        <h3 style="margin:0;font-size:16px"><i class="fas fa-burger"></i> Productos</h3>
-                        <button onclick="nuevoProductoApp()" style="padding:8px 14px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer"><i class="fas fa-plus"></i> Nuevo</button>
-                    </div>
-                    <div id="prodListApp"></div>`;
-                const list = _appProductos;
-                document.getElementById('prodListApp').innerHTML = list.length ? list.map(p => `
-                    <div style="background:var(--bg2);border:1px solid var(--border);${p.activo === false ? 'opacity:0.55;' : ''}border-radius:10px;padding:12px;margin-bottom:10px">
-                        <div style="display:flex;justify-content:space-between;align-items:center">
-                            <div style="display:flex;align-items:center;gap:10px">
-                                ${p.foto_url ? `<img src="${p.foto_url}" style="width:44px;height:44px;object-fit:cover;border-radius:8px">` : ''}
-                                <div>
-                                    <div style="font-weight:600;font-size:14px">${p.nombre} ${p.activo === false ? '<span style="font-size:10px;color:var(--red)">INACTIVO</span>' : ''}</div>
-                                    <div style="font-size:11px;color:var(--text2)">${p.categoriaNombre || ''} · $${p.precio}${p.precio_oferta ? ` <span style="color:var(--green)">Oferta $${p.precio_oferta}</span>` : ''} · ${(p.visible_para || '').split(',').map(v => v.trim() === 'camarero' ? 'mozo' : v.trim()).join(' · ')}</div>
-                                </div>
-                            </div>
-                            <div style="font-size:16px;font-weight:700;color:var(--accent)">$${p.precio_oferta || p.precio || 0}</div>
-                        </div>
-                        <div style="display:flex;gap:6px;margin-top:10px">
-                            <button onclick="editProductoApp('${p.id}')" style="flex:1;padding:8px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer"><i class="fas fa-edit"></i> Editar</button>
-                            <button onclick="toggleActivoProductoApp('${p.id}', ${p.activo !== false})" style="flex:1;padding:8px;background:${p.activo === false ? 'var(--green)' : '#6b7280'};color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">${p.activo === false ? 'Activar' : 'Desactivar'}</button>
-                        </div>
-                    </div>`).join('') : '<div class="empty"><p>Sin productos</p></div>';
-            } catch (err) {
-                container.innerHTML = '<div class="empty"><p>Error al cargar productos</p></div>';
-            }
-        }
-
-        function editProductoApp(id) {
-            const p = _appProductos.find(x => String(x.id) === String(id));
-            if (!p) return;
-            editingProductoAppId = p.id;
-            document.getElementById('prodModalTitleApp').textContent = 'Editar Producto';
-            document.getElementById('prodNombreApp').value = p.nombre || '';
-            document.getElementById('prodDescripcionApp').value = p.descripcion || '';
-            document.getElementById('prodPrecioApp').value = p.precio || '';
-            document.getElementById('prodPrecioOfertaApp').value = p.precio_oferta || '';
-            document.getElementById('prodDescuentoApp').value = (p.precio > 0 && p.precio_oferta > 0 && p.precio_oferta < p.precio) ? Math.round((1 - p.precio_oferta / p.precio) * 100) : '';
-            document.getElementById('prodStockApp').value = p.stock || '';
-            document.getElementById('prodDisponibleApp').value = p.disponible || 'ambas';
-            const vis = (p.visible_para || 'cocina,camarero,caja').split(',').map(v => v.trim());
-            document.getElementById('visCocinaApp').checked = vis.includes('cocina');
-            document.getElementById('visMozoApp').checked = vis.includes('camarero');
-            document.getElementById('visCajaApp').checked = vis.includes('caja') || vis.includes('cajero');
-            refreshCategoriaOptionsApp(p.categoriaNombre || (p.categorias && p.categorias[0]));
-            const prev = document.getElementById('prodFotoPreviewApp');
-            const ph = document.getElementById('prodFotoPlaceholderApp');
-            if (p.foto_url) { prev.src = p.foto_url; prev.style.display='block'; if(ph) ph.style.display='none'; }
-            else { prev.style.display='none'; if(ph) ph.style.display='block'; }
-            document.getElementById('modal-app-producto').classList.add('active');
-        }
-
-        function nuevoProductoApp() {
-            editingProductoAppId = null;
-            document.getElementById('prodModalTitleApp').textContent = 'Nuevo Producto';
-            document.getElementById('prodNombreApp').value = '';
-            document.getElementById('prodDescripcionApp').value = '';
-            document.getElementById('prodPrecioApp').value = '';
-            document.getElementById('prodPrecioOfertaApp').value = '';
-            document.getElementById('prodDescuentoApp').value = '';
-            document.getElementById('prodStockApp').value = '';
-            document.getElementById('prodFotoApp').value = '';
-            document.getElementById('prodFotoPreviewApp').style.display='none';
-            const ph = document.getElementById('prodFotoPlaceholderApp'); if(ph) ph.style.display='block';
-            refreshCategoriaOptionsApp('cat_001');
-            document.getElementById('prodDisponibleApp').value = 'ambas';
-            document.getElementById('visCocinaApp').checked = true;
-            document.getElementById('visMozoApp').checked = true;
-            document.getElementById('visCajaApp').checked = true;
-            document.getElementById('modal-app-producto').classList.add('active');
-        }
-
-        async function toggleActivoProductoApp(id, currentActivo) {
-            try {
-                const { error } = await sb.from('productos_empresa').update({ activo: !currentActivo }).eq('id', id);
-                if (error) throw error;
-                renderProductosApp();
-            } catch (err) { alert('Error: ' + err.message); }
-        }
-
-        async function saveProductoApp() {
-            let catVal = document.getElementById('prodCategoriaApp').value;
-            let catNombre = document.getElementById('prodCategoriaApp').selectedOptions[0]?.textContent || catVal;
-            if (catVal === 'nueva') {
-                const nombreCat = (document.getElementById('catNuevaApp')?.value || '').trim();
-                if (!nombreCat) { alert('Ingresá nombre de categoría'); return; }
-                catNombre = nombreCat; catVal = nombreCat;
-                if (!_appCategorias.find(c => c.nombre === nombreCat)) {
-                    _appCategorias.push({ id: 'cat_' + Date.now(), nombre: nombreCat });
-                }
-            } else {
-                const found = _appCategorias.find(c => c.id === catVal);
-                if (found) catNombre = found.nombre;
-                else { const map = {cat_001:'Entradas',cat_002:'Parrilla',cat_003:'Pizzas',cat_004:'Pastas',cat_005:'Bebidas',cat_006:'Postres'}; catNombre = map[catVal] || catVal; }
-            }
-            const disponible = document.getElementById('prodDisponibleApp').value;
-            const visRoles = [];
-            if (document.getElementById('visCocinaApp').checked) visRoles.push('cocina');
-            if (document.getElementById('visMozoApp').checked) visRoles.push('camarero');
-            if (document.getElementById('visCajaApp').checked) visRoles.push('caja');
-            const visiblePara = visRoles.length ? visRoles.join(',') : 'cocina,camarero,caja';
-            const ofertaVal = parseFloat(document.getElementById('prodPrecioOfertaApp').value);
-            const precioBase = parseFloat(document.getElementById('prodPrecioApp').value);
-            const precioOferta = (ofertaVal > 0 && ofertaVal < precioBase) ? ofertaVal : null;
-            let fotoUrl = null;
-            const file = document.getElementById('prodFotoApp')?.files[0];
-            if (file) {
-                const path = `empresa_${currentUser.empresa_id}/prod_${Date.now()}.jpg`;
-                const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
-                if (!error) { const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path); fotoUrl = data?.publicUrl; }
-            }
-            if (editingProductoAppId) {
-                const upd = {
-                    nombre: document.getElementById('prodNombreApp').value,
-                    descripcion: document.getElementById('prodDescripcionApp').value,
-                    precio: precioBase, precio_oferta: precioOferta,
-                    categoria: catNombre, stock: parseInt(document.getElementById('prodStockApp').value),
-                    disponible: disponible, visible_para: visiblePara
-                };
-                if (fotoUrl) upd.foto_url = fotoUrl;
-                await sb.from('productos_empresa').update(upd).eq('id', editingProductoAppId);
-            } else {
-                const prodDB = {
-                    empresa_id: currentUser.empresa_id,
-                    nombre: document.getElementById('prodNombreApp').value,
-                    descripcion: document.getElementById('prodDescripcionApp').value,
-                    precio: precioBase, precio_oferta: precioOferta,
-                    categoria: catNombre, stock: parseInt(document.getElementById('prodStockApp').value),
-                    foto_url: fotoUrl, visible_para: visiblePara, activo: true
-                };
-                await sb.from('productos_empresa').insert(prodDB);
-            }
-            closeModalApp('producto');
-            renderProductosApp();
-        }
 
         async function renderClientesApp() {
             const container = document.getElementById('content-clientes');
@@ -3925,66 +3713,9 @@
         }
 
         // =============================================
-        // MODAL PRODUCTOS (igual que gestión)
-        // =============================================
-        document.getElementById('prodFotoApp')?.addEventListener('change', function() {
-            const f = this.files[0]; if (!f) return;
-            document.getElementById('prodFotoPreviewApp').src = URL.createObjectURL(f);
-            document.getElementById('prodFotoPreviewApp').style.display='block';
-            const ph = document.getElementById('prodFotoPlaceholderApp'); if(ph) ph.style.display='none';
-        });
-
-        // =============================================
         // INIT
         // =============================================
         init();
     </script>
-
-    <!-- MODAL PRODUCTOS (igual que gestión) -->
-    <div class="modal" id="modal-app-producto">
-        <div class="modal-content" style="max-width:480px">
-            <div class="modal-header">
-                <h3 id="prodModalTitleApp">Nuevo Producto</h3>
-                <button class="modal-close" onclick="closeModalApp('producto')">&times;</button>
-            </div>
-            <div class="form-group"><label>Nombre</label><input type="text" id="prodNombreApp"></div>
-            <div class="form-group"><label>Descripción</label><textarea id="prodDescripcionApp"></textarea></div>
-            <div class="form-group">
-                <label>Foto</label>
-                <div onclick="document.getElementById('prodFotoApp').click()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
-                    <img id="prodFotoPreviewApp" src="" style="display:none;width:100%;height:100%;object-fit:cover">
-                    <span id="prodFotoPlaceholderApp" style="color:var(--text2);font-size:12px">Click para subir foto</span>
-                </div>
-                <input type="file" id="prodFotoApp" accept="image/*" style="display:none">
-            </div>
-            <div class="form-group"><label>Precio ($)</label><input type="number" id="prodPrecioApp" oninput="syncDescuentoFromPrecioApp()"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div class="form-group" style="margin:0"><label>Precio oferta ($)</label><input type="number" id="prodPrecioOfertaApp" placeholder="Sin oferta" oninput="syncDescuentoFromPrecioApp()"></div>
-                <div class="form-group" style="margin:0"><label>Descuento (%)</label><input type="number" id="prodDescuentoApp" placeholder="0" min="0" max="90" oninput="syncDescuentoFromPctApp()"></div>
-            </div>
-            <div style="height:12px"></div>
-            <div class="form-group">
-                <label>Categoría</label>
-                <select id="prodCategoriaApp" onchange="if(this.value==='nueva'){document.getElementById('catNuevaWrapApp').style.display='block'}else{document.getElementById('catNuevaWrapApp').style.display='none'}">
-                    <option value="cat_001">Entradas</option><option value="cat_002">Parrilla</option><option value="cat_003">Pizzas</option><option value="cat_004">Pastas</option><option value="cat_005">Bebidas</option><option value="cat_006">Postres</option><option value="nueva">+ Nueva categoría...</option>
-                </select>
-                <div id="catNuevaWrapApp" style="display:none;margin-top:8px"><input type="text" id="catNuevaApp" placeholder="Nombre nueva categoría"></div>
-            </div>
-            <div class="form-group">
-                <label>Disponible en</label>
-                <select id="prodDisponibleApp"><option value="ambas">Ambas (Mesa y Online)</option><option value="mesa">Solo Mesa (carta QR)</option><option value="online">Solo Online</option></select>
-            </div>
-            <div class="form-group">
-                <label>Se muestra a (roles)</label>
-                <div style="display:flex;gap:12px;font-size:13px">
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="visCocinaApp" checked style="accent-color:var(--accent);width:16px;height:16px"> Cocina</label>
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="visMozoApp" checked style="accent-color:var(--accent);width:16px;height:16px"> Mozo</label>
-                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="visCajaApp" checked style="accent-color:var(--accent);width:16px;height:16px"> Caja</label>
-                </div>
-            </div>
-            <div class="form-group"><label>Stock Inicial</label><input type="number" id="prodStockApp"></div>
-            <button class="btn-primary" onclick="saveProductoApp()" style="width:100%;padding:12px;margin-top:8px"><i class="fas fa-save"></i> Guardar</button>
-        </div>
-    </div>
 </body>
 </html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos</title>
+    <link rel="icon" type="image/png" href="./servicio.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --text:#fff; --text2:#888; --border:#333; --accent:#d4af37; --green:#4caf50; --red:#f44336; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); padding:16px; min-height:100vh; }
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+        .section-header h2 { font-size:18px; }
+        .btn-primary { padding:10px 18px; background:var(--accent); color:#000; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+        .btn-primary:hover { opacity:0.9; }
+        .card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+        table { width:100%; border-collapse:collapse; }
+        th { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text2); font-size:12px; text-transform:uppercase; }
+        td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; }
+        .badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+        .badge-success { background:rgba(76,175,80,0.2); color:var(--green); }
+        .badge-danger { background:rgba(244,67,54,0.2); color:var(--red); }
+        .form-group { margin-bottom:14px; }
+        .form-group label { display:block; margin-bottom:5px; font-size:13px; color:var(--text2); }
+        .form-group input, .form-group select, .form-group textarea { width:100%; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; box-sizing:border-box; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--accent); }
+        .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center; }
+        .modal.active { display:flex; }
+        .modal-content { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:30px; width:90%; max-width:500px; max-height:90vh; overflow-y:auto; }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .modal-header h3 { font-size:18px; }
+        .modal-close { background:none; border:none; color:var(--text2); font-size:24px; cursor:pointer; }
+    </style>
+</head>
+<body>
+    <div class="section-header">
+        <h2><i class="fas fa-burger"></i> Productos</h2>
+        <button class="btn-primary" onclick="nuevoProducto()"><i class="fas fa-plus"></i> Nuevo Producto</button>
+    </div>
+    <div class="card">
+        <div style="overflow-x:auto">
+            <table>
+                <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody id="productosTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-producto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="productoModalTitle">Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="form-group"><label>Nombre</label><input type="text" id="prodNombre"></div>
+            <div class="form-group"><label>Descripción</label><textarea id="prodDescripcion"></textarea></div>
+            <div class="form-group">
+                <label>Foto</label>
+                <div onclick="elegirFotoProducto()" style="border:2px dashed var(--border);border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg3)">
+                    <img id="prodFotoPreview" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+                    <span id="prodFotoPlaceholder" style="color:var(--text2);font-size:12px">Click para subir foto</span>
+                </div>
+                <input type="file" id="prodFoto" accept="image/*" style="display:none">
+                <input type="file" id="prodFotoCamera" accept="image/*" capture="environment" style="display:none">
+            </div>
+            <div class="form-group"><label>Precio ($)</label><input type="number" id="prodPrecio" oninput="syncDescuentoFromPrecio()"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="form-group" style="margin:0"><label>Precio oferta ($)</label><input type="number" id="prodPrecioOferta" placeholder="Sin oferta" oninput="syncDescuentoFromOferta()"></div>
+                <div class="form-group" style="margin:0"><label>Descuento (%)</label><input type="number" id="prodDescuento" placeholder="0" min="0" max="90" oninput="syncDescuentoFromPct()"></div>
+            </div>
+            <div style="height:12px"></div>
+            <div class="form-group">
+                <label>Categoría</label>
+                <select id="prodCategoria" onchange="if(this.value==='nueva'){document.getElementById('catNuevaWrap').style.display='block'}else{document.getElementById('catNuevaWrap').style.display='none'}">
+                    <option value="cat_001">Entradas</option><option value="cat_002">Parrilla</option><option value="cat_003">Pizzas</option><option value="cat_004">Pastas</option><option value="cat_005">Bebidas</option><option value="cat_006">Postres</option><option value="nueva">+ Nueva categoría...</option>
+                </select>
+                <div id="catNuevaWrap" style="display:none;margin-top:8px"><input type="text" id="catNueva" placeholder="Nombre nueva categoría"></div>
+            </div>
+            <div class="form-group">
+                <label>Disponible en</label>
+                <select id="prodDisponible"><option value="ambas">Ambas (Mesa y Online)</option><option value="mesa">Solo Mesa (carta QR)</option><option value="online">Solo Online</option></select>
+            </div>
+            <div class="form-group">
+                <label>Se muestra a (roles)</label>
+                <div style="display:flex;gap:12px;font-size:13px">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="visCocina" checked style="accent-color:var(--accent);width:16px;height:16px"> Cocina</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="visMozo" checked style="accent-color:var(--accent);width:16px;height:16px"> Mozo</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="visCaja" checked style="accent-color:var(--accent);width:16px;height:16px"> Caja</label>
+                </div>
+            </div>
+            <div class="form-group"><label>Stock Inicial</label><input type="number" id="prodStock"></div>
+            <button class="btn-primary" onclick="saveProducto()" style="width:100%;padding:14px;margin-top:8px"><i class="fas fa-save"></i> Guardar</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        const params = new URLSearchParams(window.location.search);
+        const empresaId = params.get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
+        let productos = [];
+        let categorias = [];
+        let editingId = null;
+
+        document.getElementById('prodFoto')?.addEventListener('change', function() {
+            const f = this.files[0]; if (!f) return;
+            document.getElementById('prodFotoPreview').src = URL.createObjectURL(f);
+            document.getElementById('prodFotoPreview').style.display = 'block';
+            document.getElementById('prodFotoPlaceholder').style.display = 'none';
+        });
+        document.getElementById('prodFotoCamera')?.addEventListener('change', function() {
+            const f = this.files[0]; if (!f) return;
+            document.getElementById('prodFotoPreview').src = URL.createObjectURL(f);
+            document.getElementById('prodFotoPreview').style.display = 'block';
+            document.getElementById('prodFotoPlaceholder').style.display = 'none';
+        });
+
+        async function loadProductos() {
+            if (!empresaId) return;
+            try {
+                const { data, error } = await sb.from('productos_empresa').select('*').eq('empresa_id', empresaId).order('created_at', {ascending:false});
+                if (error) throw error;
+                productos = (data || []).map(r => ({
+                    id: r.id, nombre: r.nombre, descripcion: r.descripcion,
+                    precio: parseFloat(r.precio), precio_oferta: r.precio_oferta ? parseFloat(r.precio_oferta) : null,
+                    categorias: [r.categoria || 'general'], categoriaNombre: r.categoria,
+                    stock: r.stock, activo: r.activo, foto_url: r.foto_url,
+                    disponible: r.disponible || 'ambas', visible_para: r.visible_para || 'cocina,camarero,caja',
+                    created_at: r.created_at
+                }));
+                if (categorias.length === 0) {
+                    const cats = [...new Set(productos.map(p => p.categoriaNombre || (p.categorias && p.categorias[0])).filter(Boolean))];
+                    cats.forEach(c => { if (!categorias.find(x => x.nombre === c)) categorias.push({ id: 'cat_' + c, nombre: c }); });
+                }
+                document.getElementById('productosTable').innerHTML = productos.map(p => `
+                    <tr>
+                        <td><strong>${p.nombre}</strong>${p.foto_url ? `<br><img src="${p.foto_url}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;margin-top:4px">` : ''}</td>
+                        <td>${p.categoriaNombre || ''}</td>
+                        <td>$${p.precio}${p.precio_oferta ? `<br><span class="badge badge-success">Oferta $${p.precio_oferta}</span>` : ''}<br><span style="font-size:10px;color:var(--text2)">${(p.visible_para || '').split(',').map(v => v.trim() === 'camarero' ? 'mozo' : v.trim()).join(' · ')}</span></td>
+                        <td>${p.stock ?? ''}</td>
+                        <td><span class="badge ${p.activo ? 'badge-success' : 'badge-danger'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
+                        <td>
+                            <button class="btn-primary" style="padding:5px 10px;font-size:11px;margin-right:4px" onclick="editProducto('${p.id}')"><i class="fas fa-edit"></i></button>
+                            <button style="padding:5px 10px;font-size:11px;background:${p.activo ? '#6b7280' : 'var(--green)'};color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="toggleActivo('${p.id}',${p.activo !== false})">${p.activo ? 'Desact.' : 'Activar'}</button>
+                        </td>
+                    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2)">Sin productos</td></tr>';
+            } catch (e) {
+                document.getElementById('productosTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--red)">Error: ' + e.message + '</td></tr>';
+            }
+        }
+
+        function refreshCategoriaOptions(selected) {
+            const sel = document.getElementById('prodCategoria');
+            const fixed = [['cat_001','Entradas'],['cat_002','Parrilla'],['cat_003','Pizzas'],['cat_004','Pastas'],['cat_005','Bebidas'],['cat_006','Postres']];
+            const seen = new Set(fixed.map(f => f[1].toLowerCase()));
+            const extra = [];
+            (categorias || []).forEach(c => { const n = String(c.nombre||'').trim(); if (n && !seen.has(n.toLowerCase())) { seen.add(n.toLowerCase()); extra.push(n); } });
+            (productos || []).forEach(p => { const n = String(p.categoriaNombre||'').trim(); if (n && !seen.has(n.toLowerCase())) { seen.add(n.toLowerCase()); extra.push(n); } });
+            sel.innerHTML = fixed.map(f => `<option value="${f[0]}">${f[1]}</option>`).join('')
+                + extra.map(n => `<option value="${n}">${n}</option>`).join('')
+                + `<option value="nueva">+ Nueva categoría...</option>`;
+            if (selected) {
+                const opts = [...sel.options];
+                const match = opts.find(o => o.value === selected) || opts.find(o => o.text === selected);
+                if (match) sel.value = match.value;
+            }
+            document.getElementById('catNuevaWrap').style.display = 'none';
+            document.getElementById('catNueva').value = '';
+        }
+
+        function syncDescuentoFromPrecio() {
+            const precio = parseFloat(document.getElementById('prodPrecio').value) || 0;
+            const oferta = parseFloat(document.getElementById('prodPrecioOferta').value);
+            if (precio > 0 && oferta > 0 && oferta < precio) document.getElementById('prodDescuento').value = Math.round((1 - oferta / precio) * 100);
+            else document.getElementById('prodDescuento').value = '';
+        }
+        function syncDescuentoFromOferta() { syncDescuentoFromPrecio(); }
+        function syncDescuentoFromPct() {
+            const precio = parseFloat(document.getElementById('prodPrecio').value) || 0;
+            const pct = parseFloat(document.getElementById('prodDescuento').value) || 0;
+            if (precio > 0 && pct > 0 && pct < 100) document.getElementById('prodPrecioOferta').value = Math.round(precio * (1 - pct / 100));
+            else document.getElementById('prodPrecioOferta').value = '';
+        }
+
+        function closeModal() { document.getElementById('modal-producto').classList.remove('active'); }
+
+        function editProducto(id) {
+            const p = productos.find(x => x.id === id);
+            if (!p) return;
+            editingId = id;
+            document.getElementById('productoModalTitle').textContent = 'Editar Producto';
+            document.getElementById('prodNombre').value = p.nombre || '';
+            document.getElementById('prodDescripcion').value = p.descripcion || '';
+            document.getElementById('prodPrecio').value = p.precio || '';
+            document.getElementById('prodPrecioOferta').value = p.precio_oferta || '';
+            document.getElementById('prodDescuento').value = (p.precio > 0 && p.precio_oferta > 0 && p.precio_oferta < p.precio) ? Math.round((1 - p.precio_oferta / p.precio) * 100) : '';
+            document.getElementById('prodStock').value = p.stock || '';
+            document.getElementById('prodDisponible').value = p.disponible || 'ambas';
+            const vis = (p.visible_para || 'cocina,camarero,caja').split(',').map(v => v.trim());
+            document.getElementById('visCocina').checked = vis.includes('cocina');
+            document.getElementById('visMozo').checked = vis.includes('camarero');
+            document.getElementById('visCaja').checked = vis.includes('caja') || vis.includes('cajero');
+            refreshCategoriaOptions(p.categoriaNombre || (p.categorias && p.categorias[0]));
+            if (p.foto_url) { document.getElementById('prodFotoPreview').src = p.foto_url; document.getElementById('prodFotoPreview').style.display='block'; document.getElementById('prodFotoPlaceholder').style.display='none'; }
+            else { document.getElementById('prodFotoPreview').style.display='none'; document.getElementById('prodFotoPlaceholder').style.display='block'; }
+            document.getElementById('modal-producto').classList.add('active');
+        }
+
+        function nuevoProducto() {
+            editingId = null;
+            document.getElementById('productoModalTitle').textContent = 'Nuevo Producto';
+            document.getElementById('prodNombre').value = '';
+            document.getElementById('prodDescripcion').value = '';
+            document.getElementById('prodPrecio').value = '';
+            document.getElementById('prodPrecioOferta').value = '';
+            document.getElementById('prodDescuento').value = '';
+            document.getElementById('prodStock').value = '';
+            document.getElementById('prodFoto').value = '';
+            document.getElementById('prodFotoPreview').style.display='none';
+            document.getElementById('prodFotoPlaceholder').style.display='block';
+            refreshCategoriaOptions('cat_001');
+            document.getElementById('prodDisponible').value = 'ambas';
+            document.getElementById('visCocina').checked = true;
+            document.getElementById('visMozo').checked = true;
+            document.getElementById('visCaja').checked = true;
+            document.getElementById('modal-producto').classList.add('active');
+        }
+
+        function elegirFotoProducto() {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999';
+            modal.innerHTML = `
+                <div style="background:var(--bg2);border-radius:12px;padding:24px;width:280px;text-align:center">
+                    <h3 style="margin:0 0 16px;font-size:16px"><i class="fas fa-camera"></i> Foto del producto</h3>
+                    <button onclick="document.getElementById('prodFotoCamera').click();this.closest('div[style]').parentElement.remove()" style="width:100%;padding:12px;margin-bottom:8px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-size:14px;cursor:pointer"><i class="fas fa-camera"></i> Sacar foto</button>
+                    <button onclick="document.getElementById('prodFoto').click();this.closest('div[style]').parentElement.remove()" style="width:100%;padding:12px;margin-bottom:8px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer"><i class="fas fa-image"></i> Elegir de galería</button>
+                    <button onclick="this.closest('div[style]').parentElement.remove()" style="width:100%;padding:10px;background:transparent;color:var(--text2);border:none;font-size:13px;cursor:pointer">Cancelar</button>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        async function saveProducto() {
+            let catVal = document.getElementById('prodCategoria').value;
+            let catNombre = document.getElementById('prodCategoria').selectedOptions[0]?.textContent || catVal;
+            if (catVal === 'nueva') {
+                const nombreCat = document.getElementById('catNueva').value.trim();
+                if (!nombreCat) { alert('Ingresá nombre de categoría'); return; }
+                catNombre = nombreCat; catVal = nombreCat;
+                if (!categorias.find(c => c.nombre === nombreCat)) {
+                    categorias.push({ id: 'cat_' + Date.now(), nombre: nombreCat });
+                }
+            } else {
+                const found = categorias.find(c => c.id === catVal);
+                if (found) catNombre = found.nombre;
+                else { const map = {cat_001:'Entradas',cat_002:'Parrilla',cat_003:'Pizzas',cat_004:'Pastas',cat_005:'Bebidas',cat_006:'Postres'}; catNombre = map[catVal] || catVal; }
+            }
+            const disponible = document.getElementById('prodDisponible').value;
+            const visRoles = [];
+            if (document.getElementById('visCocina').checked) visRoles.push('cocina');
+            if (document.getElementById('visMozo').checked) visRoles.push('camarero');
+            if (document.getElementById('visCaja').checked) visRoles.push('caja');
+            const visiblePara = visRoles.length ? visRoles.join(',') : 'cocina,camarero,caja';
+            const ofertaVal = parseFloat(document.getElementById('prodPrecioOferta').value);
+            const precioBase = parseFloat(document.getElementById('prodPrecio').value);
+            const precioOferta = (ofertaVal > 0 && ofertaVal < precioBase) ? ofertaVal : null;
+            let fotoUrl = null;
+            const file = document.getElementById('prodFoto').files[0];
+            if (file) {
+                const path = `empresa_${empresaId}/prod_${Date.now()}.jpg`;
+                const { error } = await sb.storage.from('ocio_fotos').upload(path, file, { upsert: true });
+                if (!error) { const { data } = sb.storage.from('ocio_fotos').getPublicUrl(path); fotoUrl = data?.publicUrl; }
+            }
+            const prodDB = {
+                nombre: document.getElementById('prodNombre').value,
+                descripcion: document.getElementById('prodDescripcion').value,
+                precio: precioBase, precio_oferta: precioOferta,
+                categoria: catNombre, stock: parseInt(document.getElementById('prodStock').value),
+                disponible: disponible, visible_para: visiblePara
+            };
+            if (editingId) {
+                if (fotoUrl) prodDB.foto_url = fotoUrl;
+                await sb.from('productos_empresa').update(prodDB).eq('id', editingId);
+            } else {
+                prodDB.empresa_id = empresaId; prodDB.foto_url = fotoUrl; prodDB.activo = true;
+                await sb.from('productos_empresa').insert(prodDB);
+            }
+            closeModal();
+            loadProductos();
+        }
+
+        async function toggleActivo(id, currentActivo) {
+            await sb.from('productos_empresa').update({ activo: !currentActivo }).eq('id', id);
+            loadProductos();
+        }
+
+        loadProductos();
+    </script>
+</body>
+</html>
