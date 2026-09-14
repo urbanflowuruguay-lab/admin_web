@@ -2272,15 +2272,13 @@
                 if (error) throw error;
                 const pedido = pedidos.find(x => x.id === pedidoId);
                 if (pedido) pedido.items = items;
-                // Si quedó todo entregado: mesa sigue EN USO (se puede agregar más), resto se cierra
+                // Si quedó todo entregado: cerrar pedido
                 if (items.length && items.every(i => i.entregado)) {
-                    const esMesa = !!(pedido && pedido.mesa);
-                    const nuevo = esMesa ? 'en_uso' : 'entregado';
+                    const nuevo = 'entregado';
                     try {
-                        const upd = { estado: nuevo };
-                        if (!esMesa) upd.delivered_at = new Date().toISOString();
+                        const upd = { estado: 'entregado', delivered_at: new Date().toISOString() };
                         const { error: e2 } = await sbSvc.from('pedidos').update(upd).eq('id', pedidoId);
-                        if (e2) await sbSvc.from('pedidos').update({ estado: nuevo }).eq('id', pedidoId);
+                        if (e2) await sbSvc.from('pedidos').update({ estado: 'entregado' }).eq('id', pedidoId);
                     } catch (_) {}
                     if (pedido) pedido.estado = nuevo;
                 }

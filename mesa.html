@@ -380,9 +380,10 @@
         <div style="margin-bottom:16px">
             <div style="font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">¿Querés dejar propina?</div>
             <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
-                <button class="propina-btn" onclick="setPropina(0)" id="propina0">$0</button>
+                <button class="propina-btn" onclick="setPropina(20)" id="propina20">$20</button>
                 <button class="propina-btn" onclick="setPropina(50)" id="propina50">$50</button>
                 <button class="propina-btn" onclick="setPropina(100)" id="propina100">$100</button>
+                <button class="propina-btn" onclick="setPropina(150)" id="propina150">$150</button>
                 <button class="propina-btn" onclick="setPropina(200)" id="propina200">$200</button>
             </div>
             <div style="display:flex;gap:8px;align-items:center;justify-content:center">
@@ -1035,9 +1036,9 @@ async function confirmarPedido() {
                 }
                 if (ped.estado === "entregado") {
                     clearInterval(poll);
-                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Gracias por tu compra!";
-                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "❤️";
-                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que todo sea de tu agrado.<br>No olvides calificar nuestro trabajo ⭐";
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Buen provecho! 🍽️";
+                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "🍽️";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que disfrutes de tu elección.<br>No olvides calificarnos para ayudarnos a mejorar ⭐";
                     document.getElementById("estadoPedido").classList.add("show");
                     setTimeout(() => {
                         document.getElementById("estadoPedido").classList.remove("show");
@@ -1089,10 +1090,10 @@ function setPropinaCustom() {
 }
 
 function updatePropinaButtons() {
-    [0, 50, 100, 200].forEach(v => {
+    [20, 50, 100, 150, 200].forEach(v => {
         const btn = document.getElementById("propina" + v);
         if (btn) {
-            btn.classList.toggle("selected", currentPropina === v && v > 0);
+            btn.classList.toggle("selected", currentPropina === v);
         }
     });
     const info = document.getElementById("propinaInfo");
@@ -1111,7 +1112,7 @@ async function enviarRating() {
     try {
         // Save calificación
         if (currentRating > 0) {
-            await sb.from("calificaciones").insert({
+            await sbSvc.from("calificaciones").insert({
                 empresa_id: empresaId,
                 pedido_id: currentPedidoId,
                 mesa_token: mesaToken,
@@ -1128,7 +1129,7 @@ async function enviarRating() {
 
         // Save propina
         if (currentPropina > 0) {
-            await sb.from("propinas").insert({
+            await sbSvc.from("propinas").insert({
                 empresa_id: empresaId,
                 pedido_id: currentPedidoId,
                 mesa_token: mesaToken,
