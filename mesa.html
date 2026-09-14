@@ -1327,7 +1327,8 @@ async function agregarAlPedidoExistente() {
         // Si se agregó comida (no bebida), volver a 'recibido' para que cocina lo vea
         const esComida = n => !/bebida|gaseosa|cerveza|pilsen|patricia|vino|agua|coca|pepsi|sprite|fanta|jugo|refresco|fernet|ron|vodka|whisky|caipiri|mojito|limonada|licuado|drink|cola\b/.test((n || '').toLowerCase());
         if (nuevosItems.some(ni => esComida(ni.nombre))) upd.estado = 'recibido';
-        await sb.from("pedidos").update(upd).eq("id", currentPedidoId);
+        const { error: updErr } = await sb.from("pedidos").update(upd).eq("id", currentPedidoId);
+        if (updErr) console.error("Error update pedido:", updErr);
         carrito = [];
         esModoAgregar = false;
         document.getElementById("btnPedir").textContent = "Pedir";
