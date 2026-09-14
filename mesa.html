@@ -334,11 +334,11 @@
         <div class="atencion-estado-items" id="atencionEstadoItems"></div>
     </div>
     <button class="atencion-btn atencion-btn-agregar" onclick="abrirCartaAgregar()">➕ Agregar algo más</button>
-    <button class="atencion-btn atencion-btn-llamar" onclick="llamarDesdeAtencion()">🔔 Llamar a la camarera</button>
     <div id="atencionOpciones" style="display:none;flex-direction:column;gap:10px;width:100%;max-width:300px;margin-top:12px">
-        <button class="atencion-btn" onclick="abrirCartaAgregar()" style="background:var(--accent);color:var(--bg)">➕ Seguir pidiendo</button>
+        <button class="atencion-btn" onclick="abrirCartaAgregar()" style="background:var(--accent);color:var(--bg)">➕ Agregar algo más</button>
+        <button class="atencion-btn" onclick="irAPropina()" style="background:var(--bg3);color:var(--text)">💰 Dejar propina</button>
         <button class="atencion-btn" onclick="llamarDesdeAtencion()" style="background:var(--bg3);color:var(--text)">🔔 Llamar a la camarera</button>
-        <button class="atencion-btn" onclick="irARating()" style="background:var(--green);color:#fff">👋 Salir y calificar</button>
+        <button class="atencion-btn" onclick="irARating()" style="background:var(--green);color:#fff">👋 Salir</button>
     </div>
     <div class="atencion-footer">UrbanFlow</div>
 </div>
@@ -1305,7 +1305,7 @@ function actualizarEstadoAtencion() {
             document.getElementById("atencionTitle").textContent = "¡Buen provecho! 🍽️";
             document.getElementById("atencionSubtitle").textContent = "Esperamos que disfrutes de tu elección.";
             document.getElementById("atencionEstado").style.display = "none";
-            // Mostrar opciones para cuando termine de comer
+            document.querySelector(".atencion-btn-agregar").style.display = "none";
             document.getElementById("atencionOpciones").style.display = "flex";
         }
     });
@@ -1323,6 +1323,18 @@ function stopAtencionPoll() {
 function irARating() {
     document.getElementById("atencionScreen").classList.remove("show");
     showRatingScreen();
+}
+
+function irAPropina() {
+    document.getElementById("atencionScreen").classList.remove("show");
+    currentRating = 0;
+    currentPropina = 0;
+    document.getElementById("ratingPedidoInfo").textContent = `Mesa #${mesaData ? mesaData.numero : '?'} — ¡Gracias por tu visita!`;
+    document.getElementById("ratingLabel").textContent = "Tocá las estrellas";
+    document.querySelectorAll("#starRating span").forEach(s => { s.textContent = "☆"; s.style.color = "var(--text2)"; });
+    document.getElementById("ratingComentario").value = "";
+    updatePropinaButtons();
+    document.getElementById("ratingScreen").classList.add("show");
 }
 
 function abrirCartaAgregar() {
