@@ -294,7 +294,9 @@
 <script>
 const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
+const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const sbSvc = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
 
 const params = new URLSearchParams(window.location.search);
 const mesaToken = params.get("mesa") || "delivery";
@@ -571,7 +573,7 @@ async function confirmarPedido() {
     const total = carrito.reduce((s, c) => s + c.precio * c.qty, 0);
     try {
         const direccion = document.getElementById("clienteDireccion").value.trim();
-        const { data, error } = await sb.from("pedidos").insert({
+        const { data, error } = await sbSvc.from("pedidos").insert({
             empresa_id: empresaId,
             mesa_token: mesaToken,
             cliente_nombre: nombre,
@@ -604,6 +606,14 @@ async function confirmarPedido() {
         if (currentPedidoId) {
             const poll = setInterval(async () => {
                 const { data: ped } = await sb.from("pedidos").select("estado").eq("id", currentPedidoId).maybeSingle();
+                if (!ped) {
+                    clearInterval(poll);
+                    document.getElementById("estadoPedido").querySelector("h2").textContent = "Pedido finalizado";
+                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "🧾";
+                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Este pedido ya no está activo.<br>Podés hacer otro o cerrar esta pantalla.";
+                    document.getElementById("estadoPedido").classList.add("show");
+                    return;
+                }
                 if (ped && ped.estado === "entregado") {
                     clearInterval(poll);
                     document.getElementById("estadoPedido").classList.remove("show");

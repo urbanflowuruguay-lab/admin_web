@@ -1247,6 +1247,14 @@
             buildUI();
             updateClock();
             setInterval(updateClock, 1000);
+
+            // Auto-navegación según rol
+            const rolKey2 = (currentUser.rol || '').replace('rol_', '').toLowerCase();
+            const defaultSections = { cocinero:'cocina', cocinera:'cocina', camarero:'mesas', mozo:'mesas', caja:'pedidos', delivery:'delivery' };
+            const autoSection = defaultSections[rolKey2];
+            if (autoSection && document.getElementById('section-' + autoSection)) {
+                setTimeout(() => showTab(autoSection), 100);
+            }
             
             // Subroles (ej. arma_online) para habilitar acciones
             try {
