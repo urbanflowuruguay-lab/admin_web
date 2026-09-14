@@ -30,7 +30,7 @@
             --border: #333333;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; height: 100dvh; overflow: hidden; }
 
         /* LOGIN */
         .login-screen {
@@ -46,6 +46,7 @@
             border-radius: 20px;
             padding: 40px;
             width: 350px;
+            max-width: calc(100vw - 32px);
             text-align: center;
         }
         .login-box h1 { color: var(--accent); margin-bottom: 10px; font-size: 24px; }
@@ -82,13 +83,16 @@
         .pin-error { color: var(--red); font-size: 12px; margin-top: 10px; }
 
         /* APP */
-        .app { display: none; height: 100vh; }
-        .app.active { display: grid; grid-template-columns: 1fr 380px; }
+        .app { display: none; height: 100vh; height: 100dvh; }
+        .app.active { display: grid; grid-template-columns: 1fr 380px; grid-template-rows: minmax(0, 1fr); }
+        .app.active > * { min-height: 0; min-width: 0; }
 
         /* LEFT - PRODUCTS */
         .products-panel {
             display: flex;
             flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
             background: var(--bg);
             border-right: 1px solid var(--border);
         }
@@ -98,11 +102,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
             padding: 12px 20px;
             background: var(--bg2);
             border-bottom: 1px solid var(--border);
         }
-        .top-bar-left { display: flex; align-items: center; gap: 15px; }
+        .top-bar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .top-bar h2 { font-size: 16px; color: var(--accent); }
         .mesa-btn {
             background: var(--bg3);
@@ -118,7 +124,7 @@
         }
         .mesa-btn:hover { border-color: var(--accent); }
         .mesa-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-        .top-bar-right { display: flex; align-items: center; gap: 10px; }
+        .top-bar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .user-badge {
             background: var(--bg3);
             padding: 6px 12px;
@@ -144,6 +150,9 @@
             gap: 8px;
             padding: 12px 20px;
             overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
             background: var(--bg2);
             border-bottom: 1px solid var(--border);
         }
@@ -156,6 +165,7 @@
             font-size: 13px;
             cursor: pointer;
             white-space: nowrap;
+            flex-shrink: 0;
             transition: all 0.2s;
         }
         .cat-btn:hover { border-color: var(--accent); }
@@ -169,6 +179,7 @@
             padding: 12px;
             overflow-y: auto;
             flex: 1;
+            min-height: 0;
         }
         .product-card {
             background: var(--bg2);
@@ -204,6 +215,7 @@
         .order-panel {
             display: flex;
             flex-direction: column;
+            min-height: 0;
             background: var(--bg2);
         }
 
@@ -225,6 +237,7 @@
 
         .order-items {
             flex: 1;
+            min-height: 0;
             overflow-y: auto;
             padding: 10px 20px;
         }
@@ -306,6 +319,9 @@
         .tables-map {
             display: none;
             padding: 20px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
         }
         .tables-map.active { display: block; }
         .tables-grid {
@@ -332,6 +348,8 @@
         .table-cell.reservada { border-color: var(--orange); background: rgba(255, 152, 0, 0.1); }
         .table-cell-number { font-size: 20px; font-weight: 700; }
         .table-cell-status { font-size: 10px; color: var(--text2); margin-top: 4px; }
+        @keyframes blinkTab { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+        .tab-blink { animation: blinkTab 0.9s infinite; }
 
         /* VARIANT MODAL */
         .modal-overlay {
@@ -350,6 +368,7 @@
             border-radius: 16px;
             padding: 24px;
             width: 350px;
+            max-width: calc(100vw - 32px);
             max-height: 80vh;
             overflow-y: auto;
         }
@@ -407,12 +426,38 @@
             transform: translateY(-50%);
             color: var(--text2);
         }
+        .mesa-strip { display: flex; gap: 8px; padding: 10px 12px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: thin; background: var(--bg); border-bottom: 1px solid var(--border); }
         .search-wrapper { position: relative; }
 
-        @media (max-width: 900px) {
-            .app.active { grid-template-columns: 1fr; }
+        #cartFab { display: none; }
+        #phoneBar { display: none; }
+        .cart-close { display: none; }
+        /* Tablet apaisada / PC chica: mismo layout de PC con ticket más angosto */
+        @media (max-width: 1100px) {
+            .app.active { grid-template-columns: 1fr 320px; }
+        }
+        /* Teléfono / tablet vertical / iframe angosto: una columna + ticket deslizable */
+        @media (max-width: 860px) {
+            .app.active { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
             .order-panel { display: none; }
-            .order-panel.mobile-active { display: flex; position: fixed; top: 0; right: 0; bottom: 0; width: 350px; z-index: 50; }
+            .order-panel.mobile-active { display: flex; position: fixed; top: 0; right: 0; bottom: 0; width: 350px; max-width: 92vw; z-index: 50; box-shadow: -4px 0 20px rgba(0,0,0,0.5); }
+            #cartFab { display: none; }
+            .cart-close { display: block; background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; }
+            #phoneBar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 55; background: var(--bg2); border-top: 1px solid var(--border); padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); align-items: center; gap: 8px; }
+            .top-bar h2 { display: none; }
+            .hide-phone { display: none; }
+            .top-bar { padding: 10px 12px; }
+            .top-bar h2 { font-size: 14px; }
+            .mesa-btn { padding: 8px 12px; font-size: 12px; }
+            .categories-bar { padding: 10px 12px; }
+            .search-box { padding: 8px 12px; }
+            .products-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; padding: 10px 10px 84px; }
+            .product-name { font-size: 10px; }
+            .login-box { padding: 24px 16px; }
+            .pin-btn { padding: 14px; font-size: 20px; }
+            .user-badge span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .tables-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+            .tables-map { padding-bottom: 84px; }
         }
 
         /* TICKET 80mm: solo visible al imprimir */
@@ -468,12 +513,18 @@
             <div class="top-bar">
                 <div class="top-bar-left">
                     <h2><i class="fas fa-utensils"></i> <span id="posRestaurantName"></span></h2>
+                    <button class="mesa-btn active" id="mostradorBtn" onclick="selectMostrador()">
+                        🧾 Mostrador
+                    </button>
                     <button class="mesa-btn" id="mesaBtn" onclick="showTablesMap()">
                         <i class="fas fa-chair"></i> Mesa #
                     </button>
+                    <button class="mesa-btn" id="onlineBtn" onclick="showOnline()">
+                        🌐 Online <span id="onlineCount" style="background:var(--red);color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:1px 7px;display:none">0</span>
+                    </button>
                 </div>
                 <div class="top-bar-right">
-                    <button class="btn-logout" onclick="goDelivery()" title="Delivery y chat" style="font-size:16px;padding:8px 12px;background:var(--bg3);color:var(--purple);border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                    <button class="btn-logout hide-phone" onclick="goDelivery()" title="Delivery y chat" style="font-size:16px;padding:8px 12px;background:var(--bg3);color:var(--purple);border:1px solid var(--border);border-radius:8px;cursor:pointer">
                         <i class="fas fa-motorcycle"></i>
                     </button>
                     <div class="user-badge">
@@ -485,6 +536,10 @@
                     </button>
                 </div>
             </div>
+
+            <div class="mesa-strip" id="mesaStrip"></div>
+
+            <div id="cobrosMozoBox"></div>
 
             <div class="categories-bar" id="categoriesBar"></div>
 
@@ -500,6 +555,12 @@
                 <h3 style="margin-bottom: 15px;"><i class="fas fa-map"></i> Mapa de Mesas</h3>
                 <div class="tables-grid" id="tablesGrid"></div>
             </div>
+
+            <!-- ONLINE (hidden by default) -->
+            <div id="onlineView" style="display:none;flex:1;min-height:0;overflow-y:auto;padding:12px 20px;">
+                <h3 style="margin-bottom:10px;">🌐 Pedidos online de hoy</h3>
+                <div id="onlineGroups"></div>
+            </div>
         </div>
 
         <!-- RIGHT PANEL - ORDER -->
@@ -507,7 +568,9 @@
             <div class="order-header">
                 <h3><i class="fas fa-receipt"></i> Pedido</h3>
                 <div class="order-mesa" id="orderMesa">Sin mesa</div>
+                <button class="cart-close" onclick="document.getElementById('orderPanel').classList.remove('mobile-active')">✕</button>
             </div>
+            <div id="mostradorPendBox"></div>
             <div id="cuentaMesaBox"></div>
 
             <div class="order-items" id="orderItems">
@@ -522,8 +585,11 @@
                     <span>TOTAL</span>
                     <span id="totalOrder">$0</span>
                 </div>
+                <button onclick="sendToKitchen()" style="width:100%;margin-bottom:10px;padding:14px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">
+                    <i class="fas fa-share-nodes"></i> Enviar a Sectores
+                </button>
                 <div class="order-actions">
-                    <button class="btn-order btn-cash" onclick="payOrder('efectivo')">
+                    <button class="btn-order btn-cash" onclick="openCashModal()">
                         <i class="fas fa-money-bill"></i> Efectivo
                     </button>
                     <button class="btn-order btn-mp" onclick="payOrder('mercado_pago')">
@@ -540,12 +606,53 @@
     <!-- TICKET IMPRIMIBLE (solo se ve al imprimir, 80mm térmica) -->
     <div id="ticketPrint" style="display: none;"></div>
 
+    <!-- Botón flotante ticket en celular / iframe angosto -->
+    <button id="cartFab" onclick="document.getElementById('orderPanel').classList.toggle('mobile-active')">🛒 <span id="cartFabCount">0</span></button>
+
+    <!-- Barra inferior fija en teléfono: total + enviar + ticket -->
+    <div id="phoneBar">
+        <div style="flex:1;line-height:1.1"><div style="font-size:10px;color:var(--text2)">TOTAL</div><div id="phoneTotal" style="font-size:18px;font-weight:800;color:var(--accent)">$0</div></div>
+        <button onclick="sendToKitchen()" style="flex:1.2;padding:12px;border:none;border-radius:10px;background:var(--orange);color:#fff;font-size:14px;font-weight:800;cursor:pointer">📤 Sectores</button>
+        <button onclick="document.getElementById('orderPanel').classList.toggle('mobile-active')" style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);color:var(--text);font-size:15px;font-weight:800;cursor:pointer">🛒 <span id="phoneCount">0</span></button>
+    </div>
+
     <!-- VARIANT MODAL -->
     <div class="modal-overlay" id="variantModal">
         <div class="variant-modal">
             <h3 id="variantTitle">Seleccionar opción</h3>
             <div id="variantOptions"></div>
             <button class="variant-close" onclick="closeVariantModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- CASH MODAL (paga con / vuelto) -->
+    <div class="modal-overlay" id="cashModal">
+        <div class="variant-modal">
+            <h3>💵 Efectivo</h3>
+            <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:12px"><span>Total</span><strong id="cashTotal" style="color:var(--accent);font-size:20px">$0</strong></div>
+            <label style="font-size:12px;color:var(--text2)">Paga con</label>
+            <input id="cashPaid" type="number" min="0" oninput="updCashChange()" style="width:100%;padding:12px;margin:6px 0 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:18px;font-weight:700;">
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px">
+                <button onclick="setCashPaid('exacto')" style="padding:8px 4px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer">Exacto</button>
+                <button onclick="setCashPaid(500)" style="padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-weight:700;cursor:pointer">$500</button>
+                <button onclick="setCashPaid(1000)" style="padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-weight:700;cursor:pointer">$1000</button>
+                <button onclick="setCashPaid(2000)" style="padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-weight:700;cursor:pointer">$2000</button>
+                <button onclick="setCashPaid(5000)" style="padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-weight:700;cursor:pointer">$5000</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:14px"><span>Vuelto</span><strong id="cashChange" style="color:var(--green);font-size:20px">$0</strong></div>
+            <div style="display:flex;gap:8px">
+                <button id="cashConfirm" onclick="confirmCash()" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--green);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Cobrar</button>
+                <button onclick="document.getElementById('cashModal').classList.remove('active')" style="flex:1;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg4);color:var(--text);font-size:14px;cursor:pointer">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ONLINE DELIVERY MODAL -->
+    <div class="modal-overlay" id="onlineDelModal">
+        <div class="variant-modal">
+            <h3>🛵 Buscar delivery</h3>
+            <div id="onlineDelList"></div>
+            <button class="variant-close" onclick="document.getElementById('onlineDelModal').classList.remove('active')">Cerrar</button>
         </div>
     </div>
 
@@ -562,6 +669,10 @@
         const SUPABASE_ANON_POS = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
         const sbPOS = supabase.createClient(SUPABASE_URL_POS, SUPABASE_ANON_POS);
         const empresaIdPOS = new URLSearchParams(window.location.search).get('empresa') || localStorage.getItem('urbanflow_empresa_id') || '';
+        const _urlParamsPOS = new URLSearchParams(window.location.search);
+        const isFromApp = _urlParamsPOS.get('fromApp') === '1';
+        const fromAppUser = _urlParamsPOS.get('user') ? decodeURIComponent(_urlParamsPOS.get('user')) : '';
+        const fromAppRol = _urlParamsPOS.get('rol') || 'cajero';
 
         let currentUser = null;
         let selectedMesa = null;
@@ -584,7 +695,7 @@
                 const { data } = await sbPOS.from('pedidos').select('id,items,total,cliente_nombre,metodo_pago_estado,estado')
                     .eq('empresa_id', empresaIdPOS).eq('mesa_numero', selectedMesa.numero)
                     .neq('estado', 'entregado').neq('estado', 'cancelado');
-                const open = (data || []).filter(p => p.metodo_pago_estado !== 'pagado');
+                const open = (data || []).filter(p => p.metodo_pago_estado !== 'pagado' && p.metodo_pago_estado !== 'por_confirmar');
                 let total = 0;
                 const items = [];
                 open.forEach(p => {
@@ -616,6 +727,23 @@
                         <span>A cobrar</span><span style="color: var(--accent);">${r2(mesaCuenta.total)}</span>
                     </div>
                 </div>`;
+        }
+
+        // Abiertos por mesa para los puntos del mapa (igual que app del mozo)
+        async function loadMapaAbiertos() {
+            if (!empresaIdPOS) return;
+            try {
+                const { data, error } = await sbPOS.from('pedidos').select('mesa_numero,estado,metodo_pago_estado')
+                    .eq('empresa_id', empresaIdPOS).in('estado', ['recibido', 'preparando', 'listo', 'en_uso']);
+                if (error) throw error;
+                const m = {};
+                (data || []).forEach(p => {
+                    if (!p.mesa_numero || p.metodo_pago_estado === 'pagado') return;
+                    if (p.estado === 'listo' || !m[p.mesa_numero]) m[p.mesa_numero] = p.estado;
+                });
+                window._mapaAbiertos = m;
+            } catch (e) { window._mapaAbiertos = {}; }
+            try { renderTables(); } catch (_) {}
         }
 
         let employees = [
@@ -709,6 +837,35 @@
                 } catch (_) {}
             }catch(e){ console.log('POS load error', e.message); }
         }
+        // Sesión de caja: si ya entró (PIN, app o delivery), no pide código de nuevo
+        function savePosSession(nombre, rol) {
+            try { localStorage.setItem('urbanflow_pos_user', JSON.stringify({ nombre, rol: rol || 'rol_cajero', empresa_id: empresaIdPOS || '' })); } catch (_) {}
+        }
+        function enterPOSApp(nombre, rolMostrar) {
+            const loginScreen = document.getElementById('loginScreen');
+            const appEl = document.getElementById('app');
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (appEl) { appEl.classList.add('active'); appEl.style.display = 'grid'; }
+            const nameEl = document.getElementById('cashierName');
+            if (nameEl) nameEl.textContent = nombre + (rolMostrar ? ' (' + rolMostrar + ')' : '');
+        }
+        // Auto-login desde app.html (Caja) sin PIN — bypass loginScreen
+        document.addEventListener('DOMContentLoaded', async () => {
+            try { await loadPOSData(); } catch(e) {}
+            if (isFromApp) {
+                currentUser = { id: 'fromApp_' + Date.now(), nombre: fromAppUser || 'Cajero', roles: ['rol_' + fromAppRol], email: '' };
+                savePosSession(fromAppUser || 'Cajero', fromAppRol);
+                enterPOSApp(fromAppUser || 'Cajero', fromAppRol);
+            } else {
+                try {
+                    const su = JSON.parse(localStorage.getItem('urbanflow_pos_user') || 'null');
+                    if (su && su.nombre && (!empresaIdPOS || !su.empresa_id || su.empresa_id === empresaIdPOS)) {
+                        currentUser = { id: su.id || ('pos_' + Date.now()), nombre: su.nombre, roles: [su.rol || 'rol_cajero'], email: '' };
+                        enterPOSApp(su.nombre);
+                    }
+                } catch (_) {}
+            }
+        });
 
         // =============================================
         // PIN LOGIN
@@ -744,9 +901,8 @@
                     : null);
             if (emp) {
                 currentUser = emp;
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('app').classList.add('active');
-                document.getElementById('cashierName').textContent = emp.nombre;
+                savePosSession(emp.nombre);
+                enterPOSApp(emp.nombre);
                 renderCategories();
                 renderProducts();
                 renderTables();
@@ -803,6 +959,7 @@
 
         function logoutPOS() {
             currentUser = null;
+            try { localStorage.removeItem('urbanflow_pos_user'); } catch (_) {}
             pinInput = '';
             document.getElementById('pinDisplay').textContent = '';
             document.getElementById('loginScreen').style.display = 'flex';
@@ -846,7 +1003,7 @@
             `).join('');
 
             document.getElementById('tablesMap').classList.remove('active');
-            document.getElementById('productsGrid').style.display = 'grid';
+            if (document.getElementById('onlineView').style.display !== 'block') document.getElementById('productsGrid').style.display = 'grid';
         }
 
         function filterProducts() {
@@ -899,7 +1056,8 @@
                     variantName: variant.nombre,
                     precio: variant.precio,
                     qty: 1,
-                    foto: product.foto
+                    foto: product.foto,
+                    foto_url: product.foto_url || ''
                 });
             }
             renderOrder();
@@ -958,6 +1116,7 @@
         function showTablesMap() {
             document.getElementById('productsGrid').style.display = 'none';
             document.getElementById('tablesMap').classList.add('active');
+            hideOnline();
             renderTables();
         }
 
@@ -967,24 +1126,36 @@
         }
 
         function renderTables() {
-            const mostTotal = mesaTotal('mostrador');
-            document.getElementById('tablesGrid').innerHTML = `
-                <div class="table-cell ${!selectedMesa ? 'ocupada' : 'disponible'}" onclick="selectMostrador()" style="${!selectedMesa ? 'border-color: var(--accent); box-shadow: 0 0 10px rgba(212,175,55,0.4);' : ''}">
-                    <div class="table-cell-number">🧾</div>
-                    <div class="table-cell-status">Mostrador</div>
-                    <div style="font-size: 12px; color: var(--accent); font-weight: 700;">$${mostTotal.toFixed(2)}</div>
-                </div>` +
+            document.getElementById('tablesGrid').innerHTML =
                 tables.map(t => {
                     const tot = mesaTotal(t.id);
                     const isSel = selectedMesa && String(selectedMesa.id) === String(t.id);
+                    const est = (window._mapaAbiertos || {})[t.numero] || '';
+                    const dot = est === 'listo' ? '#22c55e' : est === 'en_uso' ? '#ff9800' : est ? '#f44336' : (t.estado === 'disponible' ? '#4caf50' : (t.estado === 'ocupada' ? '#ff9800' : '#888'));
+                    const blink = est === 'listo' ? ' tab-blink' : '';
                     return `
-                    <div class="table-cell ${t.estado}" onclick="selectTable('${t.id}')" style="${isSel ? 'border-color: var(--accent); box-shadow: 0 0 10px rgba(212,175,55,0.4);' : ''}">
-                        <div class="table-cell-number">${t.numero}</div>
+                    <div class="table-cell${blink} ${t.estado}" onclick="selectTable('${t.id}')" style="${isSel ? 'border-color: var(--accent); box-shadow: 0 0 10px rgba(212,175,55,0.4);' : ''}">
+                        <div class="table-cell-number"><span style="color:${dot};font-size:14px;">●</span> ${t.numero}</div>
                         <div class="table-cell-status">${t.estado}</div>
                         <div style="font-size: 10px; color: var(--text2);">${t.capacidad} pers.</div>
                         ${tot > 0 ? `<div style="font-size: 12px; color: var(--accent); font-weight: 700;">$${tot.toFixed(2)}</div>` : ''}
                     </div>
                 `}).join('');
+            renderMesaStrip();
+        }
+
+        // Tira de botones cuadrados por mesa (fuera del mapa): LED + click abre y suma a cobrar
+        function renderMesaStrip() {
+            const el = document.getElementById('mesaStrip');
+            if (!el) return;
+            el.innerHTML = tables.map(t => {
+                const est = (window._mapaAbiertos || {})[t.numero] || '';
+                const led = est === 'listo' ? '#22c55e' : est === 'en_uso' ? '#ff9800' : est ? '#f44336' : (t.estado === 'disponible' ? '#4caf50' : (t.estado === 'ocupada' ? '#ff9800' : '#888'));
+                const blink = est === 'listo' ? ' tab-blink' : '';
+                const isSel = selectedMesa && String(selectedMesa.id) === String(t.id);
+                const tot = mesaTotal(t.id);
+                return `<button onclick="selectTable('${t.id}')" class="${blink}" style="flex-shrink:0;width:64px;height:64px;border-radius:12px;border:2px solid ${isSel ? 'var(--accent)' : 'var(--border)'};background:var(--bg3);color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0"><span style="color:${led};font-size:20px;line-height:1">●</span><span style="font-size:13px;font-weight:800;">${t.numero}</span>${tot > 0 ? `<span style="font-size:9px;color:var(--accent);font-weight:700;">$${Math.round(tot)}</span>` : ''}</button>`;
+            }).join('');
         }
 
         function paintOrderMesa() {
@@ -997,6 +1168,13 @@
                 el.innerHTML = `🧾 Mostrador · <strong style="color:var(--accent)">$${tot.toFixed(2)}</strong>`;
                 el.style.borderColor = 'var(--border)';
             }
+            const qty = currentOrder.reduce((a, item) => a + (item.qty || 0), 0);
+            const fab = document.getElementById('cartFabCount');
+            if (fab) fab.textContent = qty;
+            const pt = document.getElementById('phoneTotal');
+            if (pt) pt.textContent = '$' + tot.toFixed(2);
+            const pc = document.getElementById('phoneCount');
+            if (pc) pc.textContent = qty;
         }
 
         function selectTable(id) {
@@ -1007,8 +1185,10 @@
             currentOrder = ordersByMesa[String(table.id)];
             document.getElementById('mesaBtn').textContent = 'Mesa #' + table.numero;
             document.getElementById('mesaBtn').classList.add('active');
+            document.getElementById('mostradorBtn').classList.remove('active');
             paintOrderMesa();
             renderOrder();
+            renderMesaStrip();
             loadCuentaMesa();
             showProductsView();
         }
@@ -1018,8 +1198,11 @@
             currentOrder = ordersByMesa['mostrador'];
             document.getElementById('mesaBtn').textContent = 'Mesa #';
             document.getElementById('mesaBtn').classList.remove('active');
+            document.getElementById('mostradorBtn').classList.add('active');
+            loadMostradorPend();
             paintOrderMesa();
             renderOrder();
+            renderMesaStrip();
             loadCuentaMesa();
             showProductsView();
         }
@@ -1027,16 +1210,287 @@
         function showProductsView() {
             document.getElementById('tablesMap').classList.remove('active');
             document.getElementById('productsGrid').style.display = 'grid';
+            hideOnline();
             renderProducts();
+        }
+
+        // =============================================
+        // ONLINE
+        // =============================================
+        function showOnline() {
+            document.getElementById('productsGrid').style.display = 'none';
+            document.getElementById('tablesMap').classList.remove('active');
+            document.getElementById('onlineView').style.display = 'block';
+            document.getElementById('onlineBtn').classList.add('active');
+            document.getElementById('mesaBtn').classList.remove('active');
+            document.getElementById('mostradorBtn').classList.remove('active');
+            loadOnline();
+        }
+        function hideOnline() {
+            const v = document.getElementById('onlineView');
+            if (v) v.style.display = 'none';
+            const b = document.getElementById('onlineBtn');
+            if (b) b.classList.remove('active');
+        }
+        async function loadOnline() {
+            const badge = document.getElementById('onlineCount');
+            const box = document.getElementById('onlineGroups');
+            if (!empresaIdPOS) return;
+            try {
+                const desde = new Date(); desde.setHours(0, 0, 0, 0);
+                const { data, error } = await sbPOS.from('pedidos').select('id,numero,cliente_nombre,direccion_entrega,items,total,metodo_pago,metodo_pago_estado,estado,tipo_entrega,mesa_numero,delivery_nombre,created_at')
+                    .eq('empresa_id', empresaIdPOS)
+                    .gte('created_at', desde.toISOString())
+                    .neq('estado', 'entregado').neq('estado', 'cancelado')
+                    .order('created_at', { ascending: false }).limit(50);
+                if (error) throw error;
+                const online = (data || []).filter(p => !p.mesa_numero && !['mostrador', 'mesa'].includes((p.tipo_entrega || '').toLowerCase()));
+                const pend = online.filter(p => ['recibido', 'preparando'].includes(p.estado));
+                const listos = online.filter(p => p.estado === 'listo');
+                if (badge) {
+                    badge.style.display = online.length ? '' : 'none';
+                    badge.textContent = online.length;
+                }
+                if (!box) return;
+                const card = p => {
+                    let items = []; try { items = JSON.parse(p.items || '[]'); } catch (e) {}
+                    const nIt = Array.isArray(items) ? items.length : 0;
+                    const desc = Array.isArray(items) && items.length ? items.map(i => `${i.cantidad||1}x ${i.nombre||i.name||'Producto'}`).join(', ') : 'Sin detalle';
+                    const estC = p.estado === 'listo' ? 'var(--green)' : 'var(--orange)';
+                    return `<div style="background:var(--bg2);border:1px solid var(--border);border-left:4px solid ${estC};border-radius:10px;padding:12px;margin-bottom:10px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                            <strong>#${p.numero || String(p.id).substring(0,4)} · ${p.cliente_nombre || 'Cliente'}</strong>
+                            <strong style="color:var(--accent)">$${Math.round(p.total || 0)}</strong>
+                        </div>
+                        <div style="font-size:12px;color:var(--text2);margin-top:4px">📍 ${p.direccion_entrega || 'Retiro'} · ${p.metodo_pago || 'efectivo'}${p.metodo_pago_estado === 'pagado' ? ' ✓' : ''} · <strong style="color:${estC}">${(p.estado || '').toUpperCase()}</strong></div>
+                        <div style="font-size:13px;color:var(--text);margin-top:6px;background:var(--bg3);border-radius:6px;padding:8px;line-height:1.4">📦 ${desc}</div>
+                        <div style="font-size:11px;color:var(--text2);margin-top:4px">${nIt} items</div>
+                        ${p.estado === 'listo' ? (p.delivery_nombre
+                            ? `<div style="font-size:12px;color:var(--accent);margin-top:6px;font-weight:700">🛵 ${p.delivery_nombre} avisado (esperando que acepte)</div><button onclick="openOnlineDel('${p.id}')" style="padding:6px 12px;margin-top:6px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer">🔄 Llamar otro delivery</button>`
+                            : `<button onclick="openOnlineDel('${p.id}')" style="width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer">🛵 Buscar delivery</button>`) : ''}
+                    </div>`;
+                };
+                box.innerHTML =
+                    `<div style="font-size:12px;font-weight:700;color:var(--text2);margin:4px 0 8px">⏳ En cocina (${pend.length})</div>` +
+                    (pend.length ? pend.map(card).join('') : '<p style="font-size:12px;color:var(--text2)">Sin pendientes</p>') +
+                    `<div style="font-size:12px;font-weight:700;color:var(--text2);margin:12px 0 8px">✅ Listos (${listos.length})</div>` +
+                    (listos.length ? listos.map(card).join('') : '<p style="font-size:12px;color:var(--text2)">Sin listos</p>');
+            } catch (e) { if (box) box.innerHTML = '<p style="font-size:12px;color:var(--red)">Error al cargar</p>'; }
+        }
+        function _havKm(lat1, lon1, lat2, lon2) {
+            try {
+                const R = 6371, dLa = (lat2 - lat1) * Math.PI / 180, dLo = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLa / 2) * Math.sin(dLa / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            } catch (_) { return null; }
+        }
+        async function _geocodeAddr(addr) {
+            try {
+                if (!addr) return null;
+                const url = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(addr + ', Uruguay') + '&format=json&limit=1';
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const arr = await res.json();
+                if (arr && arr.length) return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon) };
+            } catch (_) {}
+            return null;
+        }
+        async function openOnlineDel(pedidoId) {
+            document.getElementById('onlineDelModal').classList.add('active');
+            const box = document.getElementById('onlineDelList');
+            box.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center">Buscando deliverys...</p>';
+            try {
+                // Solo deliverys en modo contrato vinculados a este restaurante
+                let contrato = [];
+                try {
+                    const r = await sbPOS.from('perfiles').select('id,full_name,is_online')
+                        .eq('empresa_vinculada_id', empresaIdPOS).eq('modalidad', 'contrato').eq('tipo_vehiculo', 'delivery_moto').limit(15);
+                    contrato = (r.data || []).map(c => ({ id: c.id, nombre: c.full_name || 'Delivery', is_online: c.is_online || false }));
+                } catch (_) {}
+                const esc = s => String(s || '').replace(/'/g, "\\'");
+                if (contrato.length) {
+                    const online = contrato.filter(d => d.is_online);
+                    box.innerHTML = `<p style="font-size:12px;color:var(--text2);text-align:center;margin-bottom:8px">📋 Deliverys en modo contrato</p>` +
+                    contrato.map(d => `
+                    <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;opacity:${d.is_online ? '1' : '0.5'}">
+                        <div style="font-weight:700;font-size:14px;flex:1">${d.nombre}<div style="font-size:11px;color:var(--text2);font-weight:400">${d.is_online ? '🟢 En turno' : '⚪ Desconectado - no disponible'} · 📋 Contrato</div></div>
+                        ${d.is_online
+                            ? `<button onclick="llamarOnlineDel('${pedidoId}', '${d.id}', '${esc(d.nombre)}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Llamar</button>`
+                            : `<button disabled style="padding:8px 14px;background:var(--border);color:var(--text2);border:none;border-radius:8px;font-weight:700;cursor:not-allowed">Desconectado</button>`}
+                    </div>`).join('') +
+                    (online.length === 0 ? `<div style="text-align:center;margin-top:12px;padding:12px;background:var(--bg3);border:1px dashed var(--border);border-radius:10px"><p style="font-size:13px;margin-bottom:10px">No hay deliverys en modo contrato en turno.<br>¿Buscamos un delivery en modo libre?</p><button onclick="buscarLibresOnlineDel('${pedidoId}')" style="padding:8px 16px;background:#FF9800;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Sí, buscar libres</button></div>` : '');
+                    return;
+                }
+                // Sin contrato: preguntar si buscar libres
+                box.innerHTML = `<div style="text-align:center;padding:16px"><p style="font-size:14px;margin-bottom:6px">No hay deliverys en modo contrato.</p><p style="font-size:13px;color:var(--text2);margin-bottom:14px">¿Buscamos un delivery en modo libre?</p><div style="display:flex;gap:8px;justify-content:center"><button onclick="buscarLibresOnlineDel('${pedidoId}')" style="padding:10px 18px;background:#FF9800;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Sí, buscar</button><button onclick="document.getElementById('onlineDelModal').classList.remove('active')" style="padding:10px 18px;background:var(--border);color:var(--text2);border:none;border-radius:8px;cursor:pointer">No</button></div></div>`;
+            } catch (e) { box.innerHTML = '<p style="font-size:12px;color:var(--red);text-align:center">Error</p>'; }
+        }
+        let filtroTopeLibre = 0, filtroKmLibre = 0;
+        async function buscarLibresOnlineDel(pedidoId) {
+            const box = document.getElementById('onlineDelList');
+            box.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center">Buscando los 5 libres más cercanos...</p>';
+            try {
+                const [empRes, pedRes, libRes] = await Promise.all([
+                    sbPOS.from('empresas').select('lat,lon').eq('id', empresaIdPOS).maybeSingle(),
+                    sbPOS.from('pedidos').select('direccion_entrega,lat_entrega,lon_entrega').eq('id', pedidoId).maybeSingle(),
+                    sbPOS.from('perfiles').select('id,full_name,is_online,last_lat,last_lng').eq('modalidad', 'libre').eq('tipo_vehiculo', 'delivery_moto').eq('is_online', true).limit(20)
+                ]);
+                const empLat = empRes.data?.lat != null ? Number(empRes.data.lat) : null;
+                const empLon = empRes.data?.lon != null ? Number(empRes.data.lon) : null;
+                let cliLat = pedRes.data?.lat_entrega != null ? Number(pedRes.data.lat_entrega) : null;
+                let cliLon = pedRes.data?.lon_entrega != null ? Number(pedRes.data.lon_entrega) : null;
+                const dirCli = pedRes.data?.direccion_entrega || '';
+                if ((cliLat == null || cliLon == null) && dirCli) {
+                    const g = await _geocodeAddr(dirCli);
+                    if (g) { cliLat = g.lat; cliLon = g.lon; }
+                }
+                const kmViaje = (empLat != null && empLon != null && cliLat != null && cliLon != null) ? _havKm(empLat, empLon, cliLat, cliLon) : null;
+                let libres = (libRes.data || []).filter(d => d.last_lat != null && d.last_lng != null);
+                // Reglas de cada libre (precio por km y mínimo) — igual que en la app del delivery
+                let reglas = {};
+                try {
+                    const ids = libres.map(d => d.id);
+                    if (ids.length) {
+                        const rr = await sbPOS.from('reglas_chofer').select('user_id,price_per_km,min_fare').in('user_id', ids);
+                        for (const r of (rr.data || [])) reglas[r.user_id] = r;
+                    }
+                } catch (_) {}
+                libres = libres.map(d => {
+                    const kmAlRest = (empLat != null && empLon != null) ? _havKm(Number(d.last_lat), Number(d.last_lng), empLat, empLon) : null;
+                    const rg = reglas[d.id] || {};
+                    const ppkm = parseFloat(rg.price_per_km) > 0 ? parseFloat(rg.price_per_km) : 40;
+                    const minF = parseFloat(rg.min_fare) > 0 ? parseFloat(rg.min_fare) : 100;
+                    const precio = kmViaje != null ? Math.max(kmViaje * ppkm, minF) : null;
+                    return { id: d.id, nombre: d.full_name || 'Delivery', kmAlRest, precio };
+                });
+                libres.sort((a, b) => (a.kmAlRest ?? 9999) - (b.kmAlRest ?? 9999));
+                if (filtroKmLibre > 0) libres = libres.filter(d => d.kmAlRest != null && d.kmAlRest <= filtroKmLibre);
+                libres = libres.slice(0, 5);
+                const esc = s => String(s || '').replace(/'/g, "\\'");
+                const tope = filtroTopeLibre > 0 ? filtroTopeLibre : 0;
+                const ofertaDe = (p) => p != null ? (tope > 0 ? Math.min(p, tope) : p) : (tope > 0 ? tope : null);
+                if (!libres.length) { box.innerHTML = `<div style="text-align:center;padding:16px"><p style="font-size:13px;color:var(--text2);margin-bottom:12px">No hay deliverys libres en línea con ubicación.</p><button onclick="openOnlineDel('${pedidoId}')" style="padding:8px 16px;background:var(--border);color:var(--text2);border:none;border-radius:8px;cursor:pointer">← Volver</button></div>`; return; }
+                box.innerHTML = `<p style="font-size:12px;color:#FF9800;text-align:center;margin-bottom:4px">🆓 Libres más cercanos — origen restaurante → ${esc(dirCli) || 'cliente'}</p>` +
+                    (kmViaje != null ? `<p style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:10px">Distancia envío: ${kmViaje.toFixed(1)} km</p>` : `<p style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:10px">Sin ubicación del cliente: precio estimado</p>`) +
+                    `<div style="display:flex;gap:6px;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap"><input id="filtroTopeLibre" type="number" min="0" placeholder="Oferta máx $" value="${tope > 0 ? tope : ''}" style="width:110px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px"><input id="filtroKmLibre" type="number" min="0" placeholder="Máx km" value="${filtroKmLibre > 0 ? filtroKmLibre : ''}" style="width:90px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px"><button onclick="filtroTopeLibre=Number(document.getElementById('filtroTopeLibre').value)||0;filtroKmLibre=Number(document.getElementById('filtroKmLibre').value)||0;buscarLibresOnlineDel('${pedidoId}')" style="padding:6px 12px;background:#FF9800;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">Filtrar</button></div>` +
+                    (tope > 0 ? `<p style="font-size:11px;color:#4CAF50;text-align:center;margin-bottom:10px">Ofertando máx $${tope} — el que acepta gana eso</p>` : '') +
+                    `<button onclick="openOnlineDel('${pedidoId}')" style="display:block;margin:0 auto 10px;padding:6px 14px;background:var(--border);color:var(--text2);border:none;border-radius:6px;cursor:pointer;font-size:11px">← Volver a contrato</button>` +
+                    libres.map(d => {
+                    const oferta = ofertaDe(d.precio);
+                    const pideMas = tope > 0 && d.precio != null && d.precio > tope;
+                    return `
+                    <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">
+                        <div style="font-weight:700;font-size:14px;flex:1">${d.nombre} <span style="font-size:10px;background:#ff9800;color:#fff;border-radius:8px;padding:1px 6px;">LIBRE</span><div style="font-size:11px;color:var(--text2);font-weight:400">🟢 En turno${d.kmAlRest != null ? ' · ' + d.kmAlRest.toFixed(1) + ' km del rest.' : ''}${oferta != null ? ' · 💰 Oferta $' + Math.round(oferta) + (pideMas ? ' (pide $' + Math.round(d.precio) + ')' : '') : ''}</div></div>
+                        <button onclick="llamarOnlineDel('${pedidoId}', '${d.id}', '${esc(d.nombre)}', 'libre', ${oferta != null ? Math.round(oferta) : 0})" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Llamar</button>
+                    </div>`; }).join('');
+            } catch (e) { box.innerHTML = '<p style="font-size:12px;color:var(--red);text-align:center">Error al buscar libres</p>'; }
+        }
+        async function llamarOnlineDel(pedidoId, empId, nombre, modalidad = 'contrato', precioEnvio = 0) {
+            try {
+                // Verificación exacta en tiempo real: no asignar a desconectados
+                try {
+                    const { data: chk } = await sbPOS.from('perfiles').select('is_online').eq('id', empId).maybeSingle();
+                    if (chk && chk.is_online === false) { alert('Ese delivery se desconectó, elegí otro'); loadOnline(); return; }
+                } catch(_) {}
+                const { data: pedido } = await sbPOS.from('pedidos').select('*').eq('id', pedidoId).single();
+                if (!pedido) { alert('Pedido no encontrado'); return; }
+                const { data: empresa } = await sbPOS.from('empresas').select('nombre,logo_url,lat,lon').eq('id', empresaIdPOS).single();
+                let items = pedido?.items || '[]';
+                if (typeof items === 'string') { try { items = JSON.parse(items); } catch (_) {} }
+                if (Array.isArray(items)) {
+                    for (const item of items) {
+                        if (!item.foto_url && item.producto_id) {
+                            try { const { data: prod } = await sbPOS.from('productos').select('foto_url').eq('id', item.producto_id).single(); if (prod?.foto_url) item.foto_url = prod.foto_url; } catch (_) {}
+                        }
+                    }
+                }
+                const payload = { pedido_id: pedidoId, empresa_id: empresaIdPOS || '', modalidad: modalidad || 'contrato', delivery_price: Math.round(Number(precioEnvio) || 0), rest_lat: empresa?.lat ?? null, rest_lon: empresa?.lon ?? null, restaurant_name: empresa?.nombre || 'Restaurante', logo_url: empresa?.logo_url || '', customer_name: pedido?.cliente_nombre || 'Cliente', customer_photo: '', address: pedido?.direccion_entrega || '', items: typeof items === 'string' ? items : JSON.stringify(items), total: pedido?.total || 0, payment: pedido?.metodo_pago || 'efectivo', notes: pedido?.notas || '' };
+                const { error } = await sbPOS.from('pedidos').update({ chofer_id: empId, delivery_nombre: nombre }).eq('id', pedidoId);
+                if (error) throw error;
+                try {
+                    const PALABRAS = ['tigre','perro','verde','negro','playa','cerro','farol','mango','dulce','nubes','llave','torta','queso','salsa','fuego','mando','rueda','calle','barco','naran'];
+                    const palabra = PALABRAS[Math.floor(Math.random() * PALABRAS.length)];
+                    await sbPOS.from('pedidos').update({ palabra_secreta: palabra }).eq('id', pedidoId);
+                } catch (_) {}
+                try {
+                    const ch = sbPOS.channel('viaje_' + empId);
+                    ch.subscribe(async (status) => { if (status === 'SUBSCRIBED') await ch.send({ type: 'broadcast', event: 'solicitud_delivery', payload }); });
+                } catch (_) {}
+                try { await sbPOS.from('pedidos_delivery').upsert({ pedido_id: pedidoId, driver_id: empId, delivery_data: JSON.stringify(payload), status: 'pending' }); } catch (_) {}
+                document.getElementById('onlineDelModal').classList.remove('active');
+                alert('Llamando a ' + nombre + ' 🛵');
+                loadOnline();
+            } catch (e) { alert('Error: ' + e.message); }
+        }
+
+        // =============================================
+        // EFECTIVO: paga con / vuelto
+        // =============================================
+        function cashTotalActual() {
+            const r = n => Math.round(n * 100) / 100;
+            const sub = r(currentOrder.reduce((a, item) => a + (item.precio * item.qty), 0));
+            return r(sub + (mesaCuenta.total || 0));
+        }
+        function openCashModal() {
+            if (currentOrder.length === 0 && (mesaCuenta.total || 0) <= 0) { alert('Agregá productos al pedido'); return; }
+            const tot = cashTotalActual();
+            document.getElementById('cashTotal').textContent = '$' + tot;
+            document.getElementById('cashPaid').value = tot;
+            updCashChange();
+            document.getElementById('cashModal').classList.add('active');
+            setTimeout(() => document.getElementById('cashPaid').select(), 100);
+        }
+        function setCashPaid(v) {
+            const tot = cashTotalActual();
+            document.getElementById('cashPaid').value = (v === 'exacto') ? tot : v;
+            updCashChange();
+        }
+        function updCashChange() {
+            const tot = cashTotalActual();
+            const pag = parseFloat(document.getElementById('cashPaid').value) || 0;
+            const dif = Math.round((pag - tot) * 100) / 100;
+            const chEl = document.getElementById('cashChange');
+            const cfBtn = document.getElementById('cashConfirm');
+            if (dif < 0) {
+                chEl.textContent = 'Faltan $' + Math.abs(dif);
+                chEl.style.color = 'var(--red)';
+                cfBtn.style.opacity = '0.4';
+            } else {
+                chEl.textContent = '$' + dif;
+                chEl.style.color = 'var(--green)';
+                cfBtn.style.opacity = '1';
+            }
+        }
+        function confirmCash() {
+            const tot = cashTotalActual();
+            const pag = parseFloat(document.getElementById('cashPaid').value) || 0;
+            if (pag < tot) return;
+            document.getElementById('cashModal').classList.remove('active');
+            payOrder('efectivo', pag);
         }
 
         // =============================================
         // PAYMENT
         // =============================================
-        async function payOrder(method) {
+        async function payOrder(method, recibido) {
             const cuentaExtra = mesaCuenta.total || 0;
-            if (currentOrder.length === 0 && cuentaExtra <= 0) {
+            // Cobros del mozo por confirmar en esta mesa (no se vuelven a cobrar, solo se confirman)
+            let porConfirmarIds = [];
+            if (selectedMesa && empresaIdPOS) {
+                try {
+                    const { data: pc } = await sbPOS.from('pedidos').select('id')
+                        .eq('empresa_id', empresaIdPOS).eq('mesa_numero', selectedMesa.numero)
+                        .eq('metodo_pago_estado', 'por_confirmar');
+                    porConfirmarIds = (pc || []).map(p => p.id);
+                } catch (_) {}
+            }
+            if (currentOrder.length === 0 && cuentaExtra <= 0 && porConfirmarIds.length === 0) {
                 alert('Agregá productos al pedido');
+                return;
+            }
+            // Solo confirmar lo del mozo, sin ticket nuevo
+            if (currentOrder.length === 0 && cuentaExtra <= 0 && porConfirmarIds.length > 0) {
+                await confirmarCobro(selectedMesa.numero);
+                document.getElementById('orderPanel').classList.remove('mobile-active');
                 return;
             }
 
@@ -1045,21 +1499,24 @@
             const r2 = n => Math.round(n * 100) / 100;
             const subtotal = r2(currentOrder.reduce((a, item) => a + (item.precio * item.qty), 0));
             const totalCliente = r2(subtotal + cuentaExtra);
-            const totalRecibido = totalCliente;
+            const totalRecibido = (recibido && recibido >= totalCliente) ? r2(recibido) : totalCliente;
+            const vuelto = r2(totalRecibido - totalCliente);
 
             const pedido = {
                 id: 'ped_' + Date.now(),
                 numero: Math.floor(Math.random() * 9000) + 1000,
                 cliente_nombre: selectedMesa ? 'Mesa #' + selectedMesa.numero : 'Counter',
                 tipo: selectedMesa ? 'local' : 'counter',
-                estado: 'recibido',
+                // Si la mesa ya tiene cuenta abierta, esto es solo recibo (no va a cocina)
+                estado: (selectedMesa && mesaCuenta.pedidos.length) ? 'entregado' : 'recibido',
                 items: currentOrder.map(o => ({
                     nombre: o.nombre + ' - ' + o.variantName,
                     cantidad: o.qty,
                     precio_unitario: o.precio,
-                    subtotal: o.precio * o.qty
+                    subtotal: o.precio * o.qty,
+                    foto: o.foto_url || ''
                 })).concat(mesaCuenta.items.map(i => ({
-                    nombre: i.nombre + ' (cuenta mesa)',
+                    nombre: String(i.nombre || '').replace(/(\s*\(cuenta mesa\))+$/i, '') + ' (cuenta mesa)',
                     cantidad: i.cantidad,
                     precio_unitario: i.precio,
                     subtotal: i.precio * i.cantidad
@@ -1085,11 +1542,12 @@
                         mesa_numero: selectedMesa?.numero || 0,
                         cliente_nombre: pedido.cliente_nombre,
                         cliente_token: 'pos_' + Date.now(),
-                        items: JSON.stringify(pedido.items.map(it=>({ nombre: it.nombre, cantidad: it.cantidad, precio: it.precio_unitario }))),
+                        items: JSON.stringify(pedido.items.map(it=>({ nombre: it.nombre, cantidad: it.cantidad, precio: it.precio_unitario, foto: it.foto || '' }))),
                         total: pedido.total_cliente,
-                        estado: 'recibido',
+                        estado: pedido.estado,
                         tipo_entrega: selectedMesa ? 'Mesa' : 'mostrador',
                         metodo_pago: method,
+                        metodo_pago_estado: 'pagado',
                         notas: `POS ${method} - Mesa ${selectedMesa ? selectedMesa.numero : 'Mostrador'}`
                     }).select();
                     if (insErr) throw insErr;
@@ -1108,6 +1566,18 @@
                             await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado' }).in('id', mesaCuenta.pedidos);
                         } catch (_) {}
                     }
+                    // Confirmar lo que el mozo ya cobró (no se duplica)
+                    if (porConfirmarIds.length) {
+                        try {
+                            await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado' }).in('id', porConfirmarIds);
+                        } catch (_) {}
+                    }
+                    // Cerrar mesa: se cobró todo, pasa a mantenimiento hasta habilitar
+                    if (selectedMesa && selectedMesa.id) {
+                        try {
+                            await sbPOS.from('mesas').update({ estado: 'mantenimiento' }).eq('id', selectedMesa.id);
+                        } catch (_) {}
+                    }
                 }catch(e){ console.log('POS insert error', e.message); }
             }
             // Save to localStorage (fallback)
@@ -1115,10 +1585,11 @@
             orders.push(pedido);
             localStorage.setItem('urbanflow_orders', JSON.stringify(orders));
 
-            // Update table status
+            // Update table status: cobrada = mantenimiento
             if (selectedMesa) {
                 const table = tables.find(t => t.id === selectedMesa.id);
-                if (table) table.estado = 'ocupada';
+                if (table) table.estado = 'mantenimiento';
+                selectedMesa.estado = 'mantenimiento';
             }
 
             // Update stock
@@ -1128,7 +1599,7 @@
             });
 
             // Show confirmation
-            alert(`Pedido #${pedido.numero} creado\nCaja: $${subtotal}${cuentaExtra > 0 ? `\nCuenta mesa: $${cuentaExtra}` : ''}\nTotal: $${pedido.total_cliente}\nMétodo: ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}`);
+            alert(`Pedido #${pedido.numero} creado\nCaja: $${subtotal}${cuentaExtra > 0 ? `\nCuenta mesa: $${cuentaExtra}` : ''}\nTotal: $${pedido.total_cliente}\nMétodo: ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}${method === 'efectivo' && recibido ? `\nPaga con: $${totalRecibido} · Vuelto: $${vuelto}` : ''}${selectedMesa ? '\nMesa #' + selectedMesa.numero + ' a mantenimiento 🧹' : ''}`);
 
             // Reset only the charged table's order (others keep theirs)
             ordersByMesa[mesaKey()] = [];
@@ -1137,6 +1608,176 @@
             renderProducts();
             renderTables();
             loadCuentaMesa();
+            loadMostradorPend();
+            loadCobrosMozo();
+            loadMapaAbiertos();
+            document.getElementById('orderPanel').classList.remove('mobile-active');
+        }
+
+        // =============================================
+        // ENVIAR A COCINA (sin cobrar)
+        // =============================================
+        async function sendToKitchen() {
+            if (currentOrder.length === 0) { alert('Agregá productos al pedido'); return; }
+            if (!empresaIdPOS) { alert('Sin empresa'); return; }
+            const r2 = n => Math.round(n * 100) / 100;
+            const items = currentOrder.map(o => ({
+                nombre: o.nombre + ((o.variantName && o.variantName !== 'Único') ? ' - ' + o.variantName : ''),
+                cantidad: o.qty,
+                precio: o.precio,
+                foto: o.foto_url || ''
+            }));
+            const total = r2(items.reduce((a, i) => a + (i.precio * i.cantidad), 0));
+            try {
+                const { data: ins, error } = await sbPOS.from('pedidos').insert({
+                    empresa_id: empresaIdPOS,
+                    mesa_token: selectedMesa?.id || '',
+                    mesa_numero: selectedMesa?.numero || 0,
+                    cliente_nombre: selectedMesa ? 'Mesa #' + selectedMesa.numero : 'Mostrador',
+                    cliente_token: 'pos_cocina_' + Date.now(),
+                    items: JSON.stringify(items),
+                    total: total,
+                    estado: 'recibido',
+                    tipo_entrega: selectedMesa ? 'Mesa' : 'mostrador',
+                    metodo_pago_estado: 'pendiente',
+                    notas: 'POS sectores - ' + (selectedMesa ? 'Mesa ' + selectedMesa.numero : 'Mostrador') + (selectedMesa?.camarero_nombre ? ' · Mozo: ' + selectedMesa.camarero_nombre : '')
+                }).select();
+                if (error) throw error;
+                try {
+                    if (ins && ins[0]) {
+                        await sbPOS.from('pedidos').update({ cajero_id: currentUser?.id || null, cajero_nombre: currentUser?.nombre || null }).eq('id', ins[0].id);
+                    }
+                } catch (_) {}
+                // La mesa queda ocupada en la DB para que la vean todos
+                if (selectedMesa && selectedMesa.id) {
+                    try { await sbPOS.from('mesas').update({ estado: 'ocupada' }).eq('id', selectedMesa.id); } catch (_) {}
+                }
+                alert('Enviado a sectores 📤\n' + (selectedMesa ? 'Mesa #' + selectedMesa.numero : 'Mostrador') + ' · $' + total);
+                ordersByMesa[mesaKey()] = [];
+                currentOrder = ordersByMesa[mesaKey()];
+                renderOrder();
+                loadCuentaMesa();
+                loadMostradorPend();
+                loadCobrosMozo();
+                loadMapaAbiertos();
+                document.getElementById('orderPanel').classList.remove('mobile-active');
+                if (selectedMesa) {
+                    const t = tables.find(t => t.id === selectedMesa.id);
+                    if (t) t.estado = 'ocupada';
+                    renderTables();
+                }
+            } catch (e) { alert('Error al enviar: ' + e.message); }
+        }
+
+        async function loadMostradorPend() {
+            const box = document.getElementById('mostradorPendBox');
+            if (!box) return;
+            if (selectedMesa || !empresaIdPOS) { box.innerHTML = ''; return; }
+            try {
+                const desde = new Date(); desde.setHours(0, 0, 0, 0);
+                const { data, error } = await sbPOS.from('pedidos').select('id,numero,cliente_nombre,total,created_at')
+                    .eq('empresa_id', empresaIdPOS).eq('tipo_entrega', 'mostrador')
+                    .neq('estado', 'entregado').neq('estado', 'cancelado')
+                    .neq('metodo_pago_estado', 'pagado')
+                    .gte('created_at', desde.toISOString()).order('created_at', { ascending: true });
+                if (error) throw error;
+                const list = data || [];
+                if (!list.length) { box.innerHTML = ''; return; }
+                box.innerHTML = `
+                    <div style="border:1px solid var(--orange);border-radius:8px;padding:10px 12px;margin:0 12px 10px;background:rgba(255,152,0,0.07)">
+                        <div style="font-size:12px;font-weight:700;margin-bottom:8px;">⏳ Mostrador por cobrar (${list.length})</div>
+                        ${list.map(p => `
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;">
+                                <span style="flex:1;">#${p.numero || String(p.id).substring(0,4)} · $${Math.round(p.total || 0)}</span>
+                                <button onclick="cobrarMostrador('${p.id}','efectivo')" style="padding:6px 10px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">💵</button>
+                                <button onclick="cobrarMostrador('${p.id}','mercado_pago')" style="padding:6px 10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">💳</button>
+                            </div>`).join('')}
+                    </div>`;
+            } catch (e) { box.innerHTML = ''; }
+        }
+
+        async function cobrarMostrador(id, method) {
+            try {
+                const { error } = await sbPOS.from('pedidos').update({ metodo_pago: method, metodo_pago_estado: 'pagado' }).eq('id', id);
+                if (error) throw error;
+                loadMostradorPend();
+                loadCobrosMozo();
+            } catch (e) { alert('Error al cobrar: ' + e.message); }
+        }
+
+        // =============================================
+        // COBROS DEL MOZO POR CONFIRMAR
+        // =============================================
+        async function loadCobrosMozo() {
+            const box = document.getElementById('cobrosMozoBox');
+            if (!box) return;
+            if (!empresaIdPOS) { box.innerHTML = ''; return; }
+            try {
+                const desde = new Date(); desde.setHours(0, 0, 0, 0);
+                const { data, error } = await sbPOS.from('pedidos').select('id,mesa_numero,total,metodo_pago,notas,created_at')
+                    .eq('empresa_id', empresaIdPOS).eq('metodo_pago_estado', 'por_confirmar')
+                    .gte('created_at', desde.toISOString()).order('created_at', { ascending: true });
+                if (error) throw error;
+                const groups = {};
+                (data || []).forEach(p => {
+                    const k = p.mesa_numero || ('P' + p.id);
+                    if (!groups[k]) groups[k] = { mesa: p.mesa_numero, total: 0, metodo: p.metodo_pago || '-', n: 0, paga: null, vuelto: null };
+                    groups[k].total += (p.total || 0);
+                    groups[k].n++;
+                    if (p.metodo_pago) groups[k].metodo = p.metodo_pago;
+                    const m = String(p.notas || '').match(/Paga con \$([\d.]+) · Vuelto \$([\d.]+)/);
+                    if (m) { groups[k].paga = m[1]; groups[k].vuelto = m[2]; }
+                });
+                const keys = Object.keys(groups);
+                if (!keys.length) { box.innerHTML = ''; return; }
+                box.innerHTML = `
+                    <div style="border:1px solid var(--accent);border-radius:8px;padding:10px 12px;margin:0 12px 10px;background:rgba(212,175,55,0.07)">
+                        <div style="font-size:12px;font-weight:700;margin-bottom:8px;">📋 Cobros del mozo por confirmar (${keys.length})</div>
+                        ${keys.map(k => {
+                            const g = groups[k];
+                            const titulo = g.mesa ? 'Mesa #' + g.mesa : 'Pedido';
+                            return `
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;">
+                                <span style="flex:1;">${titulo} · $${Math.round(g.total)} · ${g.metodo}${g.vuelto ? `<br><span style="color:var(--green);font-weight:700">Vuelto $${g.vuelto} → dar al mozo</span>` : ''}</span>
+                                <button onclick="confirmarCobro('${g.mesa || ''}')" style="padding:6px 10px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✓ Cobrado</button>
+                                <button onclick="rechazarCobro('${g.mesa || ''}')" style="padding:6px 10px;background:var(--red);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✕</button>
+                            </div>`;
+                        }).join('')}
+                    </div>`;
+            } catch (e) { box.innerHTML = ''; }
+        }
+
+        async function confirmarCobro(mesaNumero) {
+            try {
+                const q = sbPOS.from('pedidos').select('id').eq('empresa_id', empresaIdPOS).eq('metodo_pago_estado', 'por_confirmar');
+                const { data, error } = mesaNumero ? await q.eq('mesa_numero', Number(mesaNumero)) : await q;
+                if (error) throw error;
+                const ids = (data || []).map(p => p.id);
+                if (!ids.length) { loadCobrosMozo(); return; }
+                const { error: uErr } = await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pagado' }).in('id', ids);
+                if (uErr) throw uErr;
+                if (mesaNumero) {
+                    const t = tables.find(t => String(t.numero) === String(mesaNumero));
+                    if (t && t.id) { try { await sbPOS.from('mesas').update({ estado: 'mantenimiento' }).eq('id', t.id); } catch (_) {} t.estado = 'mantenimiento'; }
+                    renderTables();
+                }
+                loadCobrosMozo();
+            } catch (e) { alert('Error al confirmar: ' + e.message); }
+        }
+
+        async function rechazarCobro(mesaNumero) {
+            if (!confirm('Descartar este cobro? Vuelve a pendiente.')) return;
+            try {
+                const q = sbPOS.from('pedidos').select('id').eq('empresa_id', empresaIdPOS).eq('metodo_pago_estado', 'por_confirmar');
+                const { data, error } = mesaNumero ? await q.eq('mesa_numero', Number(mesaNumero)) : await q;
+                if (error) throw error;
+                const ids = (data || []).map(p => p.id);
+                if (!ids.length) { loadCobrosMozo(); return; }
+                const { error: uErr } = await sbPOS.from('pedidos').update({ metodo_pago_estado: 'pendiente' }).in('id', ids);
+                if (uErr) throw uErr;
+                loadCobrosMozo();
+                loadCuentaMesa();
+            } catch (e) { alert('Error: ' + e.message); }
         }
 
         // =============================================
@@ -1145,7 +1786,13 @@
         renderCategories();
         renderProducts();
         renderTables();
+        paintOrderMesa();
         loadPOSData();
+        loadMostradorPend();
+        loadCobrosMozo();
+        loadMapaAbiertos();
+        loadOnline();
+        setInterval(() => { loadCobrosMozo(); loadMapaAbiertos(); loadOnline(); }, 20000);
 
     </script>
 </body>
