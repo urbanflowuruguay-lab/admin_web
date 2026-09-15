@@ -2913,23 +2913,36 @@
             const box = document.getElementById('verPedidoItems');
             box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Cargando...</p>';
             try {
-                const { data: p, error } = await sbSvc.from('pedidos').select('*').eq('id', pedidoId).limit(1).maybeSingle();
-                if (error) throw error;
-                if (!p) { cerrarVerPedido(); alert('Ese pedido ya fue borrado'); try{loadPedidosFromDB();}catch(_){} return; }
-                let items = [];
-                try { items = JSON.parse(p.items || '[]'); } catch (e) {}
-                if (!Array.isArray(items)) items = [];
-                const subtotal = items.reduce((a, i) => a + ((i.precio || 0) * (i.cantidad || i.qty || 0)), 0);
+                const { data: primerPed } = await sbSvc.from('pedidos').select('*').eq('id', pedidoId).limit(1).maybeSingle();
+                if (!primerPed) { cerrarVerPedido(); alert('Ese pedido ya fue borrado'); try{loadPedidosFromDB();}catch(_){} return; }
+                const mesaNum = primerPed.mesa_numero;
+                if (!mesaNum) { box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Sin mesa</p>'; return; }
+                const { data: todos } = await sbSvc.from('pedidos').select('*').eq('empresa_id', primerPed.empresa_id).eq('mesa_numero', mesaNum).neq('estado', 'cancelado').order('created_at', { ascending: true });
+                const pedidos = todos || [];
                 let propina = 0;
                 try {
-                    const { data: props } = await sbSvc.from('propinas').select('monto').eq('pedido_id', pedidoId);
+                    const pedidoIds = pedidos.map(p => p.id);
+                    const { data: props } = await sbSvc.from('propinas').select('monto,pedido_id').in('pedido_id', pedidoIds);
                     if (props) propina = props.reduce((s, pr) => s + (pr.monto || 0), 0);
                 } catch (_) {}
-                const estadoColor = p.estado === 'pagado' ? '#22c55e' : p.estado === 'entregado' ? '#ff9800' : p.estado === 'listo' ? '#22c55e' : 'var(--accent)';
-                document.getElementById('verPedidoTitle').textContent = 'Mesa ' + (p.mesa_numero || '?') + ' · $' + (p.total || subtotal);
-                document.getElementById('verPedidoEstado').textContent = (p.estado || '').toUpperCase() + (p.cliente_nombre ? ' · ' + p.cliente_nombre : '') + (p.metodo_pago_estado === 'pagado' ? ' · 💰 Pagado' : '');
+                const todosItems = [];
+                let subtotal = 0;
+                let estadosPedidos = [];
+                pedidos.forEach(p => {
+                    let its = []; try { its = JSON.parse(p.items || '[]'); } catch (_) {}
+                    if (!Array.isArray(its)) its = [];
+                    its.forEach(i => { todosItems.push({ ...i, pedidoId: p.id }); });
+                    subtotal += (p.total || 0);
+                    estadosPedidos.push(p.estado);
+                    if (p.cliente_nombre && !window._ultimoNombreMesa) window._ultimoNombreMesa = p.cliente_nombre;
+                });
+                const pedidoActivo = pedidos.find(p => p.estado !== 'pagado' && p.estado !== 'cancelado') || primerPed;
+                const todosPagado = pedidos.every(p => p.estado === 'pagado' || p.metodo_pago_estado === 'pagado');
+                const estadoColor = todosPagado ? '#22c55e' : pedidoActivo.estado === 'entregado' ? '#ff9800' : pedidoActivo.estado === 'listo' ? '#22c55e' : 'var(--accent)';
+                document.getElementById('verPedidoTitle').textContent = 'Mesa ' + mesaNum + ' · $' + (subtotal + propina);
+                document.getElementById('verPedidoEstado').textContent = pedidos.length + ' pedido' + (pedidos.length > 1 ? 's' : '') + (todosPagado ? ' · 💰 Pagado' : ' · ' + pedidoActivo.estado.toUpperCase());
                 const idxBeb = [], idxCoc = [];
-                items.forEach((i, idx) => { (esItemCocina(i.nombre) ? idxCoc : idxBeb).push(idx); });
+                todosItems.forEach((i, idx) => { (esItemCocina(i.nombre) ? idxCoc : idxBeb).push(idx); });
                 const rowItem = (i, idx) => `
                     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;${i.entregado ? 'opacity:0.55' : ''}">
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -2940,19 +2953,19 @@
                             <span style="font-size:12px;font-weight:600">$${(i.precio || 0) * (i.cantidad || i.qty || 1)}</span>
                             ${i.entregado
                                 ? '<span style="color:#22c55e;font-size:11px;font-weight:700">✓</span>'
-                                : `<button onclick="entregarItemVer('${p.id}', ${idx})" style="padding:4px 8px;font-size:10px;border-radius:6px;border:none;background:var(--green);color:#fff;font-weight:700;cursor:pointer">Entregar</button>`}
+                                : `<button onclick="entregarItemVer('${i.pedidoId}', ${idx})" style="padding:4px 8px;font-size:10px;border-radius:6px;border:none;background:var(--green);color:#fff;font-weight:700;cursor:pointer">Entregar</button>`}
                         </div>
                     </div>`;
                 let html = '';
-                if (idxBeb.length) html += `<div style="font-size:12px;font-weight:700;color:#22c55e;margin:4px 0 8px">🥤 Bebidas</div>` + idxBeb.map(idx => rowItem(items[idx], idx)).join('');
-                if (idxCoc.length) { const ok = p.estado === 'listo'; html += `<div style="font-size:12px;font-weight:700;color:${ok ? '#22c55e' : 'var(--orange)'};margin:8px 0">🍳 Cocina ${ok ? '— listo' : '— preparando'}</div>` + idxCoc.map(idx => rowItem(items[idx], idx)).join(''); }
+                if (idxBeb.length) html += `<div style="font-size:12px;font-weight:700;color:#22c55e;margin:4px 0 8px">🥤 Bebidas</div>` + idxBeb.map(idx => rowItem(todosItems[idx], idx)).join('');
+                if (idxCoc.length) { const ok = pedidoActivo.estado === 'listo'; html += `<div style="font-size:12px;font-weight:700;color:${ok ? '#22c55e' : 'var(--orange)'};margin:8px 0">🍳 Cocina ${ok ? '— listo' : '— preparando'}</div>` + idxCoc.map(idx => rowItem(todosItems[idx], idx)).join(''); }
                 html += `<div style="border-top:2px solid var(--accent);padding-top:8px;margin-top:8px">
-                    <div style="display:flex;justify-content:space-between;font-size:12px"><span>Subtotal</span><span>$${subtotal}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px"><span>Subtotal (${pedidos.length} pedido${pedidos.length > 1 ? 's' : ''})</span><span>$${subtotal}</span></div>
                     ${propina > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--green)"><span>💰 Propina</span><span>$${propina}</span></div>` : ''}
-                    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:4px"><span>Total</span><span style="color:var(--accent)">$${(p.total || subtotal) + propina}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:4px"><span>TOTAL MESA</span><span style="color:var(--accent)">$${subtotal + propina}</span></div>
                 </div>`;
                 box.innerHTML = html || '<p style="color:var(--text2);font-size:13px;text-align:center">Sin items</p>';
-                document.getElementById('verPedidoAgregarBtn').onclick = () => { cerrarVerPedido(); agregarAPedido(p.id, p.mesa_numero || 0); };
+                document.getElementById('verPedidoAgregarBtn').onclick = () => { cerrarVerPedido(); agregarAPedido(pedidoActivo.id, mesaNum); };
             } catch (err) {
                 box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar</p>';
             }
