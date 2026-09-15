@@ -1364,7 +1364,7 @@ function llamarDesdeAtencion() {
 async function agregarAlPedidoExistente() {
     if (!currentPedidoId || carrito.length === 0) return;
     try {
-        const { data: pedidoActual } = await sb.from("pedidos").select("items,total").eq("id", currentPedidoId).maybeSingle();
+        const { data: pedidoActual } = await sbSvc.from("pedidos").select("items,total").eq("id", currentPedidoId).maybeSingle();
         const itemsExistentes = typeof pedidoActual?.items === "string" ? JSON.parse(pedidoActual.items) : (pedidoActual?.items || []);
         const nuevosItems = carrito.map(c => ({ nombre: c.nombre, cantidad: c.qty, precio: c.precio }));
         const merged = [...itemsExistentes];
@@ -1374,7 +1374,7 @@ async function agregarAlPedidoExistente() {
             else merged.push(ni);
         }
         const nuevoTotal = merged.reduce((s, i) => s + (i.precio || 0) * (i.cantidad || 1), 0);
-        await sb.from("pedidos").update({ items: JSON.stringify(merged), total: nuevoTotal }).eq("id", currentPedidoId);
+        await sbSvc.from("pedidos").update({ items: JSON.stringify(merged), total: nuevoTotal, estado: "recibido" }).eq("id", currentPedidoId);
         carrito = [];
         esModoAgregar = false;
         document.getElementById("btnPedir").textContent = "Pedir";
