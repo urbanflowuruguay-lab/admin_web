@@ -2059,42 +2059,59 @@
             if (!container) return;
             const rolKeyPed = (currentUser.rol||'').replace('rol_','').toLowerCase();
             const esCajeroFull = ['caja','dueño','dueno','encargado'].includes(rolKeyPed);
-            // Cajero = EXACTO gestion.html — mismo código
             if (esCajeroFull) {
                 container.style.display = 'block';
                 const lista = [...pedidos];
                 if (lista.length === 0) { container.innerHTML = '<div class="empty"><p>Sin pedidos</p></div>'; return; }
                 const getEstadoColor = s => s==='pagado'?'success': s==='entregado'?'success': s==='cancelado'?'danger': s==='en_camino'?'info':'warning';
                 const puedeBorrarTodo = ['dueño','dueno','encargado'].includes(rolKeyPed);
-                const parts = lista.map(p=>{
-                    let items=[]; try{ items=typeof p.items==='string'?JSON.parse(p.items):(Array.isArray(p.items)?p.items:[]);}catch(e){items=[];}
-                    const isOnline = !p.mesa;
-                    const esMostrador = (p.tipo_entrega || '').toLowerCase() === 'mostrador';
-                    const mesaInfo = !isOnline ? `<span style="background:var(--green);color:white;padding:2px 6px;border-radius:4px;font-size:11px">MESA #${p.mesa}</span>` : esMostrador ? `<span style="background:#ff9800;color:white;padding:2px 6px;border-radius:4px;font-size:11px">MOSTRADOR</span>` : `<span style="background:#3b82f6;color:white;padding:2px 6px;border-radius:4px;font-size:11px">ONLINE</span> ${p.direccion_entrega ? p.direccion_entrega.substring(0,20) : 'Delivery'}`;
-                    const metodo = p.metodo_pago ? p.metodo_pago.replace('_',' ').toUpperCase() : '-';
-                    const pagoBadge = p.metodo_pago_estado === 'pagado'
+                const grupos = {};
+                lista.forEach(p => {
+                    const key = p.mesa ? 'mesa_' + p.mesa : 'p_' + p.id;
+                    if (!grupos[key]) grupos[key] = { mesa: p.mesa, pedidos: [] };
+                    grupos[key].pedidos.push(p);
+                });
+                const parts = Object.entries(grupos).map(([key, grupo]) => {
+                    const ps = grupo.pedidos;
+                    const totalGrupo = ps.reduce((s, p) => s + (p.total || 0), 0);
+                    const itemsGrupo = ps.reduce((s, p) => {
+                        let its = []; try { its = typeof p.items === 'string' ? JSON.parse(p.items) : (Array.isArray(p.items) ? p.items : []); } catch(_) {}
+                        return s + its.length;
+                    }, 0);
+                    const todosPagado = ps.every(p => p.metodo_pago_estado === 'pagado');
+                    const algunEntregado = ps.some(p => p.estado === 'entregado');
+                    const estadoLabel = todosPagado ? 'pagado' : ps.some(p => p.estado === 'recibido') ? 'recibido' : ps.some(p => p.estado === 'preparando') ? 'preparando' : ps.some(p => p.estado === 'listo') ? 'listo' : algunEntregado ? 'entregado' : ps[0].estado;
+                    const badge = `<span class="badge badge-${getEstadoColor(estadoLabel)}">${estadoLabel}</span>`;
+                    const pagoBadge = todosPagado
                         ? `<div style="font-size:10px;color:#22c55e;font-weight:700">✓ COBRADO</div>`
                         : `<div style="font-size:10px;color:var(--orange);font-weight:700">⏳ PENDIENTE</div>`;
-                    const num = p.numero || String(p.id).substring(0,8);
-                    const cli = p.cliente_nombre || '-';
-                    const tot = '$' + (p.total || 0).toLocaleString();
-                    const badge = `<span class="badge badge-${getEstadoColor(p.estado)}">${p.estado}</span>`;
-                    const ver = `<button class="btn-primary" style="padding:5px 10px;font-size:11px" onclick="verPedidoApp('${p.id}')"><i class="fas fa-eye"></i> Ver</button>`;
+                    const mesaInfo = grupo.mesa ? `<span style="background:var(--green);color:white;padding:2px 6px;border-radius:4px;font-size:11px">MESA #${grupo.mesa}</span>` : `<span style="background:#3b82f6;color:white;padding:2px 6px;border-radius:4px;font-size:11px">ONLINE</span>`;
+                    const cli = ps.map(p => p.cliente_nombre || '-').join(', ');
+                    const num = ps.length > 1 ? `#${String(ps[0].id).substring(0,4)} +${ps.length - 1}` : `#${String(ps[0].id).substring(0,4)}`;
+                    const detalle = ps.map(p => {
+                        let its = []; try { its = typeof p.items === 'string' ? JSON.parse(p.items) : (Array.isArray(p.items) ? p.items : []); } catch(_) {}
+                        const pagado = p.metodo_pago_estado === 'pagado';
+                        return `<div style="padding:6px 0;${pagado ? 'opacity:0.5;' : ''}border-bottom:1px dashed var(--border)">
+                            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="font-weight:600">#${String(p.id).substring(0,4)}</span><span style="color:${pagado ? '#22c55e' : 'var(--text2)'}">${pagado ? '✓ Pagado' : '$' + (p.total || 0)}</span></div>
+                            <div style="font-size:11px;color:var(--text2);margin-top:2px">${its.map(i => i.nombre + ' x' + (i.cantidad || i.qty || 1)).join(', ')}</div>
+                        </div>`;
+                    }).join('');
                     return {
                         tr: `<tr>
-                                <td><strong>#${num}</strong></td>
+                                <td><strong>${num}</strong></td>
                                 <td>${cli}</td>
                                 <td>${mesaInfo}</td>
-                                <td>${items.length} items</td>
-                                <td>${tot}</td>
-                                <td>${metodo}${pagoBadge}</td>
+                                <td>${itemsGrupo} items</td>
+                                <td><strong>$${totalGrupo.toLocaleString()}</strong></td>
+                                <td>${pagoBadge}</td>
                                 <td>${badge}</td>
-                                <td>${ver}</td>
+                                <td></td>
                             </tr>`,
-                        card: `<div class="ped-mob-card">
-                                <div class="ped-mob-l1"><span><strong>#${num}</strong> · ${cli}</span><strong class="ped-mob-total">${tot}</strong></div>
-                                <div class="ped-mob-l2"><span>${mesaInfo} · ${items.length} items · ${metodo}${p.metodo_pago_estado === 'pagado' ? ' <b style="color:#22c55e">✓</b>' : ''}</span><span class="ped-mob-act">${badge}${ver}</span></div>
-                            </div>`
+                        card: `<div class="ped-mob-card" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+                                <div class="ped-mob-l1"><span><strong>${num}</strong> · ${cli}</span><strong class="ped-mob-total">$${totalGrupo.toLocaleString()}</strong></div>
+                                <div class="ped-mob-l2"><span>${mesaInfo} · ${itemsGrupo} items · ${ps.length > 1 ? ps.length + ' pedidos' : '1 pedido'}</span><span class="ped-mob-act">${badge}</span></div>
+                            </div>
+                            <div style="display:none;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 8px 8px;margin-top:-8px;margin-bottom:8px">${detalle}</div>`
                     };
                 });
                 container.innerHTML = `
