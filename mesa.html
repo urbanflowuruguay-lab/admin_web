@@ -192,11 +192,10 @@
     </div>
     <div id="mantenimientoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:340px;width:90%;text-align:center">
-            <div style="font-size:48px;margin-bottom:12px">🧹 ⏰</div>
+            <div style="font-size:48px;margin-bottom:12px">🧹</div>
             <h3 style="color:var(--text);margin-bottom:8px">Mesa en mantenimiento</h3>
-            <p style="color:var(--text2);font-size:13px;line-height:1.5">prepará tu pedido mientras la habilita nuestro personal</p>
-            <div style="height:4px;background:var(--border);border-radius:2px;margin:16px 0;overflow:hidden"><div id="mantenimientoProgress" style="height:100%;width:100%;background:var(--accent);transition:width 0.3s"></div></div>
-            <button onclick="cerrarMantenimiento()" style="padding:10px 24px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;font-weight:600;cursor:pointer">Aceptar</button>
+            <p style="color:var(--text2);font-size:13px;line-height:1.5">Un momento, nuestra camarera está preparando tu mesa.<br><br>Podés ir armando tu pedido mientras tanto 🍽️</p>
+            <p id="mantenimientoEspera" style="color:var(--accent);font-size:12px;margin-top:12px;font-weight:600;display:none">✅ ¡Mesa lista! Cargando carta...</p>
         </div>
     </div>
     <button id="cambiarPagoBtn" onclick="cambiarPagoMesa()" style="display:none;width:calc(100% - 32px);margin:8px 16px 0;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)"></button>
@@ -725,12 +724,7 @@ async function init() {
         document.getElementById("headerMesa").textContent = mesaData ? `Mesa #${mesaData.numero}` : "Pedido Online";
         if (mesaData && mesaData.estado === 'mantenimiento') {
             window.isMantenimiento = true;
-            const modal = document.getElementById('mantenimientoModal');
-            modal.style.display = 'flex';
-            const prog = document.getElementById('mantenimientoProgress');
-            prog.style.transition = 'none'; prog.style.width = '100%';
-            setTimeout(()=>{ prog.style.transition = 'width 10s linear'; prog.style.width = '0%'; }, 50);
-            setTimeout(()=>{ modal.style.display='none'; }, 10000);
+            document.getElementById('mantenimientoModal').style.display = 'flex';
         } else {
             window.isMantenimiento = false;
             if (mesaData) sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
@@ -765,6 +759,24 @@ async function init() {
                             const mozo = ll.mozo_nombre || mesaData?.camarero_nombre || "nuestro personal";
                             setMozoAtendiendo(mozo);
                             mostrarPantallaAtencion(mozo, currentPedidoId);
+                        }
+                    }).subscribe();
+            } catch (_) {}
+            // Suscribirse a cambios en mesas para detectar cuando se activa desde mantenimiento
+            try {
+                sb.channel('carta-mesas-' + mesaToken)
+                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mesas' }, (payload) => {
+                        const m = payload.new;
+                        if (m && mesaData && m.id === mesaData.id && m.estado !== 'mantenimiento' && window.isMantenimiento) {
+                            window.isMantenimiento = false;
+                            document.getElementById('mantenimientoEspera').style.display = 'block';
+                            setTimeout(() => {
+                                document.getElementById('mantenimientoModal').style.display = 'none';
+                                mesaData.estado = m.estado;
+                                if (m.estado !== 'mantenimiento') {
+                                    sb.from("mesas").update({ estado: "ocupada" }).eq("id", mesaData.id).then(() => {});
+                                }
+                            }, 1500);
                         }
                     }).subscribe();
             } catch (_) {}
@@ -1044,14 +1056,7 @@ async function confirmarPedido() {
                 }
                 if (ped.estado === "entregado") {
                     clearInterval(poll);
-                    document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Buen provecho! 🍽️";
-                    document.getElementById("estadoPedido").querySelector(".icon").textContent = "🍽️";
-                    document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que disfrutes de tu elección.<br>No olvides calificarnos para ayudarnos a mejorar ⭐";
-                    document.getElementById("estadoPedido").classList.add("show");
-                    setTimeout(() => {
-                        document.getElementById("estadoPedido").classList.remove("show");
-                        showRatingScreen();
-                    }, 4000);
+                    mostrarPantallaAtencion(mozoMesa, currentPedidoId);
                 }
             }, 3000);
         }
