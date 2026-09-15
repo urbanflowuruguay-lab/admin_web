@@ -3182,16 +3182,24 @@
         }
         async function doCobrarMesa(mesaId, mesaNumero, method, pagoInfo) {
             try {
-                const { data: ab, error: qErr } = await sb.from('pedidos').select('id,notas,metodo_pago_estado')
+                const { data: ab, error: qErr } = await sbSvc.from('pedidos').select('id,total,notas,metodo_pago_estado')
                     .eq('empresa_id', currentUser.empresa_id).eq('mesa_numero', mesaNumero)
                     .neq('estado', 'cancelado');
                 if (qErr) throw qErr;
                 const rows = (ab || []).filter(p => p.metodo_pago_estado !== 'pagado' && p.metodo_pago_estado !== 'por_confirmar');
                 if (!rows.length) { alert('No hay nada pendiente de cobro'); return; }
+                let propinaTotal = 0;
+                try {
+                    const { data: props } = await sbSvc.from('propinas').select('monto').in('pedido_id', rows.map(r => r.id));
+                    if (props) propinaTotal = props.reduce((s, pr) => s + (pr.monto || 0), 0);
+                } catch (_) {}
                 const extra = (pagoInfo && pagoInfo.pag) ? ` · Paga con $${pagoInfo.pag} · Vuelto $${pagoInfo.vuelto}` : '';
-                for (const r of rows) {
+                for (let i = 0; i < rows.length; i++) {
+                    const r = rows[i];
                     const base = String(r.notas || '').replace(/ · Paga con \$[\d.]+ · Vuelto \$[\d.]+$/, '');
-                    const { error } = await sb.from('pedidos').update({ metodo_pago: method, metodo_pago_estado: 'por_confirmar', notas: base + extra }).eq('id', r.id);
+                    const upd = { metodo_pago: method, metodo_pago_estado: 'por_confirmar', notas: base + extra };
+                    if (i === rows.length - 1 && propinaTotal > 0) upd.total = (r.total || 0) + propinaTotal;
+                    const { error } = await sbSvc.from('pedidos').update(upd).eq('id', r.id);
                     if (error) throw error;
                 }
                 alert(`Cobro registrado ✓\nMesa ${mesaNumero}${extra} · Caja debe confirmar`);
@@ -3204,14 +3212,20 @@
         // Efectivo del mozo: paga con / vuelto
         window.openMozoCash = async function(mesaId, mesaNumero) {
             let total = 0;
+            let propina = 0;
             try {
-                const { data: ab, error } = await sb.from('pedidos').select('id,total,metodo_pago_estado')
+                const { data: ab, error } = await sbSvc.from('pedidos').select('id,total,metodo_pago_estado')
                     .eq('empresa_id', currentUser.empresa_id).eq('mesa_numero', mesaNumero)
                     .neq('estado', 'cancelado');
                 if (error) throw error;
                 const pend = (ab || []).filter(p => p.metodo_pago_estado !== 'pagado' && p.metodo_pago_estado !== 'por_confirmar');
                 if (!pend.length) { alert('No hay nada pendiente de cobro'); return; }
                 total = Math.round(pend.reduce((a, p) => a + (p.total || 0), 0) * 100) / 100;
+                try {
+                    const { data: props } = await sbSvc.from('propinas').select('monto').in('pedido_id', pend.map(p => p.id));
+                    if (props) propina = props.reduce((s, pr) => s + (pr.monto || 0), 0);
+                } catch (_) {}
+                total += propina;
             } catch (e) { alert('Error: ' + e.message); return; }
             window._mozoCash = { mesaId, mesaNumero, total };
             let modal = document.getElementById('modal-mozo-cash');
