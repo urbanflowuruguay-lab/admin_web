@@ -2958,6 +2958,7 @@
                                 : `<button onclick="entregarItemVer('${i.pedidoId}', ${idx})" style="padding:5px 10px;font-size:11px;border-radius:6px;border:none;background:#22c55e;color:#fff;font-weight:700;cursor:pointer">ENTREGAR</button>`}
                         </div>
                     </div>`;
+                };
                 let html = '';
                 if (idxBeb.length) html += `<div style="font-size:12px;font-weight:700;color:#22c55e;margin:4px 0 8px">🥤 Bebidas</div>` + idxBeb.map(idx => rowItem(todosItems[idx], idx)).join('');
                 if (idxCoc.length) { const ok = pedidoActivo.estado === 'listo'; html += `<div style="font-size:12px;font-weight:700;color:${ok ? '#22c55e' : 'var(--orange)'};margin:8px 0">🍳 Cocina ${ok ? '— listo' : '— preparando'}</div>` + idxCoc.map(idx => rowItem(todosItems[idx], idx)).join(''); }
