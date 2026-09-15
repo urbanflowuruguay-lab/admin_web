@@ -1151,6 +1151,7 @@ function skipRating() {
 }
 
 function showGraciasFinal() {
+    document.getElementById("atencionScreen").classList.remove("show");
     document.getElementById("estadoPedido").querySelector("h2").textContent = "¡Gracias!";
     document.getElementById("estadoPedido").querySelector(".icon").textContent = "🙏";
     document.getElementById("estadoPedido").querySelector("p").innerHTML = "Esperamos que la hayas pasado bien.<br>¡Volvé pronto!";
@@ -1160,8 +1161,6 @@ function showGraciasFinal() {
         if (window.AndroidBridge && window.AndroidBridge.navigateHome) {
             try { window.AndroidBridge.navigateHome(); return; } catch (_) {}
         }
-        // Sin app: recargar la carta desde cero
-        window.location.href = window.location.pathname + "?mesa=" + mesaToken + "&empresa=" + empresaId;
     }, 3000);
 }
 
@@ -1273,8 +1272,14 @@ function mostrarPantallaAtencion(mozoNombre, pedidoId) {
 
 function actualizarEstadoAtencion() {
     if (!currentPedidoId) return;
-    sb.from("pedidos").select("estado,items,entregado_por_nombre").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
+    sbSvc.from("pedidos").select("estado,items,entregado_por_nombre,metodo_pago_estado").eq("id", currentPedidoId).maybeSingle().then(({ data }) => {
         if (!data) return;
+        if (data.metodo_pago_estado === "pagado") {
+            stopAtencionPoll();
+            document.getElementById("atencionScreen").classList.remove("show");
+            showRatingScreen();
+            return;
+        }
         const estados = { recibido: "Recibido ✅", preparando: "En preparación 👨‍🍳", listo: "Listo 🔔", en_camino: "En camino 🛵", entregado: "Entregado 🎉" };
         document.getElementById("atencionEstadoValor").textContent = estados[data.estado] || data.estado;
         try {
