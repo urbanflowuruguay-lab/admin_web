@@ -689,23 +689,31 @@
         let mesaCuenta = { pedidos: [], items: [], total: 0 };
 
         async function loadCuentaMesa() {
-            mesaCuenta = { pedidos: [], items: [], total: 0 };
+            mesaCuenta = { pedidos: [], pedidosDet: [], items: [], total: 0, propinas: 0 };
             if (!selectedMesa || !empresaIdPOS) { renderCuentaMesa(); return; }
             try {
-                const { data } = await sbPOS.from('pedidos').select('id,items,total,cliente_nombre,metodo_pago_estado,estado')
+                const { data } = await sbPOS.from('pedidos').select('id,items,total,cliente_nombre,metodo_pago_estado,estado,created_at')
                     .eq('empresa_id', empresaIdPOS).eq('mesa_numero', selectedMesa.numero)
                     .neq('estado', 'cancelado');
                 const open = (data || []).filter(p => p.metodo_pago_estado !== 'pagado' && p.metodo_pago_estado !== 'por_confirmar');
                 let total = 0;
                 const items = [];
+                const pedidosDet = [];
                 open.forEach(p => {
                     let its = [];
                     try { its = JSON.parse(p.items || '[]'); } catch (e) {}
                     if (!Array.isArray(its)) its = [];
                     its.forEach(i => items.push({ nombre: i.nombre, cantidad: i.cantidad || i.qty || 1, precio: i.precio || 0 }));
+                    pedidosDet.push({ id: p.id, items: its, total: p.total || 0, cliente: p.cliente_nombre || 'Cliente', fecha: p.created_at });
                     total += (p.total || 0);
                 });
-                mesaCuenta = { pedidos: open.map(p => p.id), items, total };
+                let propinas = 0;
+                try {
+                    const { data: props } = await sbPOS.from('propinas').select('monto')
+                        .in('pedido_id', open.map(p => p.id));
+                    if (props) propinas = props.reduce((s, p) => s + (p.monto || 0), 0);
+                } catch (_) {}
+                mesaCuenta = { pedidos: open.map(p => p.id), pedidosDet, items, total, propinas };
             } catch (e) { console.log('cuenta mesa', e.message); }
             renderCuentaMesa();
         }
@@ -715,18 +723,31 @@
             if (!box) return;
             if (!selectedMesa || !mesaCuenta.items.length) { box.innerHTML = ''; return; }
             const r2 = n => '$' + (Math.round(n * 100) / 100).toFixed(2);
-            box.innerHTML = `
-                <div style="background: var(--bg3); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 12px; margin: 0 12px 10px;">
-                    <div style="font-size: 12px; font-weight: 700; margin-bottom: 6px;">🧾 Cuenta de la mesa (mozo/QR)</div>
-                    ${mesaCuenta.items.map(i => `
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0;">
-                            <span>${i.nombre} x${i.cantidad}</span>
-                            <span>${r2(i.precio * i.cantidad)}</span>
+            const pedidosHtml = (mesaCuenta.pedidosDet || []).map((p, idx) => `
+                <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed var(--border)">
+                    <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">Pedido #${String(p.id).substring(0,4)} — ${p.cliente}</div>
+                    ${p.items.map(i => `
+                        <div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0">
+                            <span>${i.nombre} x${i.cantidad || i.qty || 1}</span>
+                            <span>${r2((i.precio || 0) * (i.cantidad || i.qty || 1))}</span>
                         </div>`).join('')}
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px;">
-                        <span>Total</span><span style="color: var(--accent);">${r2(mesaCuenta.total)}</span>
+                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-top:2px">
+                        <span>Subtotal</span><span>${r2(p.total)}</span>
                     </div>
-                    <div style="display: flex; gap: 6px; margin-top: 8px;">
+                </div>`).join('');
+            const conPropina = mesaCuenta.total + (mesaCuenta.propinas || 0);
+            box.innerHTML = `
+                <div style="background:var(--bg3);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;margin:0 12px 10px">
+                    <div style="font-size:12px;font-weight:700;margin-bottom:8px">🧾 Cuenta Mesa #${selectedMesa.numero}</div>
+                    ${pedidosHtml}
+                    ${mesaCuenta.propinas > 0 ? `
+                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--green)">
+                        <span>💰 Propinas</span><span>${r2(mesaCuenta.propinas)}</span>
+                    </div>` : ''}
+                    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:6px;border-top:2px solid var(--accent);padding-top:6px">
+                        <span>TOTAL</span><span style="color:var(--accent)">${r2(conPropina)}</span>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px">
                         <button onclick="cobrarMesaDirecto('efectivo')" style="flex:1;padding:8px;border:none;border-radius:6px;background:var(--green);color:#fff;font-size:12px;font-weight:700;cursor:pointer">💵 Efectivo</button>
                         <button onclick="cobrarMesaDirecto('mercado_pago')" style="flex:1;padding:8px;border:none;border-radius:6px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer">💳 MP</button>
                     </div>
@@ -735,13 +756,14 @@
 
         async function cobrarMesaDirecto(method) {
             if (!mesaCuenta.pedidos.length) return;
-            if (!confirm(`Cobrar $${Math.round(mesaCuenta.total)} con ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}?`)) return;
+            const conPropina = mesaCuenta.total + (mesaCuenta.propinas || 0);
+            if (!confirm(`Cobrar $${Math.round(conPropina)} con ${method === 'efectivo' ? 'Efectivo' : 'MercadoPago'}?`)) return;
             try {
                 await sbPOS.from('pedidos').update({ metodo_pago: method, metodo_pago_estado: 'pagado', estado: 'pagado' }).in('id', mesaCuenta.pedidos);
                 const t = tables.find(t => selectedMesa && String(t.id) === String(selectedMesa.id));
                 if (t) { t.estado = 'disponible'; try { await sbPOS.from('mesas').update({ estado: 'libre' }).eq('id', t.id); } catch(_) {} }
                 selectedMesa.estado = 'disponible';
-                mesaCuenta = { pedidos: [], items: [], total: 0 };
+                mesaCuenta = { pedidos: [], pedidosDet: [], items: [], total: 0, propinas: 0 };
                 renderCuentaMesa();
                 renderTables();
                 showToast('Cobrado con ' + (method === 'efectivo' ? 'Efectivo' : 'MercadoPago'));
