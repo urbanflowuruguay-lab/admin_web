@@ -2959,6 +2959,7 @@
                         </div>
                     </div>`;
                 };
+                window._verPedidoItems = todosItems;
                 let html = '';
                 if (idxBeb.length) html += `<div style="font-size:12px;font-weight:700;color:#22c55e;margin:4px 0 8px">🥤 Bebidas</div>` + idxBeb.map(idx => rowItem(todosItems[idx], idx)).join('');
                 if (idxCoc.length) { const ok = pedidoActivo.estado === 'listo'; html += `<div style="font-size:12px;font-weight:700;color:${ok ? '#22c55e' : 'var(--orange)'};margin:8px 0">🍳 Cocina ${ok ? '— listo' : '— preparando'}</div>` + idxCoc.map(idx => rowItem(todosItems[idx], idx)).join(''); }
@@ -3056,10 +3057,28 @@
             }
         }
 
-        async function entregarItemVer(pedidoId, idx) {
-            await entregarItem(pedidoId, idx);
-            verPedidoMesa(pedidoId);
-            renderMesas();
+        async function entregarItemVer(pedidoId, globalIdx) {
+            try {
+                const { data: p } = await sbSvc.from('pedidos').select('items').eq('id', pedidoId).limit(1).maybeSingle();
+                if (!p) return;
+                let items = []; try { items = JSON.parse(p.items || '[]'); } catch (_) {}
+                if (!Array.isArray(items)) items = [];
+                const nombreBuscado = window._verPedidoItems && window._verPedidoItems[globalIdx] ? window._verPedidoItems[globalIdx].nombre : null;
+                let itemIdx = -1;
+                if (nombreBuscado) {
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].nombre === nombreBuscado && !items[i].entregado) { itemIdx = i; break; }
+                    }
+                }
+                if (itemIdx === -1) itemIdx = globalIdx;
+                await entregarItem(pedidoId, itemIdx);
+                verPedidoMesa(pedidoId);
+                renderMesas();
+            } catch (_) {
+                await entregarItem(pedidoId, globalIdx);
+                verPedidoMesa(pedidoId);
+                renderMesas();
+            }
         }
 
         function cerrarVerPedido() {
