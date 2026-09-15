@@ -2700,21 +2700,13 @@
                                     ? (pedidoAbierto ? `
                                 <button onclick="event.stopPropagation();verPedidoMesa('${pedidoAbierto}')" style="width:100%;padding:10px;margin-top:10px;background:${estaListo ? '#22c55e' : 'var(--accent)'};color:${estaListo ? '#fff' : '#000'};border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
                                     <i class="fas fa-${estaListo ? 'bell' : 'receipt'}"></i> ${estaListo ? 'RETIRAR EN COCINA' : 'VER PEDIDO'}
-                                </button>
-                                <button onclick="event.stopPropagation();verHistorialMesa(${m.numero})" style="width:100%;padding:8px;margin-top:6px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
-                                    📋 Ver historial
                                 </button>` : (estado === 'mantenimiento' ? `
                                 <button onclick="toggleMesaApp('${m.id}', 'mantenimiento')" style="width:100%;padding:10px;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
                                     🧹 Lista para usar
                                 </button>` : `
-                                <div style="display:flex;gap:6px;margin-top:10px">
-                                    <button onclick="event.stopPropagation();tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" style="flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
-                                        <i class="fas fa-pencil"></i> TOMAR
-                                    </button>
-                                    <button onclick="event.stopPropagation();verHistorialMesa(${m.numero})" style="flex:1;padding:10px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
-                                        📋 HISTORIAL
-                                    </button>
-                                </div>`))
+                                <button onclick="tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" style="width:100%;padding:10px;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                                    <i class="fas fa-pencil"></i> TOMAR PEDIDO
+                                </button>`))
                                     : `
                                 <button onclick="tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" style="width:100%;padding:10px;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
                                     <i class="fas fa-pencil"></i> TOMAR PEDIDO
@@ -2924,14 +2916,42 @@
                 const { data: p, error } = await sbSvc.from('pedidos').select('*').eq('id', pedidoId).limit(1).maybeSingle();
                 if (error) throw error;
                 if (!p) { cerrarVerPedido(); alert('Ese pedido ya fue borrado'); try{loadPedidosFromDB();}catch(_){} return; }
-                if (p.mesa_numero) { verHistorialMesa(p.mesa_numero); return; }
                 let items = [];
                 try { items = JSON.parse(p.items || '[]'); } catch (e) {}
                 if (!Array.isArray(items)) items = [];
-                const total = items.reduce((a, i) => a + ((i.precio || 0) * (i.cantidad || i.qty || 0)), 0);
-                document.getElementById('verPedidoTitle').textContent = 'Pedido · $' + Math.round(total);
-                document.getElementById('verPedidoEstado').textContent = (p.estado || '').toUpperCase() + (p.cliente_nombre ? ' · ' + p.cliente_nombre : '');
-                box.innerHTML = items.map(i => `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px"><div style="font-weight:600;font-size:13px">${i.nombre} x${i.cantidad || i.qty || 1}</div></div>`).join('') || '<p style="color:var(--text2);font-size:13px;text-align:center">Sin items</p>';
+                const subtotal = items.reduce((a, i) => a + ((i.precio || 0) * (i.cantidad || i.qty || 0)), 0);
+                let propina = 0;
+                try {
+                    const { data: props } = await sbSvc.from('propinas').select('monto').eq('pedido_id', pedidoId);
+                    if (props) propina = props.reduce((s, pr) => s + (pr.monto || 0), 0);
+                } catch (_) {}
+                const estadoColor = p.estado === 'pagado' ? '#22c55e' : p.estado === 'entregado' ? '#ff9800' : p.estado === 'listo' ? '#22c55e' : 'var(--accent)';
+                document.getElementById('verPedidoTitle').textContent = 'Mesa ' + (p.mesa_numero || '?') + ' · $' + (p.total || subtotal);
+                document.getElementById('verPedidoEstado').textContent = (p.estado || '').toUpperCase() + (p.cliente_nombre ? ' · ' + p.cliente_nombre : '') + (p.metodo_pago_estado === 'pagado' ? ' · 💰 Pagado' : '');
+                const idxBeb = [], idxCoc = [];
+                items.forEach((i, idx) => { (esItemCocina(i.nombre) ? idxCoc : idxBeb).push(idx); });
+                const rowItem = (i, idx) => `
+                    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;${i.entregado ? 'opacity:0.55' : ''}">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                            <div style="flex:1">
+                                <div style="font-weight:600;font-size:13px">${i.nombre} x${i.cantidad || i.qty || 1}</div>
+                                ${i.notas ? `<div style="font-size:10px;color:var(--text2);font-style:italic">${i.notas}</div>` : ''}
+                            </div>
+                            <span style="font-size:12px;font-weight:600">$${(i.precio || 0) * (i.cantidad || i.qty || 1)}</span>
+                            ${i.entregado
+                                ? '<span style="color:#22c55e;font-size:11px;font-weight:700">✓</span>'
+                                : `<button onclick="entregarItemVer('${p.id}', ${idx})" style="padding:4px 8px;font-size:10px;border-radius:6px;border:none;background:var(--green);color:#fff;font-weight:700;cursor:pointer">Entregar</button>`}
+                        </div>
+                    </div>`;
+                let html = '';
+                if (idxBeb.length) html += `<div style="font-size:12px;font-weight:700;color:#22c55e;margin:4px 0 8px">🥤 Bebidas</div>` + idxBeb.map(idx => rowItem(items[idx], idx)).join('');
+                if (idxCoc.length) { const ok = p.estado === 'listo'; html += `<div style="font-size:12px;font-weight:700;color:${ok ? '#22c55e' : 'var(--orange)'};margin:8px 0">🍳 Cocina ${ok ? '— listo' : '— preparando'}</div>` + idxCoc.map(idx => rowItem(items[idx], idx)).join(''); }
+                html += `<div style="border-top:2px solid var(--accent);padding-top:8px;margin-top:8px">
+                    <div style="display:flex;justify-content:space-between;font-size:12px"><span>Subtotal</span><span>$${subtotal}</span></div>
+                    ${propina > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--green)"><span>💰 Propina</span><span>$${propina}</span></div>` : ''}
+                    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-top:4px"><span>Total</span><span style="color:var(--accent)">$${(p.total || subtotal) + propina}</span></div>
+                </div>`;
+                box.innerHTML = html || '<p style="color:var(--text2);font-size:13px;text-align:center">Sin items</p>';
                 document.getElementById('verPedidoAgregarBtn').onclick = () => { cerrarVerPedido(); agregarAPedido(p.id, p.mesa_numero || 0); };
             } catch (err) {
                 box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar</p>';
