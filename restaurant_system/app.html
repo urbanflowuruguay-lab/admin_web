@@ -1855,12 +1855,18 @@
                 } catch (_) {}
 
                 if (all.length > 0) {
+                    let precioEnvio = 0;
+                    try {
+                        const { data: zonas } = await sbSvc.from('zonas_delivery').select('precio')
+                            .eq('empresa_id', currentUser.empresa_id).eq('activo', true).order('precio');
+                        if (zonas && zonas.length) precioEnvio = zonas[0].precio || 0;
+                    } catch (_) {}
                     box.innerHTML = all.map(d => {
                         const online = d.is_online ? '🟢 En turno' : '⚪ Desconectado';
                         return `
                         <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">
-                            <div style="font-weight:700;font-size:14px;flex:1">${d.nombre}<div style="font-size:11px;color:var(--text2);font-weight:400">${online}</div></div>
-                            <button onclick="llamarDelivery('${pedidoId}', '${d.id}', '${(d.nombre || '').replace(/'/g, "\\'")}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Llamar</button>
+                            <div style="font-weight:700;font-size:14px;flex:1">${d.nombre}<div style="font-size:11px;color:var(--text2);font-weight:400">${online}${precioEnvio > 0 ? ' · Envío $' + precioEnvio : ''}</div></div>
+                            <button onclick="llamarDelivery('${pedidoId}', '${d.id}', '${(d.nombre || '').replace(/'/g, "\\'")}', ${precioEnvio})" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Llamar</button>
                         </div>`;
                     }).join('');
                     return;
@@ -1918,7 +1924,7 @@
                             <div style="font-weight:700;font-size:14px;flex:1">${d.full_name || 'Delivery'} ${tag}
                                 <div style="font-size:11px;color:var(--text2);font-weight:400">${kmTxt}${precioEnvio > 0 ? ' · Envío $' + precioEnvio : ''}</div>
                             </div>
-                            <button onclick="llamarDelivery('${pedidoId}', '${d.id}', '${esc(d.full_name)}')" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Llamar</button>
+                            <button onclick="llamarDelivery('${pedidoId}', '${d.id}', '${esc(d.full_name)}', ${precioEnvio})" style="padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Llamar</button>
                         </div>`;
                     }).join('')}
                 `;
@@ -1931,7 +1937,7 @@
             document.getElementById('llamarDeliveryOverlay').style.display = 'none';
         }
 
-        async function llamarDelivery(pedidoId, empId, nombre) {
+        async function llamarDelivery(pedidoId, empId, nombre, precioEnvio = 0) {
             try {
                 const { data: pedido } = await sbSvc.from('pedidos').select('id,cliente_nombre,direccion_entrega,items,total,metodo_pago,empresa_id,notas,cliente_id').eq('id', pedidoId).single();
                 const { data: empresa } = await sbSvc.from('empresas').select('nombre,logo_url').eq('id', pedido.empresa_id).single();
@@ -1949,6 +1955,7 @@
                 const payload = {
                     pedido_id: pedidoId,
                     empresa_id: pedido?.empresa_id || '',
+                    delivery_price: Math.round(Number(precioEnvio) || 0),
                     restaurant_name: empresa?.nombre || 'Restaurante',
                     logo_url: empresa?.logo_url || '',
                     customer_name: pedido?.cliente_nombre || 'Cliente',
