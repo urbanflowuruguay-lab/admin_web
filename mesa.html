@@ -1413,6 +1413,9 @@ async function agregarAlPedidoExistente() {
         if (error) throw error;
         const nuevoId = data && data[0] ? data[0].id : null;
         currentPedidoId = nuevoId;
+        if (window.AndroidBridge && window.AndroidBridge.pedidoRecibido && currentPedidoId) {
+            try { window.AndroidBridge.pedidoRecibido(currentPedidoId, empresaId || "", empresaData?.nombre || "Restaurante", mesaToken || "", mesaData?.numero || 0, total); } catch(e){}
+        }
         carrito = [];
         esModoAgregar = false;
         updateCarritoBar();
