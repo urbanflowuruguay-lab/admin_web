@@ -2700,13 +2700,21 @@
                                     ? (pedidoAbierto ? `
                                 <button onclick="event.stopPropagation();verPedidoMesa('${pedidoAbierto}')" style="width:100%;padding:10px;margin-top:10px;background:${estaListo ? '#22c55e' : 'var(--accent)'};color:${estaListo ? '#fff' : '#000'};border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
                                     <i class="fas fa-${estaListo ? 'bell' : 'receipt'}"></i> ${estaListo ? 'RETIRAR EN COCINA' : 'VER PEDIDO'}
+                                </button>
+                                <button onclick="event.stopPropagation();verHistorialMesa(${m.numero})" style="width:100%;padding:8px;margin-top:6px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
+                                    📋 Ver historial
                                 </button>` : (estado === 'mantenimiento' ? `
                                 <button onclick="toggleMesaApp('${m.id}', 'mantenimiento')" style="width:100%;padding:10px;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
                                     🧹 Lista para usar
                                 </button>` : `
-                                <button onclick="tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" style="width:100%;padding:10px;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
-                                    <i class="fas fa-pencil"></i> TOMAR PEDIDO
-                                </button>`))
+                                <div style="display:flex;gap:6px;margin-top:10px">
+                                    <button onclick="event.stopPropagation();tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" style="flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                                        <i class="fas fa-pencil"></i> TOMAR
+                                    </button>
+                                    <button onclick="event.stopPropagation();verHistorialMesa(${m.numero})" style="flex:1;padding:10px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                                        📋 HISTORIAL
+                                    </button>
+                                </div>`))
                                     : `
                                 <button onclick="tomarPedidoMesa('${m.id}', ${m.numero}, '${token}')" style="width:100%;padding:10px;margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
                                     <i class="fas fa-pencil"></i> TOMAR PEDIDO
@@ -2913,38 +2921,102 @@
             const box = document.getElementById('verPedidoItems');
             box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Cargando...</p>';
             try {
-                const { data: p, error } = await sb.from('pedidos').select('*').eq('id', pedidoId).limit(1).maybeSingle();
+                const { data: p, error } = await sbSvc.from('pedidos').select('*').eq('id', pedidoId).limit(1).maybeSingle();
                 if (error) throw error;
                 if (!p) { cerrarVerPedido(); alert('Ese pedido ya fue borrado'); try{loadPedidosFromDB();}catch(_){} return; }
+                if (p.mesa_numero) { verHistorialMesa(p.mesa_numero); return; }
                 let items = [];
                 try { items = JSON.parse(p.items || '[]'); } catch (e) {}
                 if (!Array.isArray(items)) items = [];
                 const total = items.reduce((a, i) => a + ((i.precio || 0) * (i.cantidad || i.qty || 0)), 0);
-                document.getElementById('verPedidoTitle').textContent = 'Mesa ' + (p.mesa_numero || '?') + ' · $' + Math.round(total);
-                const doneCount = items.filter(i => i.entregado).length;
-                document.getElementById('verPedidoEstado').textContent = 'Estado: ' + (p.estado || '').toUpperCase() + (p.cliente_nombre ? ' · ' + p.cliente_nombre : '') + ` · ${doneCount}/${items.length} entregados`;
-                const rowMesa = (i, idx) => `
-                    <div style="background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px; ${i.entregado ? 'opacity:0.55' : ''}">
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; font-size: 13px;">${i.nombre} x${i.cantidad || i.qty || 1}</div>
-                                ${i.notas ? `<div style="font-size:10px;color:var(--text2);font-style:italic">${i.notas}</div>` : ''}
-                            </div>
-                            ${i.entregado
-                                ? '<span style="color:#22c55e;font-size:11px;font-weight:700">✓ ENTREGADO</span>'
-                                : `<span style="display:flex;gap:6px;align-items:center"><span style="color:#22c55e;font-size:10px;font-weight:700">PENDIENTE</span><button onclick="entregarItemVer('${p.id}', ${idx})" style="padding:5px 10px;font-size:11px;border-radius:6px;border:none;background:var(--green);color:#fff;font-weight:700;cursor:pointer">Entregado</button></span>`}
-                        </div>
-                    </div>`;
-                const idxBeb = [], idxCoc = [];
-                items.forEach((i, idx) => { (esItemCocina(i.nombre) ? idxCoc : idxBeb).push(idx); });
-                let htmlMesa = '';
-                if (idxBeb.length) htmlMesa += `<div style="font-size:12px;font-weight:700;color:#22c55e;margin:4px 0 8px">🥤 Bebidas — entregá cuando quieras</div>` + idxBeb.map(idx => rowMesa(items[idx], idx)).join('');
-                if (idxCoc.length) { const cocinaOk = (p.estado === 'listo'); htmlMesa += `<div style="font-size:12px;font-weight:700;color:${cocinaOk ? '#22c55e' : 'var(--orange)'};margin:8px 0">${cocinaOk ? '🍳 Cocina — habilitado a entregar' : '🍳 Cocina — se habilita al estar listo'}</div>` + idxCoc.map(idx => rowMesa(items[idx], idx)).join(''); }
-                box.innerHTML = htmlMesa || '<p style="color:var(--text2);font-size:13px;text-align:center">Sin items</p>';
+                document.getElementById('verPedidoTitle').textContent = 'Pedido · $' + Math.round(total);
+                document.getElementById('verPedidoEstado').textContent = (p.estado || '').toUpperCase() + (p.cliente_nombre ? ' · ' + p.cliente_nombre : '');
+                box.innerHTML = items.map(i => `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px"><div style="font-weight:600;font-size:13px">${i.nombre} x${i.cantidad || i.qty || 1}</div></div>`).join('') || '<p style="color:var(--text2);font-size:13px;text-align:center">Sin items</p>';
                 document.getElementById('verPedidoAgregarBtn').onclick = () => { cerrarVerPedido(); agregarAPedido(p.id, p.mesa_numero || 0); };
-                try { window.marcarMesaVista(p.mesa_numero, p.id, p.estado, Array.isArray(items) ? items.length : 0); } catch (_) {}
             } catch (err) {
-                box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar el pedido</p>';
+                box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar</p>';
+            }
+        }
+
+        async function verHistorialMesa(mesaNumero) {
+            document.getElementById('verPedidoOverlay').style.display = 'flex';
+            const box = document.getElementById('verPedidoItems');
+            const title = document.getElementById('verPedidoTitle');
+            const estado = document.getElementById('verPedidoEstado');
+            title.textContent = 'Mesa ' + mesaNumero;
+            estado.textContent = 'Historial completo';
+            box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Cargando...</p>';
+            try {
+                const empId = currentUser.empresa_id;
+                const [pedRes, propRes, calRes, llamRes] = await Promise.all([
+                    sbSvc.from('pedidos').select('*').eq('empresa_id', empId).eq('mesa_numero', mesaNumero).order('created_at', { ascending: true }),
+                    sbSvc.from('propinas').select('*').eq('empresa_id', empId).eq('mesa_numero', mesaNumero).order('created_at', { ascending: true }),
+                    sbSvc.from('calificaciones').select('*').eq('empresa_id', empId).eq('mesa_numero', mesaNumero).order('created_at', { ascending: true }),
+                    sbSvc.from('llamados_mozo').select('*').eq('empresa_id', empId).eq('mesa_numero', mesaNumero).order('created_at', { ascending: true })
+                ]);
+                const pedidos = (pedRes.data || []).filter(p => p.estado !== 'cancelado');
+                const propinas = propRes.data || [];
+                const calificaciones = calRes.data || [];
+                const llamados = llamRes.data || [];
+                const todo = [];
+                pedidos.forEach(p => {
+                    let items = []; try { items = JSON.parse(p.items || '[]'); } catch (_) {}
+                    const estadoColor = p.estado === 'pagado' ? '#22c55e' : p.estado === 'entregado' ? '#ff9800' : p.estado === 'listo' ? '#22c55e' : 'var(--accent)';
+                    todo.push({
+                        ts: p.created_at,
+                        html: `<div style="background:var(--bg3);border:1px solid ${estadoColor};border-radius:10px;padding:10px;margin-bottom:8px">
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <span style="font-weight:700;font-size:13px">🍽️ Pedido #${String(p.id).substring(0,4)}</span>
+                                <span style="font-size:11px;font-weight:700;color:${estadoColor};text-transform:uppercase">${p.estado}${p.metodo_pago_estado === 'pagado' ? ' · 💰' : ''}</span>
+                            </div>
+                            <div style="margin-top:6px">${items.map(i => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0"><span>${i.nombre} x${i.cantidad || i.qty || 1}</span><span>$${(i.precio || 0) * (i.cantidad || i.qty || 1)}</span></div>`).join('')}</div>
+                            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span>Total</span><span style="color:var(--accent)">$${p.total || 0}</span></div>
+                            ${p.cliente_nombre ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">👤 ${p.cliente_nombre}</div>` : ''}
+                        </div>`
+                    });
+                });
+                propinas.forEach(pr => {
+                    todo.push({
+                        ts: pr.created_at,
+                        html: `<div style="background:var(--bg3);border:1px solid var(--green);border-radius:10px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-weight:700;font-size:13px">💰 Propina</span>
+                            <span style="font-weight:700;font-size:14px;color:var(--green)">$${pr.monto || 0}</span>
+                        </div>`
+                    });
+                });
+                calificaciones.forEach(c => {
+                    const estrellas = '★'.repeat(c.estrellas || 0) + '☆'.repeat(5 - (c.estrellas || 0));
+                    todo.push({
+                        ts: c.created_at,
+                        html: `<div style="background:var(--bg3);border:1px solid #fbbf24;border-radius:10px;padding:10px;margin-bottom:8px">
+                            <div style="display:flex;justify-content:space-between;align-items:center">
+                                <span style="font-weight:700;font-size:13px">⭐ Calificación</span>
+                                <span style="font-size:14px;color:#fbbf24">${estrellas}</span>
+                            </div>
+                            ${c.comentario ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">"${c.comentario}"</div>` : ''}
+                        </div>`
+                    });
+                });
+                llamados.forEach(l => {
+                    const motivo = l.motivo === 'pagar' ? '💵 Pedir cuenta' : l.motivo === 'agregar' ? '➕ Agregar' : '🔔 Llamó a la camarera';
+                    const atendido = l.estado === 'atendido';
+                    todo.push({
+                        ts: l.created_at,
+                        html: `<div style="background:var(--bg3);border:1px solid ${atendido ? 'var(--green)' : 'var(--orange)'};border-radius:10px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-weight:700;font-size:13px">${motivo}</span>
+                            <span style="font-size:11px;font-weight:700;color:${atendido ? 'var(--green)' : 'var(--orange)'}">${atendido ? '✓ Atendido' : '⏳ Pendiente'}</span>
+                        </div>`
+                    });
+                });
+                todo.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+                if (todo.length === 0) {
+                    box.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center">Sin movimientos en esta mesa</p>';
+                } else {
+                    box.innerHTML = `<div style="font-size:11px;color:var(--text2);margin-bottom:8px;text-align:center">${todo.length} movimiento${todo.length > 1 ? 's' : ''}</div>` + todo.map(t => t.html).join('');
+                }
+                document.getElementById('verPedidoAgregarBtn').style.display = 'none';
+            } catch (err) {
+                box.innerHTML = '<p style="color:var(--red);font-size:13px;text-align:center">Error al cargar historial</p>';
             }
         }
 
@@ -2956,6 +3028,7 @@
 
         function cerrarVerPedido() {
             document.getElementById('verPedidoOverlay').style.display = 'none';
+            document.getElementById('verPedidoAgregarBtn').style.display = '';
             renderMesas();
         }
 
