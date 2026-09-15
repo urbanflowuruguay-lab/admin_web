@@ -393,39 +393,18 @@
 
 <div class="nombre-input" id="ratingScreen">
     <div class="nombre-box" style="max-width:400px">
-        <h3>⭐ ¿Cómo fue tu experiencia?</h3>
+        <h3>Tu calificación nos ayuda a mejorar</h3>
         <p id="ratingPedidoInfo" style="color:var(--text2);font-size:12px;margin-bottom:16px;text-align:center"></p>
         
         <div style="text-align:center;margin-bottom:16px">
-            <div style="font-size:32px;letter-spacing:4px;cursor:pointer" id="starRating">
+            <div style="font-size:36px;letter-spacing:6px;cursor:pointer" id="starRating">
                 <span onclick="setRating(1)">☆</span>
                 <span onclick="setRating(2)">☆</span>
                 <span onclick="setRating(3)">☆</span>
                 <span onclick="setRating(4)">☆</span>
                 <span onclick="setRating(5)">☆</span>
             </div>
-            <div style="font-size:12px;color:var(--text2);margin-top:4px" id="ratingLabel">Tocá las estrellas</div>
-        </div>
-
-        <div style="margin-bottom:16px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">¿Querés dejar propina?</div>
-            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
-                <button class="propina-btn" onclick="setPropina(20)" id="propina20">$20</button>
-                <button class="propina-btn" onclick="setPropina(50)" id="propina50">$50</button>
-                <button class="propina-btn" onclick="setPropina(100)" id="propina100">$100</button>
-                <button class="propina-btn" onclick="setPropina(150)" id="propina150">$150</button>
-                <button class="propina-btn" onclick="setPropina(200)" id="propina200">$200</button>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;justify-content:center">
-                <input type="number" id="propinaCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaCustom()">
-            </div>
-            <div id="propinaInfo" style="font-size:11px;color:var(--text2);text-align:center;margin-top:6px"></div>
-        </div>
-
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('servicio', 5)"> Servicio ⭐</button>
-            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('comida', 5)"> Comida ⭐</button>
-            <button style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer" onclick="setSubRating('rapidez', 5)"> Rapidez ⭐</button>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px" id="ratingLabel">Tocá las estrellas</div>
         </div>
 
         <textarea id="ratingComentario" placeholder="Comentario opcional..." style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin-bottom:12px;resize:none;height:60px;font-family:var(--font)"></textarea>
@@ -1090,11 +1069,10 @@ async function confirmarPedido() {
 
 function showRatingScreen() {
     currentRating = 0;
-    currentPropina = 0;
-    subRatings = { servicio: 0, comida: 0, rapidez: 0 };
-    document.getElementById("ratingPedidoInfo").textContent = `Mesa #${mesaData ? mesaData.numero : '?'} — Gracias por tu visita`;
-    updateStars();
-    updatePropinaButtons();
+    document.getElementById("ratingComentario").value = "";
+    document.getElementById("ratingPedidoInfo").textContent = "";
+    document.getElementById("ratingLabel").textContent = "Tocá las estrellas";
+    document.querySelectorAll("#starRating span").forEach(s => { s.textContent = "☆"; s.style.color = "var(--text2)"; });
     document.getElementById("ratingScreen").classList.add("show");
 }
 
@@ -1146,7 +1124,6 @@ function setSubRating(campo, val) {
 
 async function enviarRating() {
     try {
-        // Save calificación
         if (currentRating > 0) {
             await sbSvc.from("calificaciones").insert({
                 empresa_id: empresaId,
@@ -1156,35 +1133,9 @@ async function enviarRating() {
                 cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
                 cliente_token: clienteToken,
                 estrellas: currentRating,
-                servicio: subRatings.servicio || null,
-                comida: subRatings.comida || null,
-                rapidez: subRatings.rapidez || null,
                 comentario: document.getElementById("ratingComentario").value.trim() || null
             });
         }
-
-        // Save propina and add to order total
-        if (currentPropina > 0) {
-            await sbSvc.from("propinas").insert({
-                empresa_id: empresaId,
-                pedido_id: currentPedidoId,
-                mesa_token: mesaToken,
-                mesa_numero: mesaData ? mesaData.numero : 0,
-                cliente_nombre: document.getElementById("clienteNombre").value.trim() || "Cliente",
-                cliente_token: clienteToken,
-                monto: currentPropina,
-                metodo_pago: selectedPago || "efectivo",
-                reparto: "individual"
-            });
-            // Sumar propina al total del pedido
-            try {
-                const { data: pedAct } = await sbSvc.from("pedidos").select("total").eq("id", currentPedidoId).maybeSingle();
-                if (pedAct && pedAct.total) {
-                    await sbSvc.from("pedidos").update({ total: pedAct.total + currentPropina }).eq("id", currentPedidoId);
-                }
-            } catch (_) {}
-        }
-
         document.getElementById("ratingScreen").classList.remove("show");
         showGraciasFinal();
     } catch (e) {
