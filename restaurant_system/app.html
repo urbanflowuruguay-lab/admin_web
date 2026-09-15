@@ -2592,7 +2592,7 @@
                 let creadoPorMesa = {};
                 let pagoPorMesa = {};
                 try {
-                    const { data: ab } = await sb.from('pedidos').select('id,mesa_numero,estado,metodo_pago_estado,created_at')
+                    const { data: ab } = await sbSvc.from('pedidos').select('id,mesa_numero,estado,metodo_pago_estado,created_at')
                         .eq('empresa_id', currentUser.empresa_id).in('estado', ['recibido', 'preparando', 'listo', 'entregado']);
                     (ab || []).forEach(p => { if (p.mesa_numero && p.metodo_pago_estado !== 'pagado') { abiertosPorMesa[p.mesa_numero] = p.id; estadoPorMesa[p.mesa_numero] = p.estado; creadoPorMesa[p.mesa_numero] = p.created_at; if (p.metodo_pago_estado === 'por_confirmar') pagoPorMesa[p.mesa_numero] = true; } });
                 } catch (_) {}
