@@ -368,6 +368,29 @@
     </div>
 </div>
 
+<div class="nombre-input" id="propinaScreen">
+    <div class="nombre-box" style="max-width:400px">
+        <h3>💰 Dejar propina</h3>
+        <p style="color:var(--text2);font-size:12px;margin-bottom:16px;text-align:center">Si te gustó el servicio, podés dejar una propina</p>
+
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px">
+            <button class="propina-btn" onclick="setPropinaSolo(20)" id="propinaSolo20">$20</button>
+            <button class="propina-btn" onclick="setPropinaSolo(50)" id="propinaSolo50">$50</button>
+            <button class="propina-btn" onclick="setPropinaSolo(100)" id="propinaSolo100">$100</button>
+            <button class="propina-btn" onclick="setPropinaSolo(150)" id="propinaSolo150">$150</button>
+            <button class="propina-btn" onclick="setPropinaSolo(200)" id="propinaSolo200">$200</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:8px">
+            <input type="number" id="propinaSoloCustom" placeholder="Otra" style="width:80px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;text-align:center;font-family:var(--font)" oninput="setPropinaSoloCustom()">
+        </div>
+        <div id="propinaSoloInfo" style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:16px"></div>
+        <div class="btn-row">
+            <button style="background:var(--bg3);color:var(--text)" onclick="cancelarPropina()">Cancelar</button>
+            <button style="background:var(--accent);color:var(--bg)" onclick="enviarPropina()">Aceptar</button>
+        </div>
+    </div>
+</div>
+
 <div class="nombre-input" id="ratingScreen">
     <div class="nombre-box" style="max-width:400px">
         <h3>⭐ ¿Cómo fue tu experiencia?</h3>
@@ -1334,14 +1357,63 @@ function irARating() {
 
 function irAPropina() {
     document.getElementById("atencionScreen").classList.remove("show");
-    currentRating = 0;
     currentPropina = 0;
-    document.getElementById("ratingPedidoInfo").textContent = `Mesa #${mesaData ? mesaData.numero : '?'} — ¡Gracias por tu visita!`;
-    document.getElementById("ratingLabel").textContent = "Tocá las estrellas";
-    document.querySelectorAll("#starRating span").forEach(s => { s.textContent = "☆"; s.style.color = "var(--text2)"; });
-    document.getElementById("ratingComentario").value = "";
-    updatePropinaButtons();
-    document.getElementById("ratingScreen").classList.add("show");
+    document.getElementById("propinaSoloCustom").value = "";
+    document.getElementById("propinaSoloInfo").textContent = "";
+    ["propinaSolo20","propinaSolo50","propinaSolo100","propinaSolo150","propinaSolo200"].forEach(id => {
+        document.getElementById(id).style.background = "var(--bg)";
+        document.getElementById(id).style.color = "var(--text)";
+    });
+    document.getElementById("propinaScreen").classList.add("show");
+}
+
+function setPropinaSolo(monto) {
+    currentPropina = monto;
+    document.getElementById("propinaSoloCustom").value = "";
+    ["propinaSolo20","propinaSolo50","propinaSolo100","propinaSolo150","propinaSolo200"].forEach(id => {
+        const btn = document.getElementById(id);
+        const val = parseInt(id.replace("propinaSolo",""));
+        btn.style.background = val === monto ? "var(--accent)" : "var(--bg)";
+        btn.style.color = val === monto ? "var(--bg)" : "var(--text)";
+    });
+    document.getElementById("propinaSoloInfo").textContent = monto > 0 ? "Propina: $" + monto : "";
+}
+
+function setPropinaSoloCustom() {
+    const val = parseInt(document.getElementById("propinaSoloCustom").value) || 0;
+    currentPropina = val;
+    ["propinaSolo20","propinaSolo50","propinaSolo100","propinaSolo150","propinaSolo200"].forEach(id => {
+        document.getElementById(id).style.background = "var(--bg)";
+        document.getElementById(id).style.color = "var(--text)";
+    });
+    document.getElementById("propinaSoloInfo").textContent = val > 0 ? "Propina: $" + val : "";
+}
+
+async function enviarPropina() {
+    if (currentPropina <= 0) { alert("Seleccioná un monto de propina"); return; }
+    try {
+        if (currentPedidoId) {
+            const { data: pedAct } = await sbSvc.from("pedidos").select("total").eq("id", currentPedidoId).maybeSingle();
+            if (pedAct) await sbSvc.from("pedidos").update({ total: (pedAct.total || 0) + currentPropina }).eq("id", currentPedidoId);
+            await sbSvc.from("propinas").insert({
+                empresa_id: empresaId,
+                pedido_id: currentPedidoId,
+                mesa_token: mesaToken,
+                monto: currentPropina
+            });
+        }
+        document.getElementById("propinaScreen").classList.remove("show");
+        mostrarPantallaAtencion(mesaData?. camarero_nombre, currentPedidoId);
+    } catch (e) {
+        console.error("Error propina:", e);
+        document.getElementById("propinaScreen").classList.remove("show");
+        mostrarPantallaAtencion(mesaData?. camarero_nombre, currentPedidoId);
+    }
+}
+
+function cancelarPropina() {
+    document.getElementById("propinaScreen").classList.remove("show");
+    mostrarPantallaAtencion(mesaData?. camarero_nombre, currentPedidoId);
 }
 
 function abrirCartaAgregar() {
