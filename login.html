@@ -412,16 +412,6 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Estilo QR Container */
-        .qr-box {
-            background: #ffffff;
-            padding: 16px;
-            border-radius: 16px;
-            display: inline-block;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            margin: 16px 0;
-        }
-
         .footer-back {
             text-align: center;
             margin-top: 24px;
@@ -542,10 +532,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Contraseña de Dueño (Acceso Interno)</label>
+                        <label>Teléfono</label>
                         <div class="input-wrapper">
-                            <i class="fa-solid fa-shield-halved input-icon"></i>
-                            <input type="password" id="regEmpPin" placeholder="Clave para validar tu rol de dueño" required>
+                            <i class="fa-solid fa-phone input-icon"></i>
+                            <input type="tel" id="regEmpTelefono" placeholder="+598 99 123 456" required>
                         </div>
                     </div>
 
@@ -559,7 +549,7 @@
                 </div>
             </div>
 
-            <!-- STEP 3: REGISTRO DE EMPLEADO (VÍA QR O CÓDIGO) -->
+            <!-- STEP 3: REGISTRO DE EMPLEADO (VÍA CÓDIGO) -->
             <div id="step-register-empleado" class="hidden">
                 <h2 class="card-heading">Registro de Empleado</h2>
                 <p class="card-subheading">Formá parte del equipo de un comercio o restaurante</p>
@@ -602,93 +592,7 @@
                 </div>
             </div>
 
-            <!-- STEP 4: SELECTOR DE ROL DE EMPRESA (DUEÑO VS EMPLEADO QR) -->
-            <div id="step-role" class="hidden">
-                <h2 class="card-heading" id="roleTitle">Tu Negocio</h2>
-                <p class="card-subheading" id="roleSubtitle">Seleccioná cómo deseas acceder</p>
-
-                <div class="role-grid">
-                    <div class="role-card" onclick="selectRoleOption('dueno')">
-                        <div class="role-icon-box">
-                            <i class="fa-solid fa-crown"></i>
-                        </div>
-                        <div class="role-info">
-                            <h4>Dueño / Administrador</h4>
-                            <p>Acceso al panel general, aprobación de empleados y gestión total</p>
-                        </div>
-                    </div>
-
-                    <div class="role-card" onclick="selectRoleOption('empleado')">
-                        <div class="role-icon-box" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue);">
-                            <i class="fa-solid fa-qrcode"></i>
-                        </div>
-                        <div class="role-info">
-                            <h4>Empleado de Local (Código / QR)</h4>
-                            <p>Acceso directo a marcaje de turno, comandos de cocina o caja POS</p>
-                        </div>
-                    </div>
-
-                    <div class="role-card" onclick="selectRoleOption('empleado_pc')">
-                        <div class="role-icon-box" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
-                            <i class="fa-solid fa-desktop"></i>
-                        </div>
-                        <div class="role-info">
-                            <h4>Empleado en esta PC</h4>
-                            <p>Entrar directo en esta computadora con nombre y PIN, sin escanear QR</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="link-text">
-                    <a onclick="logoutAndReset()"><i class="fa-solid fa-arrow-left"></i> Cambiar de cuenta</a>
-                </div>
-            </div>
-
-            <!-- STEP 5: CONFIRMACIÓN DE CLAVE DE DUEÑO -->
-            <div id="step-pin" class="hidden">
-                <h2 class="card-heading">Acceso de Dueño</h2>
-                <p class="card-subheading">Ingresá tu clave de Dueño para acceder a Gestión</p>
-
-                <div id="pinAlert" class="hidden"></div>
-
-                <form onsubmit="handleVerifyPin(event)">
-                    <div class="form-group">
-                        <label>Contraseña Interna de Dueño</label>
-                        <div class="input-wrapper">
-                            <i class="fa-solid fa-shield-cat input-icon"></i>
-                            <input type="password" id="pinInput" placeholder="Clave de dueño" required>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-primary" id="btnVerifyPin">
-                        <i class="fa-solid fa-door-open"></i> Entrar al Panel de Control
-                    </button>
-                </form>
-
-                <div class="link-text">
-                    <a onclick="showStep('step-role')"><i class="fa-solid fa-arrow-left"></i> Volver a la selección</a>
-                </div>
-            </div>
-
-            <!-- STEP 6: MOSTRAR QR DE EMPLEADOS Y FORMATO -->
-            <div id="step-qr-empleados" class="hidden" style="text-align: center;">
-                <h2 class="card-heading">Portal de Empleado</h2>
-                <p class="card-subheading">Escaneá este QR con tu móvil para ingresar o registrarte</p>
-
-                <div class="qr-box">
-                    <div id="qrContainer"></div>
-                </div>
-
-                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-top: 10px;">
-                    Al escanear el QR, se abrirá la opción de registrarte como empleado o acceder a tu turno.
-                </p>
-
-                <div class="link-text" style="margin-top: 16px;">
-                    <a onclick="showStep('step-role')"><i class="fa-solid fa-arrow-left"></i> Volver</a>
-                </div>
-            </div>
-
-            <!-- STEP 7: PENDIENTE DE APROBACIÓN POR EL DUEÑO -->
+            <!-- STEP 6: PENDIENTE DE APROBACIÓN POR EL DUEÑO -->
             <div id="step-pending-approval" class="hidden" style="text-align: center; padding: 10px 0;">
                 <div style="font-size: 48px; color: var(--accent-gold); margin-bottom: 16px;">
                     <i class="fa-solid fa-user-clock"></i>
@@ -736,7 +640,7 @@
             document.getElementById('authLoader').classList.add('hidden');
             document.getElementById('mainCard').classList.remove('hidden');
 
-            // Si viene un código de empresa en la URL por QR
+            // Si viene un código de empresa en la URL (link compartido por el dueño)
             const params = new URLSearchParams(window.location.search);
             const empCode = params.get('code') || params.get('empresa');
             if (empCode) {
@@ -845,13 +749,9 @@
 
                     const token = btoa(JSON.stringify({ empId: emp.id, pin: emp.pin }));
                     localStorage.setItem('urbanflow_empresa_id', emp.empresa_id);
-                    const rol = (emp.rol || '').toLowerCase();
 
-                    if (rol.includes('cajero')) {
-                        window.location.href = '/restaurant_system/pos.html?empresa=' + emp.empresa_id;
-                    } else {
-                        window.location.href = '/restaurant_system/app.html?token=' + encodeURIComponent(token);
-                    }
+                    // Todos los empleados (incluido cajero) entran por app.html con sus roles
+                    window.location.href = '/restaurant_system/app.html?token=' + encodeURIComponent(token);
                     return;
                 }
 
@@ -894,55 +794,16 @@
 
             if (empresas && empresas.length > 0) {
                 userEmpresa = empresas[0];
-                document.getElementById('roleTitle').textContent = userEmpresa.nombre || 'Tu Restaurante';
-                document.getElementById('roleSubtitle').textContent = '¿Cómo querés ingresar a ' + (userEmpresa.nombre || 'tu local') + '?';
-                showStep('step-role');
+                localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
+                localStorage.removeItem('urbanflow_employee');
+                localStorage.removeItem('urbanflow_employee_role');
+                localStorage.removeItem('urbanflow_employee_name');
+                window.location.href = '/restaurant_system/gestion.html';
                 return;
             }
 
             showAlert('loginAlert', 'No se encontró un perfil asociado a esta cuenta.');
             await sb.auth.signOut();
-        }
-
-        // SELECTOR ROL EMPRESA
-        function selectRoleOption(role) {
-            if (role === 'dueno') {
-                showStep('step-pin');
-            } else if (role === 'empleado_pc') {
-                const empId = userEmpresa?.id || '';
-                window.location.href = '/restaurant_system/app.html?empresa=' + empId;
-            } else {
-                const qrUrl = window.location.origin + '/admin/login.html?code=' + (userEmpresa?.codigo_interno || '');
-                generateQR(qrUrl);
-                showStep('step-qr-empleados');
-            }
-        }
-
-        function generateQR(text) {
-            const container = document.getElementById('qrContainer');
-            const url = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(text);
-            container.innerHTML = '<img src="' + url + '" style="width:200px;height:200px;border-radius:8px;" alt="QR">';
-        }
-
-        async function handleVerifyPin(e) {
-            e.preventDefault();
-            const pin = document.getElementById('pinInput').value.trim();
-            if (!pin) { showAlert('pinAlert', 'Ingresá tu contraseña de dueño.'); return; }
-
-            const btn = document.getElementById('btnVerifyPin');
-            btn.disabled = true;
-            btn.innerHTML = '<div class="spinner"></div> Verificando...';
-            showAlert('pinAlert', '');
-
-            if (!userEmpresa || userEmpresa.pin_dueno !== pin) {
-                showAlert('pinAlert', 'Contraseña de dueño incorrecta.');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-door-open"></i> Entrar al Panel de Control';
-                return;
-            }
-
-            localStorage.setItem('urbanflow_empresa_id', userEmpresa.id);
-            window.location.href = '/restaurant_system/gestion.html';
         }
 
         // REGISTRO DE EMPRESA (DUEÑO)
@@ -951,9 +812,9 @@
             const nombre = document.getElementById('regEmpNombre').value.trim();
             const email = document.getElementById('regEmpEmail').value.trim();
             const pass = document.getElementById('regEmpPass').value.trim();
-            const pin = document.getElementById('regEmpPin').value.trim();
+            const telefono = document.getElementById('regEmpTelefono').value.trim();
 
-            if (!nombre || !email || !pass || !pin) {
+            if (!nombre || !email || !pass || !telefono) {
                 showAlert('regEmpresaAlert', 'Por favor completá todos los campos.');
                 return;
             }
@@ -980,8 +841,8 @@
                 usuario_id: userId,
                 email,
                 nombre,
+                telefono,
                 rubro: 'restaurante',
-                pin_dueno: pin,
                 codigo_interno: codigo,
                 status: 'aprobado',
                 activo: true
@@ -997,6 +858,9 @@
             const { data: emp } = await sbService.from('empresas').select('*').eq('usuario_id', userId).limit(1);
             if (emp && emp[0]) {
                 localStorage.setItem('urbanflow_empresa_id', emp[0].id);
+                localStorage.removeItem('urbanflow_employee');
+                localStorage.removeItem('urbanflow_employee_role');
+                localStorage.removeItem('urbanflow_employee_name');
                 window.location.href = '/restaurant_system/gestion.html';
             }
         }
@@ -1069,6 +933,9 @@
 
         function logoutAndReset() {
             sb.auth.signOut();
+            localStorage.removeItem('urbanflow_employee');
+            localStorage.removeItem('urbanflow_employee_role');
+            localStorage.removeItem('urbanflow_employee_name');
             currentUser = null;
             userEmpresa = null;
             showStep('step-login');

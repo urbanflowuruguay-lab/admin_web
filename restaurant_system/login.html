@@ -125,25 +125,7 @@
                     return;
                 }
 
-                // 2) Buscar dueño en empresas por email + pin_dueno
-                const { data: empresas } = await sbSvc.from('empresas')
-                    .select('*')
-                    .eq('email', user)
-                    .eq('pin_dueno', pass)
-                    .eq('activo', true)
-                    .limit(1);
-
-                if (empresas && empresas.length > 0) {
-                    const e = empresas[0];
-                    localStorage.setItem('urbanflow_empresa_id', e.id);
-                    localStorage.removeItem('urbanflow_employee');
-                    localStorage.setItem('urbanflow_employee_role', 'rol_dueno');
-                    localStorage.setItem('urbanflow_employee_name', e.nombre);
-                    window.location.href = 'gestion.html';
-                    return;
-                }
-
-                // 3) Supabase Auth (login original del dueño con email + password)
+                // 2) Supabase Auth (login del dueño con email + password)
                 const { data: authData, error: authError } = await sb.auth.signInWithPassword({
                     email: user,
                     password: pass
