@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UF Hogar - Moderación de Propiedades - UrbanFlow</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; }
+        .header { background: #161b22; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; flex-wrap: wrap; gap: 10px; }
+        .header h1 { font-size: 20px; color: #58a6ff; }
+        .header .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+        .stat { background: #21262d; border: 1px solid #30363d; border-radius: 12px; padding: 4px 12px; font-size: 13px; color: #8b949e; }
+        .stat b { color: #c9d1d9; }
+        .tabs { display: flex; gap: 0; background: #161b22; border-bottom: 1px solid #30363d; padding: 0 24px; overflow-x: auto; }
+        .tab { padding: 12px 20px; cursor: pointer; color: #8b949e; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+        .tab:hover { color: #c9d1d9; }
+        .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+        .tab .badge { background: #da3633; color: white; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
+        .container { padding: 20px 24px; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .search-bar input { flex: 1; min-width: 220px; padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        .search-bar input:focus { border-color: #58a6ff; outline: none; }
+        .search-bar select { padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #161b22; padding: 10px 12px; text-align: left; font-size: 12px; color: #8b949e; text-transform: uppercase; border-bottom: 1px solid #30363d; }
+        td { padding: 12px; border-bottom: 1px solid #21262d; font-size: 14px; vertical-align: middle; }
+        tr:hover { background: #161b22; }
+        .badge-status { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .badge-pendiente { background: #9e6a03; color: #f0e68c; }
+        .badge-aprobado { background: #238636; color: #7ee787; }
+        .badge-rechazado { background: #da3633; color: #ffa198; }
+        .badge-oculto { background: #484f58; color: #c9d1d9; }
+        .btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-approve { background: #238636; color: white; }
+        .btn-reject { background: #da3633; color: white; }
+        .btn-hide { background: #9e6a03; color: white; }
+        .btn-show { background: #1f6feb; color: white; }
+        .btn-delete { background: #b62324; color: white; }
+        .btn-view { background: #30363d; color: #c9d1d9; }
+        .btn-whatsapp { background: #25d366; color: white; }
+        .btn-link { background: #21262d; color: #58a6ff; border: 1px solid #30363d; }
+        .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 100; }
+        .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 92%; max-width: 760px; max-height: 88vh; overflow-y: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 24px; }
+        .modal h2 { color: #58a6ff; margin-bottom: 16px; font-size: 18px; }
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { display: block; color: #8b949e; font-size: 12px; margin-bottom: 4px; text-transform: uppercase; }
+        .modal-field .value { font-size: 14px; color: #c9d1d9; }
+        .modal-close { float: right; background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer; }
+        .modal-close:hover { color: #c9d1d9; }
+        .empty { text-align: center; padding: 60px 20px; color: #484f58; display: none; }
+        .empty .icon { font-size: 48px; margin-bottom: 12px; }
+        .prop-thumb { width: 64px; height: 48px; border-radius: 6px; object-fit: cover; background: #21262d; border: 1px solid #30363d; display: block; }
+        .thumb-placeholder { width: 64px; height: 48px; border-radius: 6px; background: #21262d; border: 1px solid #30363d; display: flex; align-items: center; justify-content: center; color: #484f58; font-size: 18px; }
+        .photo-main { width: 100%; max-height: 300px; border-radius: 8px; object-fit: cover; margin-bottom: 10px; background: #21262d; }
+        .photo-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+        .photo-strip img { width: 90px; height: 66px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid #30363d; flex-shrink: 0; }
+        .photo-strip img.sel { border-color: #58a6ff; }
+        .title-cell strong { display: block; }
+        .title-cell small { color: #8b949e; }
+        .prices { font-size: 12px; color: #8b949e; line-height: 1.5; }
+        .prices b { color: #c9d1d9; font-weight: 600; }
+        .phone-link { color: #25d366; text-decoration: none; }
+        .phone-link:hover { text-decoration: underline; }
+        .modal-actions { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+        select.inline { width: 100%; padding: 8px; border-radius: 6px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1f6feb; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 14px; z-index: 200; display: none; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+        .toast.err { background: #da3633; }
+        .desc { max-width: 300px; }
+        .desc > div { max-height: 300px; overflow-y: auto; font-size: 14px; color: #c9d1d9; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🏠 UF Hogar · Propiedades</h1>
+    <div class="stats">
+        <span class="stat">Total <b id="stTotal">0</b></span>
+        <span class="stat" style="color:#f0e68c">Pendientes <b id="stPend">0</b></span>
+        <span class="stat" style="color:#7ee787">Publicadas <b id="stPub">0</b></span>
+        <span class="stat">Ocultas <b id="stOcultas">0</b></span>
+        <span class="stat" style="color:#ffa198">Rechazadas <b id="stRech">0</b></span>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" id="tab_pendiente" onclick="switchTab('pendiente')">🕓 Pendientes <span class="badge" id="badge_pendiente">0</span></div>
+    <div class="tab" id="tab_aprobado" onclick="switchTab('aprobado')">✅ Publicadas</div>
+    <div class="tab" id="tab_oculto" onclick="switchTab('oculto')">🙈 Ocultas</div>
+    <div class="tab" id="tab_rechazado" onclick="switchTab('rechazado')">❌ Rechazadas</div>
+    <div class="tab" id="tab_todos" onclick="switchTab('todos')">📋 Todas</div>
+</div>
+
+<div class="container">
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Buscar por título, barrio, dirección, descripción o dueño..." oninput="renderTable()">
+        <select id="tipoFilter" onchange="renderTable()">
+            <option value="">Todos los tipos</option>
+            <option value="casa">Casa</option>
+            <option value="apartamento">Apartamento</option>
+            <option value="cabana">Cabaña</option>
+            <option value="quinta">Quinta</option>
+            <option value="loft">Loft</option>
+            <option value="otro">Otro</option>
+        </select>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Foto</th>
+                <th>Propiedad</th>
+                <th>Tipo</th>
+                <th>Precios</th>
+                <th>Publicada por</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty" id="emptyState">
+        <div class="icon">🏠</div>
+        <p id="emptyMsg">No hay propiedades en esta categoría</p>
+    </div>
+</div>
+
+<!-- Modal Detalle -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <h2 id="modalTitle">Detalle de propiedad</h2>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const BUCKET = 'uf_hogar';
+    const TIPOS = { casa:'Casa', apartamento:'Apartamento', cabana:'Cabaña', quinta:'Quinta', loft:'Loft', otro:'Otro' };
+    const PERIODOS = { dia:'día', semana:'semana', temporada:'temporada', mes:'mes', anio:'año' };
+    const ORDEN_PRECIOS = ['dia','semana','temporada','mes','anio'];
+
+    let allProps = [];
+    let owners = {};
+    let currentTab = 'pendiente';
+    let currentMainPhoto = '';
+
+    function toast(msg, isErr) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast' + (isErr ? ' err' : '');
+        t.style.display = 'block';
+        clearTimeout(t._h);
+        t._h = setTimeout(() => { t.style.display = 'none'; }, 3200);
+    }
+
+    async function loadData() {
+        try {
+            let perfilesRes;
+            try {
+                perfilesRes = await sb.from('perfiles').select('id, full_name, email');
+                if (perfilesRes.error) throw perfilesRes.error;
+            } catch (e) {
+                // Por si la tabla no tiene columna email
+                perfilesRes = await sb.from('perfiles').select('id, full_name');
+                if (perfilesRes.error) throw perfilesRes.error;
+            }
+            const props = await sb.from('propiedades').select('*').order('created_at', { ascending: false }).limit(1000);
+            if (props.error) throw props.error;
+            allProps = props.data || [];
+            owners = {};
+            (perfilesRes.data || []).forEach(p => { owners[p.id] = p; });
+            updateStats();
+            renderTable();
+        } catch (e) {
+            console.error(e);
+            toast('No se pudieron cargar las propiedades: ' + e.message, true);
+        }
+    }
+
+    function fotos(p) {
+        const v = p.img_urls;
+        if (Array.isArray(v)) return v.filter(x => x);
+        if (typeof v === 'string' && v) return v.split(',').map(s => s.trim()).filter(Boolean);
+        return [];
+    }
+
+    function esVisible(p) { return (p.status === 'aprobado' && p.activo !== false); }
+    function estadoDe(p) {
+        if (p.status === 'pendiente') return 'pendiente';
+        if (p.status === 'rechazado') return 'rechazado';
+        return p.activo === false ? 'oculto' : 'aprobado';
+    }
+
+    function money(v) {
+        const n = Number(v);
+        if (!isFinite(n)) return '';
+        const s = n % 1 === 0 ? n.toFixed(0) : n.toFixed(2);
+        const parts = s.split('.');
+        let out = '';
+        for (let i = 0; i < parts[0].length; i++) {
+            if (i > 0 && (parts[0].length - i) % 3 === 0) out += '.';
+            out += parts[0][i];
+        }
+        return out + (parts[1] ? ',' + parts[1] : '');
+    }
+
+    function preciosHtml(p) {
+        const simb = p.moneda === 'USD' ? 'U$S ' : '$ ';
+        const out = [];
+        ORDEN_PRECIOS.forEach(k => {
+            const v = p['precio_' + k];
+            if (v !== null && v !== undefined && v !== '') out.push(`<b>${simb}${money(v)}</b> / ${PERIODOS[k]}`);
+        });
+        return out.length ? `<div class="prices">${out.join('<br>')}</div>` : '<span style="color:#484f58">-</span>';
+    }
+
+    function zonaDe(p) {
+        return [p.barrio, p.departamento].filter(Boolean).join(', ') || p.direccion || '-';
+    }
+
+    function ownerDe(p) { return owners[p.user_id] || null; }
+
+    function updateStats() {
+        const c = { pendiente:0, aprobado:0, oculto:0, rechazado:0 };
+        allProps.forEach(p => c[estadoDe(p)]++);
+        document.getElementById('stTotal').textContent = allProps.length;
+        document.getElementById('stPend').textContent = c.pendiente;
+        document.getElementById('stPub').textContent = c.aprobado;
+        document.getElementById('stOcultas').textContent = c.oculto;
+        document.getElementById('stRech').textContent = c.rechazado;
+        document.getElementById('badge_pendiente').textContent = c.pendiente;
+        document.getElementById('badge_pendiente').style.display = c.pendiente ? 'inline' : 'none';
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab_' + tab).classList.add('active');
+        renderTable();
+    }
+
+    function renderTable() {
+        const q = document.getElementById('searchInput').value.toLowerCase().trim();
+        const tipo = document.getElementById('tipoFilter').value;
+
+        let filtered = allProps.filter(p => {
+            if (currentTab !== 'todos' && estadoDe(p) !== currentTab) return false;
+            if (tipo && p.tipo !== tipo) return false;
+            if (!q) return true;
+            const o = ownerDe(p);
+            const dueño = o ? ((o.full_name || '') + ' ' + (o.email || '')) : '';
+            return (p.titulo || '').toLowerCase().includes(q)
+                || (p.barrio || '').toLowerCase().includes(q)
+                || (p.departamento || '').toLowerCase().includes(q)
+                || (p.direccion || '').toLowerCase().includes(q)
+                || (p.descripcion || '').toLowerCase().includes(q)
+                || dueño.toLowerCase().includes(q);
+        });
+
+        const tbody = document.getElementById('tableBody');
+        const empty = document.getElementById('emptyState');
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            empty.style.display = 'block';
+            document.getElementById('emptyMsg').textContent =
+                currentTab === 'pendiente' ? 'No hay propiedades esperando revisión 🎉'
+                : 'No hay propiedades en esta categoría';
+            return;
+        }
+
+        empty.style.display = 'none';
+        tbody.innerHTML = filtered.map(p => {
+            const est = estadoDe(p);
+            const f = fotos(p);
+            const o = ownerDe(p);
+            const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-UY') : '-';
+            const thumb = f.length
+                ? `<img class="prop-thumb" src="${f[0]}" onerror="this.style.display='none'">`
+                : `<div class="thumb-placeholder">🏠</div>`;
+            return `<tr>
+                <td>${thumb}</td>
+                <td class="title-cell"><strong>${escapeHtml(p.titulo || '(sin título)')}</strong><small>${escapeHtml(zonaDe(p))}${p.direccion ? ' · ' + escapeHtml(p.direccion) : ''}</small></td>
+                <td>${TIPOS[p.tipo] || p.tipo}</td>
+                <td>${preciosHtml(p)}</td>
+                <td>${o ? `<strong>${escapeHtml(o.full_name || 'Sin nombre')}</strong><br><small style="color:#8b949e">${escapeHtml(o.email || '')}</small>` : `<span style="color:#484f58">Usuario eliminado</span><br><small style="color:#484f58">${p.user_id ? p.user_id.slice(0,8) : ''}</small>`}</td>
+                <td><span class="badge-status badge-${est}">${labelEstado(est)}</span></td>
+                <td><small>${fecha}</small></td>
+                <td><div class="actions">${renderActions(p)}</div></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function labelEstado(est) {
+        return { pendiente:'PENDIENTE', aprobado:'PUBLICADA', oculto:'OCULTA', rechazado:'RECHAZADA' }[est] || est.toUpperCase();
+    }
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function renderActions(p) {
+        const est = estadoDe(p);
+        const tel = (p.telefono || p.whatsapp || '').replace(/[^0-9]/g, '');
+        const ver = `<button class="btn btn-view" onclick="verDetalle('${p.id}')">👁 Ver</button>`;
+        const borrar = `<button class="btn btn-delete" onclick="eliminar('${p.id}')">🗑</button>`;
+        const chat = `<a class="btn btn-link" href="https://wa.me/${tel}" target="_blank" style="text-decoration:none">📱 Dueño</a>`;
+
+        if (est === 'pendiente') {
+            return `<button class="btn btn-approve" onclick="cambiarEstado('${p.id}','aprobado',true)">✅ Aprobar</button>
+                    <button class="btn btn-reject" onclick="rechazar('${p.id}')">❌ Rechazar</button>
+                    ${ver}${borrar}`;
+        }
+        if (est === 'aprobado') {
+            return `<button class="btn btn-hide" onclick="cambiarEstado('${p.id}','aprobado',false)">🙈 Ocultar</button>
+                    ${tel ? chat : ''}${ver}${borrar}`;
+        }
+        if (est === 'oculto') {
+            return `<button class="btn btn-show" onclick="cambiarEstado('${p.id}','aprobado',true)">▶ Volver a publicar</button>
+                    ${ver}${borrar}`;
+        }
+        return `<button class="btn btn-approve" onclick="cambiarEstado('${p.id}','aprobado',true)">✅ Re-aprobar</button>
+                ${ver}${borrar}`;
+    }
+
+    async function cambiarEstado(id, status, activo, motivo) {
+        const upd = { status: status, activo: activo };
+        if (motivo !== undefined) upd.motivo_rechazo = motivo || null;
+        upd.moderated_at = new Date().toISOString();
+        let { error } = await sb.from('propiedades').update(upd).eq('id', id);
+        // Si todavía no se corrió sql_uf_hogar_moderacion.sql faltan columnas de auditoría.
+        if (error && /motivo_rechazo|moderated_at/.test(error.message || '')) {
+            const upd2 = { status: status, activo: activo };
+            if (motivo !== undefined) upd2.motivo_rechazo = motivo || null;
+            delete upd2.moderated_at;
+            const r = await sb.from('propiedades').update(upd2).eq('id', id);
+            error = r.error;
+        }
+        if (error) { toast('Error al guardar: ' + error.message, true); return; }
+        toast(status === 'aprobado' && activo ? '✅ Propiedad publicada en la app' : 'Estado actualizado');
+        loadData();
+    }
+
+    async function rechazar(id) {
+        const motivo = prompt('Motivo del rechazo (lo ve el dueño en su publicación):');
+        if (motivo === null) return;
+        await cambiarEstado(id, 'rechazado', false, motivo);
+    }
+
+    async function eliminar(id) {
+        const p = allProps.find(x => x.id === id);
+        if (!p) return;
+        if (!confirm(`¿Eliminar "${p.titulo}" permanentemente?\n\nSe borra la ficha y TODAS sus fotos.`)) return;
+
+        // 1. Fotos del bucket uf_hogar
+        const urls = fotos(p);
+        const paths = [];
+        urls.forEach(u => {
+            const i = u.indexOf(BUCKET + '/');
+            if (i >= 0) paths.push(decodeURIComponent(u.slice(i + BUCKET.length + 1).split('?')[0]));
+        });
+        if (paths.length) {
+            try { await sb.storage.from(BUCKET).remove(paths); }
+            catch (e) { console.log('Skip fotos:', e.message); }
+        }
+
+        // 2. Fila (service_role bypasea RLS)
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/propiedades?id=eq.${id}`, {
+            method: 'DELETE',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (!res.ok) {
+            const t = await res.text();
+            toast('Error al borrar: ' + t, true);
+            return;
+        }
+        toast('Propiedad eliminada');
+        loadData();
+    }
+
+    async function verDetalle(id) {
+        const p = allProps.find(x => x.id === id);
+        if (!p) return;
+        const o = ownerDe(p);
+        const f = fotos(p);
+        const est = estadoDe(p);
+        const fecha = p.created_at ? new Date(p.created_at).toLocaleString('es-UY') : '-';
+        currentMainPhoto = f[0] || '';
+
+        document.getElementById('modalTitle').textContent = p.titulo || 'Detalle de propiedad';
+
+        const galeria = f.length ? `
+            <img id="mainPhoto" class="photo-main" src="${f[0]}" onerror="this.style.display='none'">
+            <div class="photo-strip">${f.map((u,i) => `<img src="${u}" class="${i===0?'sel':''}" onclick="selPhoto(this)">`).join('')}</div>
+        ` : `<div class="thumb-placeholder" style="width:100%;height:160px;font-size:36px;margin-bottom:12px">🏠</div>`;
+
+        document.getElementById('modalContent').innerHTML = `
+            ${galeria}
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div class="modal-field"><label>Tipo</label><div class="value">${TIPOS[p.tipo] || p.tipo}</div></div>
+                <div class="modal-field"><label>Estado</label>
+                    <select id="editStatus" class="inline">
+                        <option value="pendiente" ${p.status==='pendiente'?'selected':''}>Pendiente</option>
+                        <option value="aprobado" ${p.status==='aprobado'?'selected':''}>Aprobado</option>
+                        <option value="rechazado" ${p.status==='rechazado'?'selected':''}>Rechazado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-field"><label>Visible en la app</label>
+                <select id="editActivo" class="inline">
+                    <option value="1" ${p.activo!==false?'selected':''}>Sí, se muestra</option>
+                    <option value="0" ${p.activo===false?'selected':''}>No, oculta</option>
+                </select>
+            </div>
+
+            <div class="modal-field"><label>Zona</label><div class="value">${escapeHtml(zonaDe(p))}</div></div>
+            <div class="modal-field"><label>Dirección</label><div class="value">${escapeHtml(p.direccion || '-')}</div></div>
+            <div class="modal-field"><label>Coordenadas</label><div class="value">${p.lat || p.lng ? `${p.lat}, ${p.lng}` : 'Sin coordenadas'}</div></div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0">
+                <div class="modal-field"><label>Dormitorios</label><div class="value">${p.dormitorios || 0}</div></div>
+                <div class="modal-field"><label>Baños</label><div class="value">${p.banos || 0}</div></div>
+                <div class="modal-field"><label>m²</label><div class="value">${p.m2 || 0}</div></div>
+                <div class="modal-field"><label>Estadía mín.</label><div class="value">${p.min_dias || 1} día(s)</div></div>
+            </div>
+
+            <div class="modal-field"><label>Precios</label><div class="value">${preciosHtml(p)}</div></div>
+            <div class="modal-field"><label>Descripción</label><div class="value desc"><div>${escapeHtml(p.descripcion || 'Sin descripción')}</div></div></div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div class="modal-field"><label>Publicada por</label><div class="value">${o ? escapeHtml(o.full_name || 'Sin nombre') + (o.email ? '<br><small style="color:#8b949e">' + escapeHtml(o.email) + '</small>' : '') : 'Usuario eliminado'}</div></div>
+                <div class="modal-field"><label>Fecha</label><div class="value">${fecha}</div></div>
+                <div class="modal-field"><label>Teléfono</label><div class="value">${p.telefono ? `<a class="phone-link" href="tel:${p.telefono}">${escapeHtml(p.telefono)}</a>` : '-'}</div></div>
+                <div class="modal-field"><label>WhatsApp</label><div class="value">${p.whatsapp ? `<a class="phone-link" href="https://wa.me/${p.whatsapp.replace(/[^0-9]/g,'')}" target="_blank">${escapeHtml(p.whatsapp)}</a>` : '-'}</div></div>
+            </div>
+
+            ${p.motivo_rechazo ? `<div class="modal-field" style="margin-top:12px"><label>Motivo del rechazo</label><div class="value" style="color:#ffa198">${escapeHtml(p.motivo_rechazo)}</div></div>` : ''}
+
+            <div class="modal-actions">
+                <button class="btn btn-approve" onclick="saveFromModal('${p.id}')">💾 Guardar cambios</button>
+                ${esVisible(p)
+                    ? `<button class="btn btn-hide" onclick="modalEstado('${p.id}','aprobado',false)">🙈 Ocultar</button>`
+                    : `<button class="btn btn-approve" onclick="modalEstado('${p.id}','aprobado',true)">✅ Publicar</button>`}
+                ${p.telefono || p.whatsapp ? `<button class="btn btn-whatsapp" onclick="window.open('https://wa.me/${(p.whatsapp||p.telefono).replace(/[^0-9]/g,'')}','_blank')">💬 WhatsApp</button>` : ''}
+                <button class="btn btn-delete" onclick="eliminar('${p.id}');closeModal();">🗑 Eliminar</button>
+            </div>
+        `;
+        document.getElementById('detailModal').style.display = 'block';
+    }
+
+    function selPhoto(img) {
+        document.getElementById('mainPhoto').src = img.src;
+        document.querySelectorAll('.photo-strip img').forEach(i => i.classList.remove('sel'));
+        img.classList.add('sel');
+    }
+
+    async function saveFromModal(id) {
+        const status = document.getElementById('editStatus').value;
+        const activo = document.getElementById('editActivo').value === '1';
+        await cambiarEstado(id, status, activo, status === 'rechazado' ? undefined : null);
+        if (status !== 'rechazado') {
+            // limpia motivo si deja de estar rechazada
+            await sb.from('propiedades').update({ motivo_rechazo: null }).eq('id', id);
+        }
+        closeModal();
+    }
+
+    async function modalEstado(id, status, activo) {
+        await cambiarEstado(id, status, activo);
+        closeModal();
+    }
+
+    function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
+    document.getElementById('detailModal').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    loadData();
+</script>
+</body>
+</html>
