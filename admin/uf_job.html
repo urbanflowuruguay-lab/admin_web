@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UF Job - Currículums, Empresas y Conexiones - UrbanFlow</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; }
+        .header { background: #161b22; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; flex-wrap: wrap; gap: 10px; }
+        .header h1 { font-size: 20px; color: #58a6ff; }
+        .header .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+        .stat { background: #21262d; border: 1px solid #30363d; border-radius: 12px; padding: 4px 12px; font-size: 13px; color: #8b949e; }
+        .stat b { color: #c9d1d9; }
+        .tabs { display: flex; gap: 0; background: #161b22; border-bottom: 1px solid #30363d; padding: 0 24px; overflow-x: auto; }
+        .tab { padding: 12px 20px; cursor: pointer; color: #8b949e; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+        .tab:hover { color: #c9d1d9; }
+        .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+        .tab .badge { background: #da3633; color: white; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 6px; }
+        .container { padding: 20px 24px; }
+        .alert { background: rgba(158,106,3,0.12); border: 1px solid #9e6a03; color: #f0e68c; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; line-height: 1.5; display: none; }
+        .alert code { background: #21262d; padding: 1px 6px; border-radius: 4px; color: #ffa198; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .search-bar input { flex: 1; min-width: 220px; padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        .search-bar input:focus { border-color: #58a6ff; outline: none; }
+        .search-bar select { padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #161b22; padding: 10px 12px; text-align: left; font-size: 12px; color: #8b949e; text-transform: uppercase; border-bottom: 1px solid #30363d; }
+        td { padding: 12px; border-bottom: 1px solid #21262d; font-size: 14px; vertical-align: middle; }
+        tr:hover { background: #161b22; }
+        .badge-status { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .badge-pendiente { background: #9e6a03; color: #f0e68c; }
+        .badge-aprobado { background: #238636; color: #7ee787; }
+        .badge-rechazado { background: #da3633; color: #ffa198; }
+        .badge-oculto { background: #484f58; color: #c9d1d9; }
+        .badge-auto { background: #1f6feb; color: #79c0ff; }
+        .btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-approve { background: #238636; color: white; }
+        .btn-reject { background: #da3633; color: white; }
+        .btn-hide { background: #9e6a03; color: white; }
+        .btn-show { background: #1f6feb; color: white; }
+        .btn-delete { background: #b62324; color: white; }
+        .btn-view { background: #30363d; color: #c9d1d9; }
+        .btn-link { background: #21262d; color: #58a6ff; border: 1px solid #30363d; text-decoration: none; display: inline-block; }
+        .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 100; }
+        .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 92%; max-width: 820px; max-height: 88vh; overflow-y: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 24px; }
+        .modal h2 { color: #58a6ff; margin-bottom: 16px; font-size: 18px; }
+        .modal h3 { color: #79c0ff; margin: 18px 0 8px; font-size: 14px; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { display: block; color: #8b949e; font-size: 12px; margin-bottom: 4px; text-transform: uppercase; }
+        .modal-field .value { font-size: 14px; color: #c9d1d9; line-height: 1.5; }
+        .modal-close { float: right; background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer; }
+        .modal-close:hover { color: #c9d1d9; }
+        .modal-actions { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .empty { text-align: center; padding: 60px 20px; color: #484f58; display: none; }
+        .empty .icon { font-size: 48px; margin-bottom: 12px; }
+        .title-cell strong { display: block; }
+        .title-cell small { color: #8b949e; }
+        .avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #1b3a5b; border: 1px solid #30363d; display: block; }
+        .avatar-ph { width: 44px; height: 44px; border-radius: 50%; background: #1b3a5b; border: 1px solid #30363d; display: flex; align-items: center; justify-content: center; color: #4fc3f7; font-size: 18px; }
+        .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 6px; }
+        .chip { display: inline-block; background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 3px 9px; border-radius: 12px; font-size: 12px; margin: 0 5px 5px 0; }
+        .list-item { background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+        .list-item b { color: #c9d1d9; font-size: 13px; }
+        .list-item small { color: #8b949e; display: block; margin-top: 3px; line-height: 1.4; }
+        .select-inline { padding: 7px 10px; border-radius: 6px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; font-size: 13px; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1f6feb; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 14px; z-index: 200; display: none; box-shadow: 0 6px 20px rgba(0,0,0,.5); max-width: 380px; }
+        .toast.err { background: #da3633; }
+        .phone-link { color: #25d366; text-decoration: none; }
+        .phone-link:hover { text-decoration: underline; }
+        .sens-box { background: #0d1117; border: 1px solid #238636; border-radius: 8px; padding: 12px; }
+        .sens-box.locked { border-color: #3a465c; }
+        .sens-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13.5px; color: #c9d1d9; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .loading { text-align: center; padding: 50px 20px; color: #8b949e; }
+        .desc { max-width: 100%; line-height: 1.5; color: #c9d1d9; font-size: 14px; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>&#128188; UF Job &#8212; Curr&iacute;culums y Empresas</h1>
+    <div class="stats">
+        <span class="stat">CVs <b id="stCv">0</b></span>
+        <span class="stat" style="color:#7ee787">CVs publicados <b id="stCvPub">0</b></span>
+        <span class="stat" style="color:#f0e68c">CVs pendientes <b id="stCvPend">0</b></span>
+        <span class="stat">Empresas <b id="stEmp">0</b></span>
+        <span class="stat" style="color:#f0e68c">Empresas pend. <b id="stEmpPend">0</b></span>
+        <span class="stat" style="color:#79c0ff">Conexiones <b id="stConn">0</b></span>
+        <span class="stat" style="color:#f0e68c">Pedidos sin decidir <b id="stConnPend">0</b></span>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" id="tab_cvs" onclick="switchTab('cvs')">&#128196; Curr&iacute;culums <span class="badge" id="badgeCv" style="display:none">0</span></div>
+    <div class="tab" id="tab_empresas" onclick="switchTab('empresas')">&#127970; Empresas <span class="badge" id="badgeEmp" style="display:none">0</span></div>
+    <div class="tab" id="tab_conexiones" onclick="switchTab('conexiones')">&#128279; Conexiones <span class="badge" id="badgeConn" style="display:none">0</span></div>
+</div>
+
+<div class="container">
+
+    <div class="alert" id="sqlAlert">
+        Faltan tablas en Supabase. Ejecut&aacute; una vez <code>sql_uf_job.sql</code> en el SQL Editor del dashboard
+        (crea <code>curriculums</code>, <code>empresas_job</code>, <code>job_consents</code>, <code>curriculums_sensibles</code> y el bucket <code>uf_job</code>).
+        <span id="sqlAlertDetail"></span>
+    </div>
+
+    <!-- ============================ CVs ============================ -->
+    <div class="tab-pane active" id="pane_cvs">
+        <div class="search-bar">
+            <input type="text" id="cvSearch" placeholder="Buscar por nombre, puesto, &aacute;rea, departamento o habilidad..." oninput="renderCvs()">
+            <select id="cvArea" onchange="renderCvs()"><option value="">Todas las &aacute;reas</option></select>
+            <select id="cvDepto" onchange="renderCvs()"><option value="">Todos los departamentos</option></select>
+            <select id="cvEstado" onchange="renderCvs()">
+                <option value="">Todos los estados</option>
+                <option value="pendiente">Pendientes</option>
+                <option value="aprobado">Publicados</option>
+                <option value="oculto">Ocultos</option>
+                <option value="rechazado">Rechazados</option>
+            </select>
+        </div>
+        <div class="loading" id="cvLoading">Cargando curr&iacute;culums...</div>
+        <table id="cvTable" style="display:none">
+            <thead>
+                <tr>
+                    <th>Foto</th>
+                    <th>Postulante</th>
+                    <th>&Aacute;rea / Depto</th>
+                    <th>Datos</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="cvBody"></tbody>
+        </table>
+        <div class="empty" id="cvEmpty">
+            <div class="icon">&#128196;</div>
+            <p id="cvEmptyMsg">Todav&iacute;a no hay curr&iacute;culums cargados en la app</p>
+        </div>
+    </div>
+
+    <!-- ========================= Empresas ========================== -->
+    <div class="tab-pane" id="pane_empresas">
+        <div class="search-bar">
+            <input type="text" id="empSearch" placeholder="Buscar por raz&oacute;n social, RUT, rubro o contacto..." oninput="renderEmpresas()">
+            <select id="empEstado" onchange="renderEmpresas()">
+                <option value="">Todos los estados</option>
+                <option value="pendiente">Pendientes</option>
+                <option value="aprobado">Aprobadas</option>
+                <option value="rechazado">Rechazadas</option>
+            </select>
+        </div>
+        <div class="loading" id="empLoading">Cargando empresas...</div>
+        <table id="empTable" style="display:none">
+            <thead>
+                <tr>
+                    <th>Empresa</th>
+                    <th>RUT / Rubro</th>
+                    <th>Contacto</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="empBody"></tbody>
+        </table>
+        <div class="empty" id="empEmpty">
+            <div class="icon">&#127970;</div>
+            <p id="empEmptyMsg">Todav&iacute;a no hay empresas registradas en UF Job</p>
+        </div>
+    </div>
+
+    <!-- ========================= Conexiones ======================== -->
+    <div class="tab-pane" id="pane_conexiones">
+        <div class="search-bar">
+            <input type="text" id="conSearch" placeholder="Buscar por postulante o empresa..." oninput="renderConexiones()">
+            <select id="conEstado" onchange="renderConexiones()">
+                <option value="">Todos los estados</option>
+                <option value="pendiente">Esperando al postulante</option>
+                <option value="aprobado">Contacto compartido</option>
+                <option value="rechazado">Rechazados</option>
+            </select>
+        </div>
+        <div class="loading" id="conLoading">Cargando conexiones...</div>
+        <table id="conTable" style="display:none">
+            <thead>
+                <tr>
+                    <th>Postulante</th>
+                    <th>Empresa</th>
+                    <th>CV</th>
+                    <th>Estado</th>
+                    <th>Pedido</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="conBody"></tbody>
+        </table>
+        <div class="empty" id="conEmpty">
+            <div class="icon">&#128279;</div>
+            <p id="conEmptyMsg">Todav&iacute;a no hay pedidos de contacto entre empresas y postulantes</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal detalle -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <h2 id="modalTitle">Detalle</h2>
+        <div id="modalContent"></div>
+        <div class="modal-actions" id="modalActions"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const BUCKET = 'uf_job';
+
+    // Catálogos (espejo de lib/models/curriculum.dart en la app)
+    const SEXOS = { F: 'Femenino', M: 'Masculino', X: 'No binario' };
+    const AREAS = {
+        gastronomia: 'Gastronomía', construccion: 'Construcción', logistica: 'Logística y depósito',
+        salud: 'Salud', educacion: 'Educación', comercio: 'Comercio y ventas', tecnologia: 'Tecnología',
+        administracion: 'Administración y contabilidad', limpieza: 'Limpieza y mantenimiento',
+        seguridad: 'Seguridad', agricultura: 'Agricultura y ganadería', transporte: 'Transporte',
+        industria: 'Industria y producción', atencion: 'Atención al cliente', otro: 'Otro'
+    };
+    const ESTUDIOS = {
+        ninguno: 'Sin estudios formales', primaria: 'Primaria incompleta', secundaria: 'Secundaria completa',
+        tecnico: 'Terciario / técnico', universitario: 'Universitario', posgrado: 'Posgrado o máster'
+    };
+    const DISPONIBILIDADES = {
+        inmediata: 'Inmediata', quince: 'En 15 días', treinta: 'En 30 días', project: 'Depende del proyecto'
+    };
+    const CONTRATOS = {
+        completo: 'Tiempo completo', medio: 'Medio tiempo', eventual: 'Eventual',
+        freelance: 'Freelance / por proyecto', pasantia: 'Pasantía', independiente: 'Independiente / monotributo'
+    };
+    const MODALIDADES = { presencial: 'Presencial', remoto: 'Remoto', hibrido: 'Híbrido' };
+    const NIVELES_IDIOMA = { basico: 'Básico', intermedio: 'Intermedio', avanzado: 'Avanzado', nativo: 'Nativo / bilingüe' };
+
+    const DEPTOS = [
+        'Montevideo', 'Canelones', 'Maldonado', 'Rocha', 'Colonia', 'Soriano', 'Río Negro',
+        'Paysandú', 'Salto', 'Tacuarembó', 'Durazno', 'Florida', 'Lavalleja',
+        'Treinta y Tres', 'Cerro Largo', 'Rivera', 'Artigas', 'Flores'
+    ];
+
+    let cvs = [];
+    let empresas = [];
+    let consents = [];
+    let perfiles = {};
+    let fotos = {};          // curriculum_id -> signed url
+    let constancias = {};    // empresa user_id/path -> signed url
+    let currentTab = 'cvs';
+    let missingTables = [];
+    let loadError = { cvs: false, empresas: false, conexiones: false };
+
+    // ---------------------------------------------------------- utils
+    function toast(msg, isErr) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast' + (isErr ? ' err' : '');
+        t.style.display = 'block';
+        clearTimeout(t._h);
+        t._h = setTimeout(() => { t.style.display = 'none'; }, 3600);
+    }
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g,
+            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function fmtFecha(v) {
+        if (!v) return '-';
+        const d = new Date(v);
+        return isNaN(d) ? '-' : d.toLocaleDateString('es-UY');
+    }
+
+    function fmtFechaHora(v) {
+        if (!v) return '-';
+        const d = new Date(v);
+        return isNaN(d) ? '-' : d.toLocaleString('es-UY');
+    }
+
+    function money(v) {
+        const n = Number(v);
+        if (!isFinite(n)) return '';
+        const s = n % 1 === 0 ? n.toFixed(0) : n.toFixed(2);
+        const parts = s.split('.');
+        let out = '';
+        for (let i = 0; i < parts[0].length; i++) {
+            if (i > 0 && (parts[0].length - i) % 3 === 0) out += '.';
+            out += parts[0][i];
+        }
+        return out + (parts[1] ? ',' + parts[1] : '');
+    }
+
+    function asList(v) {
+        if (Array.isArray(v)) return v;
+        if (typeof v === 'string' && v) return v.split(',').map(s => s.trim()).filter(Boolean);
+        return [];
+    }
+
+    function datos(cv) {
+        const raw = cv.datos;
+        if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
+        if (typeof raw === 'string' && raw) {
+            try { return JSON.parse(raw); } catch (e) { return {}; }
+        }
+        return {};
+    }
+
+    function itemList(cv, key) {
+        const v = datos(cv)[key];
+        return Array.isArray(v) ? v : [];
+    }
+
+    function txtList(cv, key) {
+        const v = datos(cv)[key];
+        if (Array.isArray(v)) return v.map(x => typeof x === 'string' ? x : (x && (x.nombre || x.idioma || x.puesto)) || '').filter(Boolean);
+        return [];
+    }
+
+    function labelOf(map, key) { return map[key] || key || ''; }
+
+    function estadoCv(cv) {
+        if (cv.status === 'pendiente') return 'pendiente';
+        if (cv.status === 'rechazado') return 'rechazado';
+        return cv.activo === false ? 'oculto' : 'aprobado';
+    }
+
+    const LABEL_ESTADO = {
+        pendiente: 'PENDIENTE', aprobado: 'PUBLICADO', oculto: 'OCULTO', rechazado: 'RECHAZADO'
+    };
+
+    function isMissing(err) {
+        return err && (err.code === 'PGRST205' || /Could not find the table/i.test(err.message || ''));
+    }
+
+    function noteMissing(name, err) {
+        if (isMissing(err) && missingTables.indexOf(name) < 0) missingTables.push(name);
+    }
+
+    function showSqlAlert() {
+        if (!missingTables.length) return;
+        document.getElementById('sqlAlert').style.display = 'block';
+        document.getElementById('sqlAlertDetail').textContent =
+            '  Tablas no encontradas: ' + missingTables.join(', ') + '.';
+    }
+
+    // ---------------------------------------------------------- load
+    async function loadAll() {
+        missingTables = [];
+        await Promise.all([loadCvs(), loadEmpresas(), loadConexiones()]);
+        showSqlAlert();
+        renderAll();
+    }
+
+    async function loadCvs() {
+        const el = document.getElementById('cvLoading');
+        el.style.display = 'block';
+        document.getElementById('cvTable').style.display = 'none';
+
+        const [{ data: cvsData, error: errCv }, { data: per, error: errPer }] = await Promise.all([
+            sb.from('curriculums').select('*').order('created_at', { ascending: false }).limit(1000),
+            sb.from('perfiles').select('id, full_name, email')
+        ]);
+
+        if (errCv) {
+            noteMissing('curriculums', errCv);
+            cvs = [];
+            loadError.cvs = true;
+            el.textContent = isMissing(errCv)
+                ? 'Sin datos: falta la tabla "curriculums".'
+                : 'Error al cargar: ' + errCv.message;
+        } else {
+            cvs = cvsData || [];
+            loadError.cvs = false;
+            el.style.display = 'none';
+        }
+
+        if (errPer) {
+            noteMissing('perfiles', errPer);
+            perfiles = {};
+        } else {
+            perfiles = {};
+            (per || []).forEach(p => { perfiles[p.id] = p; });
+        }
+
+        // fotos firmadas (bucket privado)
+        const paths = cvs.map(c => c.foto_path).filter(p => p && !fotos[p]);
+        if (paths.length) {
+            const uniq = [...new Set(paths)].slice(0, 400);
+            await Promise.all(uniq.map(async p => {
+                try {
+                    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(p, 3600);
+                    if (!error && data) fotos[p] = data.signedUrl;
+                } catch (e) { /* foto opcional */ }
+            }));
+        }
+
+        fillSelect('cvArea', Object.keys(AREAS).map(k => [k, AREAS[k]]), 'Todas las áreas');
+        fillSelect('cvDepto', DEPTOS.map(d => [d, d]), 'Todos los departamentos');
+    }
+
+    async function loadEmpresas() {
+        const el = document.getElementById('empLoading');
+        el.style.display = 'block';
+        document.getElementById('empTable').style.display = 'none';
+
+        const { data, error } = await sb.from('empresas_job')
+            .select('*').order('created_at', { ascending: false }).limit(1000);
+
+        if (error) {
+            noteMissing('empresas_job', error);
+            empresas = [];
+            loadError.empresas = true;
+            el.textContent = isMissing(error)
+                ? 'Sin datos: falta la tabla "empresas_job".'
+                : 'Error al cargar: ' + error.message;
+        } else {
+            empresas = data || [];
+            loadError.empresas = false;
+            el.style.display = 'none';
+        }
+
+        // constancias firmadas (bucket privado)
+        const pend = empresas.filter(e => e.constancia_url && !constancias[e.constancia_url]);
+        if (pend.length) {
+            await Promise.all(pend.slice(0, 200).map(async e => {
+                try {
+                    const { data, error } = await sb.storage.from(BUCKET)
+                        .createSignedUrl(e.constancia_url, 3600);
+                    if (!error && data) constancias[e.constancia_url] = data.signedUrl;
+                } catch (err) { /* opcional */ }
+            }));
+        }
+    }
+
+    async function loadConexiones() {
+        const el = document.getElementById('conLoading');
+        el.style.display = 'block';
+        document.getElementById('conTable').style.display = 'none';
+
+        const [{ data, error }] = await Promise.all([
+            sb.from('job_consents').select('*').order('created_at', { ascending: false }).limit(1000)
+        ]);
+
+        if (error) {
+            noteMissing('job_consents', error);
+            consents = [];
+            loadError.conexiones = true;
+            el.textContent = isMissing(error)
+                ? 'Sin datos: falta la tabla "job_consents".'
+                : 'Error al cargar: ' + error.message;
+        } else {
+            consents = data || [];
+            loadError.conexiones = false;
+            el.style.display = 'none';
+        }
+    }
+
+    function fillSelect(id, pairs, placeholder) {
+        const sel = document.getElementById(id);
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">' + placeholder + '</option>' +
+            pairs.map(p => `<option value="${escapeHtml(p[0])}">${escapeHtml(p[1])}</option>`).join('');
+        sel.value = cur;
+    }
+
+    // --------------------------------------------------------- stats
+    function updateStats() {
+        const c = { pendiente: 0, aprobado: 0, oculto: 0, rechazado: 0 };
+        cvs.forEach(cv => c[estadoCv(cv)]++);
+        const emp = { pendiente: 0, aprobado: 0, rechazado: 0 };
+        empresas.forEach(e => { const s = e.status || 'pendiente'; if (emp[s] !== undefined) emp[s]++; });
+        const con = { pendiente: 0, aprobado: 0, rechazado: 0 };
+        consents.forEach(k => { const s = k.status || 'pendiente'; if (con[s] !== undefined) con[s]++; });
+
+        document.getElementById('stCv').textContent = cvs.length;
+        document.getElementById('stCvPub').textContent = c.aprobado;
+        document.getElementById('stCvPend').textContent = c.pendiente;
+        document.getElementById('stEmp').textContent = empresas.length;
+        document.getElementById('stEmpPend').textContent = emp.pendiente;
+        document.getElementById('stConn').textContent = consents.length;
+        document.getElementById('stConnPend').textContent = con.pendiente;
+
+        setBadge('badgeCv', c.pendiente);
+        setBadge('badgeEmp', emp.pendiente);
+        setBadge('badgeConn', con.pendiente);
+    }
+
+    function setBadge(id, n) {
+        const b = document.getElementById(id);
+        b.textContent = n;
+        b.style.display = n ? 'inline' : 'none';
+    }
+
+    // ---------------------------------------------------------- tabs
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab_' + tab).classList.add('active');
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById('pane_' + tab).classList.add('active');
+        renderAll();
+    }
+
+    function renderAll() {
+        updateStats();
+        renderCvs();
+        renderEmpresas();
+        renderConexiones();
+    }
+
+    // ----------------------------------------------------------- CVs
+    function cvMatches(cv) {
+        const q = document.getElementById('cvSearch').value.toLowerCase().trim();
+        const area = document.getElementById('cvArea').value;
+        const depto = document.getElementById('cvDepto').value;
+        const est = document.getElementById('cvEstado').value;
+
+        if (est && estadoCv(cv) !== est) return false;
+        if (area && cv.area !== area) return false;
+        if (depto && cv.departamento !== depto) return false;
+        if (!q) return true;
+
+        const owner = perfiles[cv.user_id];
+        const dueno = owner ? ((owner.full_name || '') + ' ' + (owner.email || '')) : '';
+        const habilidades = txtList(cv, 'habilidades').join(' ');
+        const perfil = datos(cv).perfil || '';
+        return (cv.nombre || '').toLowerCase().includes(q)
+            || (cv.puesto || '').toLowerCase().includes(q)
+            || labelOf(AREAS, cv.area).toLowerCase().includes(q)
+            || (cv.departamento || '').toLowerCase().includes(q)
+            || (cv.idiomas || '').toLowerCase().includes(q)
+            || habilidades.toLowerCase().includes(q)
+            || perfil.toLowerCase().includes(q)
+            || dueno.toLowerCase().includes(q);
+    }
+
+    function renderCvs() {
+        const list = cvs.filter(cvMatches);
+        const tbody = document.getElementById('cvBody');
+        const table = document.getElementById('cvTable');
+        const empty = document.getElementById('cvEmpty');
+
+        updateStats();
+
+        if (!list.length) {
+            tbody.innerHTML = '';
+            table.style.display = 'none';
+            if (loadError.cvs) { empty.style.display = 'none'; return; }
+            empty.style.display = 'block';
+            document.getElementById('cvEmptyMsg').textContent = cvs.length
+                ? 'No hay currículums con esos filtros'
+                : 'Todavía no hay currículums cargados en la app';
+            return;
+        }
+
+        empty.style.display = 'none';
+        table.style.display = 'table';
+
+        tbody.innerHTML = list.map(cv => {
+            const est = estadoCv(cv);
+            const url = cv.foto_path ? fotos[cv.foto_path] : null;
+            const avatar = url
+                ? `<img class="avatar" src="${url}" onerror="this.outerHTML='<div class=\\'avatar-ph\\'>\\u{1F464}</div>'">`
+                : `<div class="avatar-ph">&#128100;</div>`;
+            const owner = perfiles[cv.user_id];
+            const chips = [
+                cv.edad > 0 ? `${cv.edad} a\u00f1os` : '',
+                SEXOS[cv.sexo] || '',
+                ESTUDIOS[cv.estudios] || ''
+            ].filter(Boolean).map(t => `<span class="chip">${escapeHtml(t)}</span>`).join('');
+
+            return `<tr>
+                <td>${avatar}</td>
+                <td class="title-cell">
+                    <strong>${escapeHtml(cv.nombre || '(sin nombre)')}</strong>
+                    <small>${escapeHtml(cv.puesto || '(sin puesto)')}</small>
+                    <small>${owner ? escapeHtml(owner.full_name || owner.email || '') : escapeHtml((cv.user_id || '').slice(0, 8))}</small>
+                </td>
+                <td>${escapeHtml(labelOf(AREAS, cv.area) || '-')}<br><small style="color:#8b949e">${escapeHtml(cv.departamento || '-')}</small></td>
+                <td>${chips || '<span style="color:#484f58">-</span>'}</td>
+                <td><span class="badge-status badge-${est}">${LABEL_ESTADO[est] || est}</span></td>
+                <td><small>${fmtFecha(cv.created_at)}</small></td>
+                <td><div class="actions">${cvActions(cv, est)}</div></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function cvActions(cv, est) {
+        const ver = `<button class="btn btn-view" onclick="verCv('${cv.id}')">Ver CV</button>`;
+        const borrar = `<button class="btn btn-delete" onclick="borrarCv('${cv.id}')">&#128465;</button>`;
+        if (est === 'pendiente') {
+            return `<button class="btn btn-approve" onclick="setCvEstado('${cv.id}','aprobado',true)">Aprobar</button>
+                    <button class="btn btn-reject" onclick="setCvEstado('${cv.id}','rechazado',false)">Rechazar</button>${ver}${borrar}`;
+        }
+        if (est === 'aprobado') {
+            return `<button class="btn btn-hide" onclick="setCvEstado('${cv.id}','aprobado',false)">Ocultar</button>${ver}${borrar}`;
+        }
+        if (est === 'oculto') {
+            return `<button class="btn btn-show" onclick="setCvEstado('${cv.id}','aprobado',true)">Publicar</button>${ver}${borrar}`;
+        }
+        return `<button class="btn btn-approve" onclick="setCvEstado('${cv.id}','aprobado',true)">Re-aprobar</button>${ver}${borrar}`;
+    }
+
+    async function setCvEstado(id, status, activo) {
+        const upd = { status: status, activo: activo, updated_at: new Date().toISOString() };
+        const { error } = await sb.from('curriculums').update(upd).eq('id', id);
+        if (error) { toast('Error al guardar: ' + error.message, true); return; }
+        const i = cvs.findIndex(c => c.id === id);
+        if (i >= 0) Object.assign(cvs[i], upd);
+        toast(status === 'aprobado' && activo
+            ? 'CV visible para las empresas verificadas'
+            : 'Estado del CV actualizado');
+        renderAll();
+    }
+
+    async function borrarCv(id) {
+        const cv = cvs.find(c => c.id === id);
+        if (!cv) return;
+        if (!confirm(`¿Eliminar el currículum de "${cv.nombre || 'sin nombre'}"?\n\nSe borra la ficha, su foto y sus datos de contacto.`)) return;
+
+        if (cv.foto_path) {
+            try { await sb.storage.from(BUCKET).remove([cv.foto_path]); }
+            catch (e) { console.log('Skip foto:', e.message); }
+        }
+
+        // borra en cascada lo que la app no puede borrar
+        await sb.from('curriculums_sensibles').delete().eq('curriculum_id', id);
+        await sb.from('job_consents').delete().eq('curriculum_id', id);
+
+        const { error } = await sb.from('curriculums').delete().eq('id', id);
+        if (error) { toast('Error al borrar: ' + error.message, true); return; }
+
+        cvs = cvs.filter(c => c.id !== id);
+        consents = consents.filter(k => k.curriculum_id !== id);
+        toast('Currículum eliminado');
+        closeModal();
+        renderAll();
+    }
+
+    // ------------------------------------------------------ ver CV
+    async function verCv(id) {
+        const cv = cvs.find(c => c.id === id);
+        if (!cv) return;
+        const est = estadoCv(cv);
+        const d = datos(cv);
+        const owner = perfiles[cv.user_id];
+        const url = cv.foto_path ? fotos[cv.foto_path] : null;
+
+        // datos sensibles (service_role los lee igual)
+        let sens = null;
+        try {
+            const { data, error } = await sb.from('curriculums_sensibles')
+                .select('*').eq('curriculum_id', id).maybeSingle();
+            if (!error) sens = data;
+        } catch (e) { /* opcional */ }
+
+        // conexiones sobre este CV
+        const mias = consents.filter(k => k.curriculum_id === id);
+
+        document.getElementById('modalTitle').textContent = cv.nombre || 'Currículum';
+
+        const chips = [
+            cv.edad > 0 ? `Edad: ${cv.edad} a\u00f1os` : '',
+            SEXOS[cv.sexo] ? `Sexo: ${SEXOS[cv.sexo]}` : '',
+            cv.departamento ? `Depto: ${cv.departamento}` : '',
+            ESTUDIOS[cv.estudios] ? `Estudios: ${ESTUDIOS[cv.estudios]}` : '',
+            DISPONIBILIDADES[cv.disponibilidad] ? `Disponibilidad: ${DISPONIBILIDADES[cv.disponibilidad]}` : '',
+            CONTRATOS[cv.tipo_contrato] ? `Contrato: ${CONTRATOS[cv.tipo_contrato]}` : '',
+            MODALIDADES[d.modalidad] ? `Modalidad: ${MODALIDADES[d.modalidad]}` : '',
+            (cv.salario !== null && cv.salario !== undefined && cv.salario !== '')
+                ? `Salario pretendido: $${money(cv.salario)}` : ''
+        ].filter(Boolean).map(t => `<span class="chip">${escapeHtml(t)}</span>`).join('');
+
+        const bloques = [];
+
+        if (d.perfil) bloques.push(section('Perfil profesional', `<div class="desc">${escapeHtml(d.perfil)}</div>`));
+        if (d.objetivo) bloques.push(section('Objetivo laboral', `<div class="desc">${escapeHtml(d.objetivo)}</div>`));
+        if (chips) bloques.push(section('Datos generales', chips));
+
+        const exp = itemList(cv, 'experiencia');
+        if (exp.length) bloques.push(section('Experiencia laboral', exp.map(e => item(
+            `${e.puesto || ''}${e.empresa ? ' · ' + e.empresa : ''}`,
+            [periodo(e.desde, e.hasta), e.descripcion]
+        )).join('')));
+
+        const edu = itemList(cv, 'educacion');
+        if (edu.length) bloques.push(section('Educación', edu.map(e => item(
+            `${e.nivel || ''} ${e.institucion || ''}`.trim(),
+            [e.carrera, periodo(e.desde, e.hasta)]
+        )).join('')));
+
+        const cur = itemList(cv, 'cursos');
+        if (cur.length) bloques.push(section('Cursos y certificaciones', cur.map(e => item(
+            e.nombre || '', [`${e.institucion || ''} ${e.anio || ''}`.trim()]
+        )).join('')));
+
+        const hab = txtList(cv, 'habilidades');
+        if (hab.length) bloques.push(section('Habilidades', hab.map(h => `<span class="chip">${escapeHtml(h)}</span>`).join('')));
+
+        const idio = itemList(cv, 'idiomas');
+        if (idio.length) bloques.push(section('Idiomas', idio.map(e => item(
+            e.idioma || '', [NIVELES_IDIOMA[e.nivel] || e.nivel]
+        )).join('')));
+
+        const info = txtList(cv, 'informatica');
+        if (info.length) bloques.push(section('Informática', info.map(h => `<span class="chip">${escapeHtml(h)}</span>`).join('')));
+
+        const proy = itemList(cv, 'proyectos');
+        if (proy.length) bloques.push(section('Proyectos', proy.map(e => item(
+            `${e.nombre || ''} ${e.anio || ''}`.trim(), [e.descripcion]
+        )).join('')));
+
+        const vol = itemList(cv, 'voluntariado');
+        if (vol.length) bloques.push(section('Voluntariado', vol.map(e => item(
+            `${e.rol || ''}${e.organizacion ? ' · ' + e.organizacion : ''}`,
+            [periodo(e.desde, e.hasta)]
+        )).join('')));
+
+        if (d.premios) bloques.push(section('Premios y reconocimientos', `<div class="desc">${escapeHtml(d.premios)}</div>`));
+        if (d.publicaciones) bloques.push(section('Publicaciones', `<div class="desc">${escapeHtml(d.publicaciones)}</div>`));
+
+        const ref = itemList(cv, 'referencias');
+        if (ref.length) bloques.push(section('Referencias', ref.map(e => item(
+            e.nombre || '', [`${e.empresa || ''} ${e.relacion || ''}`.trim(), e.telefono]
+        )).join('')));
+
+        // datos de contacto
+        const hay = sens && (sens.ci || sens.telefono || sens.email || sens.direccion);
+        bloques.push(section('Datos de contacto (sensibles)', hay ? `
+            <div class="sens-box">
+                ${sens.ci ? sensRow('CI', sens.ci) : ''}
+                ${sens.telefono ? sensRow('Teléfono', sens.telefono) : ''}
+                ${sens.email ? sensRow('Email', sens.email) : ''}
+                ${sens.direccion ? sensRow('Dirección', sens.direccion) : ''}
+            </div>` : `
+            <div class="sens-box locked">
+                <div class="sens-row">El postulante aún no cargó datos de contacto, o están protegidos.</div>
+            </div>`));
+
+        // conexiones de este CV
+        if (mias.length) {
+            bloques.push(section('Conexiones con empresas', mias.map(k => {
+                const emp = empresaDe(k.empresa_user_id);
+                const st = k.status || 'pendiente';
+                return `<div class="list-item">
+                    <b>${escapeHtml(emp ? (emp.razon_social || emp.contacto || 'Empresa') : 'Empresa ' + String(k.empresa_user_id || '').slice(0, 8))}</b>
+                    <span class="badge-status badge-${st === 'aprobado' ? 'aprobado' : st === 'rechazado' ? 'rechazado' : 'pendiente'}" style="margin-left:8px">
+                        ${st === 'aprobado' ? 'DATOS COMPARTIDOS' : st === 'rechazado' ? 'RECHAZADO' : 'PENDIENTE'}
+                    </span>
+                    <small>Pedido el ${fmtFecha(k.created_at)}${k.decided_at ? ' · decidido el ' + fmtFecha(k.decided_at) : ''}</small>
+                </div>`;
+            }).join('')));
+        }
+
+        document.getElementById('modalContent').innerHTML = `
+            <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
+                ${url
+                    ? `<img src="${url}" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid #30363d" onerror="this.style.display='none'">`
+                    : `<div class="avatar-ph" style="width:76px;height:76px;font-size:30px">&#128100;</div>`}
+                <div>
+                    <div style="font-size:17px;font-weight:bold;color:#fff">${escapeHtml(cv.nombre || '(sin nombre)')}</div>
+                    <div style="color:#4fc3f7;font-size:14px;margin-top:2px">${escapeHtml(cv.puesto || labelOf(AREAS, cv.area))}</div>
+                    <div style="color:#8b949e;font-size:12px;margin-top:3px">${escapeHtml(labelOf(AREAS, cv.area))}${cv.departamento ? ' · ' + escapeHtml(cv.departamento) : ''}</div>
+                    ${owner ? `<div style="color:#8b949e;font-size:12px">Publicado por ${escapeHtml(owner.full_name || owner.email || '')}</div>` : ''}
+                </div>
+            </div>
+            <div class="kv">
+                <div class="modal-field"><label>Estado</label>
+                    <select id="cvEstadoSel" class="select-inline" style="width:100%">
+                        <option value="pendiente" ${cv.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                        <option value="aprobado" ${cv.status === 'aprobado' ? 'selected' : ''}>Aprobado</option>
+                        <option value="rechazado" ${cv.status === 'rechazado' ? 'selected' : ''}>Rechazado</option>
+                    </select>
+                </div>
+                <div class="modal-field"><label>Visible para empresas</label>
+                    <select id="cvActivoSel" class="select-inline" style="width:100%">
+                        <option value="1" ${cv.activo !== false ? 'selected' : ''}>Sí, se muestra</option>
+                        <option value="0" ${cv.activo === false ? 'selected' : ''}>No, oculto</option>
+                    </select>
+                </div>
+            </div>
+            ${bloques.join('')}
+        `;
+
+        document.getElementById('modalActions').innerHTML = `
+            <button class="btn btn-approve" onclick="guardarCvModal('${cv.id}')">Guardar cambios</button>
+            ${est === 'aprobado'
+                ? `<button class="btn btn-hide" onclick="setCvEstado('${cv.id}','aprobado',false);closeModal();">Ocultar</button>`
+                : `<button class="btn btn-approve" onclick="setCvEstado('${cv.id}','aprobado',true);closeModal();">Publicar</button>`}
+            ${sens && sens.telefono ? `<a class="btn btn-link" href="https://wa.me/${waNumber(sens.telefono)}" target="_blank">WhatsApp</a>` : ''}
+            <button class="btn btn-delete" onclick="borrarCv('${cv.id}')">Eliminar</button>
+        `;
+
+        document.getElementById('detailModal').style.display = 'block';
+    }
+
+    async function guardarCvModal(id) {
+        const status = document.getElementById('cvEstadoSel').value;
+        const activo = document.getElementById('cvActivoSel').value === '1';
+        await setCvEstado(id, status, activo);
+        closeModal();
+    }
+
+    function section(title, html) {
+        return `<h3>${escapeHtml(title)}</h3>${html}`;
+    }
+
+    function item(title, subs) {
+        const list = (subs || []).map(s => String(s == null ? '' : s).trim()).filter(Boolean);
+        if (!String(title).trim() && !list.length) return '';
+        return `<div class="list-item">
+            <b>${escapeHtml(title || '')}</b>
+            ${list.map(s => `<small>${escapeHtml(s)}</small>`).join('')}
+        </div>`;
+    }
+
+    function periodo(desde, hasta) {
+        const d = String(desde || '').trim();
+        const h = String(hasta || '').trim();
+        if (!d && !h) return '';
+        return h ? `${d} – ${h}` : `${d} – actualidad`;
+    }
+
+    function sensRow(k, v) {
+        return `<div class="sens-row"><b style="color:#8b949e;min-width:76px">${escapeHtml(k)}:</b> ${escapeHtml(v)}</div>`;
+    }
+
+    function waNumber(raw) {
+        const d = String(raw).replace(/[^0-9]/g, '');
+        if (!d) return '';
+        if (d.startsWith('598')) return d;
+        if (d.startsWith('0')) return '598' + d.slice(1);
+        return '598' + d;
+    }
+
+    // ---------------------------------------------------- empresas
+    function empresaDe(userId) {
+        return empresas.find(e => e.user_id === userId) || null;
+    }
+
+    function empresaMatches(e) {
+        const q = document.getElementById('empSearch').value.toLowerCase().trim();
+        const est = document.getElementById('empEstado').value;
+        const status = e.status || 'pendiente';
+        if (est && status !== est) return false;
+        if (!q) return true;
+        return (e.razon_social || '').toLowerCase().includes(q)
+            || (e.rut || '').toLowerCase().includes(q)
+            || (e.rubro || '').toLowerCase().includes(q)
+            || (e.contacto || '').toLowerCase().includes(q)
+            || (e.email || '').toLowerCase().includes(q)
+            || (e.departamento || '').toLowerCase().includes(q);
+    }
+
+    function renderEmpresas() {
+        const list = empresas.filter(empresaMatches);
+        const tbody = document.getElementById('empBody');
+        const table = document.getElementById('empTable');
+        const empty = document.getElementById('empEmpty');
+        updateStats();
+
+        if (!list.length) {
+            tbody.innerHTML = '';
+            table.style.display = 'none';
+            if (loadError.empresas) { empty.style.display = 'none'; return; }
+            empty.style.display = 'block';
+            document.getElementById('empEmptyMsg').textContent = empresas.length
+                ? 'No hay empresas con esos filtros'
+                : 'Todavía no hay empresas registradas en UF Job';
+            return;
+        }
+
+        empty.style.display = 'none';
+        table.style.display = 'table';
+
+        tbody.innerHTML = list.map(e => {
+            const status = e.status || 'pendiente';
+            const auto = e.verificado_auto === true;
+            const fecha = fmtFecha(e.created_at);
+            const con = consents.filter(k => k.empresa_user_id === e.user_id).length;
+            return `<tr>
+                <td class="title-cell">
+                    <strong>${escapeHtml(e.razon_social || '(sin razón social)')}</strong>
+                    <small>${escapeHtml(e.departamento || '')}</small>
+                    <small style="color:#484f58">${con} pedido(s) de contacto</small>
+                </td>
+                <td>${escapeHtml(e.rut || '-')}<br><small style="color:#8b949e">${escapeHtml(e.rubro || '-')}</small></td>
+                <td>
+                    ${escapeHtml(e.contacto || '-')}
+                    <br><small style="color:#8b949e">${escapeHtml(e.telefono || '')} ${e.email ? '· ' + escapeHtml(e.email) : ''}</small>
+                </td>
+                <td>
+                    <span class="badge-status badge-${status}">${(status || '').toUpperCase()}</span>
+                    ${auto ? '<br><span class="badge-status badge-auto" style="margin-top:4px;display:inline-block">AUTO (padrón)</span>' : ''}
+                </td>
+                <td><small>${fecha}</small></td>
+                <td><div class="actions">${empActions(e, status)}</div></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function empActions(e, status) {
+        const ver = `<button class="btn btn-view" onclick="verEmpresa('${e.id}')">Ver</button>`;
+        const con = `<button class="btn btn-link" onclick="verConexionesEmpresa('${e.user_id}')">Conexiones</button>`;
+        if (status === 'pendiente') {
+            return `<button class="btn btn-approve" onclick="decidirEmpresa('${e.id}','aprobado')">Aprobar</button>
+                    <button class="btn btn-reject" onclick="rechazarEmpresa('${e.id}')">Rechazar</button>${ver}${con}`;
+        }
+        if (status === 'aprobado') {
+            return `<button class="btn btn-hide" onclick="decidirEmpresa('${e.id}','pendiente')">Quitar aprobación</button>${ver}${con}`;
+        }
+        return `<button class="btn btn-approve" onclick="decidirEmpresa('${e.id}','aprobado')">Re-aprobar</button>${ver}${con}`;
+    }
+
+    async function decidirEmpresa(id, status, motivo) {
+        const upd = { status: status, motivo: motivo || '', updated_at: new Date().toISOString() };
+        if (status !== 'aprobado') upd.verificado_auto = false;
+        const { error } = await sb.from('empresas_job').update(upd).eq('id', id);
+        if (error) { toast('Error al guardar: ' + error.message, true); return; }
+        const i = empresas.findIndex(e => e.id === id);
+        if (i >= 0) Object.assign(empresas[i], upd);
+        toast(status === 'aprobado'
+            ? 'Empresa aprobada: ya puede buscar y leer currículums'
+            : 'Estado de la empresa actualizado');
+        renderAll();
+    }
+
+    async function rechazarEmpresa(id) {
+        const motivo = prompt('Motivo del rechazo (lo ve la empresa en su registro):');
+        if (motivo === null) return;
+        await decidirEmpresa(id, 'rechazado', motivo);
+    }
+
+    async function verEmpresa(id) {
+        const e = empresas.find(x => x.id === id);
+        if (!e) return;
+        const status = e.status || 'pendiente';
+        const con = consents.filter(k => k.empresa_user_id === e.user_id);
+        const constUrl = e.constancia_url ? constancias[e.constancia_url] : null;
+
+        document.getElementById('modalTitle').textContent = e.razon_social || 'Empresa';
+        document.getElementById('modalContent').innerHTML = `
+            <div class="kv">
+                <div class="modal-field"><label>Estado</label>
+                    <select id="empEstadoSel" class="select-inline" style="width:100%">
+                        <option value="pendiente" ${status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                        <option value="aprobado" ${status === 'aprobado' ? 'selected' : ''}>Aprobada</option>
+                        <option value="rechazado" ${status === 'rechazado' ? 'selected' : ''}>Rechazada</option>
+                    </select>
+                </div>
+                <div class="modal-field"><label>Verificación</label>
+                    <div class="value">${e.verificado_auto
+                        ? 'Automática (RUT activo en padrón MIEM/DGI)'
+                        : 'Manual (por el administrador)'}</div>
+                </div>
+            </div>
+            <div class="kv">
+                <div class="modal-field"><label>RUT</label><div class="value">${escapeHtml(e.rut || '-')}</div></div>
+                <div class="modal-field"><label>Rubro</label><div class="value">${escapeHtml(e.rubro || '-')}</div></div>
+                <div class="modal-field"><label>Departamento</label><div class="value">${escapeHtml(e.departamento || '-')}</div></div>
+                <div class="modal-field"><label>Contacto</label><div class="value">${escapeHtml(e.contacto || '-')}</div></div>
+            </div>
+            <div class="kv">
+                <div class="modal-field"><label>Teléfono</label><div class="value">${e.telefono
+                    ? `<a class="phone-link" href="tel:${escapeHtml(e.telefono)}">${escapeHtml(e.telefono)}</a>` : '-'}</div></div>
+                <div class="modal-field"><label>Email</label><div class="value">${escapeHtml(e.email || '-')}</div></div>
+                <div class="modal-field"><label>Registrada</label><div class="value">${fmtFechaHora(e.created_at)}</div></div>
+                <div class="modal-field"><label>Última actualización</label><div class="value">${fmtFechaHora(e.updated_at)}</div></div>
+            </div>
+            ${e.motivo ? `<div class="modal-field"><label>Motivo de la última decisión</label><div class="value" style="color:#ffa198">${escapeHtml(e.motivo)}</div></div>` : ''}
+
+            <div class="modal-field"><label>Constancia de RUT / registro</label>
+                <div class="value">${constUrl
+                    ? `<a href="${constUrl}" target="_blank" style="color:#58a6ff">Abrir constancia</a>`
+                    : (e.constancia_url ? 'Subida (sin URL firmada)' : 'No adjuntó constancia')}</div>
+            </div>
+
+            <h3>Conexiones con postulantes (${con.length})</h3>
+            ${con.length ? con.map(k => {
+                const cv = cvs.find(c => c.id === k.curriculum_id);
+                const st = k.status || 'pendiente';
+                return `<div class="list-item">
+                    <b>${escapeHtml(cv ? (cv.nombre || 'CV sin nombre') : 'CV eliminado')}</b>
+                    <span class="badge-status badge-${st === 'aprobado' ? 'aprobado' : st === 'rechazado' ? 'rechazado' : 'pendiente'}" style="margin-left:8px">
+                        ${st === 'aprobado' ? 'DATOS COMPARTIDOS' : st === 'rechazado' ? 'RECHAZADO' : 'PENDIENTE'}
+                    </span>
+                    <small>Pedido el ${fmtFecha(k.created_at)}</small>
+                    <div style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">
+                        ${cv ? `<button class="btn btn-view" onclick="verCv('${cv.id}')">Ver CV</button>` : ''}
+                        <button class="btn btn-view" onclick="setConsent('${k.id}','aprobado')">Dar acceso</button>
+                        <button class="btn btn-reject" onclick="setConsent('${k.id}','rechazado')">Quitar acceso</button>
+                        <button class="btn btn-delete" onclick="borrarConsent('${k.id}')">Eliminar vínculo</button>
+                    </div>
+                </div>`;
+            }).join('') : '<div style="color:#484f58;font-size:13px">Esta empresa todavía no pidió contacto con ningún postulante.</div>'}
+        `;
+
+        document.getElementById('modalActions').innerHTML = `
+            <button class="btn btn-approve" onclick="guardarEmpresaModal('${e.id}')">Guardar cambios</button>
+            ${status === 'aprobado'
+                ? `<button class="btn btn-hide" onclick="decidirEmpresa('${e.id}','pendiente');closeModal();">Quitar aprobación</button>`
+                : `<button class="btn btn-approve" onclick="decidirEmpresa('${e.id}','aprobado');closeModal();">Aprobar</button>`}
+            ${e.telefono ? `<a class="btn btn-link" href="https://wa.me/${waNumber(e.telefono)}" target="_blank">WhatsApp</a>` : ''}
+        `;
+
+        document.getElementById('detailModal').style.display = 'block';
+    }
+
+    async function guardarEmpresaModal(id) {
+        const status = document.getElementById('empEstadoSel').value;
+        await decidirEmpresa(id, status, status === 'rechazado' ? '' : '');
+        closeModal();
+    }
+
+    function verConexionesEmpresa(userId) {
+        switchTab('conexiones');
+        const emp = empresaDe(userId);
+        document.getElementById('conSearch').value = emp ? (emp.razon_social || '') : '';
+        renderConexiones();
+    }
+
+    // -------------------------------------------------- conexiones
+    function consentMatches(k) {
+        const q = document.getElementById('conSearch').value.toLowerCase().trim();
+        const est = document.getElementById('conEstado').value;
+        const st = k.status || 'pendiente';
+        if (est && st !== est) return false;
+        if (!q) return true;
+        const cv = cvs.find(c => c.id === k.curriculum_id);
+        const emp = empresaDe(k.empresa_user_id);
+        const nombre = cv ? `${cv.nombre || ''} ${cv.puesto || ''}` : '';
+        const empresa = emp ? `${emp.razon_social || ''} ${emp.rubro || ''}` : '';
+        return nombre.toLowerCase().includes(q) || empresa.toLowerCase().includes(q);
+    }
+
+    function renderConexiones() {
+        const list = consents.filter(consentMatches);
+        const tbody = document.getElementById('conBody');
+        const table = document.getElementById('conTable');
+        const empty = document.getElementById('conEmpty');
+        updateStats();
+
+        if (!list.length) {
+            tbody.innerHTML = '';
+            table.style.display = 'none';
+            if (loadError.conexiones) { empty.style.display = 'none'; return; }
+            empty.style.display = 'block';
+            document.getElementById('conEmptyMsg').textContent = consents.length
+                ? 'No hay conexiones con esos filtros'
+                : 'Todavía no hay pedidos de contacto entre empresas y postulantes';
+            return;
+        }
+
+        empty.style.display = 'none';
+        table.style.display = 'table';
+
+        tbody.innerHTML = list.map(k => {
+            const cv = cvs.find(c => c.id === k.curriculum_id);
+            const emp = empresaDe(k.empresa_user_id);
+            const st = k.status || 'pendiente';
+            const badge = st === 'aprobado' ? 'aprobado' : st === 'rechazado' ? 'rechazado' : 'pendiente';
+            const label = st === 'aprobado' ? 'CONTACTO COMPARTIDO' : st === 'rechazado' ? 'RECHAZADO' : 'ESPERANDO AL POSTULANTE';
+            return `<tr>
+                <td class="title-cell">
+                    <strong>${escapeHtml(cv ? (cv.nombre || 'CV sin nombre') : 'CV eliminado')}</strong>
+                    <small>${escapeHtml(cv ? (cv.puesto || '') : '')}</small>
+                </td>
+                <td class="title-cell">
+                    <strong>${escapeHtml(emp ? (emp.razon_social || 'Empresa') : 'Empresa ' + String(k.empresa_user_id || '').slice(0, 8))}</strong>
+                    <small>${escapeHtml(emp ? (emp.rubro || '') : '')}</small>
+                </td>
+                <td>${cv ? `<button class="btn btn-view" onclick="verCv('${cv.id}')">Ver CV</button>` : '<span style="color:#484f58">-</span>'}</td>
+                <td><span class="badge-status badge-${badge}">${label}</span></td>
+                <td><small>${fmtFecha(k.created_at)}${k.decided_at ? '<br>decidido ' + fmtFecha(k.decided_at) : ''}</small></td>
+                <td><div class="actions">
+                    ${st !== 'aprobado' ? `<button class="btn btn-approve" onclick="setConsent('${k.id}','aprobado')">Dar acceso</button>` : ''}
+                    ${st !== 'rechazado' ? `<button class="btn btn-reject" onclick="setConsent('${k.id}','rechazado')">Rechazar</button>` : ''}
+                    <button class="btn btn-delete" onclick="borrarConsent('${k.id}')">&#128465;</button>
+                </div></td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function setConsent(id, status) {
+        const { error } = await sb.from('job_consents').update({
+            status: status,
+            decided_at: new Date().toISOString()
+        }).eq('id', id);
+        if (error) { toast('Error al guardar: ' + error.message, true); return; }
+        const i = consents.findIndex(k => k.id === id);
+        if (i >= 0) { consents[i].status = status; consents[i].decided_at = new Date().toISOString(); }
+        toast(status === 'aprobado'
+            ? 'El postulante queda vinculado: la empresa ve sus datos de contacto'
+            : 'Acceso de contacto retirado');
+        renderAll();
+    }
+
+    async function borrarConsent(id) {
+        if (!confirm('¿Eliminar este vínculo empresa ↔ postulante?\n\nAmbos podrán pedirlo de nuevo.')) return;
+        const { error } = await sb.from('job_consents').delete().eq('id', id);
+        if (error) { toast('Error al borrar: ' + error.message, true); return; }
+        consents = consents.filter(k => k.id !== id);
+        toast('Vínculo eliminado');
+        renderAll();
+    }
+
+    // ------------------------------------------------------- modal
+    function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
+    document.getElementById('detailModal').addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    loadAll();
+</script>
+</body>
+</html>
