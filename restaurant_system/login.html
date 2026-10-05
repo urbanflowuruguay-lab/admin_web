@@ -66,7 +66,7 @@
     <script>
         const SUPABASE_URL = 'https://eyfgkopaamnkprzpwocz.supabase.co';
         const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTk0ODMsImV4cCI6MjA5NDE5NTQ4M30.bXkq4Ks3p2yb2SQH76__8jXhmM5Thi2izIL5UPkKa0I";
-        const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW0LdGOHmCk";
+        const SUPABASE_SERVICE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
         const sbSvc = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE);
 
@@ -98,13 +98,20 @@
             toggleLoading(true);
 
             try {
-                // 1) Buscar empleado por nombre + pin
-                const { data: emps } = await sbSvc.from('empleados')
+                // 1) Buscar empleado por nombre + pin (sin importar mayúsculas)
+                const escUser = String(user).replace(/[\\%_]/g, m => '\\' + m);
+                const { data: emps, error: empErr } = await sbSvc.from('empleados')
                     .select('*')
-                    .eq('nombre', user)
+                    .ilike('nombre', escUser)
                     .eq('pin', pass)
                     .eq('activo', true)
                     .limit(5);
+
+                if (empErr) {
+                    showError('Error al consultar empleados: ' + empErr.message);
+                    toggleLoading(false);
+                    return;
+                }
 
                 if (emps && emps.length > 0) {
                     const emp = emps[0];

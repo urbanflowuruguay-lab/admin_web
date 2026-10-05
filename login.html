@@ -472,10 +472,10 @@
 
                 <form onsubmit="handleLogin(event)">
                     <div class="form-group">
-                        <label>Correo Electrónico o Usuario</label>
+                        <label>Nombre de Empleado o correo del dueño</label>
                         <div class="input-wrapper">
-                            <i class="fa-regular fa-envelope input-icon"></i>
-                            <input type="text" id="loginEmail" placeholder="ejemplo@urbanflow.com" required autocomplete="username">
+                            <i class="fa-regular fa-user input-icon"></i>
+                            <input type="text" id="loginEmail" placeholder="Ej. Eduardo (el mail solo si sos dueño)" required autocomplete="username">
                         </div>
                     </div>
 
@@ -498,22 +498,39 @@
                 </div>
             </div>
 
-            <!-- STEP 2: REGISTRO DE EMPRESA / RESTAURANTE (DUEÑO) -->
+            <!-- STEP 2: REGISTRO DE EMPRESA (DUEÑO) -->
             <div id="step-register-empresa" class="hidden">
-                <h2 class="card-heading">Registrar Restaurante</h2>
-                <p class="card-subheading">Creá tu cuenta de Administrador de Local</p>
+                <h2 class="card-heading">Registrar Mi Negocio</h2>
+                <p class="card-subheading">Creá tu cuenta y empezá a vender</p>
 
                 <div id="regEmpresaAlert" class="hidden"></div>
 
                 <form onsubmit="handleRegisterEmpresa(event)">
+                    <!-- Selector de Tipo de Negocio -->
                     <div class="form-group">
-                        <label>Nombre del Restaurante / Empresa</label>
+                        <label>Tipo de Negocio</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-briefcase input-icon"></i>
+                            <select id="regEmpTipo" required onchange="onTipoNegocioChange()">
+                                <option value="">Seleccioná una opción...</option>
+                                <option value="comida">🍽️ Gastronomía (venta de comidas con atención al público)</option>
+                                <option value="delivery">🛵 Venta de comidas (sin atención al público)</option>
+                                <option value="tienda">🏪 Venta de productos variados</option>
+                                <option value="guia">📍 Solo aparecer en la Guía Comercial</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Nombre del Negocio -->
+                    <div class="form-group">
+                        <label>Nombre del Negocio</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-store input-icon"></i>
                             <input type="text" id="regEmpNombre" placeholder="Ej. Pizzería San José" required>
                         </div>
                     </div>
 
+                    <!-- Email -->
                     <div class="form-group">
                         <label>Correo Electrónico</label>
                         <div class="input-wrapper">
@@ -522,8 +539,9 @@
                         </div>
                     </div>
 
+                    <!-- Contraseña -->
                     <div class="form-group">
-                        <label>Contraseña de Usuario</label>
+                        <label>Contraseña</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-key input-icon"></i>
                             <input type="password" id="regEmpPass" placeholder="Mínimo 6 caracteres" required>
@@ -531,11 +549,94 @@
                         </div>
                     </div>
 
+                    <!-- Teléfono -->
                     <div class="form-group">
                         <label>Teléfono</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-phone input-icon"></i>
                             <input type="tel" id="regEmpTelefono" placeholder="+598 99 123 456" required>
+                        </div>
+                    </div>
+
+                    <!-- Dirección (todos los tipos) -->
+                    <div class="form-group">
+                        <label>Dirección del Negocio</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-location-dot input-icon"></i>
+                            <input type="text" id="regEmpDireccion" placeholder="Calle, número, esquina">
+                        </div>
+                    </div>
+
+                    <!-- Foto del Negocio (todos los tipos) -->
+                    <div class="form-group">
+                        <label>Foto del Negocio (opcional)</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-camera input-icon"></i>
+                            <input type="url" id="regEmpFoto" placeholder="URL de la foto">
+                        </div>
+                    </div>
+
+                    <!-- Logo (todos los tipos) -->
+                    <div class="form-group">
+                        <label>Logo (opcional)</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-image input-icon"></i>
+                            <input type="url" id="regEmpLogo" placeholder="URL del logo">
+                        </div>
+                    </div>
+
+                    <!-- Rubro (solo para tienda y guía) -->
+                    <div class="form-group hidden" id="fieldRubro">
+                        <label>Rubro</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-tag input-icon"></i>
+                            <select id="regEmpRubro">
+                                <option value="farmacia">💊 Farmacia</option>
+                                <option value="supermercado">🛒 Supermercado</option>
+                                <option value="panaderia">🥖 Panadería</option>
+                                <option value="libreria">📚 Librería</option>
+                                <option value="ferreteria">🔧 Ferretería</option>
+                                <option value="floristeria">🌸 Floristería</option>
+                                <option value="mascotas">🐾 Mascotas</option>
+                                <option value="electrodomesticos">🔌 Electrónicos</option>
+                                <option value="ropa">👕 Ropa</option>
+                                <option value="zapateria">👟 Zapatería</option>
+                                <option value="joyeria">💎 Joyería</option>
+                                <option value="hogar">🏠 Art. del Hogar</option>
+                                <option value="deportes">⚽ Deportes</option>
+                                <option value="gimnasio">💪 Gimnasio</option>
+                                <option value="belleza">💅 Belleza</option>
+                                <option value="clinica">🏥 Clínica</option>
+                                <option value="hotel">🏨 Hotel</option>
+                                <option value="otro">📦 Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Horarios (todos menos guía que es obligatorio) -->
+                    <div class="form-group">
+                        <label>Horarios <span id="horariosHint">(ej: Lun-Vie 9-18hs)</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-clock input-icon"></i>
+                            <input type="text" id="regEmpHorarios" placeholder="Ej: Lun-Vie 9-18hs">
+                        </div>
+                    </div>
+
+                    <!-- Descripción (obligatorio para guía) -->
+                    <div class="form-group">
+                        <label>Descripción del Negocio</label>
+                        <div class="input-wrapper" style="align-items: flex-start;">
+                            <i class="fa-solid fa-align-left input-icon" style="margin-top: 12px;"></i>
+                            <textarea id="regEmpDescripcion" placeholder="Contanos sobre tu negocio..." style="width:100%;padding:10px 14px 10px 42px;background:var(--bg-input);border:1px solid var(--border-card);border-radius:12px;color:var(--text-primary);font-size:14px;min-height:60px;resize:vertical;font-family:inherit;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Zonas de Envío (solo delivery) -->
+                    <div class="form-group hidden" id="fieldZonas">
+                        <label>Zonas de Envío</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-map-location-dot input-icon"></i>
+                            <input type="text" id="regEmpZonas" placeholder="Ej: Centro, Cordón, Pocitos">
                         </div>
                     </div>
 
@@ -723,27 +824,44 @@
             showAlert('loginAlert', '');
 
             try {
-                // 1. Intentar Login como Usuario Autenticado en Supabase Auth
-                const { data, error } = await sb.auth.signInWithPassword({ email: emailOrUser, password: pass });
+                const esEmail = emailOrUser.includes('@');
 
-                if (!error && data.user) {
-                    await processUserRedirection(data.user);
-                    return;
+                // 1. Solo si escribió un mail: login de dueño con Supabase Auth
+                if (esEmail) {
+                    const { data, error } = await sb.auth.signInWithPassword({ email: emailOrUser, password: pass });
+
+                    if (!error && data && data.user) {
+                        await processUserRedirection(data.user);
+                        return;
+                    }
                 }
 
-                // 2. Si falla Auth estándar, verificar si es EMPLEADO por Nombre/Email en la tabla empleados
-                const { data: empData } = await sbService.from('empleados')
+                // 2. Empleado: se registró con el código de la empresa, NO necesita mail.
+                //    Se busca por nombre (sin importar mayúsculas) + contraseña.
+                const esc = emailOrUser.replace(/[\\%_]/g, m => '\\' + m);
+                const { data: empData, error: empErr } = await sbService.from('empleados')
                     .select('*')
-                    .or(`nombre.eq."${emailOrUser}",email.eq."${emailOrUser}"`)
+                    .ilike('nombre', esc)
                     .eq('pin', pass)
                     .limit(1);
 
-                if (empData && empData.length > 0) {
-                    const emp = empData[0];
+                if (empErr) {
+                    showAlert('loginAlert', 'Error al consultar la base: ' + empErr.message);
+                    return;
+                }
+
+                let emp = (empData && empData.length > 0) ? empData[0] : null;
+
+                // 2b. Si era un mail, también probamos por email del empleado
+                if (!emp && esEmail) {
+                    const { data: porMail } = await sbService.from('empleados')
+                        .select('*').eq('email', emailOrUser).eq('pin', pass).limit(1);
+                    if (porMail && porMail.length > 0) emp = porMail[0];
+                }
+
+                if (emp) {
                     if (!emp.activo) {
                         showAlert('loginAlert', 'Tu cuenta de empleado está registrada pero aún PENDIENTE de aprobación por el dueño.');
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar al Sistema';
                         return;
                     }
 
@@ -755,7 +873,20 @@
                     return;
                 }
 
-                showAlert('loginAlert', 'Usuario o contraseña incorrectos.');
+                // 3. Mensajes claros según lo que falló
+                const { data: existe } = await sbService.from('empleados')
+                    .select('id, activo').ilike('nombre', esc).limit(1);
+
+                if (existe && existe.length > 0) {
+                    showAlert('loginAlert', existe[0].activo
+                        ? 'La contraseña no coincide.'
+                        : 'Tu cuenta de empleado está registrada pero aún PENDIENTE de aprobación por el dueño.');
+                } else if (esEmail) {
+                    showAlert('loginAlert', 'Usuario o contraseña incorrectos.');
+                } else {
+                    showAlert('loginAlert', 'No hay ningún empleado con ese nombre. Registrate con el código de tu local o pedile al dueño que te dé de alta.');
+                }
+
 
             } catch (err) {
                 showAlert('loginAlert', 'Error al conectar: ' + err.message);
@@ -798,7 +929,18 @@
                 localStorage.removeItem('urbanflow_employee');
                 localStorage.removeItem('urbanflow_employee_role');
                 localStorage.removeItem('urbanflow_employee_name');
-                window.location.href = '/restaurant_system/gestion.html';
+
+                // Redirigir según tipo de negocio
+                const tipo = userEmpresa.rubro_tipo || 'comida';
+                if (tipo === 'comida') {
+                    window.location.href = '/restaurant_system/gestion.html';
+                } else if (tipo === 'delivery') {
+                    window.location.href = '/panel_empresa_deploy/index.html?empresa=' + userEmpresa.id;
+                } else if (tipo === 'tienda') {
+                    window.location.href = '/tienda/index.html?empresa=' + userEmpresa.id;
+                } else {
+                    window.location.href = '/guia_confirmacion.html';
+                }
                 return;
             }
 
@@ -806,16 +948,54 @@
             await sb.auth.signOut();
         }
 
+        // CAMBIO DE TIPO DE NEGOCIO
+        function onTipoNegocioChange() {
+            const tipo = document.getElementById('regEmpTipo').value;
+            const fieldRubro = document.getElementById('fieldRubro');
+            const fieldZonas = document.getElementById('fieldZonas');
+            const horariosHint = document.getElementById('horariosHint');
+
+            // Ocultar todo primero
+            fieldRubro.classList.add('hidden');
+            fieldZonas.classList.add('hidden');
+
+            if (tipo === 'tienda' || tipo === 'guia') {
+                fieldRubro.classList.remove('hidden');
+            }
+            if (tipo === 'delivery') {
+                fieldZonas.classList.remove('hidden');
+            }
+            if (tipo === 'guia') {
+                horariosHint.textContent = '(obligatorio)';
+            } else {
+                horariosHint.textContent = '(ej: Lun-Vie 9-18hs)';
+            }
+        }
+
         // REGISTRO DE EMPRESA (DUEÑO)
         async function handleRegisterEmpresa(e) {
             e.preventDefault();
+            const tipo = document.getElementById('regEmpTipo').value;
             const nombre = document.getElementById('regEmpNombre').value.trim();
             const email = document.getElementById('regEmpEmail').value.trim();
             const pass = document.getElementById('regEmpPass').value.trim();
             const telefono = document.getElementById('regEmpTelefono').value.trim();
+            const direccion = document.getElementById('regEmpDireccion').value.trim();
+            const foto = document.getElementById('regEmpFoto').value.trim();
+            const logo = document.getElementById('regEmpLogo').value.trim();
+            const horarios = document.getElementById('regEmpHorarios').value.trim();
+            const descripcion = document.getElementById('regEmpDescripcion').value.trim();
+            const rubro = document.getElementById('regEmpRubro').value;
+            const zonas = document.getElementById('regEmpZonas').value.trim();
 
-            if (!nombre || !email || !pass || !telefono) {
-                showAlert('regEmpresaAlert', 'Por favor completá todos los campos.');
+            if (!tipo || !nombre || !email || !pass || !telefono) {
+                showAlert('regEmpresaAlert', 'Por favor completá todos los campos obligatorios.');
+                return;
+            }
+
+            // Validar guía: horarios y descripción obligatorios
+            if (tipo === 'guia' && (!horarios || !descripcion)) {
+                showAlert('regEmpresaAlert', 'Para aparecer en la Guía Comercial, completá horarios y descripción.');
                 return;
             }
 
@@ -837,16 +1017,37 @@
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             const codigo = Array.from({length:8}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
 
-            const { error: empError } = await sbService.from('empresas').insert({
+            // Mapear rubroTipo a rubro por defecto
+            const rubroDefault = tipo === 'comida' ? 'restaurante' : tipo === 'delivery' ? 'restaurante' : rubro || 'tienda';
+
+            const insertData = {
                 usuario_id: userId,
                 email,
                 nombre,
                 telefono,
-                rubro: 'restaurante',
+                direccion: direccion || '',
+                rubro: rubroDefault,
+                rubro_tipo: tipo,
+                horarios: horarios || '',
+                descripcion: descripcion || '',
+                logo_url: logo || '',
+                foto_url: foto || '',
                 codigo_interno: codigo,
+                tiene_local: tipo !== 'guia',
+                vende_online: tipo === 'comida' || tipo === 'delivery' || tipo === 'tienda',
                 status: 'aprobado',
                 activo: true
-            });
+            };
+
+            // Agregar campos condicionales
+            if (tipo === 'delivery' && zonas) {
+                insertData.zonas_envio = zonas;
+            }
+            if (tipo === 'tienda' || tipo === 'guia') {
+                insertData.sub_rubro = rubro;
+            }
+
+            const { error: empError } = await sbService.from('empresas').insert(insertData);
 
             if (empError) {
                 showAlert('regEmpresaAlert', 'Error al guardar la empresa: ' + empError.message);
@@ -861,7 +1062,18 @@
                 localStorage.removeItem('urbanflow_employee');
                 localStorage.removeItem('urbanflow_employee_role');
                 localStorage.removeItem('urbanflow_employee_name');
-                window.location.href = '/restaurant_system/gestion.html';
+
+                // Redirigir según tipo de negocio
+                if (tipo === 'comida') {
+                    window.location.href = '/restaurant_system/gestion.html';
+                } else if (tipo === 'delivery') {
+                    window.location.href = '/panel_empresa_deploy/index.html?empresa=' + emp[0].id;
+                } else if (tipo === 'tienda') {
+                    window.location.href = '/tienda/index.html?empresa=' + emp[0].id;
+                } else {
+                    // Guía Comercial - página de confirmación
+                    window.location.href = '/guia_confirmacion.html';
+                }
             }
         }
 

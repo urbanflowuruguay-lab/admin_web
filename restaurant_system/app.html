@@ -1029,12 +1029,21 @@
             if (!pin) { loginError('Poné tu contraseña'); return; }
             
             const empresaId = localStorage.getItem('urbanflow_empresa_id');
-            let query = sbSvc.from('empleados').select('*').eq('nombre', nombre).eq('pin', pin).eq('activo', true);
+            const escNombre = nombre.replace(/[\\%_]/g, m => '\\' + m);
+            let query = sbSvc.from('empleados').select('*').ilike('nombre', escNombre).eq('pin', pin).eq('activo', true);
             if (empresaId) query = query.eq('empresa_id', empresaId);
             
-            const { data, error } = await query.limit(5);
+            let { data, error } = await query.limit(5);
+
+            // Si el local guardado no coincide con el del empleado, repetimos sin ese filtro
+            if ((!error) && (!data || data.length === 0)) {
+                const r2 = await sbSvc.from('empleados').select('*')
+                    .ilike('nombre', escNombre).eq('pin', pin).eq('activo', true).limit(5);
+                data = r2.data; error = r2.error;
+            }
+
             if (error || !data || data.length === 0) {
-                loginError('Usuario o contraseña incorrectos');
+                loginError(error ? ('Error al consultar: ' + error.message) : 'Usuario o contraseña incorrectos');
                 return;
             }
             
