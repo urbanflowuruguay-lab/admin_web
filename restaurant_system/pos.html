@@ -772,6 +772,16 @@
             } catch (e) { alert('Error al cobrar: ' + e.message); }
         }
 
+        function showToast(msg, durationMs) {
+            try {
+                const t = document.createElement('div');
+                t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;z-index:99999;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:4px;max-width:90vw;text-align:center';
+                t.textContent = msg;
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), durationMs || 4000);
+            } catch (_) {}
+        }
+
         // =============================================
         // AGREGAR PRODUCTO A LA MESA (desde caja)
         // =============================================
@@ -901,10 +911,10 @@
                     if (eIns) throw eIns;
                     try { await sbPOS.from('mesas').update({ estado: 'ocupada' }).eq('id', selectedMesa.id); } catch (_) {}
                 }
-                showToast('Agregado a Mesa #' + selectedMesa.numero);
                 cerrarAgregarMesa();
                 await loadCuentaMesa();
                 try { loadMapaAbiertos(); } catch (_) {}
+                showToast('Agregado a Mesa #' + selectedMesa.numero);
             } catch (e) { alert('Error al agregar: ' + e.message); }
         }
 
