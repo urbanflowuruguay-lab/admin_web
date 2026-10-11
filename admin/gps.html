@@ -163,6 +163,20 @@ textarea.ph{min-height:52px;line-height:1.45}
 .pmbar button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:5px;padding:5px 10px;font-size:11.5px;cursor:pointer}
 .pmbar button:hover{background:#30363d}
 .pmbar button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+
+/* ---- calles de la feria (una por trazo) ---- */
+.scard{display:flex;gap:9px;align-items:center;background:#0d1117;border:1px solid #30363d;border-radius:7px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.scard:hover{border-color:#58a6ff}
+.scard.on{border-color:#1f6feb;background:#0d1117;box-shadow:0 0 0 1px #1f6feb}
+.sidx{flex:0 0 26px;height:26px;border-radius:6px;background:#21262d;border:1px solid #30363d;color:#79c0ff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.scard.on .sidx{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.sbody{flex:1;min-width:0}
+.sbody input{background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:5px;padding:5px 8px;font-size:12.5px;font-family:inherit;width:100%}
+.sbody input:focus{outline:none;border-color:#1f6feb}
+.sbtns{display:flex;gap:9px;flex-shrink:0}
+.sbtns .lnk{white-space:nowrap}
+#fDrawHint{display:none;align-items:center;gap:9px;background:#1f6feb22;border:1px solid #1f6feb;border-radius:7px;padding:8px 12px;margin-bottom:11px;font-size:12.5px;color:#79c0ff;font-weight:600}
+#fDrawHint button{background:#1f6feb;border:none;color:#fff;border-radius:5px;padding:4px 10px;font-size:11.5px;cursor:pointer;font-weight:700}
 </style>
 </head>
 <body>
@@ -223,6 +237,7 @@ textarea.ph{min-height:52px;line-height:1.45}
     <button class="btn g sm" onclick="reloadFerias()">Recargar</button>
   </div>
   <div id="fmap"></div>
+  <div id="fDrawHint"><span id="fDrawHintTxt">Clic en el mapa para poner puntos. Doble click para terminar la calle.</span><button onclick="stopDrawStreet();renderEditor()">Cancelar dibujo</button></div>
   <div id="flist"></div>
   <div class="savebar">
     <b style="color:#e6edf3">Cómo funciona:</b> tocá una feria, mirá el trazo en el mapa y marcá
@@ -770,6 +785,8 @@ let fsaving=0;
 let feditId=null;
 let fdraft=null;
 let fvalOpts={};
+let fStreetSel=0;      // índice de la calle seleccionada para mover sus puntos
+let fRedrawIdx=null;   // si está seteado, el próximo trazo reemplaza esa calle
 
 const DIAS={1:'LUN',2:'MAR',3:'MIÉ',4:'JUE',5:'VIE',6:'SÁB',7:'DOM'};
 const DIASL={1:'lunes',2:'martes',3:'miércoles',4:'jueves',5:'viernes',6:'sábado',7:'domingo'};
@@ -838,18 +855,65 @@ function fStatus(f){
   return (f.status||'unverified').trim();
 }
 
+/// LineString -> una calle. MultiLineString -> varias.
+/// Devuelve un array de [[lon,lat],...] con las calles válidas (>= 2 pts).
+function parseStreets(geo){
+  if(!geo||!geo.coordinates) return [];
+  const out=[];
+  const line=function(raw){
+    if(!raw||!raw.length) return null;
+    const pts=[];
+    for(let i=0;i<raw.length;i++){
+      const c=raw[i];
+      if(!c||c.length<2) continue;
+      const lon=+c[0], lat=+c[1];
+      if(!isFinite(lon)||!isFinite(lat)) continue;
+      if(lon===0&&lat===0) continue; // (0,0) = "sin coordenadas"
+      pts.push([lon,lat]);
+    }
+    return pts.length>=2?pts:null;
+  };
+  if(geo.type==='MultiLineString'){
+    for(let i=0;i<geo.coordinates.length;i++){
+      const p=line(geo.coordinates[i]); if(p) out.push(p);
+    }
+  } else {
+    const p=line(geo.coordinates); if(p) out.push(p);
+  }
+  return out;
+}
+
+/// Los nombres de cada calle viven en street_name unidos por " · ".
+/// Si el número no coincide se completa con el texto entero.
+function splitStreetNames(joined,n){
+  const parts=String(joined||'').split('·').map(function(s){return s.trim()}).filter(function(s){return s});
+  if(parts.length===n) return parts;
+  const out=[];
+  for(let i=0;i<n;i++) out.push((i<parts.length&&parts[i])?parts[i]:String(joined||''));
+  return out;
+}
+
+/// " · " es el separador de los nombres, no puede estar dentro de uno.
+function cleanStreetName(s){
+  return String(s||'').replace(/\s*·\s*/g,', ').replace(/\s+/g,' ').trim();
+}
+
 async function reloadFerias(){
   document.getElementById('fSync').textContent='Cargando…';
   try{
-    const rows=await fAuth('GET',SUPABASE_URL+'/rest/v1/map_events?select=id,name,street_name,geometry,weekday_start,weekday_end,weekend_start,weekend_end,status&type=eq.feria&order=name');
+    const rows=await fAuth('GET',SUPABASE_URL+'/rest/v1/map_events?select=id,name,street_name,geometry,weekday_start,weekday_end,weekend_start,weekend_end&type=eq.feria&order=name');
     FERIAS=rows.map(function(r){
-      const c=(r.geometry&&r.geometry.coordinates)||[];
+      const g=parseStreets(r.geometry);
+      const names=splitStreetNames(r.street_name,g.length);
+      const streets=g.map(function(c,i){ return {name:names[i]||'', coords:c}; });
+      let flat=[]; streets.forEach(function(s){ flat=flat.concat(s.coords); });
       return {
-        id:r.id, name:r.name||'', street:r.street_name||'', coords:c,
+        id:r.id, name:r.name||'', street:r.street_name||'', coords:flat, streets:streets,
         ws:fT(r.weekday_start), we:fT(r.weekday_end), ss:fT(r.weekend_start), se:fT(r.weekend_end),
         status:fStatus(r),
-        wd:fWeekday(r.name), len:c.length>1?fLen(c):0,
-        ini:c.length?c[0]:null, fin:c.length?c[c.length-1]:null,
+        wd:fWeekday(r.name),
+        len:streets.reduce(function(a,s){ return a+fLen(s.coords); },0),
+        ini:flat.length?flat[0]:null, fin:flat.length?flat[flat.length-1]:null,
         _note:(window._feriasNotes||{})[r.id]||''
       };
     });
@@ -868,6 +932,16 @@ function initFmap(){
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
     maxZoom:19, attribution:'&copy; OpenStreetMap'
   }).addTo(fmap);
+  // Terminar de dibujar una calle nueva en el editor de ferias.
+  fmap.on('pm:create',function(e){
+    if(!window._drawing||feditId==null||!fdraft) return;
+    const latlngs=e.layer.getLatLngs();
+    const coords=latlngs.map(function(ll){return [+ll.lng.toFixed(6),+ll.lat.toFixed(6)]});
+    const ri=fRedrawIdx;
+    try{ if(fmap.hasLayer(e.layer)) fmap.removeLayer(e.layer); }catch(err){}
+    stopDrawStreet();
+    onStreetCreated(coords,ri);
+  });
   reloadFerias();
 }
 
@@ -877,26 +951,73 @@ function feriaStyle(st,sel){
   return {color:'#ffffff',weight:sel?7:5,opacity:.75,dashArray:'7 7'};
 }
 
-/// Sombra roja debajo, como en la app (línea doble).
+/// Una calle = un polyline (sombra roja + línea). Nunca se pintan las
+/// calles de una feria como una sola línea, porque Leaflet las uniría
+/// con un trazo que no existe en el mapa real.
+function drawStreets(id,streets){
+  if(!fmap) return;
+  clearStreets(id);
+  const f=getFeria(id); if(!f) return;
+  const st=fStatus(f);
+  const sel=(fselected===id);
+  const list=[];
+  streets.forEach(function(s,i){
+    if(!s.coords||s.coords.length<2) return;
+    const latlngs=s.coords.map(function(c){return [c[1],c[0]]});
+    const shadow=L.polyline(latlngs,{color:'#c0392b',weight:9,opacity:.28});
+    const line=L.polyline(latlngs,feriaStyle(st,sel));
+    shadow.addTo(fmap); line.addTo(fmap);
+    line._fid=id; line._fsi=i;
+    line.on('click',function(){
+      // En edición, clickear una calle la selecciona para mover sus puntos.
+      if(feditId===id){ fStreetSel=i; enablePmStreet(); renderEditor(); return; }
+      selectFeria(id,true);
+    });
+    list.push({shadow:shadow,line:line});
+  });
+  flines[id]={list:list};
+}
+
+function clearStreets(id){
+  const g=flines[id];
+  if(g&&g.list){
+    g.list.forEach(function(s){
+      [s.shadow,s.line].forEach(function(l){
+        try{ if(fmap&&fmap.hasLayer(l)) fmap.removeLayer(l); }catch(e){}
+      });
+    });
+  }
+  delete flines[id];
+}
+
 function drawAllFerias(){
   if(!fmap) return;
-  Object.values(flines).forEach(function(g){ if(fmap.hasLayer(g)) fmap.removeLayer(g); });
+  Object.keys(flines).forEach(function(k){ clearStreets(k); });
   flines={};
-  FERIAS.forEach(function(f){
-    if(f.coords.length<2) return;
-    const latlngs=f.coords.map(function(c){return [c[1],c[0]]});
-    const shadow=L.polyline(latlngs,{color:'#c0392b',weight:9,opacity:.28});
-    const line=L.polyline(latlngs,feriaStyle(fStatus(f),false));
-    shadow.addTo(fmap); line.addTo(fmap);
-    line.on('click',function(){ if(feditId===f.id) return; selectFeria(f.id,true); });
-    flines[f.id]={shadow:shadow,line:line,latlngs:latlngs};
-  });
+  FERIAS.forEach(function(f){ drawStreets(f.id,f.streets); });
+}
+
+function drawDraftStreets(){
+  if(feditId==null||!fdraft) return;
+  drawStreets(feditId,fdraft.streets);
 }
 
 function refreshLineStyle(id){
-  const g=flines[id]; if(!g) return;
-  const f=FERIAS.filter(function(x){return x.id===id})[0]; if(!f) return;
-  g.line.setStyle(feriaStyle(fStatus(f),fselected===id));
+  const g=flines[id]; if(!g||!g.list) return;
+  const f=getFeria(id); if(!f) return;
+  const st=feriaStyle(fStatus(f),fselected===id);
+  g.list.forEach(function(s){ s.line.setStyle(st); });
+}
+
+/// Bounds que envuelven todas las calles visibles de una feria.
+function streetsBounds(id){
+  const g=flines[id]; if(!g||!g.list||!g.list.length) return null;
+  let b=null;
+  g.list.forEach(function(s){
+    const sb=s.line.getBounds();
+    b=b?b.extend(sb):sb;
+  });
+  return b;
 }
 
 function passesFilter(f){
@@ -938,7 +1059,8 @@ function renderFerias(){
         +'<div class="finfo">'
           +'<div class="fname">'+esc(fLabel(f.name)||f.street||('Feria '+f.id))+'</div>'
           +'<div class="fsub">'+esc(f.street||'—')+' &middot; <code>'+horario+'</code> &middot; '
-            +Math.round(f.len)+' m &middot; '+f.coords.length+' puntos &middot; id '+f.id+'</div>'
+            +(f.streets.length===1?'1 calle':f.streets.length+' calles')
+            +' &middot; '+Math.round(f.len)+' m &middot; id '+f.id+'</div>'
         +'</div>'+badge
       +'</div>'
       +'<div class="fbody">'
@@ -967,10 +1089,8 @@ function selectFeria(id,fromMap){
   fselected=id;
   if(prev!=null) refreshLineStyle(prev);
   refreshLineStyle(id);
-  const f=FERIAS.filter(function(x){return x.id===id})[0];
-  if(f && fmap && flines[id]){
-    fmap.fitBounds(flines[id].line.getBounds().pad(0.35),{animate:true});
-  }
+  const b=streetsBounds(id);
+  if(b&&fmap) fmap.fitBounds(b.pad(0.35),{animate:true});
   renderFerias();
   if(!fromMap){
     const el=document.getElementById('fc'+id);
@@ -1028,8 +1148,10 @@ function openOsm(id){
 }
 
 /* ================= EDITOR DE FERIA =================
-   Arregla el trazo (arrastrando vértices con Geoman), el nombre,
-   la calle y los horarios, y guarda en Supabase.
+   Una feria puede ocupar VARIAS calles. Cada calle se dibuja a mano sobre
+   el mapa (Geoman) y tiene su propio nombre. En la BD queda como
+   LineString (1 calle) o MultiLineString (varias); los nombres van en
+   street_name unidos por " · ", así no hace falta migrar la tabla.
    Validación con opciones: nada se guarda a ciegas. */
 function getFeria(id){ return FERIAS.filter(function(x){return x.id===id})[0]; }
 
@@ -1040,130 +1162,242 @@ function toggleEdit(id){
     cancelEdit(true);
   }
   const f=getFeria(id); if(!f) return;
+  stopDrawStreet();
   feditId=id;
   fvalOpts={};
+  fStreetSel=0;
   fdraft={
-    name:f.name||'', street:f.street||'',
+    name:f.name||'',
     ws:f.ws||'', we:f.we||'', ss:f.ss||'', se:f.se||'',
-    coords:f.coords.map(function(c){return [+c[0],+c[1]]})
+    streets:f.streets.map(function(s){
+      return {name:s.name||'', coords:s.coords.map(function(c){return [+c[0],+c[1]]})};
+    })
   };
+  if(!fdraft.streets.length) fdraft.streets=[{name:'',coords:[]}];
   selectFeria(id,false);
+  drawDraftStreets();
   renderEditor();
-  enablePm(id);
-  toast('Editando feria '+id+'. Arrastrá los puntos del trazo en el mapa.');
+  toast('Editando feria '+id+'. Tocá una calle del mapa para mover sus puntos.');
 }
 
 function cancelEdit(silent){
   if(feditId==null) return;
   disablePm();
-  const id=feditId, f=getFeria(id), g=flines[id];
-  feditId=null; fdraft=null; fvalOpts={}; window._pmDrag=false;
-  if(g&&f){
-    const latlngs=f.coords.map(function(c){return [c[1],c[0]]});
-    g.line.setLatLngs(latlngs); g.shadow.setLatLngs(latlngs); g.latlngs=latlngs;
-  }
+  stopDrawStreet();
+  const id=feditId;
+  feditId=null; fdraft=null; fvalOpts={}; fStreetSel=0;
+  const f=getFeria(id);
+  if(f) drawStreets(id,f.streets);
   renderFerias();
   if(!silent) toast('Edición cancelada.');
 }
 
-/* --- Geoman sobre la línea de la feria --- */
-function enablePm(id){
-  const g=flines[id]; if(!g||!g.line||!g.line.pm) return;
-  ['pm:edit','pm:markerdragend','pm:vertexadd','pm:vertexremove','pm:dragend','pm:change']
-    .forEach(function(ev){ g.line.on(ev,pmSync); });
+/* ---------- dibujar calles a mano ---------- */
+function startDrawStreet(msg){
+  if(!fmap||!fmap.pm){ toast('El mapa no tiene el editor de dibujo (Geoman).',true); return; }
+  disablePm();
   try{
-    g.line.pm.enable({snappable:true,allowSelfIntersection:false,hideNudges:false,
+    fmap.pm.enableDraw('Line',{
+      snappable:true,
+      finishOn:'dblclick',
+      cursorMarker:true,
+      addVertexOn:'click',
+      removeVertexOn:'rightclick',
+      templineStyle:{color:'#58a6ff',dashArray:'4 4',weight:3},
+      hintlineStyle:{color:'#58a6ff',dashArray:'4 4',weight:3},
+      markerStyle:{radius:7,color:'#1f6feb',fillColor:'#1f6feb',fillOpacity:1,weight:2,opacity:1}
+    });
+  }catch(e){ toast('No se pudo activar el dibujo: '+e.message,true); return; }
+  window._drawing=true;
+  const h=document.getElementById('fDrawHint');
+  if(h){
+    h.style.display='flex';
+    document.getElementById('fDrawHintTxt').textContent=
+      msg||'Clic en el mapa para poner puntos. Doble click para terminar la calle.';
+  }
+  renderEditor();
+}
+
+function stopDrawStreet(){
+  window._drawing=false;
+  if(fmap&&fmap.pm){ try{ fmap.pm.disableDraw(); }catch(e){} }
+  const h=document.getElementById('fDrawHint');
+  if(h){ h.style.display='none'; h.textContent=''; h.innerHTML=
+    '<span id="fDrawHintTxt"></span><button onclick="stopDrawStreet();renderEditor()">Cancelar dibujo</button>'; }
+}
+
+function addStreet(){
+  if(!fdraft) return;
+  fRedrawIdx=null;
+  startDrawStreet('Calle nueva: clic en el mapa para cada esquina, doble click para terminar.');
+}
+
+function redrawStreet(i){
+  if(!fdraft||!fdraft.streets[i]) return;
+  fRedrawIdx=i;
+  fStreetSel=i;
+  startDrawStreet('Redibujando la calle '+(i+1)+': clic en el mapa, doble click para terminar.');
+}
+
+function onStreetCreated(coords,redrawIdx){
+  if(!fdraft) return;
+  stopDrawStreet(); // por si se llama sin pasar por el handler de pm:create
+  if(coords.length<2){ toast('Una calle necesita al menos 2 puntos.',true); return; }
+  if(redrawIdx!=null&&fdraft.streets[redrawIdx]){
+    fdraft.streets[redrawIdx].coords=coords;
+    fStreetSel=redrawIdx;
+  } else {
+    fdraft.streets.push({name:'',coords:coords});
+    fStreetSel=fdraft.streets.length-1;
+  }
+  fvalOpts={};
+  drawDraftStreets();
+  if(fdraft.streets[fStreetSel].coords.length>=2) enablePmStreet();
+  renderEditor();
+  toast('Calle lista. Escribí su nombre arriba.');
+}
+
+/* ---------- mover los puntos de la calle seleccionada ---------- */
+function enablePmStreet(){
+  disablePm();
+  if(feditId==null||!fdraft) return;
+  const g=flines[feditId]; if(!g||!g.list) return;
+  const s=g.list[fStreetSel]; if(!s||!s.line||!s.line.pm) return;
+  ['pm:edit','pm:markerdragend','pm:vertexadd','pm:vertexremove','pm:dragend','pm:change']
+    .forEach(function(ev){ s.line.on(ev,pmSync); });
+  try{
+    s.line.pm.enable({snappable:true,allowSelfIntersection:false,hideNudges:false,
       templineStyle:{color:'#58a6ff',dashArray:'4 4',weight:3},
       hintlineStyle:{color:'#58a6ff',dashArray:'4 4',weight:3},
       markerStyle:{radius:7,color:'#1f6feb',fillColor:'#1f6feb',fillOpacity:1,weight:2,opacity:1}});
-  }catch(e){ toast('No se pudo activar el editor de trazo: '+e.message,true); }
-  if(fmap) fmap.fitBounds(g.line.getBounds().pad(0.45),{animate:true});
+  }catch(e){ toast('No se pudo activar la edición de puntos: '+e.message,true); return; }
+  // La calle seleccionada se pinta azul para que se note cuál se mueve.
+  g.list.forEach(function(x,i){
+    x.line.setStyle({color:(i===fStreetSel?'#58a6ff':'#ffffff'),
+                     weight:(i===fStreetSel?7:4),opacity:.95,dashArray:null});
+  });
+  const b=streetsBounds(feditId);
+  if(b&&fmap) fmap.fitBounds(b.pad(0.35),{animate:true});
 }
 
 function disablePm(){
   if(feditId==null) return;
-  const g=flines[feditId]; if(!g||!g.line) return;
-  ['pm:edit','pm:markerdragend','pm:vertexadd','pm:vertexremove','pm:dragend','pm:change']
-    .forEach(function(ev){ g.line.off(ev,pmSync); });
-  try{ if(g.line.pm&&g.line.pm.enabled()) g.line.pm.disable(); }catch(e){}
+  const g=flines[feditId]; if(!g||!g.list) return;
+  g.list.forEach(function(s){
+    ['pm:edit','pm:markerdragend','pm:vertexadd','pm:vertexremove','pm:dragend','pm:change']
+      .forEach(function(ev){ s.line.off(ev,pmSync); });
+    try{ if(s.line.pm&&s.line.pm.enabled()) s.line.pm.disable(); }catch(e){}
+  });
 }
 
 function pmSync(){
   if(feditId==null||!fdraft) return;
-  const g=flines[feditId]; if(!g) return;
-  const latlngs=g.line.getLatLngs();
-  fdraft.coords=latlngs.map(function(ll){return [+ll.lng.toFixed(6),+ll.lat.toFixed(6)]});
-  g.shadow.setLatLngs(latlngs);
+  const g=flines[feditId]; if(!g||!g.list) return;
+  const s=g.list[fStreetSel]; if(!s||!fdraft.streets[fStreetSel]) return;
+  const latlngs=s.line.getLatLngs();
+  fdraft.streets[fStreetSel].coords=latlngs.map(function(ll){return [+ll.lng.toFixed(6),+ll.lat.toFixed(6)]});
+  s.shadow.setLatLngs(latlngs);
   if(!window._pmRaf) window._pmRaf=requestAnimationFrame(function(){
     window._pmRaf=null; renderEditor();
   });
 }
 
-function syncLineFromDraft(){
-  const g=flines[feditId]; if(!g||!fdraft) return;
-  const latlngs=fdraft.coords.map(function(c){return [c[1],c[0]]});
-  g.line.setLatLngs(latlngs); g.shadow.setLatLngs(latlngs);
+function syncStreetFromDraft(i){
+  const g=flines[feditId]; if(!g||!g.list||!fdraft) return;
+  const s=g.list[i]; const d=fdraft.streets[i];
+  if(!s||!d) return;
+  const latlngs=d.coords.map(function(c){return [c[1],c[0]]});
+  s.line.setLatLngs(latlngs); s.shadow.setLatLngs(latlngs);
 }
 
-/* desplaza el trazo entero dx/dy en metros (positivo = este / norte) */
+function selStreet(i){
+  if(!fdraft||!fdraft.streets[i]) return;
+  fStreetSel=i;
+  if(fdraft.streets[i].coords.length>=2) enablePmStreet();
+  else disablePm();
+  renderEditor();
+}
+
+/* desplaza la calle seleccionada dx/dy en metros (positivo = este / norte) */
 function nudge(dx,dy){
   if(!fdraft) return;
+  const s=fdraft.streets[fStreetSel]; if(!s) return;
   const R=6371000;
-  fdraft.coords=fdraft.coords.map(function(c){
+  s.coords=s.coords.map(function(c){
     const lat=c[1], lon=c[0];
-    const dLat=(dy/R)*180/Math.PI;
-    const dLon=(dx/(R*Math.cos(lat*Math.PI/180)))*180/Math.PI;
-    return [+(lon+dLon).toFixed(6), +(lat+dLat).toFixed(6)];
+    return [+(lon+(dx/(R*Math.cos(lat*Math.PI/180)))*180/Math.PI).toFixed(6),
+            +(lat+(dy/R)*180/Math.PI).toFixed(6)];
   });
-  syncLineFromDraft(); renderEditor();
+  syncStreetFromDraft(fStreetSel); renderEditor();
 }
 
 function pmAddEnd(){
-  if(!fdraft||!fdraft.coords.length) return;
-  const last=fdraft.coords[fdraft.coords.length-1];
-  fdraft.coords.push([last[0],last[1]]);
-  syncLineFromDraft(); renderEditor();
-  toast('Punto agregado al final. Arrastrá el punto azul hasta donde va.');
+  const s=fdraft&&fdraft.streets[fStreetSel]; if(!s||!s.coords.length) return;
+  const last=s.coords[s.coords.length-1];
+  s.coords.push([last[0],last[1]]);
+  syncStreetFromDraft(fStreetSel); renderEditor();
+  toast('Punto agregado al final. Arrastralo hasta donde va.');
 }
 
 function pmAddStart(){
-  if(!fdraft||!fdraft.coords.length) return;
-  const first=fdraft.coords[0];
-  fdraft.coords.unshift([first[0],first[1]]);
-  syncLineFromDraft(); renderEditor();
-  toast('Punto agregado al inicio. Arrastrá el punto azul hasta donde va.');
+  const s=fdraft&&fdraft.streets[fStreetSel]; if(!s||!s.coords.length) return;
+  const first=s.coords[0];
+  s.coords.unshift([first[0],first[1]]);
+  syncStreetFromDraft(fStreetSel); renderEditor();
+  toast('Punto agregado al inicio. Arrastralo hasta donde va.');
 }
 
 function pmPop(){
-  if(!fdraft) return;
-  if(fdraft.coords.length<=2){ toast('El trazo necesita al menos 2 puntos.',true); return; }
-  fdraft.coords.pop();
-  syncLineFromDraft(); renderEditor();
+  const s=fdraft&&fdraft.streets[fStreetSel]; if(!s) return;
+  if(s.coords.length<=2){ toast('Una calle necesita al menos 2 puntos.',true); return; }
+  s.coords.pop();
+  syncStreetFromDraft(fStreetSel); renderEditor();
 }
 
 function revertCoords(){
   const f=getFeria(feditId); if(!f||!fdraft) return;
-  fdraft.coords=f.coords.map(function(c){return [+c[0],+c[1]]});
-  delete fvalOpts['short']; delete fvalOpts['long']; delete fvalOpts['pts']; delete fvalOpts['geo'];
-  syncLineFromDraft(); renderEditor();
-  toast('Trazo vuelto al original.');
+  fdraft.streets=f.streets.map(function(s){
+    return {name:s.name||'', coords:s.coords.map(function(c){return [+c[0],+c[1]]})};
+  });
+  if(!fdraft.streets.length) fdraft.streets=[{name:'',coords:[]}];
+  fStreetSel=0; fvalOpts={};
+  drawDraftStreets();
+  if(fdraft.streets[0].coords.length>=2) enablePmStreet();
+  renderEditor();
+  toast('Los trazos volvieron al original.');
+}
+
+function delStreet(i,confirmed){
+  if(!fdraft||!fdraft.streets[i]) return;
+  if(!confirmed){
+    const label=fdraft.streets[i].name||('calle '+(i+1));
+    if(!confirm('¿Borrar la '+label+'?')) return;
+  }
+  fdraft.streets.splice(i,1);
+  if(!fdraft.streets.length) fdraft.streets=[{name:'',coords:[]}];
+  fvalOpts={};
+  fStreetSel=Math.max(0,Math.min(fStreetSel,fdraft.streets.length-1));
+  drawDraftStreets();
+  if(fdraft.streets[fStreetSel].coords.length>=2) enablePmStreet();
+  else disablePm();
+  renderEditor();
 }
 
 /* ---------------- validación ---------------- */
 function validateFeria(d){
   const issues=[], orig=getFeria(feditId);
   const name=String(d.name||'').trim();
-  const street=String(d.street||'').trim();
+  const streets=d.streets||[];
 
-  if(d.coords.length<2)
-    issues.push({k:'pts',sev:'block',
-      msg:'El trazo tiene '+(d.coords.length===0?'ningún punto':'un solo punto')+'.',
-      sub:'Necesitás al menos 2 para dibujar la calle. Mové los puntos en el mapa.',
-      opts:[{v:'noop',l:'Arreglar el trazo en el mapa'}]});
+  if(!streets.length||streets.every(function(s){return !s.coords||s.coords.length<2}))
+    issues.push({k:'nostreet',sev:'block',
+      msg:'La feria no tiene ninguna calle dibujada.',
+      sub:'Tocá "Dibujar calle nueva" y trazá la calle sobre el mapa.',
+      opts:[{v:'noop',l:'Dibujar la calle'}]});
 
   if(!name)
-    issues.push({k:'noname',sev:'block',msg:'El nombre está vacío.',
-      sub:'Sin nombre no se puede identificar la feria.',
+    issues.push({k:'noname',sev:'block',msg:'El nombre de la feria está vacío.',
+      sub:'Sin nombre no se puede identificar.',
       opts:[{v:'noop',l:'Escribir un nombre arriba'}]});
 
   [['ws','we','entre semana'],['ss','se','fin de semana']].forEach(function(p){
@@ -1174,13 +1408,6 @@ function validateFeria(d){
         sub:'Con ese horario la app nunca la mostraría.',
         opts:[{v:'noop',l:'Corregir el horario arriba'}]});
   });
-
-  const badGeo=d.coords.filter(function(c){return c[1]<-35.2||c[1]>-34.4||c[0]<-56.6||c[0]>-55.6});
-  if(badGeo.length)
-    issues.push({k:'geo',sev:'block',
-      msg:badGeo.length+' punto(s) fuera del área de Montevideo.',
-      sub:'Latitud entre −34.4 y −35.2 · Longitud entre −56.6 y −55.6.',
-      opts:[{v:'noop',l:'Mover los puntos en el mapa'}]});
 
   const wd=fWeekday(name), origWd=orig?fWeekday(orig.name):0;
   if(!wd)
@@ -1209,23 +1436,44 @@ function validateFeria(d){
         opts:[{v:'fix:'+p[1]+':'+fHHmm(p[2]),l:'Ajustar a '+fHHmm(p[2])},{v:'keep',l:'Dejar así (no es legal)'}]});
   });
 
-  const len=fLen(d.coords);
-  if(d.coords.length>1&&len<30)
-    issues.push({k:'short',sev:'warn',
-      msg:'El trazo mide solo '+Math.round(len)+' m.',
-      sub:'¿Es realmente esa la calle de la feria?',
-      opts:[{v:'accept',l:'Sí, es correcto'},{v:'revert',l:'Volver el trazo original'}]});
-  if(len>2000)
-    issues.push({k:'long',sev:'warn',
-      msg:'El trazo mide '+(len/1000).toFixed(1)+' km.',
-      sub:'¿Es realmente una feria tan larga?',
-      opts:[{v:'accept',l:'Sí, es correcto'},{v:'revert',l:'Volver el trazo original'}]});
-
-  if(!street)
-    issues.push({k:'street',sev:'warn',
-      msg:'No tiene calle cargada.',
-      sub:'La app muestra la calle junto al nombre.',
-      opts:[{v:'noop',l:'Escribir la calle arriba'},{v:'keep',l:'Dejar vacío'}]});
+  // Cada calle se valida por separado: una feria con 3 calles puede tener
+  // 2 bien y 1 sin trazo, y eso hay que poder arreglar calle por calle.
+  streets.forEach(function(s,i){
+    const tag='Calle '+(i+1)+(s.name?' · '+s.name:'');
+    const cs=s.coords||[];
+    if(cs.length<2){
+      issues.push({k:'s'+i+'_pts',sev:'block',
+        msg:tag+': tiene '+(cs.length?'un solo punto':'ningún punto')+'.',
+        sub:'Necesitás al menos 2 puntos. Redibujala en el mapa.',
+        opts:[{v:'redraw:'+i,l:'Redibujar esta calle'},{v:'del:'+i,l:'Borrar esta calle'}]});
+      return;
+    }
+    const len=fLen(cs);
+    const bad=cs.filter(function(c){return c[1]<-35.2||c[1]>-34.4||c[0]<-56.6||c[0]>-55.6});
+    if(bad.length)
+      issues.push({k:'s'+i+'_geo',sev:'block',
+        msg:tag+': '+bad.length+' punto(s) fuera del área de Montevideo.',
+        sub:'Latitud entre −34.4 y −35.2 · Longitud entre −56.6 y −55.6.',
+        opts:[{v:'noop',l:'Mover los puntos en el mapa'},
+              {v:'redraw:'+i,l:'Redibujar'},{v:'del:'+i,l:'Borrar'}]});
+    if(len<30)
+      issues.push({k:'s'+i+'_short',sev:'warn',
+        msg:tag+': mide solo '+Math.round(len)+' m.',
+        sub:'¿Es realmente esa la calle de la feria?',
+        opts:[{v:'accept',l:'Sí, es correcto'},
+              {v:'redraw:'+i,l:'Redibujar'},{v:'del:'+i,l:'Borrar'}]});
+    if(len>2000)
+      issues.push({k:'s'+i+'_long',sev:'warn',
+        msg:tag+': mide '+(len/1000).toFixed(1)+' km.',
+        sub:'¿Es realmente una calle tan larga?',
+        opts:[{v:'accept',l:'Sí, es correcto'},
+              {v:'redraw:'+i,l:'Redibujar'},{v:'del:'+i,l:'Borrar'}]});
+    if(!String(s.name||'').trim())
+      issues.push({k:'s'+i+'_noname',sev:'warn',
+        msg:tag+': no tiene nombre.',
+        sub:'No lo usa la app, pero te sirve para reconocerla en el panel.',
+        opts:[{v:'noop',l:'Escribir el nombre arriba'},{v:'keep',l:'Dejar sin nombre'}]});
+  });
 
   return issues;
 }
@@ -1241,10 +1489,20 @@ function setValOpt(k,v){
   } else if(v.indexOf('fix:')===0){
     const p=v.split(':');
     fdraft[p[1]]=p[2]+':'+p[3];
+  } else if(v.indexOf('redraw:')===0){
+    redrawStreet(parseInt(v.slice(7),10));
+    return;
+  } else if(v.indexOf('del:')===0){
+    delStreet(parseInt(v.slice(4),10),true);
+    return;
   } else if(v==='revert'){
     if(k==='wdchg'&&orig) fdraft.name=orig.name;
-    if((k==='short'||k==='long')&&orig) fdraft.coords=orig.coords.map(function(c){return [+c[0],+c[1]]});
-    syncLineFromDraft();
+    const m=/^s(\d+)_(short|long|geo)$/.exec(k);
+    if(m&&orig&&orig.streets[+m[1]]){
+      const i=+m[1];
+      fdraft.streets[i].coords=orig.streets[i].coords.map(function(c){return [+c[0],+c[1]]});
+      syncStreetFromDraft(i);
+    }
   }
   fvalOpts[k]=v;
   renderEditor();
@@ -1261,26 +1519,24 @@ function fldTime(label,val,key){
 function renderEditor(){
   const box=document.getElementById('fe'+feditId);
   if(!box||!fdraft) return;
-  const d=fdraft, f=getFeria(feditId);
+  const d=fdraft;
   const iss=validateFeria(d);
   const blockers=iss.filter(function(i){return i.sev==='block'});
   const warns=iss.filter(function(i){return i.sev==='warn'});
   const unresolved=warns.filter(function(i){return fvalOpts[i.k]===undefined});
   const ready=blockers.length===0&&unresolved.length===0;
-  const len=fLen(d.coords);
   const wdNow=fWeekday(d.name);
+  const drawing=!!window._drawing;
+  const totalLen=d.streets.reduce(function(a,s){return a+fLen(s.coords);},0);
 
   let h='';
   h+='<div class="lb">Editando feria <code>'+feditId+'</code> '
-    +'<span class="hint">el trazo se mueve arrastrando los puntos azules del mapa</span></div>';
+    +'<span class="hint">tocá una calle del mapa para mover sus puntos</span></div>';
 
   h+='<div class="fgrid">'
-    +'<div class="fld"><label>Nombre (con el día adelante)</label>'
+    +'<div class="fld"><label>Nombre de la feria (con el día adelante)</label>'
       +'<input type="text" value="'+esc(d.name)+'" oninput="fdraft.name=this.value" onchange="renderEditor()">'
       +'<span class="tiny">Ej.: MAR 2 · JUAN PAULLIER. El día decide cuándo se muestra.</span></div>'
-    +'<div class="fld"><label>Calle</label>'
-      +'<input type="text" value="'+esc(d.street)+'" oninput="fdraft.street=this.value" onchange="renderEditor()">'
-      +'<span class="tiny">Aparece debajo del nombre en la app.</span></div>'
     +'</div>';
 
   h+='<div class="lb">Horarios</div><div class="fgrid">'
@@ -1290,33 +1546,62 @@ function renderEditor(){
     +fldTime('Fin de semana · fin',d.se,'se')
     +'</div>'
     +'<div class="hintline">Decreto 103/2024: inicio &ge; 08:00 &middot; fin &le; 14:00 (mar&ndash;vie) y &le; 15:00 (s&aacute;b&ndash;dom). '
-    +'Se muestra el <b>'+(DIASL[wdNow]||'—')+'</b> usando el par '
-    +(wdNow===6||wdNow===7?'de fin de semana':'entre semana')
-    +'.</div>';
+    +'Se muestra el <b>'+(DIASL[wdNow]||'—')+'</b>.</div>';
 
-  h+='<div class="lb">Trazo</div><div class="pmbar">'
-    +'<span style="color:#8b949e;font-size:11px;align-self:center">Mover trazo:</span>'
-    +'<button onclick="nudge(0,10)">&#11014; 10 m N</button>'
-    +'<button onclick="nudge(0,-10)">&#11015; 10 m S</button>'
-    +'<button onclick="nudge(-10,0)">&#11012; 10 m O</button>'
-    +'<button onclick="nudge(10,0)">&#10142; 10 m E</button>'
-    +'<button onclick="nudge(0,100)">&#11014; 100 m</button>'
-    +'<button onclick="nudge(0,-100)">&#11015; 100 m</button>'
-    +'<button onclick="nudge(-100,0)">&#11012; 100 m</button>'
-    +'<button onclick="nudge(100,0)">&#10142; 100 m</button>'
-    +'</div><div class="pmbar">'
-    +'<button onclick="pmAddEnd()">➕ Punto al final</button>'
-    +'<button onclick="pmAddStart()">➕ Punto al inicio</button>'
-    +'<button onclick="pmPop()">➖ Borrar último</button>'
-    +'<button onclick="revertCoords()">↩️ Trazo original</button>'
-    +'<button onclick="openOsm('+feditId+')">Ver en OSM ↗</button>'
+  h+='<div class="lb">Calles de la feria <span class="hint">cada una se dibuja a mano sobre el mapa</span></div>';
+  d.streets.forEach(function(s,i){
+    const len=fLen(s.coords);
+    const on=(i===fStreetSel);
+    h+='<div class="scard'+(on?' on':'')+'" onclick="selStreet('+i+')">'
+      +'<div class="sidx">'+(i+1)+'</div>'
+      +'<div class="sbody">'
+        +'<input type="text" placeholder="Nombre de la calle (ej.: Verdi)" value="'+esc(s.name||'')+'" '
+          +'onclick="event.stopPropagation()" oninput="fdraft.streets['+i+'].name=this.value" onchange="renderEditor()">'
+        +'<div class="fsub">'+(s.coords.length
+            ? s.coords.length+' puntos &middot; '+Math.round(len)+' m'
+            : 'sin trazo &middot; redibujala')+'</div>'
+      +'</div>'
+      +'<div class="sbtns" onclick="event.stopPropagation()">'
+        +'<button class="lnk" onclick="selStreet('+i+')">Editar puntos</button>'
+        +'<button class="lnk" onclick="redrawStreet('+i+')">Redibujar</button>'
+        +'<button class="lnk" style="color:#f85149" onclick="delStreet('+i+')">Borrar</button>'
+      +'</div>'
+      +'</div>';
+  });
+  h+='<div class="ebtns" style="margin-top:8px">'
+    +'<button class="btn blue" '+(drawing?'disabled style="opacity:.45;cursor:not-allowed"':'')
+    +' onclick="addStreet()">➕ Dibujar calle nueva</button>'
+    +'<button class="btn g" onclick="revertCoords()">↩️ Volver todo al original</button>'
     +'<span style="flex:1"></span>'
-    +'<b style="color:#79c0ff;font-size:11.5px">'+d.coords.length+' pts &middot; '+Math.round(len)+' m</b>'
+    +'<b style="color:#79c0ff;font-size:11.5px">'+d.streets.length
+      +(d.streets.length===1?' calle':' calles')+' &middot; '+Math.round(totalLen)+' m</b>'
     +'</div>';
+
+  const ssel=d.streets[fStreetSel];
+  if(ssel&&ssel.coords.length>=2){
+    h+='<div class="lb">Mover la calle '+(fStreetSel+1)+(ssel.name?' &middot; '+esc(ssel.name):'')+'</div>'
+      +'<div class="pmbar">'
+      +'<span style="color:#8b949e;font-size:11px;align-self:center">Desplazar:</span>'
+      +'<button onclick="nudge(0,10)">&#11014; 10 m N</button>'
+      +'<button onclick="nudge(0,-10)">&#11015; 10 m S</button>'
+      +'<button onclick="nudge(-10,0)">&#11012; 10 m O</button>'
+      +'<button onclick="nudge(10,0)">&#10142; 10 m E</button>'
+      +'<button onclick="nudge(0,100)">&#11014; 100 m</button>'
+      +'<button onclick="nudge(0,-100)">&#11015; 100 m</button>'
+      +'<button onclick="nudge(-100,0)">&#11012; 100 m</button>'
+      +'<button onclick="nudge(100,0)">&#10142; 100 m</button>'
+      +'</div><div class="pmbar">'
+      +'<button onclick="pmAddEnd()">➕ Punto al final</button>'
+      +'<button onclick="pmAddStart()">➕ Punto al inicio</button>'
+      +'<button onclick="pmPop()">➖ Borrar último punto</button>'
+      +'</div>'
+      +'<div class="hintline">Arrastrá los puntos azules para moverlos. Arrastrá el punto de en el medio de un lado para agregar uno. '
+      +'Click derecho sobre un punto lo borra.</div>';
+  }
 
   if(!iss.length){
     h+='<div class="valbox ok"><h4>✅ Todo bien</h4>'
-      +'Nombre, horarios y trazo pasan todas las comprobaciones. Podés guardar.</div>';
+      +'Nombre, horarios y las '+d.streets.length+' calles pasan todas las comprobaciones. Podés guardar.</div>';
   } else {
     h+='<div class="valbox '+(blockers.length?'bad':'warn')+'">'
       +'<h4>'+(blockers.length
@@ -1366,16 +1651,27 @@ async function saveEdit(){
   }
 
   const id=feditId, prev=getFeria(id);
+  // Las calles sin trazo válido no viajan a la BD.
+  const streets=fdraft.streets
+    .filter(function(s){return s.coords&&s.coords.length>=2})
+    .map(function(s){return {name:cleanStreetName(s.name), coords:s.coords};});
+  if(!streets.length){ toast('No hay ninguna calle válida para guardar.',true); return; }
+
+  // 1 calle -> LineString (como siempre). Varias -> MultiLineString.
+  const geo=streets.length===1
+    ? {type:'LineString',coordinates:streets[0].coords}
+    : {type:'MultiLineString',coordinates:streets.map(function(s){return s.coords;})};
+  const joined=streets.map(function(s){return s.name||'—'}).join(' · ');
+
   const body={
     name:String(fdraft.name).trim(),
-    street_name:String(fdraft.street).trim(),
-    geometry:{type:'LineString',coordinates:fdraft.coords},
+    street_name:joined,
+    geometry:geo,
     weekday_start:fdraft.ws||null,
     weekday_end:fdraft.we||null,
     weekend_start:fdraft.ss||null,
     weekend_end:fdraft.se||null
   };
-  if(!body.geometry.coordinates.length){ toast('El trazo está vacío.',true); return; }
 
   const oldStatus=fStatus(prev);
   fsaving++;
@@ -1383,19 +1679,25 @@ async function saveEdit(){
   try{
     await fAuth('PATCH',SUPABASE_URL+'/rest/v1/map_events?id=eq.'+id,body);
     prev.name=body.name; prev.street=body.street_name;
-    prev.coords=body.geometry.coordinates;
+    prev.streets=streets;
+    let flat=[]; streets.forEach(function(s){ flat=flat.concat(s.coords); });
+    prev.coords=flat;
     prev.ws=fT(body.weekday_start); prev.we=fT(body.weekday_end);
     prev.ss=fT(body.weekend_start); prev.se=fT(body.weekend_end);
-    prev.wd=fWeekday(prev.name); prev.len=fLen(prev.coords);
-    prev.ini=prev.coords[0]; prev.fin=prev.coords[prev.coords.length-1];
+    prev.wd=fWeekday(prev.name);
+    prev.len=streets.reduce(function(a,s){return a+fLen(s.coords);},0);
+    prev.ini=flat[0]||null; prev.fin=flat[flat.length-1]||null;
     fsaving--;
     document.getElementById('fSync').textContent=fsaving>0
       ? 'Guardando… ('+fsaving+' en cola)'
       : '✅ Guardado en la base de datos';
     disablePm();
-    feditId=null; fdraft=null; fvalOpts={}; window._pmDrag=false;
+    stopDrawStreet();
+    feditId=null; fdraft=null; fvalOpts={}; fStreetSel=0;
     drawAllFerias(); renderFerias();
-    toast('Feria '+id+' guardada. Estado: '+(oldStatus==='active'?'✅ en la app':(oldStatus==='rejected'?'❌ rechazada':'⏳ pendiente'))+'.');
+    toast('Feria '+id+' guardada con '+streets.length
+      +(streets.length===1?' calle.':' calles.')+' Estado: '
+      +(oldStatus==='active'?'✅ en la app':(oldStatus==='rejected'?'❌ rechazada':'⏳ pendiente'))+'.');
   }catch(e){
     fsaving--;
     document.getElementById('fSync').textContent='❌ Error al guardar: '+e.message;

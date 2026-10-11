@@ -331,9 +331,18 @@
                 if (ev.type === 'no_estacionar') color = '#FF8C00';
                 
                 if (ev.geometry && ev.geometry.coordinates) {
-                    const latlngs = ev.geometry.coordinates.map(c => [c[1], c[0]]);
-                    const layer = L.polyline(latlngs, { color: color, weight: 6, opacity: 0.7 }).addTo(savedLayersGroup);
-                    savedLayersMap[ev.id] = layer;
+                    // Una feria puede ocupar varias calles (MultiLineString):
+                    // una polyline por calle, así no se dibuja un trazo
+                    // imaginario uniendo una con la otra.
+                    const parts = ev.geometry.type === 'MultiLineString'
+                        ? ev.geometry.coordinates
+                        : [ev.geometry.coordinates];
+                    parts.forEach(pts => {
+                        if (!pts || pts.length < 2) return;
+                        const latlngs = pts.map(c => [c[1], c[0]]);
+                        const layer = L.polyline(latlngs, { color: color, weight: 6, opacity: 0.7 }).addTo(savedLayersGroup);
+                        if (!savedLayersMap[ev.id]) savedLayersMap[ev.id] = layer;
+                    });
                 }
 
                 const is24h = !ev.weekday_start;
