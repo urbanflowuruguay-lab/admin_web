@@ -1542,5 +1542,14 @@
             })();
         }
     </script>
+    <script>
+        (function () {
+            try {
+                var t = new URLSearchParams(location.search).get('tab');
+                var map = { alertas: 'tab-alertas', calles: 'tab-calles', zonas: 'tab-zonas', listado: 'tab-listado' };
+                if (t && map[t] && typeof switchTab === 'function') switchTab(map[t]);
+            } catch (e) { }
+        })();
+    </script>
 </body>
 </html>

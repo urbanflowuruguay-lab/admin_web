@@ -772,6 +772,12 @@ function goTab(t){
   document.getElementById('tabFerias').classList.toggle('on',!ico);
   if(!ico && !window._fmapReady) initFmap();
 }
+(function(){
+  try{
+    const t=new URLSearchParams(location.search).get('tab');
+    if(t==='ferias'||t==='iconos') goTab(t);
+  }catch(e){}
+})();
 
 /* ================= FERIAS ================= */
 const SUPABASE_URL='https://eyfgkopaamnkprzpwocz.supabase.co';

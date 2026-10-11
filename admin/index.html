@@ -54,6 +54,16 @@
         .sidebar nav a { display: block; color: #c9d1d9; text-decoration: none; padding: 10px 15px; border-radius: 6px; margin-bottom: 3px; transition: 0.2s; font-size: 12px; cursor: pointer; background: rgba(255,255,255,0.02); }
         .sidebar nav a:hover, .sidebar nav a.active-link { background-color: #21262d; border-left: 4px solid #58a6ff; color: white; }
         .sidebar .section-title { font-size: 10px; color: #8b949e; text-transform: uppercase; margin: 15px 0 8px 5px; letter-spacing: 1px; font-weight: bold; }
+        .sidebar .sec { margin-bottom: 2px; }
+        .sidebar .section-title.tog { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 7px; margin: 6px 0 4px; padding: 9px 8px 9px 5px; border-radius: 6px; transition: 0.15s; }
+        .sidebar .section-title.tog:hover { background: #21262d; color: #e6edf3; }
+        .sidebar .section-title.tog::before { content: '\25B8'; font-size: 9px; color: #484f58; flex: 0 0 auto; transition: transform 0.15s; }
+        .sidebar .sec.open > .section-title.tog::before { transform: rotate(90deg); }
+        .sidebar .sec-body { display: none; padding-left: 2px; }
+        .sidebar .sec.open > .sec-body { display: block; }
+        .sidebar .section-title.tog .sec-count { margin-left: auto; font-size: 9px; color: #484f58; font-weight: normal; letter-spacing: 0; }
+        .sidebar .section-title.tog.gps { color: #58a6ff; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.28); }
+        .sidebar .section-title.tog.gps:hover { background: rgba(88,166,255,0.18); color: #79c0ff; }
         
         /* CONTENT AREA */
         .content { flex-grow: 1; display: flex; flex-direction: column; position: relative; height: 100vh; background: #0a0e14; }
@@ -123,47 +133,78 @@
         <nav>
             <a onclick="setMode('map')" id="btnExitMap">🛰️ VOLVER AL MAPA</a>
 
-            <div class="section-title">Operaciones</div>
-            <a href="monitoreo.html" target="viewFrame" onclick="showIframe(this)">📡 Mapa en Vivo</a>
-            <a href="buses_tiempo_real.html" target="viewFrame" onclick="showIframe(this)">🚌 Buses Tiempo Real</a>
-            <a href="bus_paradas.html" target="viewFrame" onclick="showIframe(this)">🚏 Paradas Bus</a>
-            <a href="seguimiento.html" target="viewFrame" onclick="showIframe(this)">📍 Seguimiento</a>
-            <a href="usuarios.html" target="viewFrame" onclick="showIframe(this)">👥 Pasajeros</a>
-            <a href="choferes_autos.html" target="viewFrame" onclick="showIframe(this)">🚗 Choferes Autos</a>
-            <a href="choferes_taxis.html" target="viewFrame" onclick="showIframe(this)">🚕 Choferes Taxis</a>
-            <a href="reportes_conductores.html" target="viewFrame" onclick="showIframe(this)">📋 Reportes</a>
-            <a href="viajes.html" target="viewFrame" onclick="showIframe(this)">🗺️ Historial Viajes</a>
-            
-            <div class="section-title">Marketing y Herramientas</div>
-            <a href="whatsapp_masivo.html" target="viewFrame" onclick="showIframe(this)">📱 WhatsApp Masivo</a>
-            <a href="editor_registro.html?t=20260705v2" target="viewFrame" onclick="showIframe(this)">🛠️ Editor Registro</a>
-            <a href="admin_a_la_vista.html" target="viewFrame" onclick="showIframe(this)">🖼️ Museo A la Vista</a>
-            <a href="config_tarifas.html" target="viewFrame" onclick="showIframe(this)">💰 Config. Tarifas</a>
-            <a href="reglas_rentabilidad.html" target="viewFrame" onclick="showIframe(this)">📊 Reglas Rentabilidad</a>
-            
-            <div class="section-title">Seguridad y Mapa</div>
-            <a href="mapa_eventos.html" target="viewFrame" onclick="showIframe(this)">⚠️ Zonas y Eventos</a>
-            <a href="editor_fronteras.html" target="viewFrame" onclick="showIframe(this)">📐 Fronteras Depts</a>
-            <a href="editor_barrios.html" target="viewFrame" onclick="showIframe(this)">🏘️ Editor Barrios</a>
-            <a href="alertas_zonas.html" target="viewFrame" onclick="showIframe(this)">🚨 Alertas Seguridad</a>
-            <a href="taxi_zones.html" target="viewFrame" onclick="showIframe(this)">🚕 Zonas Taxi</a>
-            <a href="crash_logs.html" target="viewFrame" onclick="showIframe(this)">📊 Logs de Crash</a>
-            <a href="configuracion.html" target="viewFrame" onclick="showIframe(this)">⚙️ Configuración</a>
-            <a href="cancelaciones.html" target="viewFrame" onclick="showIframe(this)">⌛ Cancelaciones</a>
-            <a href="fichas.html" target="viewFrame" onclick="showIframe(this)">🧾 Fichas</a>
-            <a href="monitoreo_v3.html" target="viewFrame" onclick="showIframe(this)">📡 Monitoreo v3</a>
-            <a href="ver_mapa_local.html" target="viewFrame" onclick="showIframe(this)">🗺️ Mapa Local</a>
+            <div class="sec" data-sec="ops">
+                <div class="section-title tog" onclick="togSec('ops')">Operaciones <span class="sec-count">9</span></div>
+                <div class="sec-body">
+                    <a href="monitoreo.html" target="viewFrame" onclick="showIframe(this)">📡 Mapa en Vivo</a>
+                    <a href="buses_tiempo_real.html" target="viewFrame" onclick="showIframe(this)">🚌 Buses Tiempo Real</a>
+                    <a href="bus_paradas.html" target="viewFrame" onclick="showIframe(this)">🚏 Paradas Bus</a>
+                    <a href="seguimiento.html" target="viewFrame" onclick="showIframe(this)">📍 Seguimiento</a>
+                    <a href="usuarios.html" target="viewFrame" onclick="showIframe(this)">👥 Pasajeros</a>
+                    <a href="choferes_autos.html" target="viewFrame" onclick="showIframe(this)">🚗 Choferes Autos</a>
+                    <a href="choferes_taxis.html" target="viewFrame" onclick="showIframe(this)">🚕 Choferes Taxis</a>
+                    <a href="reportes_conductores.html" target="viewFrame" onclick="showIframe(this)">📋 Reportes</a>
+                    <a href="viajes.html" target="viewFrame" onclick="showIframe(this)">🗺️ Historial Viajes</a>
+                </div>
+            </div>
 
-            <div class="section-title" style="color: #f2cc60;">💼 Guías y E-Commerce</div>
-            <a href="guia_ocio.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(233,30,99,0.05);">🎭 Guía del Ocio</a>
-            <a href="empresas.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(35,134,54,0.05);">🏨 Gestión Empresas</a>
-            <a href="uf_job.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(79,195,247,0.08);">&#128188; UF Job</a>
-            <a href="uf_hogar.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(102,187,106,0.05);">🏠 UF Hogar</a>
+            <div class="sec open" data-sec="gps">
+                <div class="section-title tog gps" onclick="togSec('gps')">GPS · lo que ve el chofer <span class="sec-count">8</span></div>
+                <div class="sec-body">
+                    <a href="gps.html?tab=ferias" target="viewFrame" onclick="showIframe(this)">🐘 Ferias</a>
+                    <a href="gps.html?tab=iconos" target="viewFrame" onclick="showIframe(this)">🚦 Iconos y notificaciones</a>
+                    <a href="mapa_eventos.html?type=carril_bus" target="viewFrame" onclick="showIframe(this)">🚌 Carril solo bus</a>
+                    <a href="mapa_eventos.html?type=no_detenerse" target="viewFrame" onclick="showIframe(this)">🚫 No detenerse (cámara fija)</a>
+                    <a href="mapa_eventos.html?type=no_estacionar" target="viewFrame" onclick="showIframe(this)">🅿️ No estacionar</a>
+                    <a href="alertas_zonas.html?tab=zonas" target="viewFrame" onclick="showIframe(this)">🔴 Zonas rojas</a>
+                    <a href="alertas_zonas.html?tab=calles" target="viewFrame" onclick="showIframe(this)">🛣️ Calles y límites</a>
+                    <a href="alertas_zonas.html?tab=listado" target="viewFrame" onclick="showIframe(this)">📋 Listados</a>
+                </div>
+            </div>
 
-            <div class="section-title" style="color: #f0883e;">🧪 Sistema</div>
-            <a href="testing_completo.html" target="viewFrame" onclick="showIframe(this)">🧪 Testing Completo</a>
-            <a href="gps.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(88,166,255,0.08);">🚗 GPS · Iconos y Notificaciones</a>
-            <a href="pirana.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(240,136,62,0.05);">🐟 Piraña Licencias</a>
+            <div class="sec" data-sec="ops2">
+                <div class="section-title tog" onclick="togSec('ops2')">Marketing y Herramientas <span class="sec-count">5</span></div>
+                <div class="sec-body">
+                    <a href="whatsapp_masivo.html" target="viewFrame" onclick="showIframe(this)">📱 WhatsApp Masivo</a>
+                    <a href="editor_registro.html?t=20260705v2" target="viewFrame" onclick="showIframe(this)">🛠️ Editor Registro</a>
+                    <a href="admin_a_la_vista.html" target="viewFrame" onclick="showIframe(this)">🖼️ Museo A la Vista</a>
+                    <a href="config_tarifas.html" target="viewFrame" onclick="showIframe(this)">💰 Config. Tarifas</a>
+                    <a href="reglas_rentabilidad.html" target="viewFrame" onclick="showIframe(this)">📊 Reglas Rentabilidad</a>
+                </div>
+            </div>
+
+            <div class="sec" data-sec="seg">
+                <div class="section-title tog" onclick="togSec('seg')">Seguridad y Mapa <span class="sec-count">9</span></div>
+                <div class="sec-body">
+                    <a href="editor_fronteras.html" target="viewFrame" onclick="showIframe(this)">📐 Fronteras Depts</a>
+                    <a href="editor_barrios.html" target="viewFrame" onclick="showIframe(this)">🏘️ Editor Barrios</a>
+                    <a href="taxi_zones.html" target="viewFrame" onclick="showIframe(this)">🚕 Zonas Taxi</a>
+                    <a href="crash_logs.html" target="viewFrame" onclick="showIframe(this)">📊 Logs de Crash</a>
+                    <a href="configuracion.html" target="viewFrame" onclick="showIframe(this)">⚙️ Configuración</a>
+                    <a href="cancelaciones.html" target="viewFrame" onclick="showIframe(this)">⌛ Cancelaciones</a>
+                    <a href="fichas.html" target="viewFrame" onclick="showIframe(this)">🧾 Fichas</a>
+                    <a href="monitoreo_v3.html" target="viewFrame" onclick="showIframe(this)">📡 Monitoreo v3</a>
+                    <a href="ver_mapa_local.html" target="viewFrame" onclick="showIframe(this)">🗺️ Mapa Local</a>
+                </div>
+            </div>
+
+            <div class="sec" data-sec="guias">
+                <div class="section-title tog" style="color: #f2cc60;" onclick="togSec('guias')">Guías y E-Commerce <span class="sec-count">4</span></div>
+                <div class="sec-body">
+                    <a href="guia_ocio.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(233,30,99,0.05);">🎭 Guía del Ocio</a>
+                    <a href="empresas.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(35,134,54,0.05);">🏨 Gestión Empresas</a>
+                    <a href="uf_job.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(79,195,247,0.08);">&#128188; UF Job</a>
+                    <a href="uf_hogar.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(102,187,106,0.05);">🏠 UF Hogar</a>
+                </div>
+            </div>
+
+            <div class="sec" data-sec="sistema">
+                <div class="section-title tog" onclick="togSec('sistema')">Sistema <span class="sec-count">2</span></div>
+                <div class="sec-body">
+                    <a href="testing_completo.html" target="viewFrame" onclick="showIframe(this)">🧪 Testing Completo</a>
+                    <a href="pirana.html" target="viewFrame" onclick="showIframe(this)" style="background: rgba(240,136,62,0.05);">🐟 Piraña Licencias</a>
+                </div>
+            </div>
         </nav>
         
         <div style="margin-top: auto; padding-top: 20px;">
@@ -388,10 +429,24 @@
             if (mode === 'map') initMap();
         }
 
+        let openSec = 'gps';
+        function togSec(name) {
+            const willOpen = openSec !== name;
+            document.querySelectorAll('.sidebar .sec').forEach(s => s.classList.toggle('open', willOpen && s.dataset.sec === name));
+            openSec = willOpen ? name : null;
+        }
+
         function showIframe(el) {
             document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active-link'));
             if (el) el.classList.add('active-link');
-            document.getElementById('viewTitle').innerText = el ? el.innerText : 'Admin';
+            document.getElementById('viewTitle').innerText = el ? el.innerText.replace(/\s+/g, ' ').trim() : 'Admin';
+            if (el && el.closest) {
+                const sec = el.closest('.sec');
+                if (sec) {
+                    document.querySelectorAll('.sidebar .sec').forEach(s => s.classList.toggle('open', s === sec));
+                    openSec = sec.dataset.sec;
+                }
+            }
         }
 
         function setMapFilter(f) {

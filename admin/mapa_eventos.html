@@ -174,6 +174,15 @@
             cameraDiv.style.display = (type === 'no_detenerse') ? 'flex' : 'none';
         }
 
+        (function () {
+            try {
+                const t = new URLSearchParams(location.search).get('type');
+                if (!t) return;
+                const sel = document.getElementById('eventType');
+                if ([...sel.options].some(o => o.value === t)) { sel.value = t; updateUIBasedOnType(); }
+            } catch (e) { }
+        })();
+
         function toggleScheduleFields() {
             const isAlwaysActive = document.getElementById('alwaysActive').checked;
             document.getElementById('scheduleContainer').style.display = isAlwaysActive ? 'none' : 'block';
