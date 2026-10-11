@@ -1628,8 +1628,6 @@ function renderEditor(){
   const ssel=d.streets[fStreetSel];
 
   let h='';
-  h+='<div class="lb">'+(feditId==='new'?'Nueva feria':'Feria '+feditId)+'</div>';
-
   h+='<div class="fgrid">'
     +'<div class="fld" style="grid-column:span 2"><label>Nombre de la calle o de la feria</label>'
       +'<input type="text" placeholder="Ej.: Tristán Narvaja" value="'+esc(fStripDay(d.name))+'" '
