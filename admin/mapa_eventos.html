@@ -162,7 +162,7 @@
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const map = L.map('map').setView([-34.9011, -56.1645], 13);
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '&copy; Esri, HERE, Garmin, USGS, METI/NASA' }).addTo(map);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 16, attribution: '&copy; Esri, HERE, Garmin, USGS, METI/NASA' }).addTo(map);
 
         const previewGroup = new L.FeatureGroup().addTo(map);
         const savedLayersGroup = new L.FeatureGroup().addTo(map);

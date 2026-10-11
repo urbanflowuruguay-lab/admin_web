@@ -944,7 +944,7 @@ function initFmap(){
   window._fmapReady=true;
   fmap=L.map('fmap',{zoomControl:true}).setView([-34.90,-56.18],12);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
-    maxZoom:19, attribution:'&copy; Esri, HERE, Garmin, USGS, METI/NASA'
+    maxZoom:19, maxNativeZoom:16, attribution:'&copy; Esri, HERE, Garmin, USGS, METI/NASA'
   }).addTo(fmap);
   // Terminar de dibujar una calle nueva en el editor de ferias.
   fmap.on('pm:create',function(e){
