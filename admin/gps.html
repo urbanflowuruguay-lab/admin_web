@@ -6,6 +6,8 @@
 <title>GPS - Iconos y Notificaciones - UrbanFlow</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
@@ -123,6 +125,44 @@ textarea.ph{min-height:52px;line-height:1.45}
 .lnk{background:none;border:none;color:#58a6ff;font-size:11.5px;cursor:pointer;padding:0;text-decoration:underline}
 .savebar{position:sticky;bottom:0;background:#161b22ee;backdrop-filter:blur(6px);border-top:1px solid #30363d;padding:10px 14px;margin:14px -16px 0;display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:#8b949e}
 .leaflet-container{background:#0d1117 !important;font:inherit}
+
+/* ---- editor de feria ---- */
+.fedit{border-top:1px solid #30363d;background:#161b22;padding:12px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin-bottom:11px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8b949e}
+.fld input,.fld select{background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:7px 9px;font-size:13px;font-family:inherit;width:100%}
+.fld input:focus,.fld select:focus{outline:none;border-color:#1f6feb}
+.fld input.bad{border-color:#da3633;background:#da363312}
+.fld input.warn{border-color:#d29922;background:#d2992212}
+.fld .tiny{font-size:10.5px;color:#6e7681}
+.ebtns{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:9px}
+.ebtns .btn{font-size:12px;padding:6px 12px}
+.btn.blue{background:#1f6feb;border-color:#1f6feb}
+.btn.blue:hover{background:#388bfd}
+.btn.red{background:#da3633;border-color:#f85149}
+.btn.red:hover{background:#f85149}
+.hintline{font-size:11.5px;color:#8b949e;margin-top:7px;line-height:1.5}
+/* validación */
+.valbox{border-radius:8px;padding:11px 13px;margin-top:11px;font-size:12.5px;line-height:1.55}
+.valbox.warn{background:#d2992212;border:1px solid #d2992255}
+.valbox.bad{background:#da363312;border:1px solid #da363355}
+.valbox.ok{background:#23863612;border:1px solid #23863655}
+.valbox h4{font-size:13px;margin:0 0 9px;display:flex;align-items:center;gap:7px}
+.vrow{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:8px 10px;margin-bottom:7px}
+.vrow .vmsg{font-weight:600;margin-bottom:7px}
+.vrow .vmsg i{font-style:normal;color:#8b949e;font-weight:400;display:block;font-size:11.5px;margin-top:2px}
+.vopts{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.vopts label{display:flex;align-items:center;gap:5px;background:#161b22;border:1px solid #30363d;border-radius:5px;padding:4px 9px;font-size:11.5px;cursor:pointer}
+.vopts label:hover{border-color:#58a6ff}
+.vopts input{accent-color:#1f6feb}
+.vtag{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;margin-right:6px;vertical-align:1px}
+.vtag.block{background:#da363333;color:#f85149}
+.vtag.warn{background:#d2992233;color:#d29922}
+.pmbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pmbar button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:5px;padding:5px 10px;font-size:11.5px;cursor:pointer}
+.pmbar button:hover{background:#30363d}
+.pmbar button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
 </style>
 </head>
 <body>
@@ -727,6 +767,9 @@ let fmap=null;
 let flines={};
 let fselected=null;
 let fsaving=0;
+let feditId=null;
+let fdraft=null;
+let fvalOpts={};
 
 const DIAS={1:'LUN',2:'MAR',3:'MIÉ',4:'JUE',5:'VIE',6:'SÁB',7:'DOM'};
 const DIASL={1:'lunes',2:'martes',3:'miércoles',4:'jueves',5:'viernes',6:'sábado',7:'domingo'};
@@ -771,6 +814,13 @@ function fHHmm(min){
   return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0');
 }
 
+/// "08:00:00" -> "08:00". Supabase devuelve el campo time con segundos.
+function fT(v){
+  if(!v) return '';
+  const m=String(v).match(/^(\d{1,2}):(\d{2})/);
+  return m?String(m[1]).padStart(2,'0')+':'+m[2]:'';
+}
+
 /// Longitud del tramo en metros (igual criterio que la app).
 function fLen(coords){
   const R=6371000, rad=Math.PI/180;
@@ -796,7 +846,7 @@ async function reloadFerias(){
       const c=(r.geometry&&r.geometry.coordinates)||[];
       return {
         id:r.id, name:r.name||'', street:r.street_name||'', coords:c,
-        ws:r.weekday_start, we:r.weekday_end, ss:r.weekend_start, se:r.weekend_end,
+        ws:fT(r.weekday_start), we:fT(r.weekday_end), ss:fT(r.weekend_start), se:fT(r.weekend_end),
         status:fStatus(r),
         wd:fWeekday(r.name), len:c.length>1?fLen(c):0,
         ini:c.length?c[0]:null, fin:c.length?c[c.length-1]:null,
@@ -838,7 +888,7 @@ function drawAllFerias(){
     const shadow=L.polyline(latlngs,{color:'#c0392b',weight:9,opacity:.28});
     const line=L.polyline(latlngs,feriaStyle(fStatus(f),false));
     shadow.addTo(fmap); line.addTo(fmap);
-    line.on('click',function(){ selectFeria(f.id,true); });
+    line.on('click',function(){ if(feditId===f.id) return; selectFeria(f.id,true); });
     flines[f.id]={shadow:shadow,line:line,latlngs:latlngs};
   });
 }
@@ -897,13 +947,19 @@ function renderFerias(){
           +'<button class="vb bad'+(s==='rejected'?' on':'')+'" onclick="setVerdict('+f.id+',\'rejected\')">❌ Mal ubicada</button>'
           +'<button class="vb doubt" onclick="setVerdict('+f.id+',\'unverified\')">⚠️ Duda / dejar pendiente</button>'
           +'<span style="flex:1"></span>'
+          +'<button class="btn g sm" onclick="toggleEdit('+f.id+')">✏️ Editar</button>'
           +'<button class="lnk" onclick="openOsm('+f.id+')">Ver en OpenStreetMap ↗</button>'
         +'</div>'
         +'<div class="lb">Nota (queda en este navegador)</div>'
         +'<textarea placeholder="Ej.: el trazo pasa dos cuadras más allá de donde está la feria de verdad." onchange="setFNote('+f.id+',this.value)">'+esc(note)+'</textarea>'
         +'<div class="fsub" style="margin-top:7px">Inicio <code>'+(f.ini?f.ini[1].toFixed(5)+', '+f.ini[0].toFixed(5):'—')+'</code> &middot; Fin <code>'+(f.fin?f.fin[1].toFixed(5)+', '+f.fin[0].toFixed(5):'—')+'</code></div>'
+        +'<div class="fedit" id="fe'+f.id+'"></div>'
       +'</div></div>';
   }).join('');
+  if(feditId!=null && document.getElementById('fc'+feditId)){
+    document.getElementById('fc'+feditId).classList.add('open');
+    renderEditor();
+  }
 }
 
 function selectFeria(id,fromMap){
@@ -967,9 +1023,386 @@ async function setVerdict(id,st){
 
 function openOsm(id){
   const f=FERIAS.filter(function(x){return x.id===id})[0];
-  if(!f||!f.ini) return;
+  if(f||!f.ini) return;
   window.open('https://www.openstreetmap.org/?mlat='+f.ini[1]+'&mlon='+f.ini[0]+'#map=19/'+f.ini[1]+'/'+f.ini[0],'_blank');
 }
+
+/* ================= EDITOR DE FERIA =================
+   Arregla el trazo (arrastrando vértices con Geoman), el nombre,
+   la calle y los horarios, y guarda en Supabase.
+   Validación con opciones: nada se guarda a ciegas. */
+function getFeria(id){ return FERIAS.filter(function(x){return x.id===id})[0]; }
+
+function toggleEdit(id){
+  if(feditId===id){ cancelEdit(); return; }
+  if(feditId!=null){
+    if(!confirm('Ya estás editando la feria '+feditId+'. ¿Descartar esos cambios?')) return;
+    cancelEdit(true);
+  }
+  const f=getFeria(id); if(!f) return;
+  feditId=id;
+  fvalOpts={};
+  fdraft={
+    name:f.name||'', street:f.street||'',
+    ws:f.ws||'', we:f.we||'', ss:f.ss||'', se:f.se||'',
+    coords:f.coords.map(function(c){return [+c[0],+c[1]]})
+  };
+  selectFeria(id,false);
+  renderEditor();
+  enablePm(id);
+  toast('Editando feria '+id+'. Arrastrá los puntos del trazo en el mapa.');
+}
+
+function cancelEdit(silent){
+  if(feditId==null) return;
+  disablePm();
+  const id=feditId, f=getFeria(id), g=flines[id];
+  feditId=null; fdraft=null; fvalOpts={}; window._pmDrag=false;
+  if(g&&f){
+    const latlngs=f.coords.map(function(c){return [c[1],c[0]]});
+    g.line.setLatLngs(latlngs); g.shadow.setLatLngs(latlngs); g.latlngs=latlngs;
+  }
+  renderFerias();
+  if(!silent) toast('Edición cancelada.');
+}
+
+/* --- Geoman sobre la línea de la feria --- */
+function enablePm(id){
+  const g=flines[id]; if(!g||!g.line||!g.line.pm) return;
+  ['pm:edit','pm:markerdragend','pm:vertexadd','pm:vertexremove','pm:dragend','pm:change']
+    .forEach(function(ev){ g.line.on(ev,pmSync); });
+  try{
+    g.line.pm.enable({snappable:true,allowSelfIntersection:false,hideNudges:false,
+      templineStyle:{color:'#58a6ff',dashArray:'4 4',weight:3},
+      hintlineStyle:{color:'#58a6ff',dashArray:'4 4',weight:3},
+      markerStyle:{radius:7,color:'#1f6feb',fillColor:'#1f6feb',fillOpacity:1,weight:2,opacity:1}});
+  }catch(e){ toast('No se pudo activar el editor de trazo: '+e.message,true); }
+  if(fmap) fmap.fitBounds(g.line.getBounds().pad(0.45),{animate:true});
+}
+
+function disablePm(){
+  if(feditId==null) return;
+  const g=flines[feditId]; if(!g||!g.line) return;
+  ['pm:edit','pm:markerdragend','pm:vertexadd','pm:vertexremove','pm:dragend','pm:change']
+    .forEach(function(ev){ g.line.off(ev,pmSync); });
+  try{ if(g.line.pm&&g.line.pm.enabled()) g.line.pm.disable(); }catch(e){}
+}
+
+function pmSync(){
+  if(feditId==null||!fdraft) return;
+  const g=flines[feditId]; if(!g) return;
+  const latlngs=g.line.getLatLngs();
+  fdraft.coords=latlngs.map(function(ll){return [+ll.lng.toFixed(6),+ll.lat.toFixed(6)]});
+  g.shadow.setLatLngs(latlngs);
+  if(!window._pmRaf) window._pmRaf=requestAnimationFrame(function(){
+    window._pmRaf=null; renderEditor();
+  });
+}
+
+function syncLineFromDraft(){
+  const g=flines[feditId]; if(!g||!fdraft) return;
+  const latlngs=fdraft.coords.map(function(c){return [c[1],c[0]]});
+  g.line.setLatLngs(latlngs); g.shadow.setLatLngs(latlngs);
+}
+
+/* desplaza el trazo entero dx/dy en metros (positivo = este / norte) */
+function nudge(dx,dy){
+  if(!fdraft) return;
+  const R=6371000;
+  fdraft.coords=fdraft.coords.map(function(c){
+    const lat=c[1], lon=c[0];
+    const dLat=(dy/R)*180/Math.PI;
+    const dLon=(dx/(R*Math.cos(lat*Math.PI/180)))*180/Math.PI;
+    return [+(lon+dLon).toFixed(6), +(lat+dLat).toFixed(6)];
+  });
+  syncLineFromDraft(); renderEditor();
+}
+
+function pmAddEnd(){
+  if(!fdraft||!fdraft.coords.length) return;
+  const last=fdraft.coords[fdraft.coords.length-1];
+  fdraft.coords.push([last[0],last[1]]);
+  syncLineFromDraft(); renderEditor();
+  toast('Punto agregado al final. Arrastrá el punto azul hasta donde va.');
+}
+
+function pmAddStart(){
+  if(!fdraft||!fdraft.coords.length) return;
+  const first=fdraft.coords[0];
+  fdraft.coords.unshift([first[0],first[1]]);
+  syncLineFromDraft(); renderEditor();
+  toast('Punto agregado al inicio. Arrastrá el punto azul hasta donde va.');
+}
+
+function pmPop(){
+  if(!fdraft) return;
+  if(fdraft.coords.length<=2){ toast('El trazo necesita al menos 2 puntos.',true); return; }
+  fdraft.coords.pop();
+  syncLineFromDraft(); renderEditor();
+}
+
+function revertCoords(){
+  const f=getFeria(feditId); if(!f||!fdraft) return;
+  fdraft.coords=f.coords.map(function(c){return [+c[0],+c[1]]});
+  delete fvalOpts['short']; delete fvalOpts['long']; delete fvalOpts['pts']; delete fvalOpts['geo'];
+  syncLineFromDraft(); renderEditor();
+  toast('Trazo vuelto al original.');
+}
+
+/* ---------------- validación ---------------- */
+function validateFeria(d){
+  const issues=[], orig=getFeria(feditId);
+  const name=String(d.name||'').trim();
+  const street=String(d.street||'').trim();
+
+  if(d.coords.length<2)
+    issues.push({k:'pts',sev:'block',
+      msg:'El trazo tiene '+(d.coords.length===0?'ningún punto':'un solo punto')+'.',
+      sub:'Necesitás al menos 2 para dibujar la calle. Mové los puntos en el mapa.',
+      opts:[{v:'noop',l:'Arreglar el trazo en el mapa'}]});
+
+  if(!name)
+    issues.push({k:'noname',sev:'block',msg:'El nombre está vacío.',
+      sub:'Sin nombre no se puede identificar la feria.',
+      opts:[{v:'noop',l:'Escribir un nombre arriba'}]});
+
+  [['ws','we','entre semana'],['ss','se','fin de semana']].forEach(function(p){
+    const a=fMin(d[p[0]]), b=fMin(d[p[1]]);
+    if(a>=0&&b>=0&&b<=a)
+      issues.push({k:p[0]+'_fin',sev:'block',
+        msg:'Horario '+p[2]+': el fin ('+(d[p[1]]||'--:--')+') es antes o igual al inicio ('+(d[p[0]]||'--:--')+').',
+        sub:'Con ese horario la app nunca la mostraría.',
+        opts:[{v:'noop',l:'Corregir el horario arriba'}]});
+  });
+
+  const badGeo=d.coords.filter(function(c){return c[1]<-35.2||c[1]>-34.4||c[0]<-56.6||c[0]>-55.6});
+  if(badGeo.length)
+    issues.push({k:'geo',sev:'block',
+      msg:badGeo.length+' punto(s) fuera del área de Montevideo.',
+      sub:'Latitud entre −34.4 y −35.2 · Longitud entre −56.6 y −55.6.',
+      opts:[{v:'noop',l:'Mover los puntos en el mapa'}]});
+
+  const wd=fWeekday(name), origWd=orig?fWeekday(orig.name):0;
+  if(!wd)
+    issues.push({k:'wd',sev:'warn',daySelect:true,
+      msg:'El nombre no empieza con un día (ej.: "MAR 2 · JUAN PAULLIER").',
+      sub:'Sin ese prefijo la feria nunca se muestra en la app.',
+      opts:[{v:'add',l:'Agregar el día elegido adelante'},
+            {v:'keep',l:'Dejar sin día (no se va a mostrar)'}]});
+  else if(origWd&&wd!==origWd)
+    issues.push({k:'wdchg',sev:'warn',
+      msg:'El día del nombre cambió: era '+(DIAS[origWd]||origWd)+' y ahora es '+DIAS[wd]+'.',
+      sub:'La app pasará a mostrarla el '+(DIASL[wd]||wd)+'.',
+      opts:[{v:'accept',l:'Sí, cambiar el día'},{v:'revert',l:'Volver el nombre al original'}]});
+
+  [['ws','we',14*60,'entre semana (mar–vie)'],['ss','se',15*60,'fin de semana (sáb–dom)']].forEach(function(p){
+    const a=fMin(d[p[0]]), b=fMin(d[p[1]]);
+    if(a>=0&&a<8*60)
+      issues.push({k:p[0]+'_ini',sev:'warn',
+        msg:'Horario '+p[3]+': el inicio ('+d[p[0]]+') es antes de las 08:00.',
+        sub:'Decreto 103/2024: las ferias no pueden empezar antes de las 8.',
+        opts:[{v:'fix:'+p[0]+':08:00',l:'Ajustar a 08:00'},{v:'keep',l:'Dejar así (no es legal)'}]});
+    if(b>=0&&b>p[2])
+      issues.push({k:p[1]+'_fin_d',sev:'warn',
+        msg:'Horario '+p[3]+': el fin ('+d[p[1]]+') pasa de las '+fHHmm(p[2])+'.',
+        sub:'Decreto 103/2024: máximo '+fHHmm(p[2])+' en '+(p[3].indexOf('fin')===0?'sábado y domingo':'días hábiles')+'.',
+        opts:[{v:'fix:'+p[1]+':'+fHHmm(p[2]),l:'Ajustar a '+fHHmm(p[2])},{v:'keep',l:'Dejar así (no es legal)'}]});
+  });
+
+  const len=fLen(d.coords);
+  if(d.coords.length>1&&len<30)
+    issues.push({k:'short',sev:'warn',
+      msg:'El trazo mide solo '+Math.round(len)+' m.',
+      sub:'¿Es realmente esa la calle de la feria?',
+      opts:[{v:'accept',l:'Sí, es correcto'},{v:'revert',l:'Volver el trazo original'}]});
+  if(len>2000)
+    issues.push({k:'long',sev:'warn',
+      msg:'El trazo mide '+(len/1000).toFixed(1)+' km.',
+      sub:'¿Es realmente una feria tan larga?',
+      opts:[{v:'accept',l:'Sí, es correcto'},{v:'revert',l:'Volver el trazo original'}]});
+
+  if(!street)
+    issues.push({k:'street',sev:'warn',
+      msg:'No tiene calle cargada.',
+      sub:'La app muestra la calle junto al nombre.',
+      opts:[{v:'noop',l:'Escribir la calle arriba'},{v:'keep',l:'Dejar vacío'}]});
+
+  return issues;
+}
+
+function setValOpt(k,v){
+  if(feditId==null||!fdraft) return;
+  const orig=getFeria(feditId);
+  if(v==='add'){
+    const sel=document.getElementById('feDay');
+    const dd=sel?sel.value:'';
+    if(!dd){ toast('Elegí un día primero.',true); return; }
+    fdraft.name=dd+' · '+String(fdraft.name).replace(/^\s*(LUN|MAR|MIE|MIÉ|JUE|VIE|SAB|SÁB|DOM)\S*\s*[·:]?\s*/i,'').trim();
+  } else if(v.indexOf('fix:')===0){
+    const p=v.split(':');
+    fdraft[p[1]]=p[2]+':'+p[3];
+  } else if(v==='revert'){
+    if(k==='wdchg'&&orig) fdraft.name=orig.name;
+    if((k==='short'||k==='long')&&orig) fdraft.coords=orig.coords.map(function(c){return [+c[0],+c[1]]});
+    syncLineFromDraft();
+  }
+  fvalOpts[k]=v;
+  renderEditor();
+}
+
+/* ---------------- render del editor ---------------- */
+function fldTime(label,val,key){
+  return '<div class="fld"><label>'+label+'</label>'
+    +'<input type="time" value="'+esc(val||'')+'" '
+    +'oninput="fdraft.'+key+'=this.value" onchange="renderEditor()">'
+    +'<span class="tiny">'+esc(val||'sin cargar')+'</span></div>';
+}
+
+function renderEditor(){
+  const box=document.getElementById('fe'+feditId);
+  if(!box||!fdraft) return;
+  const d=fdraft, f=getFeria(feditId);
+  const iss=validateFeria(d);
+  const blockers=iss.filter(function(i){return i.sev==='block'});
+  const warns=iss.filter(function(i){return i.sev==='warn'});
+  const unresolved=warns.filter(function(i){return fvalOpts[i.k]===undefined});
+  const ready=blockers.length===0&&unresolved.length===0;
+  const len=fLen(d.coords);
+  const wdNow=fWeekday(d.name);
+
+  let h='';
+  h+='<div class="lb">Editando feria <code>'+feditId+'</code> '
+    +'<span class="hint">el trazo se mueve arrastrando los puntos azules del mapa</span></div>';
+
+  h+='<div class="fgrid">'
+    +'<div class="fld"><label>Nombre (con el día adelante)</label>'
+      +'<input type="text" value="'+esc(d.name)+'" oninput="fdraft.name=this.value" onchange="renderEditor()">'
+      +'<span class="tiny">Ej.: MAR 2 · JUAN PAULLIER. El día decide cuándo se muestra.</span></div>'
+    +'<div class="fld"><label>Calle</label>'
+      +'<input type="text" value="'+esc(d.street)+'" oninput="fdraft.street=this.value" onchange="renderEditor()">'
+      +'<span class="tiny">Aparece debajo del nombre en la app.</span></div>'
+    +'</div>';
+
+  h+='<div class="lb">Horarios</div><div class="fgrid">'
+    +fldTime('Entre semana · inicio',d.ws,'ws')
+    +fldTime('Entre semana · fin',d.we,'we')
+    +fldTime('Fin de semana · inicio',d.ss,'ss')
+    +fldTime('Fin de semana · fin',d.se,'se')
+    +'</div>'
+    +'<div class="hintline">Decreto 103/2024: inicio &ge; 08:00 &middot; fin &le; 14:00 (mar&ndash;vie) y &le; 15:00 (s&aacute;b&ndash;dom). '
+    +'Se muestra el <b>'+(DIASL[wdNow]||'—')+'</b> usando el par '
+    +(wdNow===6||wdNow===7?'de fin de semana':'entre semana')
+    +'.</div>';
+
+  h+='<div class="lb">Trazo</div><div class="pmbar">'
+    +'<span style="color:#8b949e;font-size:11px;align-self:center">Mover trazo:</span>'
+    +'<button onclick="nudge(0,10)">&#11014; 10 m N</button>'
+    +'<button onclick="nudge(0,-10)">&#11015; 10 m S</button>'
+    +'<button onclick="nudge(-10,0)">&#11012; 10 m O</button>'
+    +'<button onclick="nudge(10,0)">&#10142; 10 m E</button>'
+    +'<button onclick="nudge(0,100)">&#11014; 100 m</button>'
+    +'<button onclick="nudge(0,-100)">&#11015; 100 m</button>'
+    +'<button onclick="nudge(-100,0)">&#11012; 100 m</button>'
+    +'<button onclick="nudge(100,0)">&#10142; 100 m</button>'
+    +'</div><div class="pmbar">'
+    +'<button onclick="pmAddEnd()">➕ Punto al final</button>'
+    +'<button onclick="pmAddStart()">➕ Punto al inicio</button>'
+    +'<button onclick="pmPop()">➖ Borrar último</button>'
+    +'<button onclick="revertCoords()">↩️ Trazo original</button>'
+    +'<button onclick="openOsm('+feditId+')">Ver en OSM ↗</button>'
+    +'<span style="flex:1"></span>'
+    +'<b style="color:#79c0ff;font-size:11.5px">'+d.coords.length+' pts &middot; '+Math.round(len)+' m</b>'
+    +'</div>';
+
+  if(!iss.length){
+    h+='<div class="valbox ok"><h4>✅ Todo bien</h4>'
+      +'Nombre, horarios y trazo pasan todas las comprobaciones. Podés guardar.</div>';
+  } else {
+    h+='<div class="valbox '+(blockers.length?'bad':'warn')+'">'
+      +'<h4>'+(blockers.length
+        ?'⛔ '+blockers.length+' error(es) bloqueante(s) &mdash; no se puede guardar'
+        :'⚠️ '+warns.length+' aviso(s) &mdash; elegí una opción en cada uno')+'</h4>';
+    iss.forEach(function(i){
+      h+='<div class="vrow">'
+        +'<div class="vmsg"><span class="vtag '+(i.sev==='block'?'block':'warn')+'">'
+        +(i.sev==='block'?'BLOQUEA':'AVISO')+'</span>'+esc(i.msg)
+        +(i.sub?'<i>'+esc(i.sub)+'</i>':'')+'</div>'
+        +'<div class="vopts">';
+      if(i.daySelect){
+        h+='<select id="feDay" style="background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:5px;padding:4px 7px;font-size:11.5px">'
+          +[1,2,3,4,5,6,7].map(function(k){return '<option value="'+DIAS[k]+'">'+DIASL[k]+'</option>'}).join('')
+          +'</select>';
+      }
+      i.opts.forEach(function(o){
+        const on=fvalOpts[i.k]===o.v;
+        h+='<label><input type="radio" name="v_'+i.k+'" '+(on?'checked':'')
+          +' onchange="setValOpt(\''+i.k+'\',\''+o.v+'\')">'+esc(o.l)+'</label>';
+      });
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+
+  h+='<div class="ebtns">'
+    +'<button class="btn blue" '+(ready?'':'disabled style="opacity:.45;cursor:not-allowed"')
+    +' onclick="saveEdit()">💾 Guardar cambios en la base</button>'
+    +'<button class="btn g" onclick="cancelEdit()">Cancelar</button>'
+    +'<span style="flex:1"></span>'
+    +'<span style="color:#6e7681;font-size:11px">Se guarda en Supabase (map_events) y la app lo respeta al instante.</span>'
+    +'</div>';
+
+  box.innerHTML=h;
+}
+
+async function saveEdit(){
+  if(!fdraft||feditId==null) return;
+  const iss=validateFeria(fdraft);
+  if(iss.some(function(i){return i.sev==='block'})){
+    toast('Hay errores bloqueantes. Corregilos antes de guardar.',true); renderEditor(); return;
+  }
+  const warns=iss.filter(function(i){return i.sev==='warn'});
+  if(warns.some(function(i){return fvalOpts[i.k]===undefined})){
+    toast('Faltan decisiones en los avisos.',true); renderEditor(); return;
+  }
+
+  const id=feditId, prev=getFeria(id);
+  const body={
+    name:String(fdraft.name).trim(),
+    street_name:String(fdraft.street).trim(),
+    geometry:{type:'LineString',coordinates:fdraft.coords},
+    weekday_start:fdraft.ws||null,
+    weekday_end:fdraft.we||null,
+    weekend_start:fdraft.ss||null,
+    weekend_end:fdraft.se||null
+  };
+  if(!body.geometry.coordinates.length){ toast('El trazo está vacío.',true); return; }
+
+  const oldStatus=fStatus(prev);
+  fsaving++;
+  document.getElementById('fSync').textContent='Guardando feria '+id+'…';
+  try{
+    await fAuth('PATCH',SUPABASE_URL+'/rest/v1/map_events?id=eq.'+id,body);
+    prev.name=body.name; prev.street=body.street_name;
+    prev.coords=body.geometry.coordinates;
+    prev.ws=fT(body.weekday_start); prev.we=fT(body.weekday_end);
+    prev.ss=fT(body.weekend_start); prev.se=fT(body.weekend_end);
+    prev.wd=fWeekday(prev.name); prev.len=fLen(prev.coords);
+    prev.ini=prev.coords[0]; prev.fin=prev.coords[prev.coords.length-1];
+    fsaving--;
+    document.getElementById('fSync').textContent=fsaving>0
+      ? 'Guardando… ('+fsaving+' en cola)'
+      : '✅ Guardado en la base de datos';
+    disablePm();
+    feditId=null; fdraft=null; fvalOpts={}; window._pmDrag=false;
+    drawAllFerias(); renderFerias();
+    toast('Feria '+id+' guardada. Estado: '+(oldStatus==='active'?'✅ en la app':(oldStatus==='rejected'?'❌ rechazada':'⏳ pendiente'))+'.');
+  }catch(e){
+    fsaving--;
+    document.getElementById('fSync').textContent='❌ Error al guardar: '+e.message;
+    toast('No se pudo guardar: '+e.message,true);
+  }
+}
+
 
 function centerUnverified(){
   const f=FERIAS.filter(function(x){return fStatus(x)==='unverified' && passesFilter(x)})[0]
