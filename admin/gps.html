@@ -772,13 +772,20 @@ function goTab(t){
   document.getElementById('tabIconos').classList.toggle('on',ico);
   document.getElementById('tabFerias').classList.toggle('on',!ico);
   if(!ico && !window._fmapReady) initFmap();
+  // El panel de Ferias nace con display:none. Si Leaflet mide el contenedor
+  // mientras está oculto queda en 0x0 y nunca pide tiles, aunque el CSS
+  // después le dé sus 340px: hay que avisarle del tamaño real una vez
+  // que ya está visible. Corre también al volver de la otra pestaña.
+  if(!ico && fmap){
+    setTimeout(function(){ fmap.invalidateSize(); },0);
+    setTimeout(function(){ fmap.invalidateSize(); },300);
+  }
 }
-(function(){
-  try{
-    const t=new URLSearchParams(location.search).get('tab');
-    if(t==='ferias'||t==='iconos') goTab(t);
-  }catch(e){}
-})();
+
+/* El deep link ?tab= se resuelve al final del script (no acá): mientras
+   goTab() tocaba fmap, la variable todavía estaba en temporal dead zone
+   porque el let fmap=null se declara más abajo. El error lo tragaba el
+   catch del IIFE y el mapa quedaba sin capa de tiles para siempre. */
 
 /* ================= FERIAS ================= */
 const SUPABASE_URL='https://eyfgkopaamnkprzpwocz.supabase.co';
@@ -1824,6 +1831,13 @@ try{
 }catch(e){ window._feriasNotes={}; }
 
 render();
+
+// Deep link ?tab=ferias|iconos. Va acá, después de que todos los let del
+// módulo de ferias (fmap, fdraft, FERIAS…) ya estén inicializados.
+try{
+  const t=new URLSearchParams(location.search).get('tab');
+  if(t==='ferias'||t==='iconos') goTab(t);
+}catch(e){}
 </script>
 </body>
 </html>
