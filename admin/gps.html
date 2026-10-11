@@ -1479,18 +1479,12 @@ function validateFeria(d){
         opts:[{v:'noop',l:'Corregir el horario arriba'}]});
   });
 
-  const wd=fWeekday(name), origWd=orig?fWeekday(orig.name):0;
+  const wd=fWeekday(name);
   if(!wd)
     issues.push({k:'wd',sev:'warn',daySelect:true,
-      msg:'El nombre no empieza con un día (ej.: "MAR 2 · JUAN PAULLIER").',
-      sub:'Sin ese prefijo la feria nunca se muestra en la app.',
-      opts:[{v:'add',l:'Agregar el día elegido adelante'},
-            {v:'keep',l:'Dejar sin día (no se va a mostrar)'}]});
-  else if(origWd&&wd!==origWd)
-    issues.push({k:'wdchg',sev:'warn',
-      msg:'El día del nombre cambió: era '+(DIAS[origWd]||origWd)+' y ahora es '+DIAS[wd]+'.',
-      sub:'La app pasará a mostrarla el '+(DIASL[wd]||wd)+'.',
-      opts:[{v:'accept',l:'Sí, cambiar el día'},{v:'revert',l:'Volver el nombre al original'}]});
+      msg:'Elegí un día arriba: sin eso la feria nunca se muestra en la app.',
+      sub:'La app decide si hay feria ese día leyendo el día adelante del nombre.',
+      opts:[]});
 
   [['ws','we',14*60,'entre semana (mar–vie)'],['ss','se',15*60,'fin de semana (sáb–dom)']].forEach(function(p){
     const a=fMin(d[p[0]]), b=fMin(d[p[1]]);
@@ -1586,6 +1580,40 @@ function fldTime(label,val,key){
     +'<span class="tiny">'+esc(val||'sin cargar')+'</span></div>';
 }
 
+// "DOM · TRISTAN NARVAJA" -> "TRISTAN NARVAJA". El día no se tipea a mano:
+// se elige con el selector y el panel lo escribe solo adelante del nombre.
+function fStripDay(name){
+  return String(name||'').replace(/^\s*(LUN|MAR|MIE|MIÉ|JUE|VIE|SAB|SÁB|DOM)\S*\s*[·:.\-]?\s*/i,'').trim();
+}
+function fSetDay(wd){
+  if(!fdraft||!wd) return;
+  fdraft.name=DIAS[wd]+' · '+fStripDay(fdraft.name);
+  renderEditor();
+}
+function fHoyWd(){
+  const d=new Date().getDay();
+  return d===0?7:d;   // 1=lunes .. 7=domingo
+}
+function fSetName(v){
+  if(!fdraft) return;
+  const wd=fWeekday(fdraft.name)||fHoyWd();
+  fdraft.name=DIAS[wd]+' · '+fStripDay(v);
+}
+function fToggleFine(){
+  window._fineOpen=!window._fineOpen;
+  renderEditor();
+}
+
+function fldRange(label,a,b,ka,kb){
+  return '<div class="fld" style="grid-column:span 2">'
+    +'<label>'+label+'</label>'
+    +'<div style="display:flex;align-items:center;gap:7px">'
+      +'<input type="time" style="flex:1" value="'+esc(a||'')+'" oninput="fdraft.'+ka+'=this.value">'
+      +'<span style="color:#8b949e;font-size:12px">a</span>'
+      +'<input type="time" style="flex:1" value="'+esc(b||'')+'" oninput="fdraft.'+kb+'=this.value">'
+    +'</div></div>';
+}
+
 function renderEditor(){
   const box=document.getElementById('fe'+feditId);
   if(!box||!fdraft) return;
@@ -1593,120 +1621,95 @@ function renderEditor(){
   const iss=validateFeria(d);
   const blockers=iss.filter(function(i){return i.sev==='block'});
   const warns=iss.filter(function(i){return i.sev==='warn'});
-  const unresolved=warns.filter(function(i){return fvalOpts[i.k]===undefined});
-  const ready=blockers.length===0&&unresolved.length===0;
-  const wdNow=fWeekday(d.name);
+  const ready=blockers.length===0;
   const drawing=!!window._drawing;
-  const totalLen=d.streets.reduce(function(a,s){return a+fLen(s.coords);},0);
+  const wd=fWeekday(d.name);
+  const fine=!!window._fineOpen;
+  const ssel=d.streets[fStreetSel];
 
   let h='';
-  h+= (feditId==='new'
-    ? '<div class="lb">Creando feria nueva '
-      +'<span class="hint">dibujá la calle en el mapa y poné el nombre con el día adelante</span></div>'
-    : '<div class="lb">Editando feria <code>'+feditId+'</code> '
-      +'<span class="hint">tocá una calle del mapa para mover sus puntos</span></div>');
+  h+='<div class="lb">'+(feditId==='new'?'Nueva feria':'Feria '+feditId)+'</div>';
 
   h+='<div class="fgrid">'
-    +'<div class="fld"><label>Nombre de la feria (con el día adelante)</label>'
-      +'<input type="text" value="'+esc(d.name)+'" oninput="fdraft.name=this.value" onchange="renderEditor()">'
-      +'<span class="tiny">Ej.: MAR 2 · JUAN PAULLIER. El día decide cuándo se muestra.</span></div>'
+    +'<div class="fld" style="grid-column:span 2"><label>Nombre de la calle o de la feria</label>'
+      +'<input type="text" placeholder="Ej.: Tristán Narvaja" value="'+esc(fStripDay(d.name))+'" '
+        +'oninput="fSetName(this.value)" onchange="renderEditor()"></div>'
+    +'<div class="fld"><label>Día</label>'
+      +'<select onchange="fSetDay(this.value)">'
+        +'<option value=""'+(wd?'':' selected')+'>— sin día —</option>'
+        +[1,2,3,4,5,6,7].map(function(k){
+          return '<option value="'+k+'"'+(wd===k?' selected':'')+'>'+DIASL[k]+'</option>';}).join('')
+      +'</select></div>'
     +'</div>';
 
   h+='<div class="lb">Horarios</div><div class="fgrid">'
-    +fldTime('Entre semana · inicio',d.ws,'ws')
-    +fldTime('Entre semana · fin',d.we,'we')
-    +fldTime('Fin de semana · inicio',d.ss,'ss')
-    +fldTime('Fin de semana · fin',d.se,'se')
-    +'</div>'
-    +'<div class="hintline">Decreto 103/2024: inicio &ge; 08:00 &middot; fin &le; 14:00 (mar&ndash;vie) y &le; 15:00 (s&aacute;b&ndash;dom). '
-    +'Se muestra el <b>'+(DIASL[wdNow]||'—')+'</b>.</div>';
+    +fldRange('Entre semana (mar a vie)',d.ws,d.we,'ws','we')
+    +fldRange('Fin de semana (sáb y dom)',d.ss,d.se,'ss','se')
+    +'</div>';
 
-  h+='<div class="lb">Calles de la feria <span class="hint">cada una se dibuja a mano sobre el mapa</span></div>';
+  h+='<div class="lb">Calles</div>';
   d.streets.forEach(function(s,i){
-    const len=fLen(s.coords);
     const on=(i===fStreetSel);
     h+='<div class="scard'+(on?' on':'')+'" onclick="selStreet('+i+')">'
       +'<div class="sidx">'+(i+1)+'</div>'
       +'<div class="sbody">'
-        +'<input type="text" placeholder="Nombre de la calle (ej.: Verdi)" value="'+esc(s.name||'')+'" '
-          +'onclick="event.stopPropagation()" oninput="fdraft.streets['+i+'].name=this.value" onchange="renderEditor()">'
-        +'<div class="fsub">'+(s.coords.length
-            ? s.coords.length+' puntos &middot; '+Math.round(len)+' m'
-            : 'sin trazo &middot; redibujala')+'</div>'
+        +'<input type="text" placeholder="Nombre de la calle" value="'+esc(s.name||'')+'" '
+          +'onclick="event.stopPropagation()" oninput="fdraft.streets['+i+'].name=this.value">'
+        +'<div class="fsub">'+(s.coords.length? s.coords.length+' puntos':'todavía sin marcar en el mapa')+'</div>'
       +'</div>'
       +'<div class="sbtns" onclick="event.stopPropagation()">'
+        +'<button class="lnk" onclick="redrawStreet('+i+')">'+(s.coords.length?'Redibujar':'Marcar en el mapa')+'</button>'
         +'<button class="lnk" onclick="selStreet('+i+')">Editar puntos</button>'
-        +'<button class="lnk" onclick="redrawStreet('+i+')">Redibujar</button>'
         +'<button class="lnk" style="color:#f85149" onclick="delStreet('+i+')">Borrar</button>'
-      +'</div>'
-      +'</div>';
+      +'</div></div>';
   });
   h+='<div class="ebtns" style="margin-top:8px">'
     +'<button class="btn blue" '+(drawing?'disabled style="opacity:.45;cursor:not-allowed"':'')
-    +' onclick="addStreet()">➕ Dibujar calle nueva</button>'
-    +'<button class="btn g" onclick="revertCoords()">↩️ Volver todo al original</button>'
-    +'<span style="flex:1"></span>'
-    +'<b style="color:#79c0ff;font-size:11.5px">'+d.streets.length
-      +(d.streets.length===1?' calle':' calles')+' &middot; '+Math.round(totalLen)+' m</b>'
+    +' onclick="addStreet()">➕ Agregar calle</button>'
     +'</div>';
 
-  const ssel=d.streets[fStreetSel];
+  h+='<div class="hintline">Clic en una calle del mapa para mover sus puntos. '
+    +'Arrastrá un punto azul para moverlo, o arrastrá el punto de en medio de un lado para agregar uno. '
+    +'Click derecho sobre un punto lo borra.</div>';
+
   if(ssel&&ssel.coords.length>=2){
-    h+='<div class="lb">Mover la calle '+(fStreetSel+1)+(ssel.name?' &middot; '+esc(ssel.name):'')+'</div>'
-      +'<div class="pmbar">'
-      +'<span style="color:#8b949e;font-size:11px;align-self:center">Desplazar:</span>'
-      +'<button onclick="nudge(0,10)">&#11014; 10 m N</button>'
-      +'<button onclick="nudge(0,-10)">&#11015; 10 m S</button>'
-      +'<button onclick="nudge(-10,0)">&#11012; 10 m O</button>'
-      +'<button onclick="nudge(10,0)">&#10142; 10 m E</button>'
-      +'<button onclick="nudge(0,100)">&#11014; 100 m</button>'
-      +'<button onclick="nudge(0,-100)">&#11015; 100 m</button>'
-      +'<button onclick="nudge(-100,0)">&#11012; 100 m</button>'
-      +'<button onclick="nudge(100,0)">&#10142; 100 m</button>'
-      +'</div><div class="pmbar">'
-      +'<button onclick="pmAddEnd()">➕ Punto al final</button>'
-      +'<button onclick="pmAddStart()">➕ Punto al inicio</button>'
-      +'<button onclick="pmPop()">➖ Borrar último punto</button>'
-      +'</div>'
-      +'<div class="hintline">Arrastrá los puntos azules para moverlos. Arrastrá el punto de en el medio de un lado para agregar uno. '
-      +'Click derecho sobre un punto lo borra.</div>';
+    h+='<div class="ebtns">'
+      +'<button class="btn g sm" onclick="fToggleFine()">'+(fine?'▲ Ocultar ajuste fino':'▼ Ajuste fino de la calle '+(fStreetSel+1))+'</button>'
+      +'</div>';
+    if(fine){
+      h+='<div class="pmbar">'
+        +'<span style="color:#8b949e;font-size:11px;align-self:center">Mover 10 m:</span>'
+        +'<button onclick="nudge(0,10)">&#11014; N</button>'
+        +'<button onclick="nudge(0,-10)">&#11015; S</button>'
+        +'<button onclick="nudge(-10,0)">&#11012; O</button>'
+        +'<button onclick="nudge(10,0)">&#10142; E</button>'
+        +'<span style="color:#8b949e;font-size:11px;align-self:center;margin-left:8px">100 m:</span>'
+        +'<button onclick="nudge(0,100)">&#11014;</button>'
+        +'<button onclick="nudge(0,-100)">&#11015;</button>'
+        +'<button onclick="nudge(-100,0)">&#11012;</button>'
+        +'<button onclick="nudge(100,0)">&#10142;</button>'
+        +'</div><div class="pmbar">'
+        +'<button onclick="pmAddEnd()">➕ Punto al final</button>'
+        +'<button onclick="pmAddStart()">➕ Punto al inicio</button>'
+        +'<button onclick="pmPop()">➖ Borrar último punto</button>'
+        +'</div>';
+    }
   }
 
-  if(!iss.length){
-    h+='<div class="valbox ok"><h4>✅ Todo bien</h4>'
-      +'Nombre, horarios y las '+d.streets.length+' calles pasan todas las comprobaciones. Podés guardar.</div>';
-  } else {
-    h+='<div class="valbox '+(blockers.length?'bad':'warn')+'">'
-      +'<h4>'+(blockers.length
-        ?'⛔ '+blockers.length+' error(es) bloqueante(s) &mdash; no se puede guardar'
-        :'⚠️ '+warns.length+' aviso(s) &mdash; elegí una opción en cada uno')+'</h4>';
-    iss.forEach(function(i){
-      h+='<div class="vrow">'
-        +'<div class="vmsg"><span class="vtag '+(i.sev==='block'?'block':'warn')+'">'
-        +(i.sev==='block'?'BLOQUEA':'AVISO')+'</span>'+esc(i.msg)
-        +(i.sub?'<i>'+esc(i.sub)+'</i>':'')+'</div>'
-        +'<div class="vopts">';
-      if(i.daySelect){
-        h+='<select id="feDay" style="background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:5px;padding:4px 7px;font-size:11.5px">'
-          +[1,2,3,4,5,6,7].map(function(k){return '<option value="'+DIAS[k]+'">'+DIASL[k]+'</option>'}).join('')
-          +'</select>';
-      }
-      i.opts.forEach(function(o){
-        const on=fvalOpts[i.k]===o.v;
-        h+='<label><input type="radio" name="v_'+i.k+'" '+(on?'checked':'')
-          +' onchange="setValOpt(\''+i.k+'\',\''+o.v+'\')">'+esc(o.l)+'</label>';
-      });
-      h+='</div></div>';
-    });
+  if(blockers.length){
+    h+='<div class="valbox bad"><h4>⛔ No se puede guardar todavía</h4>';
+    blockers.forEach(function(i){ h+='<div class="vrow"><div class="vmsg">'+esc(i.msg)+'</div></div>'; });
+    h+='</div>';
+  } else if(warns.length){
+    h+='<div class="valbox warn">';
+    warns.forEach(function(i){ h+='<div class="vrow"><div class="vmsg">'+esc(i.msg)+'</div></div>'; });
     h+='</div>';
   }
 
   h+='<div class="ebtns">'
     +'<button class="btn blue" '+(ready?'':'disabled style="opacity:.45;cursor:not-allowed"')
-    +' onclick="saveEdit()">💾 Guardar cambios en la base</button>'
+    +' onclick="saveEdit()">💾 Guardar feria</button>'
     +'<button class="btn g" onclick="cancelEdit()">Cancelar</button>'
-    +'<span style="flex:1"></span>'
-    +'<span style="color:#6e7681;font-size:11px">Se guarda en Supabase (map_events) y la app lo respeta al instante.</span>'
     +'</div>';
 
   box.innerHTML=h;
@@ -1715,12 +1718,10 @@ function renderEditor(){
 async function saveEdit(){
   if(!fdraft||feditId==null) return;
   const iss=validateFeria(fdraft);
+  // Bloquea sólo lo que haría que la feria no exista: sin nombre o sin calle.
+  // Los avisos (horario fuera del decreto, etc.) no impiden guardar.
   if(iss.some(function(i){return i.sev==='block'})){
-    toast('Hay errores bloqueantes. Corregilos antes de guardar.',true); renderEditor(); return;
-  }
-  const warns=iss.filter(function(i){return i.sev==='warn'});
-  if(warns.some(function(i){return fvalOpts[i.k]===undefined})){
-    toast('Faltan decisiones en los avisos.',true); renderEditor(); return;
+    toast('Falta completar algo antes de guardar.',true); renderEditor(); return;
   }
 
   const isNew=(feditId==='new');
