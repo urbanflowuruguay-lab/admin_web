@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS - Iconos y Notificaciones - UrbanFlow</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
+.top{position:sticky;top:0;z-index:50;background:#161b22;border-bottom:1px solid #30363d;padding:14px 20px}
+.top h1{font-size:19px;font-weight:700;display:flex;align-items:center;gap:9px}
+.top h1 span{font-size:20px}
+.sub{color:#8b949e;font-size:12.5px;margin-top:4px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.st{background:#0d1117;border:1px solid #30363d;border-radius:7px;padding:6px 11px;font-size:12px}
+.st b{font-size:15px;display:block;margin-top:1px}
+.st.ok b{color:#3fb950}.st.bad b{color:#f85149}.st.pend b{color:#d29922}.st.on b{color:#58a6ff}
+.bars{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;align-items:center}
+.filt{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:20px;padding:5px 13px;font-size:12.5px;cursor:pointer}
+.filt.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.btn{background:#238636;border:1px solid #2ea043;color:#fff;border-radius:6px;padding:7px 14px;font-size:12.5px;cursor:pointer;font-weight:600}
+.btn:hover{background:#2ea043}
+.btn.g{background:#21262d;border-color:#30363d;color:#c9d1d9;font-weight:500}
+.btn.g:hover{background:#30363d}
+.btn.sm{padding:5px 10px;font-size:11.5px;border-radius:5px}
+.wrap{max-width:1080px;margin:0 auto;padding:16px 16px 70px}
+.grp{margin:22px 0 9px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#8b949e;font-weight:700;border-bottom:1px solid #21262d;padding-bottom:6px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;margin-bottom:11px;overflow:hidden}
+.card.off{opacity:.5}
+.hd{display:flex;gap:13px;padding:13px 14px;align-items:flex-start;cursor:pointer}
+.thumb{width:62px;height:62px;flex:0 0 62px;background:#0d1117;border:1px solid #30363d;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.thumb img{max-width:54px;max-height:54px;object-fit:contain}
+.thumb.empty{font-size:9px;color:#484f58;text-align:center;padding:3px;line-height:1.15}
+.info{flex:1;min-width:0}
+.nm{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.tg{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:#21262d;border:1px solid #30363d;color:#8b949e;border-radius:4px;padding:1px 6px}
+.nm .dot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.dot.g{background:#3fb950}.dot.r{background:#f85149}.dot.y{background:#d29922}.dot.n{background:#484f58}
+.meta{color:#8b949e;font-size:12px;margin-top:5px;line-height:1.55}
+.meta code{background:#21262d;border-radius:4px;padding:1px 5px;font-size:11.5px;color:#79c0ff}
+.ctrls{display:flex;gap:9px;align-items:center;flex-shrink:0}
+.sw{position:relative;display:inline-block;width:44px;height:24px;flex:0 0 44px}
+.sw input{opacity:0;width:0;height:0}
+.sl{position:absolute;inset:0;background:#30363d;border-radius:24px;transition:.18s;cursor:pointer}
+.sl:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#8b949e;border-radius:50%;transition:.18s}
+.sw input:checked+.sl{background:#238636}
+.sw input:checked+.sl:before{transform:translateX(20px);background:#fff}
+.body{display:none;border-top:1px solid #30363d;padding:14px;background:#0d1117}
+.card.open .body{display:block}
+.row{margin-bottom:13px}
+.row:last-child{margin-bottom:0}
+.lb{font-size:11.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#8b949e;margin-bottom:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.lb .hint{text-transform:none;letter-spacing:0;font-weight:400;color:#6e7681;font-size:11px}
+textarea,input[type=number],input[type=text]{width:100%;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:8px 10px;font-size:13px;font-family:inherit;resize:vertical}
+textarea:focus,input:focus{outline:none;border-color:#1f6feb}
+textarea.ph{min-height:52px;line-height:1.45}
+.src{list-style:none}
+.src li{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:7px 10px;margin-bottom:6px;font-size:12.5px;line-height:1.5;display:flex;gap:8px;align-items:flex-start}
+.src li b{color:#79c0ff;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;flex-shrink:0}
+.src li .d{color:#8b949e;font-size:11.5px}
+.sizes{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.sizes input{width:90px;font-family:ui-monospace,Menlo,monospace}
+.szp{font-size:12px;color:#8b949e}
+.verify{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.vstate{display:flex;gap:5px;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:3px}
+.vs{border:none;background:transparent;color:#8b949e;font-size:11.5px;padding:5px 11px;border-radius:4px;cursor:pointer;font-weight:600}
+.vs.on.p{background:#d29922;color:#0d1117}
+.vs.on.k{background:#238636;color:#fff}
+.vs.on.f{background:#da3633;color:#fff}
+.vbtn{background:#1f6feb;border:1px solid #1f6feb;color:#fff;border-radius:6px;padding:8px 15px;font-size:12.5px;font-weight:600;cursor:pointer}
+.vbtn.on{background:#8957e5;border-color:#8957e5}
+.vbtn:hover{opacity:.88}
+.vnote{display:none;margin-top:11px;border-top:1px dashed #30363d;padding-top:12px}
+.vnote.open{display:block}
+.saved{margin-top:7px;font-size:11.5px;color:#3fb950;display:none}
+.saved.on{display:block}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);background:#238636;color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:99;transition:.25s;box-shadow:0 6px 22px rgba(0,0,0,.5)}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.toast.err{background:#da3633}
+@media(max-width:640px){.hd{flex-wrap:wrap}.ctrls{width:100%;justify-content:flex-end}}
+
+/* ---- pestañas ---- */
+.tabs{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
+.tab{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:7px 7px 0 0;padding:8px 16px;font-size:13.5px;cursor:pointer;font-weight:600;border-bottom:none}
+.tab.on{background:#0d1117;color:#fff;border-color:#30363d;box-shadow:inset 0 -2px 0 #1f6feb}
+.tab .cnt{background:#1f6feb;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:6px}
+.tab.on .cnt{background:#238636}
+.panel{display:none}
+.panel.on{display:block}
+
+/* ---- ferias ---- */
+.feriaTools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.feriaTools select,.feriaTools input[type=text]{background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:7px 10px;font-size:13px;font-family:inherit;width:auto}
+.feriaTools input[type=text]{min-width:190px}
+.prog{height:7px;background:#21262d;border-radius:4px;overflow:hidden;flex:1;min-width:150px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,#238636,#3fb950);width:0;transition:width .3s}
+#fmap{height:340px;border:1px solid #30363d;border-radius:9px;margin-bottom:13px;background:#0d1117}
+.fcard{background:#161b22;border:1px solid #30363d;border-radius:9px;margin-bottom:9px;overflow:hidden}
+.fcard.sel{border-color:#1f6feb;box-shadow:0 0 0 1px #1f6feb}
+.fcard.v-ok{border-left:3px solid #238636}
+.fcard.v-bad{border-left:3px solid #da3633}
+.fcard.v-doubt{border-left:3px solid #d29922}
+.fhd{display:flex;gap:11px;padding:10px 12px;cursor:pointer;align-items:flex-start}
+.fday{flex:0 0 44px;text-align:center;background:#21262d;border:1px solid #30363d;border-radius:6px;padding:4px 0;font-size:10.5px;font-weight:800;letter-spacing:.5px;color:#79c0ff}
+.finfo{flex:1;min-width:0}
+.fname{font-weight:700;font-size:13.5px}
+.fsub{color:#8b949e;font-size:11.5px;margin-top:3px;line-height:1.5}
+.fsub code{background:#21262d;border-radius:3px;padding:0 4px;font-size:11px;color:#79c0ff}
+.fbody{display:none;border-top:1px solid #30363d;padding:11px 12px;background:#0d1117}
+.fcard.open .fbody{display:block}
+.fverd{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.vb{border:1px solid #30363d;background:#21262d;color:#c9d1d9;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:600}
+.vb.ok.on{background:#238636;border-color:#2ea043;color:#fff}
+.vb.bad.on{background:#da3633;border-color:#f85149;color:#fff}
+.vb.doubt.on{background:#d29922;border-color:#bb8009;color:#0d1117}
+.vb:hover{opacity:.85}
+.fbadge{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:10px;flex-shrink:0;align-self:flex-start}
+.fbadge.unverified{background:#21262d;color:#8b949e;border:1px dashed #484f58}
+.fbadge.active{background:#23863633;color:#3fb950;border:1px solid #23863666}
+.fbadge.rejected{background:#da363322;color:#f85149;border:1px solid #da363366}
+.lnk{background:none;border:none;color:#58a6ff;font-size:11.5px;cursor:pointer;padding:0;text-decoration:underline}
+.savebar{position:sticky;bottom:0;background:#161b22ee;backdrop-filter:blur(6px);border-top:1px solid #30363d;padding:10px 14px;margin:14px -16px 0;display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:#8b949e}
+.leaflet-container{background:#0d1117 !important;font:inherit}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1><span>&#128663;</span> GPS &mdash; Control de Iconos y Notificaciones</h1>
+  <div class="sub">Modo d&iacute;a. Cada icono/notificaci&oacute;n con su interruptor, su texto, su fuente de datos y su prueba. Los cambios se guardan en este navegador.</div>
+  <div class="stats">
+    <div class="st">Total<b id="sTot">0</b></div>
+    <div class="st on">Activos<b id="sOn">0</b></div>
+    <div class="st ok">OK<b id="sOk">0</b></div>
+    <div class="st bad">No funciona<b id="sBad">0</b></div>
+    <div class="st pend">Pendientes<b id="sPend">0</b></div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" id="tabIconos" onclick="goTab('iconos')">&#128308; Iconos y notificaciones</button>
+    <button class="tab" id="tabFerias" onclick="goTab('ferias')">&#129534; Ferias <span class="cnt" id="tabFeriasCnt">…</span></button>
+  </div>
+</div>
+
+<div class="wrap">
+<!-- ================= ICONOS ================= -->
+<div class="panel on" id="panelIconos">
+  <div class="bars" style="margin-top:4px">
+    <button class="filt on" data-f="*">Todos</button>
+    <button class="filt" data-f="evento">Eventos viales</button>
+    <button class="filt" data-f="esquina">Esquinas</button>
+    <button class="filt" data-f="usuario">Usuario / destino</button>
+    <button class="filt" data-f="bus">Buses</button>
+    <button class="filt" data-f="feria">Ferias</button>
+    <span style="flex:1"></span>
+    <button class="btn g" onclick="report()">Copiar reporte</button>
+    <button class="btn g" onclick="resetAll()">Resetear todo</button>
+  </div>
+  <div id="list"></div>
+</div>
+
+<!-- ================= FERIAS ================= -->
+<div class="panel" id="panelFerias">
+  <div class="feriaTools">
+    <select id="fDia" onchange="renderFerias()">
+      <option value="*">Todos los días</option>
+      <option value="1">Lunes</option><option value="2">Martes</option>
+      <option value="3">Miércoles</option><option value="4">Jueves</option>
+      <option value="5">Viernes</option><option value="6">Sábado</option>
+      <option value="7">Domingo</option>
+    </select>
+    <select id="fEst" onchange="renderFerias()">
+      <option value="*">Todos los estados</option>
+      <option value="unverified">Pendientes</option>
+      <option value="active">Verificadas ✅</option>
+      <option value="rejected">Rechazadas ❌</option>
+    </select>
+    <input type="text" id="fBus" placeholder="Buscar calle o nombre…" oninput="renderFerias()">
+    <span class="prog"><i id="fProg"></i></span>
+    <b id="fCount" style="font-size:12.5px;color:#e6edf3">…</b>
+    <button class="btn g sm" onclick="centerUnverified()">Ir a la primera pendiente</button>
+    <button class="btn g sm" onclick="reloadFerias()">Recargar</button>
+  </div>
+  <div id="fmap"></div>
+  <div id="flist"></div>
+  <div class="savebar">
+    <b style="color:#e6edf3">Cómo funciona:</b> tocá una feria, mirá el trazo en el mapa y marcá
+    <b style="color:#3fb950">✅ Está bien</b> para que la app la empiece a mostrar
+    (sólo en su día y su horario). Si está mal ubicada, <b style="color:#f85149">❌</b>.
+    <span style="flex:1"></span>
+    <span id="fSync"></span>
+    <button class="btn g sm" onclick="exportFerias()">Copiar veredicto</button>
+  </div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   Inventario completo del GPS. Cada entrada es un icono o una
+   notificaci&oacute;n que la app dibuja o pronuncia.
+   size = valor de iconSize que usa el mapa (markers.dart).
+   --------------------------------------------------------------- */
+const ITEMS = [
+/* ===== EVENTOS VIALES (sobre el terreno, PNG pelado o p&iacute;ldora) ===== */
+{id:'radar',g:'evento',n:'Radar de velocidad',img:'../radar.png',
+ tag:'radar / radar 45|60|75|90|100',
+ meta:'IconSize <code>0.70</code> &middot; avisa a <code>350 m</code> y 2<sup>o</sup> a <code>100 m</code> &middot; avisa en Patrulla y en GPS &middot; prefi <code>alert_radar</code> (default ON)',
+ defSize:0.70,
+ pref:'alert_radar', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:true, verifiable:true,
+ phrase:'Precauci\u00f3n a X metros: radar. Velocidad m\u00e1xima de la v\u00eda: N kil\u00f3metros por hora',
+ sources:[
+  {t:'Supabase road_alerts', d:'type = radar* y source = mtop (radares MTOP nuevos). Es el que se pregunta "sigue ah\u00ed".'},
+  {t:'OSM Overpass', d:'amenity = traffic_enforcement, todo el pa\u00eds. Fijos de siempre, no se preguntan.'},
+  {t:'Supabase speed_limits', d:'L\u00edmite de la v\u00eda para decir el n\u00famero en la voz.'},
+  {t:'assets/images/iconos sobre mapa/radar.png', d:'Icono pelado de d\u00eda (el de noche es radar noc.png).'}
+ ]},
+
+{id:'peaje',g:'evento',n:'Peaje',img:'../peaje.png',
+ tag:'peaje',
+ meta:'IconSize <code>0.70</code> &middot; avisa a <code>500 m</code> y 2<sup>o</sup> a <code>100 m</code> &middot; prefi <code>alert_peaje</code> (default ON)',
+ defSize:0.70,
+ pref:'alert_peaje', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'Peaje a X metros',
+ sources:[
+  {t:'OSM Overpass', d:'barrier = toll_booth.'},
+  {t:'assets/images/iconos sobre mapa/peaje.png', d:'Icono pelado de d\u00eda.'}
+ ]},
+
+{id:'lomada',g:'evento',n:'Lomo de burro',img:'../lomada.png',
+ tag:'lomada',
+ meta:'IconSize <code>0.70</code> &middot; avisa a <code>200 m</code>, 2<sup>o</sup> aviso s\u00f3lo pip a <code>100 m</code> &middot; prefi <code>alert_lomada</code> (default ON)',
+ defSize:0.70,
+ pref:'alert_lomada', prefOn:true,
+ voice:true, beep:true, nav:true, patrol:true, verifiable:false,
+ phrase:'En los pr\u00f3ximos X metros hay reductores de velocidad / (si es a menos de 150 m) Atenci\u00f3n, lomo de burro a X metros',
+ sources:[
+  {t:'OSM Overpass', d:'traffic_calming = bump / speed_breaker.'},
+  {t:'assets/images/iconos sobre mapa/lomada.png', d:'Icono pelado de d\u00eda.'}
+ ]},
+
+{id:'viaferrea',g:'evento',n:'Cruce de v\u00eda f\u00e9rea',img:'../viaferrea.png',
+ tag:'viaferrea / cruce_tren',
+ meta:'IconSize <code>0.35</code> &middot; avisa a <code>150 m</code>, sin 2<sup>o</sup> aviso &middot; prefi <code>alert_obra</code> (default ON)',
+ defSize:0.35,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'Cruce de v\u00eda f\u00e9rea a X metros',
+ sources:[
+  {t:'OSM Overpass', d:'railway = level_crossing / crossing.'},
+  {t:'assets/images/iconos sobre mapa/viaferrea.png', d:'Icono pelado de d\u00eda.'}
+ ]},
+
+{id:'semaforo',g:'esquina',n:'Sem\u00e1foro',img:'../semaforo.png',
+ tag:'semaforo',
+ meta:'IconSize <code>0.35</code> &middot; avisa a <code>80 m</code> &middot; prefi <code>alert_semaforo</code> (default OFF) &middot; <b>NO avisa en navegaci\u00f3n</b> (la gu\u00eda ya dice "en el sem\u00e1foro dobla")',
+ defSize:0.35,
+ pref:'alert_semaforo', prefOn:false,
+ voice:false, beep:true, nav:false, patrol:false, verifiable:false,
+ phrase:'Atenci\u00f3n, sem\u00e1foro a X metros',
+ sources:[
+  {t:'OSM Overpass', d:'highway = traffic_signals (~12.900 en Montevideo).'},
+  {t:'assets/images/iconos sobre mapa/semaforo.png', d:'Icono pelado de d\u00eda.'}
+ ]},
+
+{id:'semaforosrotos',g:'esquina',n:'Sem\u00e1foros rotos',img:'../semaforosrotos.png',
+ tag:'semaforosrotos',
+ meta:'IconSize <code>0.35</code> &middot; avisa a <code>80 m</code> &middot; prefi <code>alert_semaforo</code> (default OFF) &middot; <b>NO avisa en navegaci\u00f3n</b>',
+ defSize:0.35,
+ pref:'alert_semaforo', prefOn:false,
+ voice:true, beep:false, nav:false, patrol:false, verifiable:false,
+ phrase:'Atenci\u00f3n, sem\u00e1foros rotos a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios + partes de la IMM.'},
+  {t:'assets/images/events/semaforosrotos.png', d:'PNG con marco de d\u00eda (no est\u00e1 pelado).'}
+ ]},
+
+{id:'pare',g:'esquina',n:'Cartel de pare',img:'../pare.png',
+ tag:'pare',
+ meta:'IconSize <code>0.35</code> &middot; avisa a <code>80 m</code> &middot; s\u00f3lo cartel + pip (sin voz) &middot; prefi <code>alert_pare</code> (default OFF)',
+ defSize:0.35,
+ pref:'alert_pare', prefOn:false,
+ voice:false, beep:true, nav:false, patrol:false, verifiable:false,
+ phrase:'Cartel de pare a X metros',
+ sources:[
+  {t:'OSM Overpass', d:'highway = stop.'},
+  {t:'assets/images/iconos sobre mapa/pare.png', d:'Icono pelado de d\u00eda.'}
+ ]},
+
+{id:'cedaelpaso',g:'esquina',n:'Ceda el paso',img:'../cedaelpaso.png',
+ tag:'ceda / cedaelpaso',
+ meta:'IconSize <code>0.35</code> &middot; avisa a <code>80 m</code> &middot; s\u00f3lo cartel + pip (sin voz) &middot; comparte prefi <code>alert_pare</code> (default OFF)',
+ defSize:0.35,
+ pref:'alert_pare', prefOn:false,
+ voice:false, beep:true, nav:false, patrol:false, verifiable:false,
+ phrase:'Ceda el paso a X metros',
+ sources:[
+  {t:'OSM Overpass', d:'highway = give_way.'},
+  {t:'assets/images/iconos sobre mapa/cedaelpaso.png', d:'Icono pelado de d\u00eda.'}
+ ]},
+
+/* ===== EVENTOS CON AGUJA (IMM y usuarios) ===== */
+{id:'obra',g:'evento',n:'Obra en la v\u00eda (IMM)',img:'../obra.png',
+ tag:'obra',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code> (default ON) &middot; <b>verificable</b>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Obra en la v\u00eda a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'category = inm:AAAA-MM-DD (fecha de fin). Si ya pas\u00f3 la fecha la fila se ignora.'},
+  {t:'assets/images/events/mediacalzadaporobras.png', d:'PNG con marco de d\u00eda, va con aguja.'}
+ ]},
+
+{id:'callecortada',g:'evento',n:'Calle cortada por obras',img:'../callecortada.png',
+ tag:'callecortada',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code> &middot; <b>verificable</b>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Calle cortada a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Fila de IMM o reporte de usuario.'},
+  {t:'assets/images/events/callecortadaporobras.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'accidente',g:'evento',n:'Accidente',img:'../accidente.png',
+ tag:'accidente',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_accidente</code> (default ON)',
+ defSize:1.0,
+ pref:'alert_accidente', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Precauci\u00f3n, accidente en la v\u00eda a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios (category = reporte) e IMM.'},
+  {t:'assets/images/events/accidente.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'policia',g:'evento',n:'Control policial',img:'../controlpolicial.png',
+ tag:'policia / controlpolicial',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_policia</code> (default ON)',
+ defSize:1.0,
+ pref:'alert_policia', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Control policial a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios, category = reporte.'},
+  {t:'assets/images/events/controlpolicial.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'inspectores',g:'evento',n:'Inspectores de tr\u00e1nsito',img:'../inspectores.png',
+ tag:'inspectores',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Inspectores de tr\u00e1nsito a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/inspectoresdetransito.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'trafico',g:'evento',n:'Tr\u00e1nsito lento',img:'../transitolento.png',
+ tag:'trafico',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Tr\u00e1nsito lento a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/transitolento.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'transitodetenido',g:'evento',n:'Tr\u00e1nsito detenido',img:'../transitodetenido.png',
+ tag:'transitodetenido',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Tr\u00e1nsito detenido a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/transitodetenido.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'bache',g:'evento',n:'Bache en la v\u00eda',img:'../bache.png',
+ tag:'bache',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Bache en la v\u00eda a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/bacheenlavia.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'inundada',g:'evento',n:'Calle inundada',img:'../calleinundada.png',
+ tag:'inundada',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Calle inundada a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/calleinundada.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'callecerrada',g:'evento',n:'Calle cerrada',img:'../callecerrada.png',
+ tag:'cerrada / callecerrada',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code> &middot; <b>verificable</b>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Calle cerrada a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Fila de IMM o reporte de usuario.'},
+  {t:'assets/images/events/callecerrada.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'niebla',g:'evento',n:'Banco de niebla',img:'../niebla.png',
+ tag:'niebla',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Banco de niebla a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/niebla.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'detenido_izq',g:'evento',n:'Auto detenido a la izquierda',img:'../detenido_izq.png',
+ tag:'detenido_izq',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Auto detenido a la izquierda a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/autodetenidoalizquierda.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+{id:'detenido_der',g:'evento',n:'Auto detenido a la derecha',img:'../detenido_der.png',
+ tag:'detenido_der',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Auto detenido a la derecha a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
+  {t:'assets/images/events/autodetenidoalderecha.png', d:'PNG con marco de d\u00eda.'}
+ ]},
+
+/* ===== USUARIO / NAVEGACI&Oacute;N ===== */
+{id:'usuario',g:'usuario',n:'Reporte de usuario (pin + aguja)',img:'',
+ tag:'reporte',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code> &middot; va <b>con aguja</b> sobre el punto exacto &middot; <b>verificable</b> (pregunta "sigue ah\u00ed")',
+ defSize:1.0,
+ pref:'alert_obra', prefOn:true,
+ voice:true, beep:false, nav:true, patrol:false, verifiable:true,
+ phrase:'Atenci\u00f3n a X metros',
+ sources:[
+  {t:'Supabase road_alerts', d:'category = reporte. Se arma con el bot\u00f3n de reportar de la app.'},
+  {t:'assets/images/marcador.png', d:'Punto con aguja, sin PNG propio.'}
+ ]},
+
+{id:'destino',g:'usuario',n:'Destino del viaje',img:'../destino.png',
+ tag:'destino',
+ meta:'IconSize = <code>2 &times; _iconSizeForZoom</code> (0.20 a z12 &rarr; 0.96 a z18) &middot; s\u00f3lo se dibuja, no avisa',
+ defSize:0.96,
+ pref:'alert_route', prefOn:true,
+ voice:false, beep:false, nav:true, patrol:false, verifiable:false,
+ phrase:'(la voz del destino la da el motor de navegaci\u00f3n, no alertPhrase)',
+ sources:[
+  {t:'Supabase viajes / destino del usuario', d:'Punto final elegido en la app.'},
+  {t:'assets/images/iconos sobre mapa/destino.png', d:'Icono pelado de d\u00eda.'}
+ ]},
+
+/* ===== BUSES ===== */
+{id:'bus-cutcsa',g:'bus',n:'Bus CUTCSA (en vivo)',img:'../bus-cutcsa.png',
+ tag:'CUTCSA',
+ meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> (0.08 a z12 &rarr; 0.38 a z18) &middot; no avisa por voz',
+ defSize:0.38,
+ pref:'alert_bus', prefOn:true,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'(los buses no tienen frase: se ven en el mapa)',
+ sources:[
+  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota CUTCSA.'},
+  {t:'assets/images/BUSES/bus-cutcsa.png', d:'PNG de d\u00eda.'}
+ ]},
+
+{id:'bus-ucot',g:'bus',n:'Bus UCOT (en vivo)',img:'../bus-ucot.png',
+ tag:'UCOT',
+ meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> &middot; no avisa por voz',
+ defSize:0.38,
+ pref:'alert_bus', prefOn:true,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'(los buses no tienen frase: se ven en el mapa)',
+ sources:[
+  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota UCOT.'},
+  {t:'assets/images/BUSES/bus-ucot.png', d:'PNG de d\u00eda.'}
+ ]},
+
+{id:'bus-come',g:'bus',n:'Bus COME (en vivo)',img:'../bus-come.png',
+ tag:'COME',
+ meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> &middot; no avisa por voz',
+ defSize:0.38,
+ pref:'alert_bus', prefOn:true,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'(los buses no tienen frase: se ven en el mapa)',
+ sources:[
+  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota COME.'},
+  {t:'assets/images/BUSES/bus-come.png', d:'PNG de d\u00eda.'}
+ ]},
+
+{id:'bus-coetc',g:'bus',n:'Bus COETC (en vivo)',img:'../bus-coetc.png',
+ tag:'COETC',
+ meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> &middot; no avisa por voz',
+ defSize:0.38,
+ pref:'alert_bus', prefOn:true,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'(los buses no tienen frase: se ven en el mapa)',
+ sources:[
+  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota COETC.'},
+  {t:'assets/images/BUSES/bus-coetc.png', d:'PNG de d\u00eda.'}
+ ]},
+
+{id:'bus-parada',g:'bus',n:'Parada de bus',img:'',
+ tag:'parada',
+ meta:'IconSize <code>0.50</code> fijo &middot; no avisa por voz',
+ defSize:0.50,
+ pref:'alert_bus', prefOn:true,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'(la parada no tiene frase)',
+ sources:[
+  {t:'Supabase bus_paradas', d:'Paradas oficiales del transporte p\u00fablico.'},
+  {t:'assets/images/BUSES/BUSES.png', d:'Plancha de paradas.'}
+ ]},
+
+{id:'bus-lane',g:'bus',n:'Carril exclusivo de bus',img:'',
+ tag:'bus_lane',
+ meta:'Se dibuja como <b>l\u00ednea</b>, no como icono &middot; no avisa por voz &middot; radio de detecci\u00f3n <code>15 m</code>',
+ defSize:1.0,
+ pref:'alert_bus', prefOn:true,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:false,
+ phrase:'(el carril no tiene frase)',
+ sources:[
+  {t:'Supabase bus_lanes', d:'Tramos de carril exclusivo (id, geometr\u00eda, sentido).'},
+  {t:'bus_lane_service.dart', d:'distanceToLane() decide si el carril est\u00e1 debajo del auto.'}
+ ]},
+
+/* ===== FERIAS ===== */
+{id:'feria',g:'feria',n:'Feria vecinal (trazo punteado)',img:'',
+ tag:"type = 'feria'",
+ meta:'L&iacute;nea punteada blanco/rojo semitransparente, <b>no es icono</b> &middot; radio modo test <code>15 km</code> &middot; no avisa por voz, s\u00f3lo cartel. <b>DESACTIVADO por pedido del usuario: las ferias no est\u00e1n de confianza.</b>',
+ defSize:1.0,
+ pref:'alert_feria', prefOn:false,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:true,
+ phrase:'(la feria no tiene frase hablada; muestra cartel de texto)',
+ sources:[
+  {t:'Supabase map_events', d:'type = feria, 111 filas. Carga: tools/load_ferias.py. El d\u00eda sale del prefijo del nombre (LUN/MAR/.../DOM).'},
+  {t:'PDF MEF (Decreto 103/2024)', d:'Fuente oficial de las 117 ferias vigentes + 12 traslados pendientes.'},
+  {t:'OSM Overpass', d:'Geometr\u00eda de las calles; se recorta al tramo entre esquinas.'},
+  {t:'ferias_layer.dart', d:'Sprite PNG 16&times;4 blanco/rojo con package:image, capa ferias-layer + ferias-shadow.'}
+ ]},
+
+{id:'feria-especial',g:'feria',n:'Trist\u00e1n Narvaja (feria especial)',img:'',
+ tag:'DOM \u00b7 TRISTAN NARVAJA',
+ meta:'Feria <b>especial</b> (Art. 620, normativa propia), NO est\u00e1 en el expediente MEF 2024-5-1-0005700 &middot; 790,7 m, 11 puntos &middot; el domingo 17 del PDF figura como ELIMINADA',
+ defSize:1.0,
+ pref:'alert_feria', prefOn:false,
+ voice:false, beep:false, nav:true, patrol:true, verifiable:true,
+ phrase:'(feria especial, sin frase hablada)',
+ sources:[
+  {t:'Supabase map_events', d:'Alta manual por scripts Temp\\opencode\\add_narvaja.py.'},
+  {t:'OSM Overways', d:'6 ways encadenados desde Av. La Paz hasta 18 de Julio.'}
+ ]}
+];
+
+/* ---------------- estado ---------------- */
+const KEY='gpsv1';
+let S={};   // {id:{on,size,phrase,vs,note}}
+try{S=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){S={}}
+
+function g(it){ if(!S[it.id]) S[it.id]={on:it.prefOn,size:it.defSize,phrase:it.phrase,vs:'p',note:''}; return S[it.id]; }
+function sv(){ localStorage.setItem(KEY,JSON.stringify(S)); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+function toast(m,e){var t=document.getElementById('toast');t.textContent=m;t.className='toast on'+(e?' err':'');clearTimeout(window._tt);window._tt=setTimeout(function(){t.className='toast'+(e?' err':'')},2300);}
+
+let FILT='*';
+
+function render(){
+  const groups=[
+    ['evento','Eventos viales'],
+    ['esquina','Esquinas (pare / ceda / sem&aacute;foro)'],
+    ['usuario','Usuario y navegaci&oacute;n'],
+    ['bus','Buses y transporte p&uacute;blico'],
+    ['feria','Ferias vecinales']
+  ];
+  let h='';
+  groups.forEach(function(gr){
+    const its=ITEMS.filter(function(i){return i.g===gr[0]});
+    if(!its.length) return;
+    if(FILT!=='*' && FILT!==gr[0]) return;
+    h+='<div class="grp">'+gr[1]+' <span style="color:#484f58">('+its.length+')</span></div>';
+    its.forEach(function(it){
+      const s=g(it);
+      const vsCls = s.vs==='k'?'g':(s.vs==='f'?'r':'y');
+      const vsTxt = s.vs==='k'?'Funciona':(s.vs==='f'?'No funciona':'Pendiente');
+      h+='<div class="card'+(s.on?'':' off')+'" data-id="'+it.id+'" data-g="'+it.g+'">'
+       +'<div class="hd" onclick="toggleCard(this)">'
+         +'<div class="thumb'+(it.img?'':' empty')+'">'+(it.img?'<img src="'+it.img+'" alt="'+esc(it.n)+'" onerror="this.parentNode.classList.add(\'empty\');this.parentNode.innerHTML=\'sin imagen\';">':'sin PNG<br>en el mapa')+'</div>'
+         +'<div class="info">'
+           +'<div class="nm"><span class="dot '+vsCls+'" title="'+vsTxt+'"></span>'+it.n+' <span class="tg">'+esc(it.tag)+'</span></div>'
+           +'<div class="meta">'+it.meta+'</div>'
+         +'</div>'
+         +'<div class="ctrls" onclick="event.stopPropagation()">'
+           +'<label class="sw"><input type="checkbox" '+(s.on?'checked':'')+' onchange="setOn(\''+it.id+'\',this.checked)"><span class="sl"></span></label>'
+         +'</div>'
+       +'</div>'
+       +'<div class="body">'
+         +'<div class="row"><div class="lb">Fuente de datos <span class="hint">de d&oacute;nde sale la info que se dibuja o se pronuncia</span></div><ul class="src">'
+           + it.sources.map(function(x){return '<li><b>'+esc(x.t)+'</b><span class="d">'+x.d+'</span></li>'}).join('')
+         +'</ul></div>'
+         +'<div class="row"><div class="lb">Qu&eacute; debe decir <span class="hint">frase hablada / cartel (alertPhrase en events_service.dart)</span></div>'
+           +'<textarea class="ph" onchange="setPh(\''+it.id+'\',this.value)">'+esc(s.phrase)+'</textarea></div>'
+         +'<div class="row"><div class="lb">Tama&ntilde;o del icono <span class="hint">valor de iconSize en el mapa; 1.0 = normal, 0.35 = chico, 0.70 = grande</span></div>'
+           +'<div class="sizes"><input type="number" step="0.01" min="0.05" max="3" value="'+s.size+'" onchange="setSize(\''+it.id+'\',this.value)">'
+           +'<span class="szp">por defecto: <code>'+it.defSize+'</code></span>'
+           +'<button class="btn g sm" onclick="setSize(\''+it.id+'\',\''+it.defSize+'\');render()">Restaurar</button></div></div>'
+         +'<div class="row"><div class="lb">Verificaci&oacute;n en la calle</div>'
+           +'<div class="verify">'
+             +'<div class="vstate">'
+               +'<button class="vs p'+(s.vs==='p'?' on':'')+'" onclick="setVs(\''+it.id+'\',\'p\')">Pendiente</button>'
+               +'<button class="vs k'+(s.vs==='k'?' on':'')+'" onclick="setVs(\''+it.id+'\',\'k\')">Funciona</button>'
+               +'<button class="vs f'+(s.vs==='f'?' on':'')+'" onclick="setVs(\''+it.id+'\',\'f\')">No funciona</button>'
+             +'</div>'
+             +'<button class="vbtn'+(s.note?' on':'')+'" onclick="toggleNote(this)">Anotar</button>'
+           +'</div>'
+           +'<div class="vnote'+(s.note?' open':'')+'">'
+             +'<div class="lb">Anotaci&oacute;n libre <span class="hint">qu&eacute} pas&oacute;, d&oacute;nde estaba, por qu&eacute; funciona o no</span></div>'
+             +'<textarea placeholder="Ej.: fui a la feria de Domingo y no aparec&iacute;a ninguna marcada. Pare, avenida Artigas y camino al aeropuerto." onchange="setNote(\''+it.id+'\',this.value)">'+esc(s.note)+'</textarea>'
+           +'</div>'
+           +'<div class="saved'+(s.note||s.vs!=='p'?' on':'')+'">&#10003; Guardado en este navegador</div>'
+         +'</div>'
+       +'</div>'
+      +'</div>';
+    });
+  });
+  document.getElementById('list').innerHTML=h;
+  updStats();
+}
+
+function updStats(){
+  const it=ITEMS;
+  document.getElementById('sTot').textContent=it.length;
+  let on=0,ok=0,bad=0,pend=0;
+  it.forEach(function(i){const s=g(i); if(s.on)on++; if(s.vs==='k')ok++; else if(s.vs==='f')bad++; else pend++;});
+  document.getElementById('sOn').textContent=on;
+  document.getElementById('sOk').textContent=ok;
+  document.getElementById('sBad').textContent=bad;
+  document.getElementById('sPend').textContent=pend;
+}
+
+function find(id){return ITEMS.filter(function(i){return i.id===id})[0]}
+function setOn(id,v){find(id)&&g(find(id));const it=find(id);g(it).on=v;sv();render()}
+function setPh(id,v){const it=find(id);if(it)g(it).phrase=v;sv()}
+function setSize(id,v){const it=find(id);if(!it)return;let n=parseFloat(v);if(isNaN(n)||n<=0)n=it.defSize;g(it).size=n;sv()}
+function setVs(id,v){const it=find(id);if(it)g(it).vs=v;sv();render()}
+function setNote(id,v){const it=find(id);if(it)g(it).note=v;sv();render()}
+function toggleCard(hd){hd.parentNode.classList.toggle('open')}
+function toggleNote(b){b.parentNode.querySelector('.vnote').classList.toggle('open')}
+
+document.querySelectorAll('.filt').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('.filt').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on'); FILT=b.dataset.f; render();
+  };
+});
+
+function report(){
+  let out='REPORTE GPS - ICONOS Y NOTIFICACIONES ('+new Date().toLocaleString()+')\n';
+  out+='='.repeat(64)+'\n\n';
+  ITEMS.forEach(function(it){
+    const s=g(it);
+    out+='['+(s.vs==='k'?'OK':(s.vs==='f'?'NO FUNCIONA':'PENDIENTE'))+'] '+it.n+'  ('+it.tag+')\n';
+    out+='   activo: '+(s.on?'SI':'NO')+'   iconSize: '+s.size+' (def '+it.defSize+')\n';
+    out+='   dice: '+s.phrase+'\n';
+    out+='   fuentes: '+it.sources.map(function(x){return x.t}).join(' | ')+'\n';
+    if(s.note) out+='   ANOTACION: '+s.note.replace(/\n/g,'\n             ')+'\n';
+    out+='\n';
+  });
+  const t=document.createElement('textarea');t.value=out;document.body.appendChild(t);t.select();
+  try{document.execCommand('copy');toast('Reporte copiado. Pegalo donde quieras.');}catch(e){toast('No se pudo copiar',true);}
+  document.body.removeChild(t);
+}
+
+function resetAll(){
+  if(!confirm('\u00bfBorrar todos los estados, textos, tama\u00f1os y anotaciones de este navegador?'))return;
+  S={};sv();render();toast('Reset completo');
+}
+
+/* ================= PESTAÑAS ================= */
+function goTab(t){
+  const ico=t==='iconos';
+  document.getElementById('panelIconos').classList.toggle('on',ico);
+  document.getElementById('panelFerias').classList.toggle('on',!ico);
+  document.getElementById('tabIconos').classList.toggle('on',ico);
+  document.getElementById('tabFerias').classList.toggle('on',!ico);
+  if(!ico && !window._fmapReady) initFmap();
+}
+
+/* ================= FERIAS ================= */
+const SUPABASE_URL='https://eyfgkopaamnkprzpwocz.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk';
+
+let FERIAS=[];
+let fmap=null;
+let flines={};
+let fselected=null;
+let fsaving=0;
+
+const DIAS={1:'LUN',2:'MAR',3:'MIÉ',4:'JUE',5:'VIE',6:'SÁB',7:'DOM'};
+const DIASL={1:'lunes',2:'martes',3:'miércoles',4:'jueves',5:'viernes',6:'sábado',7:'domingo'};
+
+function fAuth(m,u,b){
+  return fetch(u,{method:m,headers:{
+    'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,
+    'Content-Type':'application/json','Prefer':'return=representation'
+  },body:b?JSON.stringify(b):undefined}).then(function(r){
+    return r.text().then(function(t){
+      if(!r.ok) throw new Error(r.status+' '+t.slice(0,200));
+      return t?JSON.parse(t):[];
+    });
+  });
+}
+
+/// "DOM · TRISTAN NARVAJA" -> 7. Igual que Feria.weekdayFromName en la app.
+function fWeekday(name){
+  const t=(name||'').trim().toUpperCase();
+  const L=[['MIERCOLES',3],['MIÉRCOLES',3],['MARTES',2],['JUEVES',4],['VIERNES',5],
+           ['DOMINGO',7],['LUNES',1],['SABADO',6],['SÁBADO',6],
+           ['LUN',1],['MAR',2],['MIE',3],['MIÉ',3],['JUE',4],['VIE',5],['SAB',6],['SÁB',6],['DOM',7]];
+  for(const e of L){ if(t.indexOf(e[0])===0 && (t.length===e[0].length||t[e[0].length]===' ')) return e[1]; }
+  return 0;
+}
+
+function fLabel(name){
+  const i=(name||'').indexOf('·');
+  const s=(i>=0?name.slice(i+1):name||'').trim();
+  return s;
+}
+
+function fMin(hhmm){
+  const p=(hhmm||'').trim().split(':');
+  if(p.length<2) return -1;
+  const h=parseInt(p[0],10), m=parseInt(p[1],10);
+  if(isNaN(h)||isNaN(m)) return -1;
+  return h*60+m;
+}
+
+function fHHmm(min){
+  return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0');
+}
+
+/// Longitud del tramo en metros (igual criterio que la app).
+function fLen(coords){
+  const R=6371000, rad=Math.PI/180;
+  let t=0;
+  for(let i=0;i+1<coords.length;i++){
+    const a=coords[i], b=coords[i+1];
+    const dLat=(b[1]-a[1])*rad, dLon=(b[0]-a[0])*rad;
+    const s=Math.sin(dLat/2)**2+Math.cos(a[1]*rad)*Math.cos(b[1]*rad)*Math.sin(dLon/2)**2;
+    t+=2*R*Math.asin(Math.sqrt(s));
+  }
+  return t;
+}
+
+function fStatus(f){
+  return (f.status||'unverified').trim();
+}
+
+async function reloadFerias(){
+  document.getElementById('fSync').textContent='Cargando…';
+  try{
+    const rows=await fAuth('GET',SUPABASE_URL+'/rest/v1/map_events?select=id,name,street_name,geometry,weekday_start,weekday_end,weekend_start,weekend_end,status&type=eq.feria&order=name');
+    FERIAS=rows.map(function(r){
+      const c=(r.geometry&&r.geometry.coordinates)||[];
+      return {
+        id:r.id, name:r.name||'', street:r.street_name||'', coords:c,
+        ws:r.weekday_start, we:r.weekday_end, ss:r.weekend_start, se:r.weekend_end,
+        status:fStatus(r),
+        wd:fWeekday(r.name), len:c.length>1?fLen(c):0,
+        ini:c.length?c[0]:null, fin:c.length?c[c.length-1]:null,
+        _note:(window._feriasNotes||{})[r.id]||''
+      };
+    });
+    document.getElementById('fSync').textContent=FERIAS.length+' ferias cargadas';
+    drawAllFerias();
+    renderFerias();
+  }catch(e){
+    document.getElementById('fSync').textContent='Error: '+e.message;
+    toast('No se pudieron cargar las ferias: '+e.message,true);
+  }
+}
+
+function initFmap(){
+  window._fmapReady=true;
+  fmap=L.map('fmap',{zoomControl:true}).setView([-34.90,-56.18],12);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19, attribution:'&copy; OpenStreetMap'
+  }).addTo(fmap);
+  reloadFerias();
+}
+
+function feriaStyle(st,sel){
+  if(st==='active')  return {color:'#3fb950',weight:sel?7:5,opacity:.95,dashArray:null};
+  if(st==='rejected')return {color:'#f85149',weight:sel?6:4,opacity:.8,dashArray:'2 6'};
+  return {color:'#ffffff',weight:sel?7:5,opacity:.75,dashArray:'7 7'};
+}
+
+/// Sombra roja debajo, como en la app (línea doble).
+function drawAllFerias(){
+  if(!fmap) return;
+  Object.values(flines).forEach(function(g){ if(fmap.hasLayer(g)) fmap.removeLayer(g); });
+  flines={};
+  FERIAS.forEach(function(f){
+    if(f.coords.length<2) return;
+    const latlngs=f.coords.map(function(c){return [c[1],c[0]]});
+    const shadow=L.polyline(latlngs,{color:'#c0392b',weight:9,opacity:.28});
+    const line=L.polyline(latlngs,feriaStyle(fStatus(f),false));
+    shadow.addTo(fmap); line.addTo(fmap);
+    line.on('click',function(){ selectFeria(f.id,true); });
+    flines[f.id]={shadow:shadow,line:line,latlngs:latlngs};
+  });
+}
+
+function refreshLineStyle(id){
+  const g=flines[id]; if(!g) return;
+  const f=FERIAS.filter(function(x){return x.id===id})[0]; if(!f) return;
+  g.line.setStyle(feriaStyle(fStatus(f),fselected===id));
+}
+
+function passesFilter(f){
+  const d=document.getElementById('fDia').value;
+  const e=document.getElementById('fEst').value;
+  const q=document.getElementById('fBus').value.trim().toLowerCase();
+  if(d!=='*' && String(f.wd)!==d) return false;
+  if(e!=='*' && fStatus(f)!==e) return false;
+  if(q && (f.name+' '+f.street).toLowerCase().indexOf(q)<0) return false;
+  return true;
+}
+
+function renderFerias(){
+  const list=document.getElementById('flist');
+  const vis=FERIAS.filter(passesFilter);
+  let ok=0,bad=0,un=0;
+  FERIAS.forEach(function(f){
+    const s=fStatus(f);
+    if(s==='active')ok++; else if(s==='rejected')bad++; else un++;
+  });
+  document.getElementById('fCount').textContent=ok+' / '+FERIAS.length+' verificadas';
+  document.getElementById('fProg').style.width=(FERIAS.length?(ok/FERIAS.length*100):0)+'%';
+  document.getElementById('tabFeriasCnt').textContent=un+' pendientes';
+
+  if(!vis.length){ list.innerHTML='<div style="color:#8b949e;padding:22px;text-align:center">Ninguna feria coincide con el filtro.</div>'; return; }
+
+  list.innerHTML=vis.map(function(f){
+    const s=fStatus(f);
+    const badge=s==='active'?'<span class="fbadge active">✅ EN LA APP</span>'
+              :s==='rejected'?'<span class="fbadge rejected">❌ RECHAZADA</span>'
+              :'<span class="fbadge unverified">PENDIENTE</span>';
+    const horario=f.wd===6||f.wd===7
+      ? (f.ss||'--:--')+' a '+(f.se||'--:--')+' (fin de semana)'
+      : (f.ws||'--:--')+' a '+(f.we||'--:--')+' (entre semana)';
+    const note=(f._note!==undefined?f._note:'');
+    return '<div class="fcard '+(s==='active'?'v-ok':(s==='rejected'?'v-bad':''))+(fselected===f.id?' sel':'')+'" id="fc'+f.id+'">'
+      +'<div class="fhd" onclick="selectFeria('+f.id+',false)">'
+        +'<div class="fday">'+(DIAS[f.wd]||'?')+'</div>'
+        +'<div class="finfo">'
+          +'<div class="fname">'+esc(fLabel(f.name)||f.street||('Feria '+f.id))+'</div>'
+          +'<div class="fsub">'+esc(f.street||'—')+' &middot; <code>'+horario+'</code> &middot; '
+            +Math.round(f.len)+' m &middot; '+f.coords.length+' puntos &middot; id '+f.id+'</div>'
+        +'</div>'+badge
+      +'</div>'
+      +'<div class="fbody">'
+        +'<div class="fverd">'
+          +'<button class="vb ok'+(s==='active'?' on':'')+'" onclick="setVerdict('+f.id+',\'active\')">✅ Está bien</button>'
+          +'<button class="vb bad'+(s==='rejected'?' on':'')+'" onclick="setVerdict('+f.id+',\'rejected\')">❌ Mal ubicada</button>'
+          +'<button class="vb doubt" onclick="setVerdict('+f.id+',\'unverified\')">⚠️ Duda / dejar pendiente</button>'
+          +'<span style="flex:1"></span>'
+          +'<button class="lnk" onclick="openOsm('+f.id+')">Ver en OpenStreetMap ↗</button>'
+        +'</div>'
+        +'<div class="lb">Nota (queda en este navegador)</div>'
+        +'<textarea placeholder="Ej.: el trazo pasa dos cuadras más allá de donde está la feria de verdad." onchange="setFNote('+f.id+',this.value)">'+esc(note)+'</textarea>'
+        +'<div class="fsub" style="margin-top:7px">Inicio <code>'+(f.ini?f.ini[1].toFixed(5)+', '+f.ini[0].toFixed(5):'—')+'</code> &middot; Fin <code>'+(f.fin?f.fin[1].toFixed(5)+', '+f.fin[0].toFixed(5):'—')+'</code></div>'
+      +'</div></div>';
+  }).join('');
+}
+
+function selectFeria(id,fromMap){
+  const prev=fselected;
+  fselected=id;
+  if(prev!=null) refreshLineStyle(prev);
+  refreshLineStyle(id);
+  const f=FERIAS.filter(function(x){return x.id===id})[0];
+  if(f && fmap && flines[id]){
+    fmap.fitBounds(flines[id].line.getBounds().pad(0.35),{animate:true});
+  }
+  renderFerias();
+  if(!fromMap){
+    const el=document.getElementById('fc'+id);
+    if(el){ el.classList.add('open'); el.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+  } else {
+    const el=document.getElementById('fc'+id);
+    if(el) el.classList.add('open');
+  }
+}
+
+function setFNote(id,v){
+  const f=FERIAS.filter(function(x){return x.id===id})[0];
+  if(f) f._note=v;
+  try{
+    const all=JSON.parse(localStorage.getItem('gps_ferias_note')||'{}');
+    all[id]=v; localStorage.setItem('gps_ferias_note',JSON.stringify(all));
+  }catch(e){}
+}
+
+/// El veredicto vive en la BD: map_events.status = unverified | active | rejected.
+/// La app sólo pinta las 'active', y sólo en su día y su horario.
+async function setVerdict(id,st){
+  const f=FERIAS.filter(function(x){return x.id===id})[0];
+  if(!f) return;
+  const prev=fStatus(f);
+  if(prev===st) return;
+  f.status=st;
+  fsaving++;
+  document.getElementById('fSync').textContent='Guardando feria '+id+'…';
+  refreshLineStyle(id);
+  renderFerias();
+  try{
+    await fAuth('PATCH',SUPABASE_URL+'/rest/v1/map_events?id=eq.'+id,{status:st});
+    fsaving--;
+    document.getElementById('fSync').textContent = fsaving>0
+      ? 'Guardando… ('+fsaving+' en cola)'
+      : '✅ Guardado en la base de datos';
+    if(st==='active') toast('Feria habilitada. Se verá en su día y su horario.');
+    else if(st==='rejected') toast('Marcada como mal ubicada. No se mostrará.');
+    else toast('Vuelve a pendiente.');
+  }catch(e){
+    fsaving--;
+    f.status=prev;
+    refreshLineStyle(id);
+    renderFerias();
+    document.getElementById('fSync').textContent='❌ Error al guardar: '+e.message;
+    toast('No se pudo guardar: '+e.message,true);
+  }
+}
+
+function openOsm(id){
+  const f=FERIAS.filter(function(x){return x.id===id})[0];
+  if(!f||!f.ini) return;
+  window.open('https://www.openstreetmap.org/?mlat='+f.ini[1]+'&mlon='+f.ini[0]+'#map=19/'+f.ini[1]+'/'+f.ini[0],'_blank');
+}
+
+function centerUnverified(){
+  const f=FERIAS.filter(function(x){return fStatus(x)==='unverified' && passesFilter(x)})[0]
+        || FERIAS.filter(function(x){return fStatus(x)==='unverified'})[0];
+  if(!f){ toast('No quedan ferias pendientes 🎉'); return; }
+  selectFeria(f.id,false);
+}
+
+function exportFerias(){
+  let out='VEREDICTO FERIAS - '+new Date().toLocaleString()+'\n';
+  out+='='.repeat(64)+'\n';
+  const g={active:[],rejected:[],unverified:[]};
+  FERIAS.forEach(function(f){ g[fStatus(f)].push(f); });
+  out+'\n✅ HABILITADAS (se ven en la app): '+g.active.length+'\n';
+  g.active.forEach(function(f){ out+='  ['+f.id+'] '+(DIAS[f.wd]||'?')+' · '+(fLabel(f.name)||f.street)+' ('+f.street+')\n'; });
+  out+'\n❌ RECHAZADAS: '+g.rejected.length+'\n';
+  g.rejected.forEach(function(f){ out+='  ['+f.id+'] '+(DIAS[f.wd]||'?')+' · '+(fLabel(f.name)||f.street)+' ('+f.street+')\n'; });
+  out+'\n⏳ PENDIENTES: '+g.unverified.length+'\n';
+  g.unverified.forEach(function(f){ out+='  ['+f.id+'] '+(DIAS[f.wd]||'?')+' · '+(fLabel(f.name)||f.street)+' ('+f.street+')\n'; });
+  const t=document.createElement('textarea');t.value=out;document.body.appendChild(t);t.select();
+  try{document.execCommand('copy');toast('Veredicto copiado.');}catch(e){toast('No se pudo copiar',true);}
+  document.body.removeChild(t);
+}
+
+try{
+  const n=JSON.parse(localStorage.getItem('gps_ferias_note')||'{}');
+  window._feriasNotes=n;
+}catch(e){ window._feriasNotes={}; }
+
+render();
+</script>
+</body>
+</html>
