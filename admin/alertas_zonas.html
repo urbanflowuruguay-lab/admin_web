@@ -95,10 +95,6 @@
         .spinner { width: 50px; height: 50px; border: 5px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     
-        /* El panel es oscuro y los tiles de OSM son claros: se invierten.
-           El filtro va sólo sobre el pane de tiles, así los marcadores y
-           las líneas que dibujamos encima conservan sus colores. */
-        .maplibregl-canvas, .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) saturate(0.72) brightness(0.92) contrast(1.05); }
     </style>
 </head>
 <body>
@@ -385,8 +381,9 @@
         // Centrar mapa al cambiar de país para feedback visual del administrador
         // Inicializar mapa centrado en Montevideo
         const map = L.map('map').setView([-34.9011, -56.1645], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-            attribution: '&copy; OpenStreetMap contributors' 
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { 
+            maxZoom: 19, 
+            attribution: '&copy; Esri, HERE, Garmin, USGS, METI/NASA' 
         }).addTo(map);
 
         // Grupos de capas

@@ -59,10 +59,6 @@
         .loader-spin { position: absolute; right: 10px; top: 10px; width: 14px; height: 14px; border: 2px solid #58a6ff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
     
-        /* El panel es oscuro y los tiles de OSM son claros: se invierten.
-           El filtro va sólo sobre el pane de tiles, así los marcadores y
-           las líneas que dibujamos encima conservan sus colores. */
-        .maplibregl-canvas, .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) saturate(0.72) brightness(0.92) contrast(1.05); }
     </style>
 </head>
 <body>
@@ -166,7 +162,7 @@
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const map = L.map('map').setView([-34.9011, -56.1645], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '&copy; Esri, HERE, Garmin, USGS, METI/NASA' }).addTo(map);
 
         const previewGroup = new L.FeatureGroup().addTo(map);
         const savedLayersGroup = new L.FeatureGroup().addTo(map);

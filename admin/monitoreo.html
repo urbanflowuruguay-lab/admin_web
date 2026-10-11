@@ -31,10 +31,6 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
         }
     
-        /* El panel es oscuro y los tiles de OSM son claros: se invierten.
-           El filtro va sólo sobre el pane de tiles, así los marcadores y
-           las líneas que dibujamos encima conservan sus colores. */
-        .maplibregl-canvas, .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) saturate(0.72) brightness(0.92) contrast(1.05); }
     </style>
 </head>
 <body>
@@ -63,7 +59,7 @@ let sb = null;
 
 const map = new maplibregl.Map({
     container: 'map',
-    style: {version:8,sources:{'osm':{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'OpenStreetMap'}},layers:[{id:'osm',type:'raster',source:'osm'}]},
+    style: {version:8,sources:{'esri':{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'],tileSize:256,attribution:'Esri, HERE, Garmin, USGS, METI/NASA'}},layers:[{id:'esri',type:'raster',source:'esri'}]},
     center: [-56.1645, -34.9011], zoom: 13
 });
 
