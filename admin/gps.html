@@ -233,6 +233,7 @@ textarea.ph{min-height:52px;line-height:1.45}
     <input type="text" id="fBus" placeholder="Buscar calle o nombre…" oninput="renderFerias()">
     <span class="prog"><i id="fProg"></i></span>
     <b id="fCount" style="font-size:12.5px;color:#e6edf3">…</b>
+    <button class="btn g sm" onclick="newFeria()">➕ Nueva feria</button>
     <button class="btn g sm" onclick="centerUnverified()">Ir a la primera pendiente</button>
     <button class="btn g sm" onclick="reloadFerias()">Recargar</button>
   </div>
@@ -963,8 +964,12 @@ function feriaStyle(st,sel){
 function drawStreets(id,streets){
   if(!fmap) return;
   clearStreets(id);
-  const f=getFeria(id); if(!f) return;
-  const st=fStatus(f);
+  // 'new' es la feria que todavía no existe: no está en FERIAS, pero hay
+  // que poder ver sus calles en el mapa mientras se dibujan.
+  const isNew=(id==='new');
+  const f=isNew?null:getFeria(id);
+  if(!isNew&&!f) return;
+  const st=isNew?'unverified':fStatus(f);
   const sel=(fselected===id);
   const list=[];
   streets.forEach(function(s,i){
@@ -1048,9 +1053,29 @@ function renderFerias(){
   document.getElementById('fProg').style.width=(FERIAS.length?(ok/FERIAS.length*100):0)+'%';
   document.getElementById('tabFeriasCnt').textContent=un+' pendientes';
 
-  if(!vis.length){ list.innerHTML='<div style="color:#8b949e;padding:22px;text-align:center">Ninguna feria coincide con el filtro.</div>'; return; }
+  // La feria en creación no existe en FERIAS todavía: se pinta aparte, arriba
+  // de la lista, con su propio editor (id "new").
+  const newCard=(feditId==='new')
+    ? '<div class="fcard sel open" id="fcnew">'
+        +'<div class="fhd">'
+          +'<div class="fday">?</div>'
+          +'<div class="finfo">'
+            +'<div class="fname">Feria nueva (todavía sin guardar)</div>'
+            +'<div class="fsub">Se crea en la base recién cuando apretás Guardar &middot; estado inicial: pendiente</div>'
+          +'</div><span class="fbadge unverified">NUEVA</span>'
+        +'</div>'
+        +'<div class="fbody">'
+          +'<div class="fedit" id="fenew"></div>'
+        +'</div></div>'
+    : '';
 
-  list.innerHTML=vis.map(function(f){
+  if(!vis.length){
+    list.innerHTML=newCard+'<div style="color:#8b949e;padding:22px;text-align:center">Ninguna feria coincide con el filtro.</div>';
+    if(feditId==='new') renderEditor();
+    return;
+  }
+
+  list.innerHTML=newCard+vis.map(function(f){
     const s=fStatus(f);
     const badge=s==='active'?'<span class="fbadge active">✅ EN LA APP</span>'
               :s==='rejected'?'<span class="fbadge rejected">❌ RECHAZADA</span>'
@@ -1186,16 +1211,47 @@ function toggleEdit(id){
   toast('Editando feria '+id+'. Tocá una calle del mapa para mover sus puntos.');
 }
 
+/// Abre el editor con una feria en blanco. No se guarda nada hasta que el
+/// usuario dibuja al menos una calle y aprieta Guardar; recién ahí se hace
+/// el POST a map_events con status 'unverified'.
+function newFeria(){
+  if(feditId!=null){
+    if(!confirm('Ya estás editando algo. ¿Descartar eso y crear una feria nueva?')) return;
+    cancelEdit(true);
+  }
+  stopDrawStreet();
+  feditId='new';
+  fvalOpts={};
+  fStreetSel=0;
+  fRedrawIdx=null;
+  const hoy=new Date().getDay();            // 0=domingo .. 6=sábado
+  const wd=hoy===0?7:hoy;                   // 1=lunes .. 7=domingo
+  fdraft={
+    // Arranca con el día de hoy adelante para que no se olvide: la app
+    // decide si hay feria leyendo ese prefijo del nombre.
+    name:(DIAS[wd]||'DOM')+' · ',
+    ws:'', we:'', ss:'', se:'',
+    streets:[{name:'',coords:[]}]
+  };
+  if(fmap) fmap.setView([-34.9011,-56.1645],13);
+  renderFerias();
+  toast('Feria nueva: poné el nombre con el día adelante (ej: "DOM · MI CASA") y dibujá la calle con ➕.');
+}
+
 function cancelEdit(silent){
   if(feditId==null) return;
   disablePm();
   stopDrawStreet();
   const id=feditId;
-  feditId=null; fdraft=null; fvalOpts={}; fStreetSel=0;
-  const f=getFeria(id);
-  if(f) drawStreets(id,f.streets);
+  feditId=null; fdraft=null; fvalOpts={}; fStreetSel=0; fRedrawIdx=null;
+  if(id!=='new'){
+    const f=getFeria(id);
+    if(f) drawStreets(id,f.streets);
+  }else{
+    clearStreets('new');   // la feria nueva nunca llegó a la base
+  }
   renderFerias();
-  if(!silent) toast('Edición cancelada.');
+  if(!silent) toast(id==='new'?'Alta cancelada: no se creó nada en la base.':'Edición cancelada.');
 }
 
 /* ---------- dibujar calles a mano ---------- */
@@ -1536,8 +1592,11 @@ function renderEditor(){
   const totalLen=d.streets.reduce(function(a,s){return a+fLen(s.coords);},0);
 
   let h='';
-  h+='<div class="lb">Editando feria <code>'+feditId+'</code> '
-    +'<span class="hint">tocá una calle del mapa para mover sus puntos</span></div>';
+  h+= (feditId==='new'
+    ? '<div class="lb">Creando feria nueva '
+      +'<span class="hint">dibujá la calle en el mapa y poné el nombre con el día adelante</span></div>'
+    : '<div class="lb">Editando feria <code>'+feditId+'</code> '
+      +'<span class="hint">tocá una calle del mapa para mover sus puntos</span></div>');
 
   h+='<div class="fgrid">'
     +'<div class="fld"><label>Nombre de la feria (con el día adelante)</label>'
@@ -1656,7 +1715,8 @@ async function saveEdit(){
     toast('Faltan decisiones en los avisos.',true); renderEditor(); return;
   }
 
-  const id=feditId, prev=getFeria(id);
+  const isNew=(feditId==='new');
+  const id=feditId, prev=isNew?null:getFeria(id);
   // Las calles sin trazo válido no viajan a la BD.
   const streets=fdraft.streets
     .filter(function(s){return s.coords&&s.coords.length>=2})
@@ -1679,10 +1739,33 @@ async function saveEdit(){
     weekend_end:fdraft.se||null
   };
 
-  const oldStatus=fStatus(prev);
+  const oldStatus=isNew?'unverified':fStatus(prev);
   fsaving++;
-  document.getElementById('fSync').textContent='Guardando feria '+id+'…';
+  document.getElementById('fSync').textContent=isNew?'Creando feria…':('Guardando feria '+id+'…');
   try{
+    if(isNew){
+      // Alta: POST a map_events. Queda 'unverified' a propósito, igual que
+      // cualquier feria que llega de afuera: hay que marcarla ✅ para que
+      // la app la empiece a mostrar.
+      const created=await fAuth('POST',SUPABASE_URL+'/rest/v1/map_events',
+        Object.assign({type:'feria',status:'unverified'},body));
+      const nid=created&&created[0]&&created[0].id;
+      fsaving--;
+      disablePm();
+      stopDrawStreet();
+      feditId=null; fdraft=null; fvalOpts={}; fStreetSel=0; fRedrawIdx=null;
+      await reloadFerias();
+      document.getElementById('fSync').textContent='✅ Feria creada en la base de datos';
+      if(nid!=null){
+        selectFeria(nid,false);
+        const c=document.getElementById('fc'+nid);
+        if(c) c.classList.add('open');
+      }
+      toast('Feria creada (id '+nid+') con '+streets.length
+        +(streets.length===1?' calle':' calles')+'. Queda PENDIENTE: abrila y marcar'
+        +' ✅ Está bien para que la app la muestre en su día y su horario.');
+      return;
+    }
     await fAuth('PATCH',SUPABASE_URL+'/rest/v1/map_events?id=eq.'+id,body);
     prev.name=body.name; prev.street=body.street_name;
     prev.streets=streets;
