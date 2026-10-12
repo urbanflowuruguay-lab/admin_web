@@ -387,14 +387,12 @@
             const hwFilter = `["highway"~"^(${hwTypes.join('|')})$"]`;
             console.log(`[SpeedDownload] Highway filter: ${hwFilter}`);
 
-            const endpoints = ["https://overpass.kumi.systems/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://overpass-api.de/api/interpreter"];
-            // Dos de estos mirrors devuelven 406 en algunas redes, y el codigo
-            // los prueba todos. El que funciono la ultima vez va primero.
-            const ultimoOverpass = localStorage.getItem('overpassEndpoint');
-            if (ultimoOverpass && endpoints.includes(ultimoOverpass)) {
-                endpoints.splice(endpoints.indexOf(ultimoOverpass), 1);
-                endpoints.unshift(ultimoOverpass);
-            }
+            // overpass-api.de y lz4.overpass-api.de devuelven 406 desde al menos
+            // una red: Apache los bloquea antes de que lleguen a Overpass. Se
+            // dejaba solo kumi, que es el unico que responde, y con timeout para
+            // que un mirror caido no frene la descarga.
+            const endpoints = ["https://overpass.kumi.systems/api/interpreter"];
+            const TIMEOUT_PETICION = 20000;
             const allWays = new Map();
 
             for (let idx = 0; idx < grids.length; idx++) {
@@ -406,15 +404,18 @@
                 console.log(`[SpeedDownload] Query: ${query.substring(0, 100)}...`);
 
                 let downloaded = false;
+                let ultimoError = '';
                 for (let url of endpoints) {
+                    const ctrl = new AbortController();
+                    const reloj = setTimeout(() => ctrl.abort(), TIMEOUT_PETICION);
                     try {
                         console.log(`[SpeedDownload] Trying ${url}...`);
-                        const resp = await fetch(`${url}?data=${encodeURIComponent(query)}`);
+                        const resp = await fetch(`${url}?data=${encodeURIComponent(query)}`, { signal: ctrl.signal });
+                        clearTimeout(reloj);
                         console.log(`[SpeedDownload] Response: ${resp.status} from ${url}`);
                         if (resp.ok) {
                             const data = await resp.json();
                             console.log(`[SpeedDownload] Elements: ${data.elements?.length || 0}`);
-                            if (data.elements) localStorage.setItem('overpassEndpoint', url);
                             if (data.elements) {
                                 const ways = data.elements.filter(e => e.type === 'way');
                                 const nodes = data.elements.filter(e => e.type === 'node');
@@ -462,11 +463,18 @@
                             break;
                         }
                     } catch (e) {
-                        console.log(`[SpeedDownload] Error from ${url}: ${e.message}`);
+                        clearTimeout(reloj);
+                        ultimoError = e.name === 'AbortError' ? `sin respuesta en ${TIMEOUT_PETICION/1000}s` : e.message;
+                        console.log(`[SpeedDownload] Error from ${url}: ${ultimoError}`);
                     }
                 }
                 if (!downloaded) {
                     console.log(`[SpeedDownload] All endpoints failed for ${deptLabel}`);
+                    statusEl.textContent = `Overpass no respondió en ${deptLabel}: ${ultimoError}. Cancelada la descarga.`;
+                    statusEl.style.color = '#da3637';
+                    hideLoading();
+                    alert(`Overpass no respondió.\n\nCaja ${idx + 1} de ${grids.length} (${deptLabel}).\nError: ${ultimoError || 'desconocido'}\n\nNo se guardó nada.`);
+                    return;
                 }
             }
 
@@ -494,22 +502,54 @@
             });
 
             console.log(`[SpeedDownload] Total segments to save: ${segments.length}`);
-            statusEl.textContent = `Guardando ${segments.length} segmentos en Supabase...`;
+
+            // speed_limits no tiene indice unico, asi que el onConflict de abajo
+            // no zafa: ya hay 108389 filas repetidas (mismo way_id y misma
+            // geometria de arranque). Se trae lo que ya existe en la zona y se
+            // saltea, igual que en alertas.html.
+            const minLat = Math.min(...grids.map(g => g.minLat));
+            const maxLat = Math.max(...grids.map(g => g.maxLat));
+            const minLon = Math.min(...grids.map(g => g.minLon));
+            const maxLon = Math.max(...grids.map(g => g.maxLon));
+            const kSeg = s => s.way_id + '|' + Number(s.lat_start).toFixed(6) + '|' + Number(s.lon_start).toFixed(6);
+            const existentes = new Set();
+            let desde = 0;
+            for (;;) {
+                const { data: hay, error: errHay } = await sb.from('speed_limits')
+                    .select('way_id,lat_start,lon_start')
+                    .gte('lat_start', minLat).lte('lat_start', maxLat)
+                    .gte('lon_start', minLon).lte('lon_start', maxLon)
+                    .range(desde, desde + 999);
+                if (errHay) { console.log(`[SpeedDownload] No se pudo leer lo existente: ${errHay.message}`); break; }
+                (hay || []).forEach(f => existentes.add(f.way_id + '|' + Number(f.lat_start).toFixed(6) + '|' + Number(f.lon_start).toFixed(6)));
+                if (!hay || hay.length < 1000) break;
+                desde += 1000;
+            }
+            const nuevos = segments.filter(s => {
+                const k = kSeg(s);
+                if (existentes.has(k)) return false;
+                existentes.add(k);
+                return true;
+            });
+            const repetidos = segments.length - nuevos.length;
+            console.log(`[SpeedDownload] ${nuevos.length} nuevos, ${repetidos} ya existian`);
+
+            statusEl.textContent = `Guardando ${nuevos.length} segmentos (${repetidos} ya estaban)...`;
             const chunk = 500;
             let ok = 0;
-            for (let i = 0; i < segments.length; i += chunk) {
-                const { data, error } = await sb.from('speed_limits').upsert(segments.slice(i, i + chunk), { onConflict: 'way_id,lat_start,lon_start,lat_end,lon_end' });
+            for (let i = 0; i < nuevos.length; i += chunk) {
+                const { data, error } = await sb.from('speed_limits').upsert(nuevos.slice(i, i + chunk), { onConflict: 'way_id,lat_start,lon_start,lat_end,lon_end' });
                 if (error) {
                     console.log(`[SpeedDownload] Supabase error: ${error.message}`);
                     statusEl.textContent = `Error guardando: ${error.message}`;
                     statusEl.style.color = '#da3637';
                     return;
                 }
-                ok += Math.min(chunk, segments.length - i);
-                statusEl.textContent = `Guardando... ${ok}/${segments.length}`;
-                console.log(`[SpeedDownload] Saved ${ok}/${segments.length}`);
+                ok += Math.min(chunk, nuevos.length - i);
+                statusEl.textContent = `Guardando... ${ok}/${nuevos.length}`;
+                console.log(`[SpeedDownload] Saved ${ok}/${nuevos.length}`);
             }
-            statusEl.innerHTML = `✅ <b>${ok} segmentos</b> guardados para ${label} (${country})`;
+            statusEl.innerHTML = `✅ <b>${ok} segmentos nuevos</b> guardados para ${label} (${country}) · ${repetidos} ya existían`;
             statusEl.style.color = '#2ecc71';
             console.log(`[SpeedDownload] DONE: ${ok} segments saved`);
         }

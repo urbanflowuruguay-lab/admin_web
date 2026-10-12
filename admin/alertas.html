@@ -410,14 +410,12 @@
 
             if (!confirm(`¿Importar datos de OSM para "${country}"?\nSe harán ${grids.length} peticiones.`)) return;
 
-            const endpoints = ["https://overpass.kumi.systems/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://overpass-api.de/api/interpreter"];
-            // Dos de estos mirrors devuelven 406 en algunas redes, y el codigo
-            // los prueba todos. El que funciono la ultima vez va primero.
-            const ultimoOverpass = localStorage.getItem('overpassEndpoint');
-            if (ultimoOverpass && endpoints.includes(ultimoOverpass)) {
-                endpoints.splice(endpoints.indexOf(ultimoOverpass), 1);
-                endpoints.unshift(ultimoOverpass);
-            }
+            // overpass-api.de y lz4.overpass-api.de devuelven 406 desde al menos
+            // una red: Apache los bloquea antes de que lleguen a Overpass. Se
+            // dejaba solo kumi, que es el unico que responde, y con un timeout
+            // por peticion para que un mirror caido no frene toda la importacion.
+            const endpoints = ["https://overpass.kumi.systems/api/interpreter"];
+            const TIMEOUT_PETICION = 20000;
             const allElements = [];
 
             for (let idx = 0; idx < grids.length; idx++) {
@@ -434,29 +432,40 @@
 
                 const query = `[out:json][timeout:90];\n(\n${q}\n);\nout body;`;
                 let success = false;
-                for (let attempt = 0; attempt < 5 && !success; attempt++) {
-                    if (attempt > 0) { showLoading(`[${idx + 1}/${grids.length}] Reintentando (${attempt + 1}/5)...`); await new Promise(r => setTimeout(r, 10000)); }
+                let ultimoError = '';
+                for (let attempt = 0; attempt < 3 && !success; attempt++) {
+                    if (attempt > 0) { showLoading(`[${idx + 1}/${grids.length}] Reintentando (${attempt + 1}/3)${ultimoError ? ': ' + ultimoError : ''}...`); await new Promise(r => setTimeout(r, 3000)); }
                     for (let url of endpoints) {
+                        const ctrl = new AbortController();
+                        const reloj = setTimeout(() => ctrl.abort(), TIMEOUT_PETICION);
                         try {
                             const resp = await fetch(url, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                                body: 'data=' + encodeURIComponent(query)
+                                body: 'data=' + encodeURIComponent(query),
+                                signal: ctrl.signal
                             });
+                            clearTimeout(reloj);
                             if (resp.ok) {
                                 const data = await resp.json();
-                                if (data.elements) {
-                                    allElements.push(...data.elements);
-                                    localStorage.setItem('overpassEndpoint', url);
-                                }
+                                if (data.elements) allElements.push(...data.elements);
                                 success = true; break;
                             }
-                            else console.warn(`[${idx+1}] ${url.split('/')[2]}: ${resp.status}`);
-                        } catch (e) { console.warn(`[${idx+1}] ${url.split('/')[2]}: ${e.message}`); }
+                            ultimoError = `HTTP ${resp.status}`;
+                            console.warn(`[${idx+1}] ${url.split('/')[2]}: ${resp.status}`);
+                        } catch (e) {
+                            clearTimeout(reloj);
+                            ultimoError = e.name === 'AbortError' ? `sin respuesta en ${TIMEOUT_PETICION/1000}s` : e.message;
+                            console.warn(`[${idx+1}] ${url.split('/')[2]}: ${ultimoError}`);
+                        }
                     }
                 }
-                if (!success) console.warn(`Grid ${idx + 1} failed after 5 attempts`);
-                if (idx < grids.length - 1) await new Promise(r => setTimeout(r, 5000));
+                if (!success) {
+                    hideLoading();
+                    alert(`Overpass no respondió.\n\nMirrors probados: ${endpoints.map(u => u.split('/')[2]).join(', ')}\nÚltimo error: ${ultimoError || 'desconocido'}\n\nCaja ${idx + 1} de ${grids.length}. No se guardó nada.`);
+                    return;
+                }
+                if (idx < grids.length - 1) await new Promise(r => setTimeout(r, 1500));
             }
 
             if (allElements.length === 0) { hideLoading(); alert("No se encontraron datos."); return; }
@@ -478,16 +487,46 @@
                 if (type && !seen.has(el.id)) { seen.add(el.id); alerts.push({ type, lat: el.lat, lon: el.lon, category: 'fijo', source: 'osm', status: 'active', country }); }
             });
 
-            showLoading(`Guardando ${alerts.length} eventos...`);
+            // La tabla no tiene indice unico en type+lat+lon, asi que el upsert
+            // siempre inserta. Sin este filtro, correr la importacion dos veces
+            // duplica todo (ya hay 1342 filas repetidas). Traigo lo que ya existe
+            // en la zona y salteo lo que ya esta.
+            const minLat = Math.min(...grids.map(g => g.minLat));
+            const maxLat = Math.max(...grids.map(g => g.maxLat));
+            const minLon = Math.min(...grids.map(g => g.minLon));
+            const maxLon = Math.max(...grids.map(g => g.maxLon));
+            const clave = (t, la, lo) => t + '|' + Number(la).toFixed(6) + '|' + Number(lo).toFixed(6);
+            const existentes = new Set();
+            let desde = 0;
+            for (;;) {
+                const { data: hay, error: errHay } = await sb.from('road_alerts')
+                    .select('type,lat,lon')
+                    .gte('lat', minLat).lte('lat', maxLat)
+                    .gte('lon', minLon).lte('lon', maxLon)
+                    .range(desde, desde + 999);
+                if (errHay) { console.warn('No se pudo leer lo existente:', errHay.message); break; }
+                (hay || []).forEach(f => existentes.add(clave(f.type, f.lat, f.lon)));
+                if (!hay || hay.length < 1000) break;
+                desde += 1000;
+            }
+            const nuevos = alerts.filter(a => {
+                const k = clave(a.type, a.lat, a.lon);
+                if (existentes.has(k)) return false;
+                existentes.add(k);
+                return true;
+            });
+            const repetidos = alerts.length - nuevos.length;
+
+            showLoading(`Guardando ${nuevos.length} eventos (${repetidos} ya estaban)...`);
             const chunk = 100;
             let ok = 0;
-            for (let i = 0; i < alerts.length; i += chunk) {
-                const { data, error } = await sb.from('road_alerts').upsert(alerts.slice(i, i + chunk));
-                if (error) { console.error('Upsert error:', error, 'Chunk sample:', alerts[i]); }
-                else ok += Math.min(chunk, alerts.length - i);
+            for (let i = 0; i < nuevos.length; i += chunk) {
+                const { data, error } = await sb.from('road_alerts').upsert(nuevos.slice(i, i + chunk));
+                if (error) { console.error('Upsert error:', error, 'Chunk sample:', nuevos[i]); }
+                else ok += Math.min(chunk, nuevos.length - i);
             }
             hideLoading();
-            alert(`¡Listo! ${ok} eventos guardados.`);
+            alert(`¡Listo!\n\n${ok} eventos nuevos guardados.\n${repetidos} ya existían y se saltearon.`);
             loadData();
         }
 
