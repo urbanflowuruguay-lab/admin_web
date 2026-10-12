@@ -143,7 +143,7 @@ const ITEMS = [
  phrase:'Precauci\u00f3n a X metros: radar. Velocidad m\u00e1xima de la v\u00eda: N kil\u00f3metros por hora',
  sources:[
   {t:'Supabase road_alerts', d:'type = radar* y source = mtop (radares MTOP nuevos). Es el que se pregunta "sigue ah\u00ed".'},
-  {t:'OSM Overpass', d:'amenity = traffic_enforcement, todo el pa\u00eds. Fijos de siempre, no se preguntan.'},
+  {t:'Supabase road_alerts', d:'type = radar, source = osm. Tag original: amenity = traffic_enforcement, todo el pa\u00eds. Fijos de siempre, no se preguntan.'},
   {t:'Supabase speed_limits', d:'L\u00edmite de la v\u00eda para decir el n\u00famero en la voz.'},
   {t:'assets/images/iconos sobre mapa/radar.png', d:'Icono pelado de d\u00eda (el de noche es radar noc.png).'}
  ]},
@@ -156,7 +156,7 @@ const ITEMS = [
  voice:true, beep:false, nav:true, patrol:true, verifiable:false,
  phrase:'Peaje a X metros',
  sources:[
-  {t:'OSM Overpass', d:'barrier = toll_booth.'},
+  {t:'Supabase road_alerts', d:'type = peaje, source = osm. Tag original: barrier = toll_booth.'},
   {t:'assets/images/iconos sobre mapa/peaje.png', d:'Icono pelado de d\u00eda.'}
  ]},
 
@@ -168,7 +168,7 @@ const ITEMS = [
  voice:true, beep:true, nav:true, patrol:true, verifiable:false,
  phrase:'En los pr\u00f3ximos X metros hay reductores de velocidad / (si es a menos de 150 m) Atenci\u00f3n, lomo de burro a X metros',
  sources:[
-  {t:'OSM Overpass', d:'traffic_calming = bump / speed_breaker.'},
+  {t:'Supabase road_alerts', d:'type = lomada, source = osm. Tag original: traffic_calming = bump / speed_breaker.'},
   {t:'assets/images/iconos sobre mapa/lomada.png', d:'Icono pelado de d\u00eda.'}
  ]},
 
@@ -180,7 +180,7 @@ const ITEMS = [
  voice:true, beep:false, nav:true, patrol:true, verifiable:false,
  phrase:'Cruce de v\u00eda f\u00e9rea a X metros',
  sources:[
-  {t:'OSM Overpass', d:'railway = level_crossing / crossing.'},
+  {t:'Supabase road_alerts', d:'type = cruce_tren, source = osm. Tag original: railway = level_crossing / crossing.'},
   {t:'assets/images/iconos sobre mapa/viaferrea.png', d:'Icono pelado de d\u00eda.'}
  ]},
 
@@ -192,7 +192,7 @@ const ITEMS = [
  voice:false, beep:true, nav:false, patrol:false, verifiable:false,
  phrase:'Atenci\u00f3n, sem\u00e1foro a X metros',
  sources:[
-  {t:'OSM Overpass', d:'highway = traffic_signals (~12.900 en Montevideo).'},
+  {t:'Supabase road_alerts', d:'type = semaforo, source = osm. Tag original: highway = traffic_signals (~12.900 en Montevideo).'},
   {t:'assets/images/iconos sobre mapa/semaforo.png', d:'Icono pelado de d\u00eda.'}
  ]},
 
@@ -216,7 +216,7 @@ const ITEMS = [
  voice:false, beep:true, nav:false, patrol:false, verifiable:false,
  phrase:'Cartel de pare a X metros',
  sources:[
-  {t:'OSM Overpass', d:'highway = stop.'},
+  {t:'Supabase road_alerts', d:'type = pare, source = osm. Tag original: highway = stop.'},
   {t:'assets/images/iconos sobre mapa/pare.png', d:'Icono pelado de d\u00eda.'}
  ]},
 
@@ -228,7 +228,7 @@ const ITEMS = [
  voice:false, beep:true, nav:false, patrol:false, verifiable:false,
  phrase:'Ceda el paso a X metros',
  sources:[
-  {t:'OSM Overpass', d:'highway = give_way.'},
+  {t:'Supabase road_alerts', d:'type = ceda, source = osm. Tag original: highway = give_way.'},
   {t:'assets/images/iconos sobre mapa/cedaelpaso.png', d:'Icono pelado de d\u00eda.'}
  ]},
 
