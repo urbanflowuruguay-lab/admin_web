@@ -746,8 +746,37 @@
         // Último estado de la carga, para poder diagnosticar sin adivinar.
         let ultimoEstado = { ms: 0, filas: 0, total: 0, error: null };
 
-        function diagnosticar() {
+        async function diagnosticar() {
             const b = map.getBounds(), s = map.getSize();
+
+            // Prueba cruda, sin supabase-js, con los mismos límites: si esto
+            // trae filas y la carga normal no, el problema es el cliente.
+            let cruda = 'no hecha';
+            try {
+                const lat0 = b.getSouth() - 0.05, lat1 = b.getNorth() + 0.05;
+                const lon0 = b.getWest()  - 0.05, lon1 = b.getEast()  + 0.05;
+                const u = SUPABASE_URL + '/rest/v1/speed_limits?select=*&lat_start=gte.' + lat0
+                    + '&lat_start=lte.' + lat1 + '&lon_start=gte.' + lon0 + '&lon_start=lte.' + lon1;
+                const t0 = performance.now();
+                const r = await fetch(u, { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, Range: '0-1' } });
+                const cuerpo = await r.text();
+                cruda = r.status + ' en ' + Math.round(performance.now() - t0) + ' ms · content-range='
+                    + r.headers.get('content-range') + ' · cuerpo: ' + cuerpo.slice(0, 100);
+            } catch (e) { cruda = 'FALLÓ: ' + e.message; }
+
+            // Y una prueba con supabase-js, para comparar
+            let conCliente = 'no hecha';
+            try {
+                const t1 = performance.now();
+                const q = await sb.from('speed_limits').select('*', { count: 'exact' })
+                    .gte('lat_start', b.getSouth() - 0.05).lte('lat_start', b.getNorth() + 0.05)
+                    .gte('lon_start', b.getWest() - 0.05).lte('lon_start', b.getEast() + 0.05)
+                    .order('way_id').order('lat_start').order('lon_start')
+                    .range(0, 999);
+                conCliente = 'en ' + Math.round(performance.now() - t1) + ' ms · filas='
+                    + ((q.data && q.data.length) || 0) + ' · count=' + q.count + ' · error=' + (q.error ? q.error.message : 'ninguno');
+            } catch (e) { conCliente = 'FALLÓ: ' + e.message; }
+
             const txt = [
                 'URL: ' + location.href,
                 'zoom: ' + map.getZoom(),
@@ -758,6 +787,8 @@
                 'tramos pintados: ' + speedLayerGroup.getLayers().length,
                 'ultima carga: ' + ultimoEstado.ms + ' ms, ' + ultimoEstado.filas + ' filas pedidas, ' + ultimoEstado.total + ' en total',
                 'ultimo error: ' + (ultimoEstado.error || '(ninguno)'),
+                'prueba fetch crudo: ' + cruda,
+                'prueba supabase-js: ' + conCliente,
                 'en Uruguay: ' + (enUruguay() ? 'si' : 'NO'),
                 'navegador: ' + navigator.userAgent,
                 'aviso: ' + document.getElementById('mapRenderInfo').textContent
