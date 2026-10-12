@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow - Velocidades de las Calles</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Geoman para dibujo premium de zonas -->
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 420px; background-color: #161b22; border-right: 1px solid #30363d; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
+        .map-container { flex-grow: 1; height: 100vh; position: relative; }
+        #map { width: 100%; height: 100%; }
+        
+        h1 { font-size: 20px; color: #58a6ff; margin: 0; display: flex; align-items: center; gap: 10px; }
+        
+        .card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .card h3 { color: #f39c12; margin: 0; font-size: 14px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 11px; font-weight: bold; color: #8b949e; text-transform: uppercase; }
+        
+        input[type="text"], select, textarea { 
+            padding: 10px; border-radius: 6px; border: 1px solid #30363d; 
+            background: #161b22; color: white; width: 100%; box-sizing: border-box; font-size: 13px;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #58a6ff; outline: none; }
+        
+        .btn-action { 
+            background: #238636; color: white; border: none; padding: 12px; border-radius: 6px; 
+            cursor: pointer; font-weight: bold; font-size: 13px; text-align: center; transition: 0.3s; width: 100%;
+        }
+        .btn-action:hover { background: #2ea043; }
+        .btn-action:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+        
+        .btn-blue { background: #1f6feb; }
+        .btn-blue:hover { background: #388bfd; }
+        
+        .btn-danger { background: #da3637; }
+        .btn-danger:hover { background: #f85149; }
+
+        .btn-manual { background: #1f6feb; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; margin-top: 5px; text-align: center; }
+        .btn-manual.active { background: #f39c12; }
+
+        .list-container { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; max-height: 300px; overflow-y: auto; }
+        .list-item { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: 0.2s; }
+        .list-item:hover { border-color: #58a6ff; background: #161b22; }
+        
+        .badge { font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: bold; width: fit-content; text-transform: uppercase; }
+        .badge-pare { background: #ff443622; color: #ff4436; }
+        .badge-ceda { background: #f39c1222; color: #f39c12; }
+        .badge-radar { background: #e06c7522; color: #e06c75; }
+        .badge-lomada { background: #58a6ff22; color: #58a6ff; }
+        .badge-cruce { background: #ff8c0022; color: #ff8c00; }
+        .badge-peaje { background: #c678dd22; color: #c678dd; }
+        .badge-semaforo { background: #2ea04322; color: #2ea043; }
+        .badge-accidente { background: #ff443622; color: #ff4436; }
+        .badge-autodetenido { background: #e06c7522; color: #e06c75; }
+        .badge-transitolento { background: #f39c1222; color: #f39c12; }
+        .badge-controlpolicial { background: #1f6feb22; color: #1f6feb; }
+        .badge-controlmunicipal { background: #58a6ff22; color: #58a6ff; }
+        .badge-obrasenlavia { background: #ff8c0022; color: #ff8c00; }
+        .badge-calleinundada { background: #2ecc7122; color: #2ecc71; }
+        .badge-callecerrada { background: #da363722; color: #da3637; }
+        .badge-semaforosrotos { background: #c678dd22; color: #c678dd; }
+        .badge-cedaelpaso { background: #f39c1222; color: #f39c12; }
+        .badge-viaferrea { background: #ff8c0022; color: #ff8c00; }
+
+        .badge-critico { background: #ff4436; color: white; }
+        .badge-alto { background: #ff8c00; color: white; }
+        .badge-medio { background: #f39c12; color: white; }
+        .badge-bajo { background: #2ecc71; color: white; }
+        
+        .btn-delete { background: #e06c75; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+        .hint-box { font-size: 11px; background: #1f6feb22; border: 1px solid #1f6feb55; color: #58a6ff; padding: 10px; border-radius: 6px; display: none; font-weight: bold; }
+        
+        /* Loader */
+        .loader-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap:15px; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .leaflet-tile-pane{filter:brightness(0.4) contrast(1.3) saturate(0.85)}
+</style>
+</head>
+<body>
+
+    <div class="loader-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="font-weight: bold;" id="loadingText">Procesando...</div>
+    </div>
+
+    <div class="sidebar">
+        <h1>🏎️ Velocidades de las Calles</h1>
+            <div class="card">
+                <h3>🏎️ Descargar Límites de Velocidad (OSM)</h3>
+                <p style="font-size: 11px; margin: 0; color: #8b949e;">Descarga la velocidad legal de las calles por departamento. La app la muestra al chofer.</p>
+                
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>🌍 País</label>
+                    <select id="speedLimitCountry" onchange="updateSpeedLimitDivisions()">
+                        <option value="UY">Uruguay (UY)</option>
+                        <option value="AR">Argentina (AR)</option>
+                        <option value="CL">Chile (CL)</option>
+                        <option value="BR">Brasil (BR)</option>
+                        <option value="PY">Paraguay (PY)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>📍 Departamento / Provincia / Estado</label>
+                    <select id="speedLimitDivision">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+
+                <div id="speedLimitStatus" style="font-size: 11px; color: #8b949e; min-height: 20px;"></div>
+
+                <div class="form-group">
+                    <label>🛣️ Tipos de vía a importar</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; margin-top: 5px;">
+                        <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
+                            <input type="checkbox" id="sl_motorway" checked> Autopista
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
+                            <input type="checkbox" id="sl_trunk" checked> Ruta principal
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
+                            <input type="checkbox" id="sl_primary" checked> Avenida principal
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
+                            <input type="checkbox" id="sl_secondary" checked> Avenida/Secundaria
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
+                            <input type="checkbox" id="sl_tertiary" checked> Calle importante
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; color:#c9d1d9; font-weight:normal; text-transform:none; cursor:pointer;">
+                            <input type="checkbox" id="sl_residential" checked> Residencial (→ 45)
+                        </label>
+                    </div>
+                    <p style="font-size: 10px; color: #8b949e; margin: 4px 0 0 0;">Residenciales sin dato se guardan a 45 km/h</p>
+                </div>
+
+                <button class="btn-action btn-blue" onclick="syncSpeedLimits()">🏎️ Descargar Velocidades</button>
+                <button class="btn-action btn-danger" onclick="deleteSpeedLimits()" style="margin-top: 8px;">🗑️ Borrar Velocidades del Departamento</button>
+                <button class="btn-action" onclick="showSpeedLimitsOnMap()" style="margin-top: 8px; background: #8b949e;">🗺️ Ver Velocidades en el Mapa</button>
+            </div>
+            <div class="card">
+                <h3>🔍 Buscar Calle</h3>
+                <p style="font-size: 11px; color: #8b949e; margin: 0;">Buscá por nombre para ver velocidad, tipo de vía y ubicación en el mapa.</p>
+                <div class="form-group">
+                    <label>Nombre de la calle</label>
+                    <input type="text" id="streetSearchInput" placeholder="Ej: 18 de Julio, Ramírez..." onkeyup="if(event.key==='Enter')searchStreet()">
+                </div>
+                <button class="btn-action btn-blue" onclick="searchStreet()">🔍 Buscar</button>
+                <div id="streetSearchStatus" style="font-size: 11px; margin-top: 8px;"></div>
+                <div id="streetResults" class="list-container" style="max-height: 400px;"></div>
+            </div>
+    </div>
+
+    <div class="map-container">
+        <div class="map-filters" style="
+            position: absolute; top: 15px; left: 55px; z-index: 1000;
+            background: rgba(22, 27, 34, 0.85); backdrop-filter: blur(10px);
+            border: 1px solid #30363d; border-radius: 8px; padding: 8px 15px;
+            display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        ">
+            <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:#e67e22; font-weight:bold; cursor:pointer;">
+                <input type="checkbox" id="filter_speed" checked onchange="filterMap()"> 🏎️ Mostrar velocidades en el mapa
+            </label>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eyfgkopaamnkprzpwocz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const map = L.map('map').setView([-34.9011, -56.1645], 13);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+            maxZoom: 19, 
+            maxNativeZoom: 19, 
+            attribution: '&copy; Esri, HERE, Garmin, USGS, METI/NASA' 
+        }).addTo(map);
+
+        const speedLayerGroup = new L.FeatureGroup().addTo(map);
+        let allSpeedLimits = [];
+
+        // Mostrar/Ocultar Loading
+        function showLoading(text) {
+            document.getElementById('loadingText').innerText = text;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // 1. Guardar Alerta Manual
+
+        const DIVISIONS = {
+            UY: {
+                MONTEVIDEO: { name: "Montevideo", lat: [-34.95, -34.75], lon: [-56.35, -55.95] },
+                CANELONES: { name: "Canelones", lat: [-34.85, -34.35], lon: [-56.5, -55.6] },
+                MALDONADO: { name: "Maldonado", lat: [-34.95, -34.25], lon: [-55.6, -54.4] },
+                ROCHA: { name: "Rocha", lat: [-34.5, -33.4], lon: [-55.1, -53.2] },
+                COLONIA: { name: "Colonia", lat: [-34.35, -33.75], lon: [-58.45, -57.1] },
+                SAN_JOSE: { name: "San José", lat: [-34.6, -34.15], lon: [-57.15, -56.3] },
+                DURAZNO: { name: "Durazno", lat: [-33.55, -32.75], lon: [-56.55, -55.35] },
+                FLORES: { name: "Flores", lat: [-33.95, -33.25], lon: [-57.5, -56.45] },
+                FLORIDA: { name: "Florida", lat: [-34.25, -33.15], lon: [-56.25, -55.05] },
+                CERRO_LARGO: { name: "Cerro Largo", lat: [-33.25, -32.35], lon: [-54.75, -53.55] },
+                TACUAREMBO: { name: "Tacuarembó", lat: [-33.25, -31.95], lon: [-56.55, -54.95] },
+                RIVERA: { name: "Rivera", lat: [-33.15, -32.15], lon: [-55.55, -54.65] },
+                ARTIGAS: { name: "Artigas", lat: [-31.55, -30.35], lon: [-58.25, -55.95] },
+                SALTO: { name: "Salto", lat: [-31.55, -30.75], lon: [-58.55, -56.85] },
+                PAYSANDU: { name: "Paysandú", lat: [-32.35, -31.45], lon: [-58.55, -56.85] },
+                RIO_NEGRO: { name: "Río Negro", lat: [-33.15, -32.45], lon: [-58.55, -56.95] },
+                SORIANO: { name: "Soriano", lat: [-33.85, -33.05], lon: [-58.55, -57.05] },
+                TREINTA_Y_TRES: { name: "Treinta y Tres", lat: [-33.65, -32.75], lon: [-54.85, -53.55] },
+                LAVALLEJA: { name: "Lavalleja", lat: [-34.55, -33.75], lon: [-55.55, -54.45] }
+            },
+            AR: {
+                BUENOS_AIRES: { name: "Buenos Aires", lat: [-38.0, -34.0], lon: [-62.0, -57.0] },
+                CABA: { name: "CABA", lat: [-34.75, -34.45], lon: [-58.55, -58.25] },
+                CORDOBA: { name: "Córdoba", lat: [-33.5, -30.5], lon: [-65.0, -62.5] },
+                SANTA_FE: { name: "Santa Fe", lat: [-33.0, -29.5], lon: [-62.0, -59.0] },
+                MENDOZA: { name: "Mendoza", lat: [-36.0, -32.5], lon: [-69.5, -67.0] },
+                TUCUMAN: { name: "Tucumán", lat: [-27.5, -26.5], lon: [-66.5, -64.5] },
+                SALTA: { name: "Salta", lat: [-25.5, -21.5], lon: [-67.5, -63.5] },
+                CHACO: { name: "Chaco", lat: [-28.0, -26.0], lon: [-62.5, -58.5] },
+                ENTRE_RIOS: { name: "Entre Ríos", lat: [-34.0, -31.0], lon: [-60.5, -57.0] },
+                CORRIENTES: { name: "Corrientes", lat: [-30.5, -27.0], lon: [-59.5, -56.0] },
+                MISSIONES: { name: "Misiones", lat: [-28.0, -25.5], lon: [-56.0, -53.5] },
+                LA_PAMPA: { name: "La Pampa", lat: [-39.5, -36.5], lon: [-68.5, -64.0] },
+                NEUQUEN: { name: "Neuquén", lat: [-40.5, -37.0], lon: [-71.5, -68.5] },
+                RIO_NEGRO: { name: "Río Negro", lat: [-42.5, -39.0], lon: [-68.5, -63.0] },
+                CHUBUT: { name: "Chubut", lat: [-46.5, -42.0], lon: [-71.5, -65.0] },
+                SANTA_CRUZ: { name: "Santa Cruz", lat: [-52.5, -46.5], lon: [-72.5, -67.0] },
+                TIERRA_DEL_FUEGO: { name: "Tierra del Fuego", lat: [-55.0, -53.5], lon: [-69.5, -66.5] },
+                JUJUY: { name: "Jujuy", lat: [-24.5, -22.0], lon: [-67.5, -65.0] },
+                CATAMARCA: { name: "Catamarca", lat: [-29.5, -27.0], lon: [-68.5, -65.5] },
+                LA_RIOJA: { name: "La Rioja", lat: [-30.5, -28.0], lon: [-69.5, -66.5] },
+                SAN_LUIS: { name: "San Luis", lat: [-34.0, -32.0], lon: [-67.5, -64.5] },
+                SAN_JUAN: { name: "San Juan", lat: [-31.5, -29.5], lon: [-70.5, -67.5] },
+                SANTIAGO_DEL_ESTERO: { name: "Santiago del Estero", lat: [-30.0, -27.0], lon: [-65.5, -62.5] },
+                FORMOSA: { name: "Formosa", lat: [-27.5, -24.5], lon: [-63.5, -59.5] }
+            },
+            CL: {
+                METROPOLITANA: { name: "Metropolitana", lat: [-34.35, -33.35], lon: [-71.25, -70.35] },
+                VALPARAISO: { name: "Valparaíso", lat: [-33.65, -32.45], lon: [-71.85, -70.75] },
+                BIOBIO: { name: "Biobío", lat: [-38.55, -36.45], lon: [-73.55, -71.45] },
+                ARAUCANIA: { name: "La Araucanía", lat: [-39.55, -37.95], lon: [-73.55, -71.45] },
+                LOS_LAGOS: { name: "Los Lagos", lat: [-43.55, -41.45], lon: [-74.05, -71.95] },
+                ANTOFAGASTA: { name: "Antofagasta", lat: [-25.05, -21.95], lon: [-70.55, -66.95] },
+                ATACAMA: { name: "Atacama", lat: [-29.05, -26.45], lon: [-71.55, -69.45] },
+                COQUIMBO: { name: "Coquimbo", lat: [-32.55, -29.45], lon: [-72.05, -69.95] },
+                O_HIGGINS: { name: "O'Higgins", lat: [-35.05, -33.95], lon: [-72.05, -70.45] },
+                MAULE: { name: "Maule", lat: [-36.55, -34.95], lon: [-72.55, -70.45] },
+                NUBLE: { name: "Ñuble", lat: [-37.55, -35.95], lon: [-73.05, -71.45] },
+                LOS_RIOS: { name: "Los Ríos", lat: [-40.55, -39.45], lon: [-73.55, -71.45] },
+                AYSEN: { name: "Aysén", lat: [-47.55, -43.95], lon: [-75.05, -71.45] },
+                MAGALLANES: { name: "Magallanes", lat: [-55.05, -51.95], lon: [-73.05, -67.95] },
+                ARICA_Y_PARINACOTA: { name: "Arica y Parinacota", lat: [-18.55, -17.45], lon: [-70.55, -68.95] },
+                TARAPACA: { name: "Tarapacá", lat: [-21.05, -18.95], lon: [-70.55, -67.95] }
+            },
+            BR: {
+                SP: { name: "São Paulo", lat: [-25.55, -19.45], lon: [-53.55, -43.95] },
+                RJ: { name: "Rio de Janeiro", lat: [-23.55, -20.45], lon: [-45.05, -40.95] },
+                MG: { name: "Minas Gerais", lat: [-21.55, -13.95], lon: [-51.55, -39.45] },
+                RS: { name: "Rio Grande do Sul", lat: [-33.55, -27.45], lon: [-57.55, -49.45] },
+                PR: { name: "Paraná", lat: [-26.55, -22.45], lon: [-54.55, -47.95] },
+                SC: { name: "Santa Catarina", lat: [-29.55, -25.95], lon: [-53.55, -48.45] },
+                BA: { name: "Bahia", lat: [-18.55, -7.45], lon: [-46.55, -36.95] },
+                GO: { name: "Goiás", lat: [-19.55, -12.45], lon: [-53.55, -45.95] },
+                PE: { name: "Pernambuco", lat: [-9.55, -7.45], lon: [-41.55, -34.45] },
+                CE: { name: "Ceará", lat: [-7.55, -2.45], lon: [-41.55, -37.45] },
+                PA: { name: "Pará", lat: [-10.55, 0.55], lon: [-58.55, -45.95] },
+                MA: { name: "Maranhão", lat: [-10.55, -1.45], lon: [-48.55, -41.45] },
+                AM: { name: "Amazonas", lat: [-9.55, 2.55], lon: [-73.55, -55.95] },
+                MT: { name: "Mato Grosso", lat: [-18.05, -7.45], lon: [-61.55, -49.95] },
+                MS: { name: "Mato Grosso do Sul", lat: [-24.55, -16.95], lon: [-58.55, -50.45] },
+                DF: { name: "Distrito Federal", lat: [-16.25, -15.45], lon: [-48.55, -46.95] },
+                ES: { name: "Espírito Santo", lat: [-21.55, -17.95], lon: [-42.05, -39.45] },
+                RN: { name: "Rio Grande do Norte", lat: [-6.55, -4.45], lon: [-38.55, -34.45] },
+                PB: { name: "Paraíba", lat: [-8.55, -6.45], lon: [-39.05, -34.45] },
+                AL: { name: "Alagoas", lat: [-10.55, -8.45], lon: [-37.55, -34.95] },
+                SE: { name: "Sergipe", lat: [-11.55, -9.45], lon: [-38.55, -35.95] },
+                PI: { name: "Piauí", lat: [-11.05, -2.45], lon: [-46.05, -40.45] },
+                TO: { name: "Tocantins", lat: [-13.55, -4.95], lon: [-50.55, -45.45] },
+                RO: { name: "Rondônia", lat: [-13.55, -7.95], lon: [-66.55, -59.45] },
+                AC: { name: "Acre", lat: [-11.55, -6.95], lon: [-74.05, -66.45] },
+                AP: { name: "Amapá", lat: [0.45, 4.55], lon: [-52.55, -49.45] },
+                RR: { name: "Roraima", lat: [-1.55, 5.55], lon: [-64.55, -58.45] }
+            },
+            PY: {
+                CENTRAL: { name: "Central", lat: [-25.55, -24.45], lon: [-58.05, -56.45] },
+                ASUNCION: { name: "Asunción", lat: [-25.45, -25.15], lon: [-57.85, -57.45] },
+                CORDILLERA: { name: "Cordillera", lat: [-25.55, -24.45], lon: [-57.05, -55.45] },
+                GUAIRA: { name: "Guairá", lat: [-26.05, -24.95], lon: [-56.55, -54.95] },
+                CAAGUAZU: { name: "Caaguazú", lat: [-25.55, -23.45], lon: [-57.05, -54.45] },
+                CANINDEYU: { name: "Canindeyú", lat: [-24.55, -22.45], lon: [-55.55, -53.95] },
+                SAN_PEDRO: { name: "San Pedro", lat: [-24.55, -22.45], lon: [-57.55, -55.45] },
+                AMAMBAY: { name: "Amambay", lat: [-23.55, -21.95], lon: [-56.55, -54.95] },
+                CONCEPCION: { name: "Concepción", lat: [-23.55, -21.45], lon: [-58.05, -55.95] },
+                BOQUERON: { name: "Boquerón", lat: [-23.55, -19.45], lon: [-63.05, -58.45] },
+                PRESIDENTE_HAYES: { name: "Presidente Hayes", lat: [-24.55, -22.45], lon: [-63.05, -58.45] },
+                ALTO_PARANA: { name: "Alto Paraná", lat: [-25.55, -23.95], lon: [-55.55, -53.95] },
+                ITAPUA: { name: "Itapúa", lat: [-27.55, -25.45], lon: [-56.55, -53.95] },
+                MISIONES: { name: "Misiones", lat: [-27.55, -25.95], lon: [-59.55, -57.45] },
+                PARAGUARI: { name: "Paraguarí", lat: [-26.55, -25.45], lon: [-57.55, -55.95] }
+            }
+        };
+
+        function updateSpeedLimitDivisions() {
+            const country = document.getElementById('speedLimitCountry').value;
+            const sel = document.getElementById('speedLimitDivision');
+            const divs = DIVISIONS[country] || {};
+            sel.innerHTML = '<option value="">-- Seleccionar --</option>';
+            for (const [key, div] of Object.entries(divs)) {
+                sel.innerHTML += `<option value="${key}">${div.name}</option>`;
+            }
+            sel.innerHTML += '<option value="__ALL__">Todos los departamentos</option>';
+            document.getElementById('speedLimitStatus').textContent = '';
+        }
+
+        function getCountryGrid(countryCode) {
+            switch(countryCode) {
+                case 'UY': return [
+                    { minLat: -34.95, minLon: -58.45, maxLat: -33.5, maxLon: -55.5 },
+                    { minLat: -34.95, minLon: -55.5, maxLat: -33.5, maxLon: -53.0 },
+                    { minLat: -33.5, minLon: -58.45, maxLat: -31.0, maxLon: -55.5 },
+                    { minLat: -33.5, minLon: -55.5, maxLat: -31.0, maxLon: -53.0 }
+                ];
+                case 'AR': return [
+                    { minLat: -39.0, minLon: -65.0, maxLat: -35.0, maxLon: -60.5 },
+                    { minLat: -39.0, minLon: -60.5, maxLat: -35.0, maxLon: -56.0 },
+                    { minLat: -35.0, minLon: -65.0, maxLat: -31.0, maxLon: -60.5 },
+                    { minLat: -35.0, minLon: -60.5, maxLat: -31.0, maxLon: -56.0 }
+                ];
+                case 'BR': return [
+                    { minLat: -30.0, minLon: -53.0, maxLat: -25.0, maxLon: -47.0 },
+                    { minLat: -30.0, minLon: -47.0, maxLat: -25.0, maxLon: -41.0 },
+                    { minLat: -25.0, minLon: -53.0, maxLat: -20.0, maxLon: -47.0 },
+                    { minLat: -25.0, minLon: -47.0, maxLat: -20.0, maxLon: -41.0 }
+                ];
+                case 'CL': return [
+                    { minLat: -37.0, minLon: -73.5, maxLat: -33.0, maxLon: -69.5 },
+                    { minLat: -33.0, minLon: -73.5, maxLat: -29.0, maxLon: -69.5 }
+                ];
+                case 'PY': return [
+                    { minLat: -27.6, minLon: -62.7, maxLat: -23.4, maxLon: -58.5 },
+                    { minLat: -27.6, minLon: -58.5, maxLat: -23.4, maxLon: -54.2 },
+                    { minLat: -23.4, minLon: -62.7, maxLat: -19.2, maxLon: -58.5 },
+                    { minLat: -23.4, minLon: -58.5, maxLat: -19.2, maxLon: -54.2 }
+                ];
+                default: return [{ minLat: -34.94, minLon: -56.43, maxLat: -34.70, maxLon: -56.00 }];
+            }
+        }
+
+        async function syncSpeedLimits() {
+            const country = document.getElementById('speedLimitCountry').value;
+            const divisionKey = document.getElementById('speedLimitDivision').value;
+            if (!divisionKey) { alert("Seleccioná un departamento."); return; }
+
+            const countryDivs = DIVISIONS[country] || {};
+            let rawGrids = [];
+
+            if (divisionKey === '__ALL__') {
+                for (const [key, div] of Object.entries(countryDivs)) {
+                    rawGrids.push({ minLat: div.lat[0], minLon: div.lon[0], maxLat: div.lat[1], maxLon: div.lon[1], department: key });
+                }
+            } else {
+                const div = countryDivs[divisionKey];
+                if (!div) { alert("Departamento no encontrado."); return; }
+                rawGrids.push({ minLat: div.lat[0], minLon: div.lon[0], maxLat: div.lat[1], maxLon: div.lon[1], department: divisionKey });
+            }
+
+            // Split large grids into smaller sub-grids (max ~0.08 degrees per side)
+            const MAX_SIZE = 0.08;
+            const grids = [];
+            for (const g of rawGrids) {
+                const latSpan = g.maxLat - g.minLat;
+                const lonSpan = g.maxLon - g.minLon;
+                const latSteps = Math.ceil(latSpan / MAX_SIZE);
+                const lonSteps = Math.ceil(lonSpan / MAX_SIZE);
+                for (let i = 0; i < latSteps; i++) {
+                    for (let j = 0; j < lonSteps; j++) {
+                        grids.push({
+                            minLat: g.minLat + i * MAX_SIZE,
+                            minLon: g.minLon + j * MAX_SIZE,
+                            maxLat: Math.min(g.minLat + (i + 1) * MAX_SIZE, g.maxLat),
+                            maxLon: Math.min(g.minLon + (j + 1) * MAX_SIZE, g.maxLon),
+                            department: g.department
+                        });
+                    }
+                }
+            }
+
+            const label = divisionKey === '__ALL__' ? 'todos los departamentos' : countryDivs[divisionKey]?.name || divisionKey;
+            if (!confirm(`¿Descargar límites de velocidad para "${label}"?\nSe harán ${grids.length} peticiones a OSM.`)) return;
+
+            const statusEl = document.getElementById('speedLimitStatus');
+            statusEl.textContent = 'Conectando con OSM...';
+            statusEl.style.color = '#f39c12';
+
+            const hwTypes = [];
+            if (document.getElementById('sl_motorway').checked) hwTypes.push('motorway');
+            if (document.getElementById('sl_trunk').checked) hwTypes.push('trunk');
+            if (document.getElementById('sl_primary').checked) hwTypes.push('primary');
+            if (document.getElementById('sl_secondary').checked) hwTypes.push('secondary');
+            if (document.getElementById('sl_tertiary').checked) hwTypes.push('tertiary');
+            if (document.getElementById('sl_residential').checked) hwTypes.push('residential');
+            if (hwTypes.length === 0) { alert("Seleccioná al menos un tipo de vía."); return; }
+            const hwFilter = `["highway"~"^(${hwTypes.join('|')})$"]`;
+            console.log(`[SpeedDownload] Highway filter: ${hwFilter}`);
+
+            const endpoints = ["https://overpass.kumi.systems/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://overpass-api.de/api/interpreter"];
+            const allWays = new Map();
+
+            for (let idx = 0; idx < grids.length; idx++) {
+                const g = grids[idx];
+                const deptLabel = countryDivs[g.department]?.name || g.department;
+                statusEl.textContent = `[${idx + 1}/${grids.length}] Descargando ${deptLabel}...`;
+
+                const query = `[out:json][timeout:30];(way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|service|unclassified)$"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon}););out body;>;out skel qt;`;
+                console.log(`[SpeedDownload] Query: ${query.substring(0, 100)}...`);
+
+                let downloaded = false;
+                for (let url of endpoints) {
+                    try {
+                        console.log(`[SpeedDownload] Trying ${url}...`);
+                        const resp = await fetch(`${url}?data=${encodeURIComponent(query)}`);
+                        console.log(`[SpeedDownload] Response: ${resp.status} from ${url}`);
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            console.log(`[SpeedDownload] Elements: ${data.elements?.length || 0}`);
+                            if (data.elements) {
+                                const ways = data.elements.filter(e => e.type === 'way');
+                                const nodes = data.elements.filter(e => e.type === 'node');
+                                const nodeMap = {};
+                                nodes.forEach(n => { nodeMap[n.id] = [n.lon, n.lat]; });
+
+                                let withSpeed = 0, withDefault = 0;
+                                ways.forEach(w => {
+                                    if (!w.tags) return;
+                                    const hw = w.tags.highway || '';
+                                    const coords = (w.nodes || []).map(nid => nodeMap[nid]).filter(Boolean);
+                                    if (coords.length < 2) return;
+
+                                    const wantThisType = (
+                                        (hw === 'motorway' && document.getElementById('sl_motorway').checked) ||
+                                        (hw === 'trunk' && document.getElementById('sl_trunk').checked) ||
+                                        (hw === 'primary' && document.getElementById('sl_primary').checked) ||
+                                        (hw === 'secondary' && document.getElementById('sl_secondary').checked) ||
+                                        (hw === 'tertiary' && document.getElementById('sl_tertiary').checked) ||
+                                        (['residential', 'service', 'unclassified'].includes(hw) && document.getElementById('sl_residential').checked)
+                                    );
+                                    if (!wantThisType) return;
+
+                                    let speed = 0;
+                                    if (w.tags.maxspeed) {
+                                        speed = parseInt(w.tags.maxspeed);
+                                    } else if (['residential', 'service', 'unclassified'].includes(hw)) {
+                                        speed = 45;
+                                    }
+                                    if (speed <= 0 || speed >= 200) return;
+
+                                    allWays.set(w.id, {
+                                        id: w.id,
+                                        name: w.tags.name || '',
+                                        maxspeed: speed,
+                                        highway: hw,
+                                        nodes: coords,
+                                        department: g.department
+                                    });
+                                    if (w.tags.maxspeed) withSpeed++; else withDefault++;
+                                });
+                                console.log(`[SpeedDownload] OSM: ${withSpeed} con dato real, ${withDefault} con default 45`);
+                            }
+                            downloaded = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.log(`[SpeedDownload] Error from ${url}: ${e.message}`);
+                    }
+                }
+                if (!downloaded) {
+                    console.log(`[SpeedDownload] All endpoints failed for ${deptLabel}`);
+                }
+            }
+
+            if (allWays.size === 0) { statusEl.textContent = 'No se encontraron datos de velocidad.'; statusEl.style.color = '#da3637'; return; }
+
+            statusEl.textContent = `Procesando ${allWays.size} calles...`;
+            const segments = [];
+            allWays.forEach(way => {
+                const coords = way.nodes;
+                if (coords.length < 2) return;
+                for (let i = 0; i < coords.length - 1; i++) {
+                    segments.push({
+                        way_id: way.id,
+                        name: way.name,
+                        maxspeed: way.maxspeed,
+                        lat_start: coords[i][1],
+                        lon_start: coords[i][0],
+                        lat_end: coords[i + 1][1],
+                        lon_end: coords[i + 1][0],
+                        highway: way.highway,
+                        country: country,
+                        department: way.department
+                    });
+                }
+            });
+
+            console.log(`[SpeedDownload] Total segments to save: ${segments.length}`);
+            statusEl.textContent = `Guardando ${segments.length} segmentos en Supabase...`;
+            const chunk = 500;
+            let ok = 0;
+            for (let i = 0; i < segments.length; i += chunk) {
+                const { data, error } = await sb.from('speed_limits').upsert(segments.slice(i, i + chunk), { onConflict: 'way_id,lat_start,lon_start,lat_end,lon_end' });
+                if (error) {
+                    console.log(`[SpeedDownload] Supabase error: ${error.message}`);
+                    statusEl.textContent = `Error guardando: ${error.message}`;
+                    statusEl.style.color = '#da3637';
+                    return;
+                }
+                ok += Math.min(chunk, segments.length - i);
+                statusEl.textContent = `Guardando... ${ok}/${segments.length}`;
+                console.log(`[SpeedDownload] Saved ${ok}/${segments.length}`);
+            }
+            statusEl.innerHTML = `✅ <b>${ok} segmentos</b> guardados para ${label} (${country})`;
+            statusEl.style.color = '#2ecc71';
+            console.log(`[SpeedDownload] DONE: ${ok} segments saved`);
+        }
+
+        async function searchStreet() {
+            const query = document.getElementById('streetSearchInput').value.trim();
+            if (!query) return;
+
+            const statusEl = document.getElementById('streetSearchStatus');
+            const resultsEl = document.getElementById('streetResults');
+            statusEl.textContent = 'Buscando...';
+            statusEl.style.color = '#f39c12';
+            resultsEl.innerHTML = '';
+
+            try {
+                const { data, error } = await sb.from('speed_limits')
+                    .select('*')
+                    .ilike('name', `%${query}%`)
+                    .limit(100);
+
+                if (error) { statusEl.textContent = `Error: ${error.message}`; statusEl.style.color = '#da3637'; return; }
+                if (!data || data.length === 0) { statusEl.textContent = 'No se encontraron calles con ese nombre.'; statusEl.style.color = '#8b949e'; return; }
+
+                // Group by name
+                const grouped = {};
+                data.forEach(seg => {
+                    const name = seg.name || '(sin nombre)';
+                    if (!grouped[name]) grouped[name] = { highway: seg.highway, maxspeed: seg.maxspeed, segments: 0, country: seg.country, department: seg.department };
+                    grouped[name].segments++;
+                });
+
+                statusEl.textContent = `${Object.keys(grouped).length} calles encontradas (${data.length} segmentos)`;
+                statusEl.style.color = '#2ecc71';
+
+                let html = '';
+                for (const [name, info] of Object.entries(grouped)) {
+                    const hwLabel = { motorway: 'Autopista', trunk: 'Troncal', primary: 'Principal', secondary: 'Secundaria', tertiary: 'Terciaria', residential: 'Residencial', service: 'Servicio', unclassified: 'Sin clasificar' }[info.highway] || info.highway;
+                    html += `<div class="list-item" onclick="showStreetOnMap('${name.replace(/'/g, "\\'")}')">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b style="color:#58a6ff;">${name}</b>
+                            <span class="badge badge-radar">${info.maxspeed ? info.maxspeed + ' km/h' : 'Sin dato'}</span>
+                        </div>
+                        <div style="font-size:11px; color:#8b949e;">${hwLabel} · ${info.segments} segmentos · ${info.country}</div>
+                    </div>`;
+                }
+                resultsEl.innerHTML = html;
+            } catch (e) {
+                statusEl.textContent = `Error: ${e.message}`;
+                statusEl.style.color = '#da3637';
+            }
+        }
+
+        let streetSegments = [];
+        async function showStreetOnMap(streetName) {
+            const { data } = await sb.from('speed_limits').select('*').ilike('name', streetName).limit(200);
+            if (!data || data.length === 0) return;
+
+            // Remove old layers
+            try { map.removeLayer('street-highlight'); map.removeSource('street-highlight'); } catch(e) {}
+
+            const coords = [];
+            const coords2d = [];
+            data.forEach(seg => {
+                coords.push([seg.lon_start, seg.lat_start]);
+                coords.push([seg.lon_end, seg.lat_end]);
+                coords2d.push([seg.lon_start, seg.lat_start]);
+                coords2d.push([seg.lon_end, seg.lat_end]);
+            });
+
+            const line = { type: 'Feature', geometry: { type: 'MultiLineString', coordinates: data.map(seg => [[seg.lon_start, seg.lat_start], [seg.lon_end, seg.lat_end]]) } };
+
+            map.addSource('street-highlight', { type: 'geojson', data: line });
+            map.addLayer({ id: 'street-highlight', type: 'line', source: 'street-highlight', paint: { 'line-color': '#00BFFF', 'line-width': 4, 'line-opacity': 0.8 } });
+
+            // Fit bounds
+            const lats = coords2d.map(c => c[1]);
+            const lons = coords2d.map(c => c[0]);
+            const bounds = [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]];
+            map.fitBounds(bounds, { padding: 50 });
+
+        }
+
+        async function deleteSpeedLimits() {
+            const country = document.getElementById('speedLimitCountry').value;
+            const divisionKey = document.getElementById('speedLimitDivision').value;
+            if (!divisionKey || divisionKey === '__ALL__') { alert("Seleccioná un departamento específico para borrar."); return; }
+
+            const label = DIVISIONS[country]?.[divisionKey]?.name || divisionKey;
+            if (!confirm(`¿Borrar TODOS los límites de velocidad de "${label}" (${country})?\nEsto no se puede deshacer.`)) return;
+
+            const statusEl = document.getElementById('speedLimitStatus');
+            statusEl.textContent = `Borrando datos de ${label}...`;
+            statusEl.style.color = '#da3637';
+
+            try {
+                const { error } = await sb.from('speed_limits').delete().eq('country', country).eq('department', divisionKey);
+                if (error) {
+                    statusEl.textContent = `Error: ${error.message}`;
+                    console.log(`[DeleteSpeed] Error: ${error.message}`);
+                    return;
+                }
+                statusEl.innerHTML = `🗑️ Velocidades de <b>${label}</b> borradas`;
+                statusEl.style.color = '#da3637';
+                console.log(`[DeleteSpeed] Deleted from ${label}`);
+            } catch (e) {
+                statusEl.textContent = `Error: ${e.message}`;
+                console.log(`[DeleteSpeed] Error: ${e.message}`);
+            }
+        }
+
+        let speedLimitLayer = null;
+        async function showSpeedLimitsOnMap() {
+            if (speedLimitLayer) {
+                map.removeLayer(speedLimitLayer);
+                map.removeLayer(speedLimitLayer._hoverLayer);
+                speedLimitLayer = null;
+                speedLimitLayerVisible = false;
+                return;
+            }
+
+            const statusEl = document.getElementById('speedLimitStatus');
+            statusEl.textContent = 'Cargando velocidades del mapa...';
+
+            try {
+                let allData = [];
+                let start = 0;
+                while (true) {
+                    const { data, error } = await sb.from('speed_limits').select('lat_start,lon_start,lat_end,lon_end,maxspeed,highway,name').range(start, start + 999);
+                    if (error || !data || data.length === 0) break;
+                    allData = allData.concat(data);
+                    if (data.length < 1000) break;
+                    start += 1000;
+                }
+
+                if (allData.length === 0) { statusEl.textContent = 'No hay velocidades en la BD.'; return; }
+
+                const lines = allData.map(r => {
+                    const color = r.maxspeed <= 40 ? '#2ecc71' : r.maxspeed <= 50 ? '#3498db' : r.maxspeed <= 60 ? '#f1c40f' : r.maxspeed <= 90 ? '#e67e22' : '#e74c3c';
+                    return L.polyline([[r.lat_start, r.lon_start], [r.lat_end, r.lon_end]], {
+                        color: color, weight: 3, opacity: 0.8
+                    }).bindPopup(`<b style="font-size:16px; color:${color};">${r.maxspeed} km/h</b><br>${r.name || r.highway || ''}`);
+                });
+
+                speedLimitLayer = L.layerGroup(lines).addTo(map);
+                speedLimitLayerVisible = true;
+                statusEl.innerHTML = `🗺️ <b>${allData.length} segmentos</b> visibles en el mapa`;
+                statusEl.style.color = '#2ecc71';
+            } catch (e) {
+                statusEl.textContent = `Error: ${e.message}`;
+                console.log(`[MapSpeed] Error: ${e.message}`);
+            }
+        }
+
+        function filterMap() { renderMapElements(); }
+
+        function toggleAllFilters(masterCheckbox) {
+            document.getElementById('filter_speed').checked = masterCheckbox.checked;
+            filterMap();
+        }
+
+        async function loadData() {
+            let allFetched = [];
+            let start = 0;
+            while(true) {
+                const { data: chunk, error } = await sb.from('speed_limits')
+                    .select('*').range(start, start + 999);
+                if (error || !chunk || chunk.length === 0) break;
+                allFetched.push(...chunk);
+                if (chunk.length < 1000) break;
+                start += 1000;
+            }
+            allSpeedLimits = allFetched;
+            renderMapElements();
+        }
+
+        function renderMapElements() {
+            speedLayerGroup.clearLayers();
+            const showSpeed = document.getElementById('filter_speed').checked;
+            if (showSpeed && allSpeedLimits.length > 0 && map.getZoom() >= 14) {
+                allSpeedLimits.forEach(sl => {
+                    const color = sl.maxspeed <= 40 ? '#2ecc71' : sl.maxspeed <= 60 ? '#f1c40f' : sl.maxspeed <= 90 ? '#e67e22' : '#e74c3c';
+                    const line = L.polyline(
+                        [[sl.lat_start, sl.lon_start], [sl.lat_end, sl.lon_end]],
+                        { color, weight: 4, opacity: 0.8 }
+                    );
+                    line.bindPopup(`
+                        <div style="font-family:sans-serif; font-size:12px;">
+                            <b style="font-size:14px; color:${color};">${sl.maxspeed} km/h</b><br>
+                            ${sl.name ? sl.name + '<br>' : ''}
+                            <small>${sl.highway}</small>
+                        </div>
+                    `);
+                    line.addTo(speedLayerGroup);
+                });
+            }
+        }
+
+        loadData();
+        updateSpeedLimitDivisions();
+    </script>
+</body>
+</html>
