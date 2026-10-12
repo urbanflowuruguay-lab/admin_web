@@ -372,16 +372,19 @@ const ITEMS = [
   {t:'assets/images/events/mediacalzadaporobras.png', d:'PNG con marco de d\u00eda, va con aguja.'}
  ]},
 
-{id:'callecortada',g:'evento',n:'Calle cortada por obras',img:'../callecortada.png',
- tag:'callecortada',
+/* Callecortada y callecerrada van juntas: para el chofer significan lo
+   mismo (no se puede pasar). En la base siguen siendo dos types. */
+{id:'callecerrada',g:'evento',n:'Calle cortada o cerrada',img:'../callecerrada.png',
+ tag:'callecortada / cerrada / callecerrada',
  meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code> &middot; <b>verificable</b>',
  defSize:1.0,
  pref:'alert_obra', prefOn:true,
  voice:true, beep:false, nav:true, patrol:false, verifiable:true,
  phrase:'Calle cortada a X metros',
  sources:[
-  {t:'Supabase road_alerts', d:'Fila de IMM o reporte de usuario.'},
-  {t:'assets/images/events/callecortadaporobras.png', d:'PNG con marco de d\u00eda.'}
+  {t:'Supabase road_alerts', d:'Fila de IMM o reporte de usuario. El type viene como <code>callecortada</code>, <code>cerrada</code> o <code>callecerrada</code>; los tres se ven igual.'},
+  {t:'assets/images/events/callecerrada.png', d:'PNG con marco de d\u00eda, lo comparten <code>cerrada</code> y <code>callecerrada</code>.'},
+  {t:'assets/images/events/callecortadaporobras.png', d:'PNG aparte, s\u00f3lo de <code>callecortada</code>.'}
  ]},
 
 {id:'accidente',g:'evento',n:'Accidente',img:'../accidente.png',
@@ -468,18 +471,6 @@ const ITEMS = [
   {t:'assets/images/events/calleinundada.png', d:'PNG con marco de d\u00eda.'}
  ]},
 
-{id:'callecerrada',g:'evento',n:'Calle cerrada',img:'../callecerrada.png',
- tag:'cerrada / callecerrada',
- meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code> &middot; <b>verificable</b>',
- defSize:1.0,
- pref:'alert_obra', prefOn:true,
- voice:true, beep:false, nav:true, patrol:false, verifiable:true,
- phrase:'Calle cerrada a X metros',
- sources:[
-  {t:'Supabase road_alerts', d:'Fila de IMM o reporte de usuario.'},
-  {t:'assets/images/events/callecerrada.png', d:'PNG con marco de d\u00eda.'}
- ]},
-
 {id:'niebla',g:'evento',n:'Banco de niebla',img:'../niebla.png',
  tag:'niebla',
  meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
@@ -492,28 +483,19 @@ const ITEMS = [
   {t:'assets/images/events/niebla.png', d:'PNG con marco de d\u00eda.'}
  ]},
 
-{id:'detenido_izq',g:'evento',n:'Auto detenido a la izquierda',img:'../detenido_izq.png',
- tag:'detenido_izq',
- meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
+/* Los dos detenidos van juntas: hay un auto parado en la vía. La app sí
+   distingue el lado con dos PNG distintos, pero el aviso es el mismo. */
+{id:'detenido',g:'evento',n:'Auto detenido en la v\u00eda',img:'../detenido_izq.png',
+ tag:'detenido_izq / detenido_der',
+ meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code> &middot; la app pinta la foto del lado que corresponde',
  defSize:1.0,
  pref:'alert_obra', prefOn:true,
  voice:true, beep:false, nav:true, patrol:false, verifiable:true,
- phrase:'Auto detenido a la izquierda a X metros',
+ phrase:'Auto detenido en la v\u00eda a X metros',
  sources:[
-  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
-  {t:'assets/images/events/autodetenidoalizquierda.png', d:'PNG con marco de d\u00eda.'}
- ]},
-
-{id:'detenido_der',g:'evento',n:'Auto detenido a la derecha',img:'../detenido_der.png',
- tag:'detenido_der',
- meta:'IconSize <code>1.0</code> &middot; avisa a <code>400 m</code> &middot; prefi <code>alert_obra</code>',
- defSize:1.0,
- pref:'alert_obra', prefOn:true,
- voice:true, beep:false, nav:true, patrol:false, verifiable:true,
- phrase:'Auto detenido a la derecha a X metros',
- sources:[
-  {t:'Supabase road_alerts', d:'Reportes de usuarios.'},
-  {t:'assets/images/events/autodetenidoalderecha.png', d:'PNG con marco de d\u00eda.'}
+  {t:'Supabase road_alerts', d:'Reportes de usuarios. El type es <code>detenido_izq</code> o <code>detenido_der</code>.'},
+  {t:'assets/images/events/autodetenidoalizquierda.png', d:'PNG de <code>detenido_izq</code>.'},
+  {t:'assets/images/events/autodetenidoalderecha.png', d:'PNG de <code>detenido_der</code>.'}
  ]},
 
 /* ===== USUARIO / NAVEGACI&Oacute;N ===== */
@@ -541,53 +523,20 @@ const ITEMS = [
   {t:'assets/images/iconos sobre mapa/destino.png', d:'Icono pelado de d\u00eda.'}
  ]},
 
-/* ===== BUSES ===== */
-{id:'bus-cutcsa',g:'bus',n:'Bus CUTCSA (en vivo)',img:'../bus-cutcsa.png',
- tag:'CUTCSA',
- meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> (0.08 a z12 &rarr; 0.38 a z18) &middot; no avisa por voz',
+/* ===== BUSES =====
+   Las 4 empresas son lo mismo para el chofer: un colectivo en el mapa.
+   Antes había una fila por empresa con el texto idéntico. Va una sola. */
+{id:'bus',g:'bus',n:'Buses en vivo (4 empresas)',img:'../bus-cutcsa.png',
+ tag:'CUTCSA / UCOT / COME / COETC',
+ meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> (0.08 a z12 &rarr; 0.38 a z18) &middot; no avisan por voz &middot; cada empresa tiene su foto y su color en la ficha (CUTCSA blanco, COETC rojo, UCOT amarillo, COME verde)',
  defSize:0.38,
  pref:'alert_bus', prefOn:true,
  voice:false, beep:false, nav:true, patrol:true, verifiable:false,
  phrase:'(los buses no tienen frase: se ven en el mapa)',
  sources:[
-  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota CUTCSA.'},
-  {t:'assets/images/BUSES/bus-cutcsa.png', d:'PNG de d\u00eda.'}
- ]},
-
-{id:'bus-ucot',g:'bus',n:'Bus UCOT (en vivo)',img:'../bus-ucot.png',
- tag:'UCOT',
- meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> &middot; no avisa por voz',
- defSize:0.38,
- pref:'alert_bus', prefOn:true,
- voice:false, beep:false, nav:true, patrol:true, verifiable:false,
- phrase:'(los buses no tienen frase: se ven en el mapa)',
- sources:[
-  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota UCOT.'},
-  {t:'assets/images/BUSES/bus-ucot.png', d:'PNG de d\u00eda.'}
- ]},
-
-{id:'bus-come',g:'bus',n:'Bus COME (en vivo)',img:'../bus-come.png',
- tag:'COME',
- meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> &middot; no avisa por voz',
- defSize:0.38,
- pref:'alert_bus', prefOn:true,
- voice:false, beep:false, nav:true, patrol:true, verifiable:false,
- phrase:'(los buses no tienen frase: se ven en el mapa)',
- sources:[
-  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota COME.'},
-  {t:'assets/images/BUSES/bus-come.png', d:'PNG de d\u00eda.'}
- ]},
-
-{id:'bus-coetc',g:'bus',n:'Bus COETC (en vivo)',img:'../bus-coetc.png',
- tag:'COETC',
- meta:'IconSize = <code>0.8 &times; _iconSizeForZoom</code> &middot; no avisa por voz',
- defSize:0.38,
- pref:'alert_bus', prefOn:true,
- voice:false, beep:false, nav:true, patrol:true, verifiable:false,
- phrase:'(los buses no tienen frase: se ven en el mapa)',
- sources:[
-  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de la flota COETC.'},
-  {t:'assets/images/BUSES/bus-coetc.png', d:'PNG de d\u00eda.'}
+  {t:'Supabase buses / GTFS-RT', d:'Posici\u00f3n en vivo de las 4 flotas.'},
+  {t:'bus_icons.dart', d:'Icono por empresa: bus-cutcsa / bus-ucot / bus-coetc / bus-come.png.'},
+  {t:'buses_layer.dart', d:'Color por empresa en la ficha del colectivo.'}
  ]},
 
 {id:'bus-parada',g:'bus',n:'Parada de bus',img:'',
@@ -614,31 +563,22 @@ const ITEMS = [
   {t:'bus_lane_service.dart', d:'distanceToLane() decide si el carril est\u00e1 debajo del auto.'}
  ]},
 
-/* ===== FERIAS ===== */
+/* ===== FERIAS =====
+   Tristán Narvaja tenía su fila propia acá, pero es la feria id 249 de
+   map_events: ya aparece en la pestaña "Ferias" con las demás. La app
+   además no sabe dibujar type = feria_especial, sólo type = feria. */
 {id:'feria',g:'feria',n:'Feria vecinal (trazo punteado)',img:'',
  tag:"type = 'feria'",
- meta:'L&iacute;nea punteada blanco/rojo semitransparente, <b>no es icono</b> &middot; radio modo test <code>15 km</code> &middot; no avisa por voz, s\u00f3lo cartel. <b>DESACTIVADO por pedido del usuario: las ferias no est\u00e1n de confianza.</b>',
+ meta:'L&iacute;nea punteada blanco/rojo semitransparente, <b>no es icono</b> &middot; no avisa por voz, s\u00f3lo cartel &middot; <b>la app s\u00f3lo dibuja las que est\u00e1n marcadas como activas</b> (✅ en la pesta\u00f1a Ferias) y s\u00f3lo en su d&iacute;a y su horario',
  defSize:1.0,
- pref:'alert_feria', prefOn:false,
+ pref:'alert_feria', prefOn:true,
  voice:false, beep:false, nav:true, patrol:true, verifiable:true,
  phrase:'(la feria no tiene frase hablada; muestra cartel de texto)',
  sources:[
-  {t:'Supabase map_events', d:'type = feria, 111 filas. Carga: tools/load_ferias.py. El d\u00eda sale del prefijo del nombre (LUN/MAR/.../DOM).'},
-  {t:'PDF MEF (Decreto 103/2024)', d:'Fuente oficial de las 117 ferias vigentes + 12 traslados pendientes.'},
-  {t:'OSM Overpass', d:'Geometr\u00eda de las calles; se recorta al tramo entre esquinas.'},
+  {t:'Supabase map_events', d:'Filas con <code>type = feria</code>. El d&iacute;a sale del prefijo del nombre (LUN/MAR/.../DOM). Se cargan y se editan desde la pesta&ntilde;a Ferias de esta misma pantalla.'},
+  {t:'PDF MEF (Decreto 103/2024)', d:'Fuente oficial de las ferias vigentes.'},
+  {t:'OSM Overpass', d:'Geometr&iacute;a de las calles; se recorta al tramo entre esquinas.'},
   {t:'ferias_layer.dart', d:'Sprite PNG 16&times;4 blanco/rojo con package:image, capa ferias-layer + ferias-shadow.'}
- ]},
-
-{id:'feria-especial',g:'feria',n:'Trist\u00e1n Narvaja (feria especial)',img:'',
- tag:'DOM \u00b7 TRISTAN NARVAJA',
- meta:'Feria <b>especial</b> (Art. 620, normativa propia), NO est\u00e1 en el expediente MEF 2024-5-1-0005700 &middot; 790,7 m, 11 puntos &middot; el domingo 17 del PDF figura como ELIMINADA',
- defSize:1.0,
- pref:'alert_feria', prefOn:false,
- voice:false, beep:false, nav:true, patrol:true, verifiable:true,
- phrase:'(feria especial, sin frase hablada)',
- sources:[
-  {t:'Supabase map_events', d:'Alta manual por scripts Temp\\opencode\\add_narvaja.py.'},
-  {t:'OSM Overways', d:'6 ways encadenados desde Av. La Paz hasta 18 de Julio.'}
  ]}
 ];
 
