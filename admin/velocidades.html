@@ -173,6 +173,10 @@
             <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:#e67e22; font-weight:bold; cursor:pointer;">
                 <input type="checkbox" id="filter_speed" checked onchange="filterMap()"> 🏎️ Mostrar velocidades en el mapa
             </label>
+            <span style="display:flex; align-items:center; gap:5px; font-size:10px; color:#8b949e;">
+                <span style="display:inline-block; width:90px; height:8px; border-radius:4px; background:linear-gradient(to right, hsl(130,70%,45%), hsl(65,70%,45%), hsl(0,70%,45%));"></span>
+                20 → 120 km/h
+            </span>
             <span id="mapRenderInfo" style="font-size:10px; color:#8b949e;"></span>
         </div>
         <div id="map"></div>
@@ -761,6 +765,32 @@
         // en 14 (sin escuchar el zoom), así que no se veía nada nunca.
         // Dibuja sólo el cuadro visible, con tope, y se repinta al mover.
         const TOPE_SEGMENTOS = 5000;
+
+        // Un color por velocidad, de verde (lento) a rojo (rápido).
+        function colorDeVelocidad(v) {
+            const s = Number(v) || 0;
+            const t = Math.max(0, Math.min(1, (s - 20) / 100));
+            return 'hsl(' + Math.round(130 - t * 130) + ',70%,45%)';
+        }
+
+        function popupTramo(sl, color) {
+            const origen = sl.tagged ? 'tag de OSM' : 'valor inferido';
+            return `
+                <div style="font-family:sans-serif; font-size:12px; min-width:200px;">
+                    <b style="font-size:16px; color:${color};">${sl.maxspeed} km/h</b>
+                    ${sl.name ? '<br>' + sl.name : ''}
+                    <br><small style="color:#777;">${sl.highway || 'sin tipo'} · ${origen}</small>
+                    <div style="margin-top:8px; border-top:1px solid #ddd; padding-top:6px;">
+                        <div style="font-size:11px; margin-bottom:3px;">Velocidad correcta (km/h)</div>
+                        <input type="number" class="v-inp" value="${sl.maxspeed}" min="5" max="200" step="5"
+                               style="width:64px; padding:3px; font-size:13px;">
+                        <button class="v-btn" data-way="${sl.way_id}" data-lat="${sl.lat_start}" data-lon="${sl.lon_start}"
+                                style="margin-left:6px; padding:4px 10px; background:#238636; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px;">Guardar</button>
+                        <div class="v-msg" style="font-size:11px; margin-top:4px; color:#777;"></div>
+                    </div>
+                </div>`;
+        }
+
         function renderMapElements() {
             speedLayerGroup.clearLayers();
             const info = document.getElementById('mapRenderInfo');
@@ -779,18 +809,13 @@
                 if (pintados >= TOPE_SEGMENTOS) { cortado = true; return; }
                 pintados++;
 
-                const color = sl.maxspeed <= 40 ? '#2ecc71' : sl.maxspeed <= 60 ? '#f1c40f' : sl.maxspeed <= 90 ? '#e67e22' : '#e74c3c';
+                const color = colorDeVelocidad(sl.maxspeed);
                 const line = L.polyline(
                     [[sl.lat_start, sl.lon_start], [sl.lat_end, sl.lon_end]],
                     { color, weight: 4, opacity: 0.8 }
                 );
-                line.bindPopup(`
-                    <div style="font-family:sans-serif; font-size:12px;">
-                        <b style="font-size:14px; color:${color};">${sl.maxspeed} km/h</b><br>
-                        ${sl.name ? sl.name + '<br>' : ''}
-                        <small>${sl.highway}</small>
-                    </div>
-                `);
+                line.bindPopup(popupTramo(sl, color));
+                line.on('popupopen', e => pegarGuardado(e.popup, sl));
                 line.addTo(speedLayerGroup);
             });
 
@@ -800,6 +825,44 @@
                     : `${pintados.toLocaleString('es')} de ${enCuadro.toLocaleString('es')} tramos en pantalla`
                         + (cortado ? ` · tope de ${TOPE_SEGMENTOS}, acercá el mapa` : '');
             }
+        }
+
+        // Guarda el valor en la BD. La clave way_id + lat_start + lon_start es
+        // única (verificado: 500/500 distintas), así que apunta a una sola fila.
+        function pegarGuardado(popup, sl) {
+            const box = popup.getElement();
+            const btn = box && box.querySelector('.v-btn');
+            if (!btn) return;
+            btn.addEventListener('click', async () => {
+                const inp = box.querySelector('.v-inp');
+                const msg = box.querySelector('.v-msg');
+                const v = parseInt(inp.value, 10);
+                if (!v || v < 5 || v > 200) {
+                    msg.style.color = '#da3637';
+                    msg.textContent = 'Poné un valor entre 5 y 200';
+                    return;
+                }
+                btn.disabled = true;
+                msg.style.color = '#777';
+                msg.textContent = 'Guardando...';
+                const { error } = await sb.from('speed_limits')
+                    .update({ maxspeed: v, tagged: true })
+                    .eq('way_id', Number(btn.dataset.way))
+                    .eq('lat_start', Number(btn.dataset.lat))
+                    .eq('lon_start', Number(btn.dataset.lon));
+                if (error) {
+                    btn.disabled = false;
+                    msg.style.color = '#da3637';
+                    msg.textContent = 'Error: ' + error.message;
+                    return;
+                }
+                sl.maxspeed = v;
+                sl.tagged = true;
+                map.closePopup();
+                renderMapElements();
+                const info = document.getElementById('mapRenderInfo');
+                if (info) info.textContent = `guardado en la BD: ${v} km/h${sl.name ? ' · ' + sl.name : ''}`;
+            });
         }
 
         map.on('moveend', cargarCuadro);
