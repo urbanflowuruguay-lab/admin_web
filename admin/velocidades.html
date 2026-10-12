@@ -149,7 +149,6 @@
 
                 <button class="btn-action btn-blue" onclick="syncSpeedLimits()">🏎️ Descargar Velocidades</button>
                 <button class="btn-action btn-danger" onclick="deleteSpeedLimits()" style="margin-top: 8px;">🗑️ Borrar Velocidades del Departamento</button>
-                <button class="btn-action" onclick="showSpeedLimitsOnMap()" style="margin-top: 8px; background: #8b949e;">🗺️ Ver Velocidades en el Mapa</button>
             </div>
             <div class="card">
                 <h3>🔍 Buscar Calle</h3>
@@ -690,49 +689,6 @@
             } catch (e) {
                 statusEl.textContent = `Error: ${e.message}`;
                 console.log(`[DeleteSpeed] Error: ${e.message}`);
-            }
-        }
-
-        let speedLimitLayer = null;
-        async function showSpeedLimitsOnMap() {
-            if (speedLimitLayer) {
-                map.removeLayer(speedLimitLayer);
-                map.removeLayer(speedLimitLayer._hoverLayer);
-                speedLimitLayer = null;
-                speedLimitLayerVisible = false;
-                return;
-            }
-
-            const statusEl = document.getElementById('speedLimitStatus');
-            statusEl.textContent = 'Cargando velocidades del mapa...';
-
-            try {
-                let allData = [];
-                let start = 0;
-                while (true) {
-                    const { data, error } = await sb.from('speed_limits').select('lat_start,lon_start,lat_end,lon_end,maxspeed,highway,name').order('id').range(start, start + 999);
-                    if (error || !data || data.length === 0) break;
-                    allData = allData.concat(data);
-                    if (data.length < 1000) break;
-                    start += 1000;
-                }
-
-                if (allData.length === 0) { statusEl.textContent = 'No hay velocidades en la BD.'; return; }
-
-                const lines = allData.map(r => {
-                    const color = r.maxspeed <= 40 ? '#2ecc71' : r.maxspeed <= 50 ? '#3498db' : r.maxspeed <= 60 ? '#f1c40f' : r.maxspeed <= 90 ? '#e67e22' : '#e74c3c';
-                    return L.polyline([[r.lat_start, r.lon_start], [r.lat_end, r.lon_end]], {
-                        color: color, weight: 3, opacity: 0.8
-                    }).bindPopup(`<b style="font-size:16px; color:${color};">${r.maxspeed} km/h</b><br>${r.name || r.highway || ''}`);
-                });
-
-                speedLimitLayer = L.layerGroup(lines).addTo(map);
-                speedLimitLayerVisible = true;
-                statusEl.innerHTML = `🗺️ <b>${allData.length} segmentos</b> visibles en el mapa`;
-                statusEl.style.color = '#2ecc71';
-            } catch (e) {
-                statusEl.textContent = `Error: ${e.message}`;
-                console.log(`[MapSpeed] Error: ${e.message}`);
             }
         }
 
