@@ -207,7 +207,6 @@ textarea.ph{min-height:52px;line-height:1.45}
     <button class="filt" data-f="esquina">Esquinas</button>
     <button class="filt" data-f="usuario">Usuario / destino</button>
     <button class="filt" data-f="bus">Buses</button>
-    <button class="filt" data-f="feria">Ferias</button>
     <span style="flex:1"></span>
     <button class="btn g" onclick="report()">Copiar reporte</button>
     <button class="btn g" onclick="resetAll()">Resetear todo</button>
@@ -562,24 +561,6 @@ const ITEMS = [
   {t:'Supabase bus_lanes', d:'Tramos de carril exclusivo (id, geometr\u00eda, sentido).'},
   {t:'bus_lane_service.dart', d:'distanceToLane() decide si el carril est\u00e1 debajo del auto.'}
  ]},
-
-/* ===== FERIAS =====
-   Tristán Narvaja tenía su fila propia acá, pero es la feria id 249 de
-   map_events: ya aparece en la pestaña "Ferias" con las demás. La app
-   además no sabe dibujar type = feria_especial, sólo type = feria. */
-{id:'feria',g:'feria',n:'Feria vecinal (trazo punteado)',img:'',
- tag:"type = 'feria'",
- meta:'L&iacute;nea punteada blanco/rojo semitransparente, <b>no es icono</b> &middot; no avisa por voz, s\u00f3lo cartel &middot; <b>la app s\u00f3lo dibuja las que est\u00e1n marcadas como activas</b> (✅ en la pesta\u00f1a Ferias) y s\u00f3lo en su d&iacute;a y su horario',
- defSize:1.0,
- pref:'alert_feria', prefOn:true,
- voice:false, beep:false, nav:true, patrol:true, verifiable:true,
- phrase:'(la feria no tiene frase hablada; muestra cartel de texto)',
- sources:[
-  {t:'Supabase map_events', d:'Filas con <code>type = feria</code>. El d&iacute;a sale del prefijo del nombre (LUN/MAR/.../DOM). Se cargan y se editan desde la pesta&ntilde;a Ferias de esta misma pantalla.'},
-  {t:'PDF MEF (Decreto 103/2024)', d:'Fuente oficial de las ferias vigentes.'},
-  {t:'OSM Overpass', d:'Geometr&iacute;a de las calles; se recorta al tramo entre esquinas.'},
-  {t:'ferias_layer.dart', d:'Sprite PNG 16&times;4 blanco/rojo con package:image, capa ferias-layer + ferias-shadow.'}
- ]}
 ];
 
 /* ---------------- estado ---------------- */
@@ -599,8 +580,7 @@ function render(){
     ['evento','Eventos viales'],
     ['esquina','Esquinas (pare / ceda / sem&aacute;foro)'],
     ['usuario','Usuario y navegaci&oacute;n'],
-    ['bus','Buses y transporte p&uacute;blico'],
-    ['feria','Ferias vecinales']
+    ['bus','Buses y transporte p&uacute;blico']
   ];
   let h='';
   groups.forEach(function(gr){
