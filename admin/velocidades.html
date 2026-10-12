@@ -187,6 +187,8 @@
                 20 → 120 km/h
             </span>
             <span id="mapRenderInfo" style="font-size:10px; color:#8b949e;"></span>
+            <button id="btnVolverUY" onclick="irAUruguay()" style="display:none; padding:3px 10px; background:#1f6feb; color:#fff;
+                    border:none; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold;">📍 Volver a Uruguay</button>
         </div>
         <div id="mapAviso" style="display:none; position:absolute; top:62px; left:55px; right:20px; z-index:1000;
              border-radius:8px; padding:12px 15px; font-size:13px; box-shadow:0 4px 20px rgba(0,0,0,0.6);"></div>
@@ -737,6 +739,7 @@
             a.innerHTML = html;
         }
         function reintentar() { avisarMapa(''); cargarCuadro(); }
+        function irAUruguay() { map.setView([-34.9011, -56.1645], 13); }
 
         async function cargarCuadro() {
             const info = document.getElementById('mapRenderInfo');
@@ -855,22 +858,39 @@
                 </div>`;
         }
 
+        // La base tiene 291.894 tramos y el 100% es de Uruguay: si el mapa
+        // está en otro país no hay nada que buscar, y decírselo ahorra
+        // un montón de vueltas.
+        function enUruguay() {
+            const b = map.getBounds();
+            const cLat = (b.getNorth() + b.getSouth()) / 2;
+            const cLon = (b.getEast() + b.getWest()) / 2;
+            return cLat >= -35.2 && cLat <= -29.8 && cLon >= -58.8 && cLon <= -52.8;
+        }
+
         function renderMapElements() {
             speedLayerGroup.clearLayers();
             const info = document.getElementById('mapRenderInfo');
+            const btnUY = document.getElementById('btnVolverUY');
             const showSpeed = document.getElementById('filter_speed').checked;
             if (!showSpeed) {
+                if (btnUY) btnUY.style.display = 'none';
                 info.textContent = 'oculto: marcá la casilla 🏎️ Mostrar velocidades';
                 info.style.color = '#8b949e';
                 return;
             }
-            if (allSpeedLimits.length === 0) {
-                info.textContent = 'no hay tramos cargados todavía';
+            if (map.getSize().x < 50 || map.getSize().y < 50) {
+                if (btnUY) btnUY.style.display = 'none';
+                info.textContent = 'el mapa no tiene tamaño todavía';
                 info.style.color = '#e6a23c';
                 return;
             }
-            if (map.getSize().x < 50 || map.getSize().y < 50) {
-                info.textContent = 'el mapa no tiene tamaño todavía';
+            const fuera = !enUruguay();
+            if (btnUY) btnUY.style.display = fuera ? 'inline-block' : 'none';
+            if (allSpeedLimits.length === 0) {
+                info.textContent = fuera
+                    ? 'sin datos: los 291.894 tramos de la base son de Uruguay'
+                    : 'no hay tramos cargados todavía';
                 info.style.color = '#e6a23c';
                 return;
             }
@@ -895,8 +915,11 @@
             });
 
             if (info) {
+                if (btnUY) btnUY.style.display = enCuadro === 0 && fuera ? 'inline-block' : 'none';
                 info.textContent = enCuadro === 0
-                    ? 'Sin tramos cargados en este cuadro (acercá o alejá el mapa)'
+                    ? (fuera
+                        ? 'sin datos en esta vista: los tramos de la base son de Uruguay'
+                        : 'sin tramos en esta vista · alejá el mapa')
                     : `${pintados.toLocaleString('es')} de ${enCuadro.toLocaleString('es')} tramos en pantalla`
                         + (cortado ? ` · tope de ${TOPE_SEGMENTOS}, acercá el mapa` : '');
             }
