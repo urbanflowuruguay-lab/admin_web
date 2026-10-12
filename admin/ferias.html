@@ -497,9 +497,9 @@ function renderFerias(){
     const s=fStatus(f);
     if(s==='active')ok++; else if(s==='rejected')bad++; else un++;
   });
-  document.getElementById('fCount').textContent=ok+' / '+FERIAS.length+' verificadas';
   document.getElementById('fProg').style.width=(FERIAS.length?(ok/FERIAS.length*100):0)+'%';
-  document.getElementById('tabFeriasCnt').textContent=un+' pendientes';
+  document.getElementById('fCount').textContent=ok+' / '+FERIAS.length+' verificadas'
+    +(un?' · '+un+' pendientes':'');
 
   // La feria en creación no existe en FERIAS todavía: se pinta aparte, arriba
   // de la lista, con su propio editor (id "new").
