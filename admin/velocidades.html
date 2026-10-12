@@ -174,6 +174,7 @@
             <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:#e67e22; font-weight:bold; cursor:pointer;">
                 <input type="checkbox" id="filter_speed" checked onchange="filterMap()"> 🏎️ Mostrar velocidades en el mapa
             </label>
+            <span id="mapRenderInfo" style="font-size:10px; color:#8b949e;"></span>
         </div>
         <div id="map"></div>
     </div>
@@ -555,6 +556,27 @@
             console.log(`[SpeedDownload] DONE: ${ok} segments saved`);
         }
 
+        // ilike no ignora acentos: si escribís "jose" no encontrás "José".
+        // Como tampoco podemos normalizar la columna desde acá, expandimos
+        // cada palabra a sus formas posibles y las pedimos juntas.
+        // Se hace por PALABRA y no por consulta entera, así "jose batlle
+        // ordonez" son 4+4+8 condiciones y no 4*4*8.
+        const FORMAS_LETRA = { a: 'aá', e: 'eé', i: 'ií', o: 'oó', u: 'uú', n: 'nñ' };
+        function variantesDePalabra(palabra) {
+            let formas = [''];
+            for (const ch of palabra) {
+                const opciones = FORMAS_LETRA[ch.toLowerCase()] || ch;
+                const nuevas = [];
+                for (const base of formas) {
+                    for (const op of opciones) {
+                        if (nuevas.length < 128) nuevas.push(base + op);
+                    }
+                }
+                formas = nuevas;
+            }
+            return formas;
+        }
+
         async function searchStreet() {
             const query = document.getElementById('streetSearchInput').value.trim();
             if (!query) return;
@@ -566,13 +588,23 @@
             resultsEl.innerHTML = '';
 
             try {
-                const { data, error } = await sb.from('speed_limits')
-                    .select('*')
-                    .ilike('name', `%${query}%`)
-                    .limit(100);
+                // comas y paréntesis rompen la sintaxis de or(...) de PostgREST
+                const palabras = query.replace(/[,()"']/g, ' ').split(/\s+/).filter(Boolean);
+                if (!palabras.length) { statusEl.textContent = 'Escribí el nombre de una calle.'; return; }
+
+                let consulta = sb.from('speed_limits').select('*');
+                palabras.forEach(pal => {
+                    const formas = variantesDePalabra(pal);
+                    consulta = consulta.or('or(' + formas.map(f => 'name.ilike.*' + f + '*').join(',') + ')');
+                });
+                const { data, error } = await consulta.limit(100);
 
                 if (error) { statusEl.textContent = `Error: ${error.message}`; statusEl.style.color = '#da3637'; return; }
-                if (!data || data.length === 0) { statusEl.textContent = 'No se encontraron calles con ese nombre.'; statusEl.style.color = '#8b949e'; return; }
+                if (!data || data.length === 0) {
+                    statusEl.textContent = 'No se encontraron calles con ese nombre. Probá con menos palabras.';
+                    statusEl.style.color = '#8b949e';
+                    return;
+                }
 
                 // Group by name
                 const grouped = {};
@@ -711,44 +743,112 @@
             filterMap();
         }
 
-        async function loadData() {
-            let allFetched = [];
-            let start = 0;
-            while(true) {
-                const { data: chunk, error } = await sb.from('speed_limits')
-                    .select('*').order('id').range(start, start + 999);
-                if (error || !chunk || chunk.length === 0) break;
-                allFetched.push(...chunk);
-                if (chunk.length < 1000) break;
-                start += 1000;
+        // Bajar las 291.894 filas al abrir eran 292 pedidos seguidos:
+        // tardaba ~4 minutos y no se veía nada. Ahora se carga sólo el
+        // cuadro visible, y los pedidos de esa página van en paralelo
+        // (cada uno tarda entre 0,5 y 2 s, en serie se hace eterno).
+        const TOPE_CARGA = 15000;
+        let cuadroEnCurso = 0;
+        async function cargarCuadro() {
+            const b = map.getBounds();
+            const token = ++cuadroEnCurso;
+            const info = document.getElementById('mapRenderInfo');
+            info.style.color = '#8b949e';
+            info.textContent = 'Cargando tramos del cuadro...';
+
+            const pad = 0.05;
+            const lat0 = b.getSouth() - pad, lat1 = b.getNorth() + pad;
+            const lon0 = b.getWest()  - pad, lon1 = b.getEast()  + pad;
+            const filtrar = q => q
+                .gte('lat_start', lat0).lte('lat_start', lat1)
+                .gte('lon_start', lon0).lte('lon_start', lon1)
+                // id es NULL en las 291.894 filas, no sirve para ordenar
+                .order('way_id').order('lat_start').order('lon_start');
+
+            try {
+                const primero = await filtrar(sb.from('speed_limits').select('*', { count: 'exact' })).range(0, 999);
+                if (token !== cuadroEnCurso) return;
+                if (primero.error) throw primero.error;
+
+                const total = Math.min(primero.count || (primero.data || []).length, TOPE_CARGA);
+                const filas = new Map();
+                const clave = r => r.way_id + '|' + r.lat_start + '|';
+                (primero.data || []).forEach(r => filas.set(clave(r) + r.lon_start, r));
+
+                const offsets = [];
+                for (let d = 1000; d < total; d += 1000) offsets.push(d);
+                for (let i = 0; i < offsets.length; i += 8) {
+                    if (token !== cuadroEnCurso) return;
+                    const lote = await Promise.all(offsets.slice(i, i + 8).map(d =>
+                        filtrar(sb.from('speed_limits').select('*')).range(d, d + 999)));
+                    for (const r of lote) {
+                        if (r.error) throw r.error;
+                        (r.data || []).forEach(x => filas.set(clave(x) + x.lon_start, x));
+                    }
+                }
+
+                if (token !== cuadroEnCurso) return;
+                allSpeedLimits = [...filas.values()];
+                renderMapElements();
+                if (total >= TOPE_CARGA && primero.count) {
+                    info.textContent = `mostrando una parte (${TOPE_CARGA.toLocaleString('es')} de ${primero.count.toLocaleString('es')} tramos del cuadro) · acercá el mapa`;
+                }
+            } catch (e) {
+                if (token !== cuadroEnCurso) return;
+                info.style.color = '#da3637';
+                info.textContent = 'Error cargando: ' + e.message;
             }
-            allSpeedLimits = allFetched;
-            renderMapElements();
         }
 
+        // La tabla tiene 291.894 filas: mandarlas todas a Leaflet congelaría
+        // el navegador, y el mapa arranca en zoom 13 mientras el corte estaba
+        // en 14 (sin escuchar el zoom), así que no se veía nada nunca.
+        // Dibuja sólo el cuadro visible, con tope, y se repinta al mover.
+        const TOPE_SEGMENTOS = 5000;
         function renderMapElements() {
             speedLayerGroup.clearLayers();
+            const info = document.getElementById('mapRenderInfo');
             const showSpeed = document.getElementById('filter_speed').checked;
-            if (showSpeed && allSpeedLimits.length > 0 && map.getZoom() >= 14) {
-                allSpeedLimits.forEach(sl => {
-                    const color = sl.maxspeed <= 40 ? '#2ecc71' : sl.maxspeed <= 60 ? '#f1c40f' : sl.maxspeed <= 90 ? '#e67e22' : '#e74c3c';
-                    const line = L.polyline(
-                        [[sl.lat_start, sl.lon_start], [sl.lat_end, sl.lon_end]],
-                        { color, weight: 4, opacity: 0.8 }
-                    );
-                    line.bindPopup(`
-                        <div style="font-family:sans-serif; font-size:12px;">
-                            <b style="font-size:14px; color:${color};">${sl.maxspeed} km/h</b><br>
-                            ${sl.name ? sl.name + '<br>' : ''}
-                            <small>${sl.highway}</small>
-                        </div>
-                    `);
-                    line.addTo(speedLayerGroup);
-                });
+            if (!showSpeed || allSpeedLimits.length === 0) {
+                if (info) info.textContent = '';
+                return;
+            }
+
+            const b = map.getBounds();
+            let pintados = 0, enCuadro = 0, cortado = false;
+            allSpeedLimits.forEach(sl => {
+                if (sl.lat_start < b.getSouth() || sl.lat_start > b.getNorth() ||
+                    sl.lon_start < b.getWest()   || sl.lon_start > b.getEast()) return;
+                enCuadro++;
+                if (pintados >= TOPE_SEGMENTOS) { cortado = true; return; }
+                pintados++;
+
+                const color = sl.maxspeed <= 40 ? '#2ecc71' : sl.maxspeed <= 60 ? '#f1c40f' : sl.maxspeed <= 90 ? '#e67e22' : '#e74c3c';
+                const line = L.polyline(
+                    [[sl.lat_start, sl.lon_start], [sl.lat_end, sl.lon_end]],
+                    { color, weight: 4, opacity: 0.8 }
+                );
+                line.bindPopup(`
+                    <div style="font-family:sans-serif; font-size:12px;">
+                        <b style="font-size:14px; color:${color};">${sl.maxspeed} km/h</b><br>
+                        ${sl.name ? sl.name + '<br>' : ''}
+                        <small>${sl.highway}</small>
+                    </div>
+                `);
+                line.addTo(speedLayerGroup);
+            });
+
+            if (info) {
+                info.textContent = enCuadro === 0
+                    ? 'Sin tramos cargados en este cuadro (acercá o alejá el mapa)'
+                    : `${pintados.toLocaleString('es')} de ${enCuadro.toLocaleString('es')} tramos en pantalla`
+                        + (cortado ? ` · tope de ${TOPE_SEGMENTOS}, acercá el mapa` : '');
             }
         }
 
-        loadData();
+        map.on('moveend', cargarCuadro);
+
+        cargarCuadro();
         updateSpeedLimitDivisions();
     </script>
 </body>
