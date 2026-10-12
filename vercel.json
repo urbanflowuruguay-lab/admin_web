@@ -1,0 +1,19 @@
+{
+  "redirects": [
+    {
+      "source": "/favicon.ico",
+      "destination": "/favicon.png",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*\\.html)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }]
+    },
+    {
+      "source": "/restaurant_system/(.*\\.html)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, must-revalidate" }]
+    }
+  ]
+}
