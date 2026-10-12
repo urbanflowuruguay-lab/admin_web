@@ -722,6 +722,7 @@
         // (cada uno tarda entre 0,5 y 2 s, en serie se hace eterno).
         const TOPE_CARGA = 15000;
         let cuadroEnCurso = 0;
+        let reintentosTamano = 0;
 
         // Aviso grande sobre el mapa. Sólo se muestra si algo falla o tarda,
         // porque si no el usuario ve el mapa sin calles y no sabe por qué.
@@ -738,9 +739,26 @@
         function reintentar() { avisarMapa(''); cargarCuadro(); }
 
         async function cargarCuadro() {
+            const info = document.getElementById('mapRenderInfo');
+
+            // Dentro del iframe del portal admin el div del mapa arranca en
+            // 0x0. Con eso los límites salen degenerados (sur == norte) y la
+            // consulta no trae ninguna fila: el mapa quedaba vacío de calles.
+            // Medimos de nuevo y reintentamos.
+            if (reintentosTamano < 25) {
+                map.invalidateSize();
+                const s = map.getSize();
+                if (s.x < 50 || s.y < 50) {
+                    reintentosTamano++;
+                    info.style.color = '#e6a23c';
+                    info.textContent = 'ajustando el tamaño del mapa...';
+                    setTimeout(cargarCuadro, 400);
+                    return;
+                }
+            }
+
             const b = map.getBounds();
             const token = ++cuadroEnCurso;
-            const info = document.getElementById('mapRenderInfo');
             info.style.color = '#8b949e';
             info.textContent = 'Cargando tramos del cuadro...';
             avisarMapa('');
@@ -851,6 +869,11 @@
                 info.style.color = '#e6a23c';
                 return;
             }
+            if (map.getSize().x < 50 || map.getSize().y < 50) {
+                info.textContent = 'el mapa no tiene tamaño todavía';
+                info.style.color = '#e6a23c';
+                return;
+            }
 
             const b = map.getBounds();
             let pintados = 0, enCuadro = 0, cortado = false;
@@ -922,6 +945,9 @@
         // si el usuario gira el celular o agranda/achica la ventana,
         // Leaflet tiene que volver a medir su contenedor
         window.addEventListener('resize', () => map.invalidateSize());
+        // dentro del iframe del portal el contenedor puede medir 0 al
+        // arrancar; al terminar de cargar la página hay que medir de nuevo
+        window.addEventListener('load', () => { reintentosTamano = 0; cargarCuadro(); });
 
         cargarCuadro();
         updateSpeedLimitDivisions();
