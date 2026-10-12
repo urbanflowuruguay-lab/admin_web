@@ -330,40 +330,6 @@
             document.getElementById('speedLimitStatus').textContent = '';
         }
 
-        function getCountryGrid(countryCode) {
-            switch(countryCode) {
-                case 'UY': return [
-                    { minLat: -34.95, minLon: -58.45, maxLat: -33.5, maxLon: -55.5 },
-                    { minLat: -34.95, minLon: -55.5, maxLat: -33.5, maxLon: -53.0 },
-                    { minLat: -33.5, minLon: -58.45, maxLat: -31.0, maxLon: -55.5 },
-                    { minLat: -33.5, minLon: -55.5, maxLat: -31.0, maxLon: -53.0 }
-                ];
-                case 'AR': return [
-                    { minLat: -39.0, minLon: -65.0, maxLat: -35.0, maxLon: -60.5 },
-                    { minLat: -39.0, minLon: -60.5, maxLat: -35.0, maxLon: -56.0 },
-                    { minLat: -35.0, minLon: -65.0, maxLat: -31.0, maxLon: -60.5 },
-                    { minLat: -35.0, minLon: -60.5, maxLat: -31.0, maxLon: -56.0 }
-                ];
-                case 'BR': return [
-                    { minLat: -30.0, minLon: -53.0, maxLat: -25.0, maxLon: -47.0 },
-                    { minLat: -30.0, minLon: -47.0, maxLat: -25.0, maxLon: -41.0 },
-                    { minLat: -25.0, minLon: -53.0, maxLat: -20.0, maxLon: -47.0 },
-                    { minLat: -25.0, minLon: -47.0, maxLat: -20.0, maxLon: -41.0 }
-                ];
-                case 'CL': return [
-                    { minLat: -37.0, minLon: -73.5, maxLat: -33.0, maxLon: -69.5 },
-                    { minLat: -33.0, minLon: -73.5, maxLat: -29.0, maxLon: -69.5 }
-                ];
-                case 'PY': return [
-                    { minLat: -27.6, minLon: -62.7, maxLat: -23.4, maxLon: -58.5 },
-                    { minLat: -27.6, minLon: -58.5, maxLat: -23.4, maxLon: -54.2 },
-                    { minLat: -23.4, minLon: -62.7, maxLat: -19.2, maxLon: -58.5 },
-                    { minLat: -23.4, minLon: -58.5, maxLat: -19.2, maxLon: -54.2 }
-                ];
-                default: return [{ minLat: -34.94, minLon: -56.43, maxLat: -34.70, maxLon: -56.00 }];
-            }
-        }
-
         async function syncSpeedLimits() {
             const country = document.getElementById('speedLimitCountry').value;
             const divisionKey = document.getElementById('speedLimitDivision').value;
@@ -422,6 +388,13 @@
             console.log(`[SpeedDownload] Highway filter: ${hwFilter}`);
 
             const endpoints = ["https://overpass.kumi.systems/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://overpass-api.de/api/interpreter"];
+            // Dos de estos mirrors devuelven 406 en algunas redes, y el codigo
+            // los prueba todos. El que funciono la ultima vez va primero.
+            const ultimoOverpass = localStorage.getItem('overpassEndpoint');
+            if (ultimoOverpass && endpoints.includes(ultimoOverpass)) {
+                endpoints.splice(endpoints.indexOf(ultimoOverpass), 1);
+                endpoints.unshift(ultimoOverpass);
+            }
             const allWays = new Map();
 
             for (let idx = 0; idx < grids.length; idx++) {
@@ -441,6 +414,7 @@
                         if (resp.ok) {
                             const data = await resp.json();
                             console.log(`[SpeedDownload] Elements: ${data.elements?.length || 0}`);
+                            if (data.elements) localStorage.setItem('overpassEndpoint', url);
                             if (data.elements) {
                                 const ways = data.elements.filter(e => e.type === 'way');
                                 const nodes = data.elements.filter(e => e.type === 'node');

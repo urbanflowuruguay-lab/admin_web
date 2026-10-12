@@ -331,6 +331,40 @@
             }
         }
 
+        function getCountryGrid(countryCode) {
+            switch(countryCode) {
+                case 'UY': return [
+                    { minLat: -34.95, minLon: -58.45, maxLat: -33.5, maxLon: -55.5 },
+                    { minLat: -34.95, minLon: -55.5, maxLat: -33.5, maxLon: -53.0 },
+                    { minLat: -33.5, minLon: -58.45, maxLat: -31.0, maxLon: -55.5 },
+                    { minLat: -33.5, minLon: -55.5, maxLat: -31.0, maxLon: -53.0 }
+                ];
+                case 'AR': return [
+                    { minLat: -39.0, minLon: -65.0, maxLat: -35.0, maxLon: -60.5 },
+                    { minLat: -39.0, minLon: -60.5, maxLat: -35.0, maxLon: -56.0 },
+                    { minLat: -35.0, minLon: -65.0, maxLat: -31.0, maxLon: -60.5 },
+                    { minLat: -35.0, minLon: -60.5, maxLat: -31.0, maxLon: -56.0 }
+                ];
+                case 'BR': return [
+                    { minLat: -30.0, minLon: -53.0, maxLat: -25.0, maxLon: -47.0 },
+                    { minLat: -30.0, minLon: -47.0, maxLat: -25.0, maxLon: -41.0 },
+                    { minLat: -25.0, minLon: -53.0, maxLat: -20.0, maxLon: -47.0 },
+                    { minLat: -25.0, minLon: -47.0, maxLat: -20.0, maxLon: -41.0 }
+                ];
+                case 'CL': return [
+                    { minLat: -37.0, minLon: -73.5, maxLat: -33.0, maxLon: -69.5 },
+                    { minLat: -33.0, minLon: -73.5, maxLat: -29.0, maxLon: -69.5 }
+                ];
+                case 'PY': return [
+                    { minLat: -27.6, minLon: -62.7, maxLat: -23.4, maxLon: -58.5 },
+                    { minLat: -27.6, minLon: -58.5, maxLat: -23.4, maxLon: -54.2 },
+                    { minLat: -23.4, minLon: -62.7, maxLat: -19.2, maxLon: -58.5 },
+                    { minLat: -23.4, minLon: -58.5, maxLat: -19.2, maxLon: -54.2 }
+                ];
+                default: return [{ minLat: -34.94, minLon: -56.43, maxLat: -34.70, maxLon: -56.00 }];
+            }
+        }
+
         async function syncFromOSM() {
             const scope = document.getElementById('importScope').value;
             const country = document.getElementById('importCountry').value;
@@ -376,7 +410,14 @@
 
             if (!confirm(`¿Importar datos de OSM para "${country}"?\nSe harán ${grids.length} peticiones.`)) return;
 
-            const endpoints = ["https://overpass-api.de/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+            const endpoints = ["https://overpass.kumi.systems/api/interpreter", "https://lz4.overpass-api.de/api/interpreter", "https://overpass-api.de/api/interpreter"];
+            // Dos de estos mirrors devuelven 406 en algunas redes, y el codigo
+            // los prueba todos. El que funciono la ultima vez va primero.
+            const ultimoOverpass = localStorage.getItem('overpassEndpoint');
+            if (ultimoOverpass && endpoints.includes(ultimoOverpass)) {
+                endpoints.splice(endpoints.indexOf(ultimoOverpass), 1);
+                endpoints.unshift(ultimoOverpass);
+            }
             const allElements = [];
 
             for (let idx = 0; idx < grids.length; idx++) {
@@ -402,7 +443,14 @@
                                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                                 body: 'data=' + encodeURIComponent(query)
                             });
-                            if (resp.ok) { const data = await resp.json(); if (data.elements) allElements.push(...data.elements); success = true; break; }
+                            if (resp.ok) {
+                                const data = await resp.json();
+                                if (data.elements) {
+                                    allElements.push(...data.elements);
+                                    localStorage.setItem('overpassEndpoint', url);
+                                }
+                                success = true; break;
+                            }
                             else console.warn(`[${idx+1}] ${url.split('/')[2]}: ${resp.status}`);
                         } catch (e) { console.warn(`[${idx+1}] ${url.split('/')[2]}: ${e.message}`); }
                     }
@@ -557,14 +605,6 @@
 
         function generateOverpassQuery() {
             const country = document.getElementById('importCountry').value;
-            let q = "";
-            if (document.getElementById('import_pare').checked) q += `node["highway"="stop"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
-            if (document.getElementById('import_ceda').checked) q += `node["highway"="give_way"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
-            if (document.getElementById('import_radar').checked) q += `node["highway"="speed_camera"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
-            if (document.getElementById('import_lomada').checked) { q += `node["barrier"="speed_bump"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["highway"="speed_bump"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["traffic_calming"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; }
-            if (document.getElementById('import_cruce').checked) q += `node["railway"="level_crossing"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
-            if (document.getElementById('import_peaje').checked) { q += `node["barrier"="toll_booth"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; q += `node["highway"="toll_booth"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`; }
-            if (document.getElementById('import_semaforo').checked) q += `node["highway"="traffic_signals"](${g.minLat},${g.minLon},${g.maxLat},${g.maxLon});\n`;
 
             const scope = document.getElementById('importScope').value;
             let bounds;
