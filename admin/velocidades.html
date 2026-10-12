@@ -188,6 +188,8 @@
             </span>
             <span id="mapRenderInfo" style="font-size:10px; color:#8b949e;"></span>
         </div>
+        <div id="mapAviso" style="display:none; position:absolute; top:62px; left:55px; right:20px; z-index:1000;
+             border-radius:8px; padding:12px 15px; font-size:13px; box-shadow:0 4px 20px rgba(0,0,0,0.6);"></div>
         <div id="map"></div>
     </div>
 
@@ -196,7 +198,9 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Zmdrb3BhYW1ua3ByenB3b2N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODYxOTQ4MywiZXhwIjoyMDk0MTk1NDgzfQ.GIEEonN5-YGK1hBLloSun9WX-almQfnQW-0LdGOHmCk";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const map = L.map('map').setView([-34.9011, -56.1645], 13);
+        // preferCanvas: con 5.000 tramos el SVG se vuelve pesado y en algunas
+        // tarjetas de video dibuja mal; el canvas va más derecho.
+        const map = L.map('map', { preferCanvas: true }).setView([-34.9011, -56.1645], 13);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
             maxZoom: 19, 
             maxNativeZoom: 19, 
@@ -718,12 +722,37 @@
         // (cada uno tarda entre 0,5 y 2 s, en serie se hace eterno).
         const TOPE_CARGA = 15000;
         let cuadroEnCurso = 0;
+
+        // Aviso grande sobre el mapa. Sólo se muestra si algo falla o tarda,
+        // porque si no el usuario ve el mapa sin calles y no sabe por qué.
+        function avisarMapa(html) {
+            const a = document.getElementById('mapAviso');
+            if (!a) return;
+            if (!html) { a.style.display = 'none'; a.innerHTML = ''; return; }
+            a.style.display = 'block';
+            a.style.background = '#3d1d1d';
+            a.style.border = '1px solid #da3637';
+            a.style.color = '#ffd7d7';
+            a.innerHTML = html;
+        }
+        function reintentar() { avisarMapa(''); cargarCuadro(); }
+
         async function cargarCuadro() {
             const b = map.getBounds();
             const token = ++cuadroEnCurso;
             const info = document.getElementById('mapRenderInfo');
             info.style.color = '#8b949e';
             info.textContent = 'Cargando tramos del cuadro...';
+            avisarMapa('');
+
+            // Si en 25 s no llegó nada, avisamos con un botón. Sin esto el
+            // usuario ve el mapa vacío de calles y no entiende qué pasa.
+            const reloj = setTimeout(() => {
+                if (token !== cuadroEnCurso) return;
+                avisarMapa('Tardó demasiado en llegar la velocidad de las calles desde la base de datos.'
+                    + '<br><small>Si el mapa de fondo se ve bien pero no hay calles de colores, el problema es la conexión con la base de datos.</small>'
+                    + '<br><button onclick="reintentar()" style="margin-top:8px;padding:5px 12px;background:#238636;color:#fff;border:none;border-radius:4px;cursor:pointer;">Reintentar</button>');
+            }, 25000);
 
             const pad = 0.05;
             const lat0 = b.getSouth() - pad, lat1 = b.getNorth() + pad;
@@ -754,9 +783,14 @@
                         if (r.error) throw r.error;
                         (r.data || []).forEach(x => filas.set(clave(x) + x.lon_start, x));
                     }
+                    if (token === cuadroEnCurso && total > 1000) {
+                        info.textContent = `cargando... ${filas.size.toLocaleString('es')} de ${total.toLocaleString('es')} tramos`;
+                    }
                 }
 
                 if (token !== cuadroEnCurso) return;
+                clearTimeout(reloj);
+                avisarMapa('');
                 allSpeedLimits = [...filas.values()];
                 renderMapElements();
                 if (total >= TOPE_CARGA && primero.count) {
@@ -764,8 +798,11 @@
                 }
             } catch (e) {
                 if (token !== cuadroEnCurso) return;
+                clearTimeout(reloj);
                 info.style.color = '#da3637';
                 info.textContent = 'Error cargando: ' + e.message;
+                avisarMapa('No se pudo leer la base de datos de velocidades.<br><small>' + e.message + '</small>'
+                    + '<br><button onclick="reintentar()" style="margin-top:8px;padding:5px 12px;background:#238636;color:#fff;border:none;border-radius:4px;cursor:pointer;">Reintentar</button>');
             }
         }
 
@@ -804,8 +841,14 @@
             speedLayerGroup.clearLayers();
             const info = document.getElementById('mapRenderInfo');
             const showSpeed = document.getElementById('filter_speed').checked;
-            if (!showSpeed || allSpeedLimits.length === 0) {
-                if (info) info.textContent = '';
+            if (!showSpeed) {
+                info.textContent = 'oculto: marcá la casilla 🏎️ Mostrar velocidades';
+                info.style.color = '#8b949e';
+                return;
+            }
+            if (allSpeedLimits.length === 0) {
+                info.textContent = 'no hay tramos cargados todavía';
+                info.style.color = '#e6a23c';
                 return;
             }
 
