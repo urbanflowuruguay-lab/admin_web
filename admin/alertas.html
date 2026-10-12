@@ -101,6 +101,14 @@
             <div class="card">
                 <h3>📥 Importar desde OpenStreetMap (OSM)</h3>
                 <p style="font-size: 11px; margin: 0; color: #8b949e;">Carga todos los eventos de una zona o país completo.</p>
+
+                <div id="overpassBox" style="margin-top:10px; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:9px 11px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <span style="font-size:11px; color:#c9d1d9; font-weight:600;">🩺 Estado de Overpass</span>
+                        <button onclick="checkOverpass()" style="padding:3px 9px; background:#21262d; color:#c9d1d9; border:1px solid #484f58; border-radius:4px; cursor:pointer; font-size:10px;">Verificar desde acá</button>
+                    </div>
+                    <div id="overpassStatusList" style="margin-top:7px; font-size:11px; color:#8b949e;">Sin verificar todavía. Apretá <b>Verificar</b>: prueba cada mirror con una consulta de verdad, desde esta red y desde este navegador.</div>
+                </div>
                 
                 <div class="form-group" style="margin-top: 10px;">
                     <label>📍 Alcance</label>
@@ -363,6 +371,70 @@
                 ];
                 default: return [{ minLat: -34.94, minLon: -56.43, maxLat: -34.70, maxLon: -56.00 }];
             }
+        }
+
+        // Prueba cada mirror con una consulta real, desde el navegador y la red
+        // del usuario. Sirve para saber si Overpass esta caido o si lo que falla
+        // es la propia red: /api/status responde 200 aunque el POST falle, asi
+        // que no sirve para esto.
+        async function checkOverpass() {
+            const caja = document.getElementById('overpassStatusList');
+            const mirrors = [
+                'https://overpass.kumi.systems/api/interpreter',
+                'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+                'https://overpass-api.de/api/interpreter',
+                'https://lz4.overpass-api.de/api/interpreter'
+            ];
+            const probe = '[out:json][timeout:25];(node(-34.91,-56.20,-34.905,-56.195););out count;';
+            caja.innerHTML = '<span style="color:#f39c12;">Probando ' + mirrors.length + ' mirrors...</span>';
+
+            const filas = [];
+            for (const url of mirrors) {
+                const host = url.split('/')[2];
+                const ctrl = new AbortController();
+                const reloj = setTimeout(() => ctrl.abort(), 20000);
+                const t0 = Date.now();
+                try {
+                    const resp = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'data=' + encodeURIComponent(probe),
+                        signal: ctrl.signal
+                    });
+                    clearTimeout(reloj);
+                    const ms = Date.now() - t0;
+                    if (resp.ok) {
+                        let n = '?';
+                        try { n = (await resp.json()).elements.length; } catch (e) { n = 'ilegible'; }
+                        filas.push({ host, cls: 'ok', txt: 'funciona · ' + n + ' nodos · ' + ms + ' ms' });
+                    } else {
+                        let detalle = '';
+                        try { detalle = (await resp.text()).replace(/\s+/g, ' ').slice(0, 70); } catch (e) { }
+                        filas.push({ host, cls: 'mal', txt: 'HTTP ' + resp.status + ' · ' + ms + ' ms' + (detalle ? ' · ' + detalle : '') });
+                    }
+                } catch (e) {
+                    clearTimeout(reloj);
+                    const ms = Date.now() - t0;
+                    const razon = e.name === 'AbortError' ? 'sin respuesta en 20 s'
+                        : e.message && /fetch|network|cors/i.test(e.message) ? 'bloqueado (red o CORS): ' + e.message
+                        : e.message;
+                    filas.push({ host, cls: 'mal', txt: 'no se pudo leer · ' + ms + ' ms · ' + razon });
+                }
+            }
+
+            const colores = { ok: '#3fb950', mal: '#f85149' };
+            caja.innerHTML = filas.map(f =>
+                '<div style="display:flex; gap:7px; align-items:flex-start; margin-bottom:5px; line-height:1.35;">' +
+                '<span style="color:' + colores[f.cls] + '; flex:none;">' + (f.cls === 'ok' ? '✅' : '❌') + '</span>' +
+                '<span><b style="color:#c9d1d9;">' + f.host + '</b><br>' +
+                '<span style="color:' + colores[f.cls] + ';">' + f.txt + '</span></span></div>'
+            ).join('');
+            const vivos = filas.filter(f => f.cls === 'ok').length;
+            caja.innerHTML += '<div style="margin-top:7px; padding-top:7px; border-top:1px solid #30363d; font-size:11px; color:' + (vivos ? '#3fb950' : '#f85149') + ';">' +
+                (vivos
+                    ? vivos + ' de ' + filas.length + ' responden. Si el de arriba falla igual, el problema es otro.'
+                    : 'Ninguno responde desde este navegador. No es que "Overpass esté caído": puede ser tu red, un proxy o el navegador bloqueando la lectura (CORS). Mientras tanto usá el JSON Manual de abajo.') +
+                '</div>';
         }
 
         async function syncFromOSM() {
