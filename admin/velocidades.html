@@ -745,6 +745,8 @@
 
         // Último estado de la carga, para poder diagnosticar sin adivinar.
         let ultimoEstado = { ms: 0, filas: 0, total: 0, error: null };
+        let cajasUsadas = null;   // qué límites usó realmente la última carga
+        let vecesCargado = 0;     // cuántas veces se pidió la base
 
         async function diagnosticar() {
             const b = map.getBounds(), s = map.getSize();
@@ -786,6 +788,10 @@
                 'tramos en memoria: ' + allSpeedLimits.length,
                 'tramos pintados: ' + speedLayerGroup.getLayers().length,
                 'ultima carga: ' + ultimoEstado.ms + ' ms, ' + ultimoEstado.filas + ' filas pedidas, ' + ultimoEstado.total + ' en total',
+                'cargas pedidas a la base: ' + vecesCargado,
+                'limites que pidio la ultima carga: ' + (cajasUsadas
+                    ? [cajasUsadas.lat0, cajasUsadas.lon0, cajasUsadas.lat1, cajasUsadas.lon1].map(n => n.toFixed(5)).join(' / ')
+                    : '(nunca corrió)'),
                 'ultimo error: ' + (ultimoEstado.error || '(ninguno)'),
                 'prueba fetch crudo: ' + cruda,
                 'prueba supabase-js: ' + conCliente,
@@ -827,6 +833,7 @@
             const b = map.getBounds();
             const token = ++cuadroEnCurso;
             const tCarga = Date.now();
+            vecesCargado++;
             info.style.color = '#8b949e';
             info.textContent = 'Cargando tramos del cuadro...';
             avisarMapa('');
@@ -843,6 +850,7 @@
             const pad = 0.05;
             const lat0 = b.getSouth() - pad, lat1 = b.getNorth() + pad;
             const lon0 = b.getWest()  - pad, lon1 = b.getEast()  + pad;
+            cajasUsadas = { lat0: lat0, lat1: lat1, lon0: lon0, lon1: lon1 };
             const filtrar = q => q
                 .gte('lat_start', lat0).lte('lat_start', lat1)
                 .gte('lon_start', lon0).lte('lon_start', lon1)
