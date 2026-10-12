@@ -1110,6 +1110,7 @@ function renderFerias(){
           +'<span style="flex:1"></span>'
           +'<button class="btn g sm" onclick="toggleEdit('+f.id+')">✏️ Editar</button>'
           +'<button class="lnk" onclick="openOsm('+f.id+')">Ver en OpenStreetMap ↗</button>'
+          +'<button class="lnk" style="color:#f85149" onclick="delFeria('+f.id+')">🗑️ Borrar feria</button>'
         +'</div>'
         +'<div class="lb">Nota (queda en este navegador)</div>'
         +'<textarea placeholder="Ej.: el trazo pasa dos cuadras más allá de donde está la feria de verdad." onchange="setFNote('+f.id+',this.value)">'+esc(note)+'</textarea>'
@@ -1177,6 +1178,37 @@ async function setVerdict(id,st){
     renderFerias();
     document.getElementById('fSync').textContent='❌ Error al guardar: '+e.message;
     toast('No se pudo guardar: '+e.message,true);
+  }
+}
+
+/// Borra la feria de la base. A diferencia de "❌ Mal ubicada", que sólo la
+/// esconde de la app, esto la saca de map_events para siempre.
+async function delFeria(id){
+  const f=getFeria(id);
+  if(!f) return;
+  const label=fLabel(f.name)||f.street||('Feria '+id);
+  if(!confirm('¿Borrar "'+label+'"?\n\nSe borra de la base de datos y de la app. No se puede deshacer.')) return;
+
+  // si se estaba editando, cerrar el editor antes de sacarla de FERIAS
+  if(feditId===id) cancelEdit(true);
+
+  fsaving++;
+  document.getElementById('fSync').textContent='Borrando feria '+id+'…';
+  try{
+    await fAuth('DELETE',SUPABASE_URL+'/rest/v1/map_events?id=eq.'+id);
+    fsaving--;
+    clearStreets(id);
+    if(fselected===id) fselected=null;
+    FERIAS=FERIAS.filter(function(x){return x.id!==id});
+    renderFerias();
+    document.getElementById('fSync').textContent = fsaving>0
+      ? 'Guardando… ('+fsaving+' en cola)'
+      : '✅ Guardado en la base de datos';
+    toast('Feria "'+label+'" borrada.');
+  }catch(e){
+    fsaving--;
+    document.getElementById('fSync').textContent='❌ Error al borrar: '+e.message;
+    toast('No se pudo borrar: '+e.message,true);
   }
 }
 
