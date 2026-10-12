@@ -942,14 +942,33 @@
 
         map.on('moveend', cargarCuadro);
 
-        // si el usuario gira el celular o agranda/achica la ventana,
-        // Leaflet tiene que volver a medir su contenedor
-        window.addEventListener('resize', () => map.invalidateSize());
+        // Dentro del iframe del portal el mapa arranca en 0x0 y luego crece.
+        // Leaflet se mide solo y por eso aparecen las baldosas, pero los
+        // tramos se habían pedido con los límites rotos: hay que volver a
+        // pedirlos y a pintarlos.
+        let relojResize = 0;
+        window.addEventListener('resize', () => {
+            map.invalidateSize();
+            clearTimeout(relojResize);
+            relojResize = setTimeout(() => {
+                reintentosTamano = 0;
+                renderMapElements();
+                cargarCuadro();
+            }, 250);
+        });
         // dentro del iframe del portal el contenedor puede medir 0 al
         // arrancar; al terminar de cargar la página hay que medir de nuevo
         window.addEventListener('load', () => { reintentosTamano = 0; cargarCuadro(); });
 
         cargarCuadro();
+        // red de seguridad: dentro del iframe del portal el contenedor a
+        // veces redimensiona tarde y la primera carga queda con 0 filas
+        [4000, 9000].forEach(ms => setTimeout(() => {
+            if (allSpeedLimits.length === 0) {
+                reintentosTamano = 0;
+                cargarCuadro();
+            }
+        }, ms));
         updateSpeedLimitDivisions();
     </script>
 </body>
